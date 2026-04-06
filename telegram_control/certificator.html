@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SiteBoS Certificator - TrinAI</title>
+    <title>Certificator | TrinAI Enterprise</title>
     
     <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
@@ -31,33 +31,42 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
         
-        /* Animazione Spinner B&W */
+        /* Spinner Noir */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
 
-        /* Camera Feed Style */
+        /* Signature Pad */
+        #signature-pad {
+            touch-action: none;
+            background-color: #ffffff;
+            cursor: crosshair;
+        }
+
+        /* Camera Feed */
         #camera-feed {
             width: 100%;
-            max-width: 500px;
-            aspect-ratio: 4/3;
-            object-fit: cover;
             border-radius: 2rem;
             background-color: #000;
+            transform: scaleX(1); /* No mirror for back camera */
         }
+
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 
     <script>
-        // ── SICUREZZA ──
+        // ── SICUREZZA: IL BUTTAFUORI ──
         (function() {
             const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "";
             if (!isTelegram) {
                 document.documentElement.innerHTML = `
-                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10">
+                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
                         <div>
-                            <h1 class="text-5xl mb-4 text-white">🚫</h1>
-                            <h2 class="text-xl font-black uppercase tracking-widest">Accesso Negato</h2>
-                            <p class="opacity-40 text-sm mt-2 font-medium leading-relaxed">Il modulo è accessibile solo tramite l'App SiteBoS ufficiale.</p>
+                            <h1 class="text-6xl mb-4 text-white">🚫</h1>
+                            <h2 class="text-xl font-bold uppercase tracking-widest text-white">Accesso Negato</h2>
+                            <p class="opacity-40 text-sm mt-4 leading-relaxed">Questo modulo è accessibile solo tramite link certificato SiteBoS.</p>
                         </div>
                     </body>`;
                 window.stop();
@@ -66,220 +75,286 @@
         })();
     </script>
 </head>
-<body class="bg-bg text-black min-h-screen flex flex-col items-center p-6">
+<body class="bg-bg text-black min-h-screen flex flex-col items-center p-6 pb-24">
 
-    <div class="w-full max-w-lg flex flex-col items-center space-y-8">
+    <div class="w-full max-w-lg flex flex-col items-center space-y-8 fade-in">
+        
         <!-- HEADER -->
-        <header class="text-center space-y-1">
+        <header class="text-center space-y-2 pt-4">
+            <div id="typeBadge" class="inline-block px-3 py-1 bg-black text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-full mb-1">Inizializzazione...</div>
             <h1 class="text-3xl font-black tracking-tighter uppercase leading-none">CERTIFICATOR</h1>
-            <p id="subtitle" class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Acquisizione Evidenze</p>
+            <div id="statusText" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Caricamento configurazione...</div>
         </header>
 
-        <!-- STATUS BOX -->
-        <div class="w-full bg-white rounded-[2.5rem] p-8 border border-border shadow-sm flex flex-col items-center text-center space-y-4">
-            <div id="status" class="text-sm font-bold tracking-tight">Inizializzazione...</div>
-            <div id="loader" class="spinner hidden"></div>
-        </div>
+        <!-- GLOBAL LOADER -->
+        <div id="loader" class="spinner hidden"></div>
 
-        <!-- MODULO: IMAGE (CAMERA) -->
-        <div id="section-image" class="hidden w-full flex flex-col items-center space-y-6">
-            <div class="relative w-full">
-                <video id="camera-feed" class="hidden shadow-2xl" autoplay playsinline webkit-playsinline muted></video>
-                <canvas id="canvas" class="hidden"></canvas>
-                <!-- Decorative scan line -->
-                <div id="scan-line" class="hidden absolute top-0 left-0 w-full h-1 bg-white opacity-20 animate-bounce"></div>
+        <!-- SEZIONE: VISION (FOTO) -->
+        <div id="section-vision" class="hidden w-full flex flex-col items-center space-y-6">
+            <div class="relative w-full shadow-2xl rounded-[2.5rem] overflow-hidden bg-black aspect-[4/3]">
+                <video id="camera-feed" class="hidden h-full w-full object-cover" autoplay playsinline muted></video>
+                <canvas id="camera-canvas" class="hidden"></canvas>
+                <div id="camera-placeholder" class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-camera text-neutral-800 text-6xl"></i>
+                </div>
             </div>
             
             <button id="startCamBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition" onclick="startCamera()">
-                <i class="fas fa-camera mr-2"></i> Attiva Fotocamera
+                <i class="fas fa-video mr-3"></i> Attiva Obiettivo
             </button>
-            
             <button id="snapBtn" class="hidden w-full bg-red-600 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition" onclick="takePhoto()">
-                🔴 Scatta e Invia
+                🔴 Cattura Evidenza
             </button>
         </div>
 
-        <!-- MODULO: FILE -->
-        <div id="section-file" class="hidden w-full flex flex-col items-center space-y-6">
-            <div class="w-full border-2 border-dashed border-gray-200 bg-white rounded-[2.5rem] p-12 flex flex-col items-center justify-center cursor-pointer hover:border-black transition active:scale-95 group" onclick="document.getElementById('fileInput').click()">
-                <i class="fas fa-file-upload text-4xl text-gray-200 group-hover:text-black transition mb-4"></i>
-                <span class="text-xs font-black uppercase tracking-widest text-gray-400 group-hover:text-black transition">Seleziona Documento</span>
-                <span class="text-[9px] font-bold text-gray-300 mt-2 uppercase tracking-tighter">(PDF, JPG, PNG - MAX 10MB)</span>
+        <!-- SEZIONE: SIGNATURE (FIRMA) -->
+        <div id="section-signature" class="hidden w-full flex flex-col items-center space-y-6">
+            <div class="w-full bg-white border border-gray-100 rounded-[2.5rem] p-3 shadow-sm overflow-hidden">
+                <canvas id="signature-pad" class="w-full h-80 rounded-[1.5rem] border border-gray-50"></canvas>
             </div>
+            <div class="flex w-full gap-4">
+                <button onclick="clearSignature()" class="flex-1 bg-white border border-gray-200 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition">
+                    Cancella
+                </button>
+                <button onclick="saveSignature()" class="flex-[2] bg-black text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition">
+                    Conferma Identità
+                </button>
+            </div>
+        </div>
+
+        <!-- SEZIONE: FILE (DOCUMENTO) -->
+        <div id="section-file" class="hidden w-full flex flex-col items-center space-y-6">
+            <div class="w-full border-2 border-dashed border-gray-200 bg-white rounded-[2.5rem] p-16 flex flex-col items-center justify-center cursor-pointer hover:border-black transition active:scale-95 group" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-cloud-upload text-5xl text-gray-200 group-hover:text-black transition mb-6"></i>
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-black transition">Carica Documentazione</span>
+            </div>
+            <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(event)">
+            <div id="fileNameDisplay" class="text-[10px] font-black uppercase tracking-widest text-neutral-400">Pronto per l'invio</div>
             
-            <input type="file" id="fileInput" class="hidden" accept=".pdf,image/jpeg,image/png" onchange="handleFileSelect(event)">
-            <div id="fileNameDisplay" class="text-[10px] font-black uppercase tracking-widest text-red-500">Nessun file selezionato</div>
-            
-            <button id="uploadFileBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition disabled:opacity-20 disabled:active:scale-100" disabled onclick="processAndSendFile()">
-                <i class="fas fa-paper-plane mr-2"></i> Invia Documento
+            <button id="uploadFileBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition disabled:opacity-10" disabled onclick="processAndSendFile()">
+                Invia Allegato
             </button>
         </div>
 
-        <!-- MODULO: TEXT -->
+        <!-- SEZIONE: TEXT (NOTA) -->
         <div id="section-text" class="hidden w-full flex flex-col items-center space-y-6">
-            <textarea id="textInput" placeholder="Inserisci qui il testo richiesto o la nota di validazione..." class="w-full bg-white border border-border rounded-[2.5rem] p-8 text-sm font-medium outline-none focus:ring-1 ring-black transition min-h-[200px] shadow-sm" oninput="validateText()"></textarea>
-            
-            <button id="sendTextBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition disabled:opacity-20 disabled:active:scale-100" disabled onclick="sendTextData()">
-                <i class="fas fa-paper-plane mr-2"></i> Invia Nota
+            <textarea id="textInput" placeholder="Inserisci qui il contenuto o la nota richiesta..." class="w-full bg-white border border-gray-100 rounded-[2.5rem] p-8 text-sm font-medium outline-none focus:ring-1 ring-black transition min-h-[250px] shadow-sm leading-relaxed" oninput="validateText()"></textarea>
+            <button id="sendTextBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition disabled:opacity-10" disabled onclick="sendTextData()">
+                Trasmetti Nota
             </button>
         </div>
+
     </div>
 
     <script>
+        'use strict';
+
         const tg = window.Telegram.WebApp;
         tg.expand();
         tg.ready();
 
-        const statusText = document.getElementById('status');
-        const loader = document.getElementById('loader');
-        const secImage = document.getElementById('section-image');
-        const secFile = document.getElementById('section-file');
-        const secText = document.getElementById('section-text');
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/ef4aece4-9ec0-4026-a7a7-328562bcbdf6";
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        const sopId = urlParams.get('sop_id');
+        const messageId = urlParams.get('message_id');
+        const evidenceType = (urlParams.get('evidence_type') || 'VISION').toUpperCase();
 
-        // DATI DA SDK
-        const chatId = tg.initDataUnsafe.start_param || tg.initDataUnsafe.user?.id;
-        const userId = tg.initDataUnsafe.user?.id;
-
-        let urlParams = {};
-        let evidenceType = "IMAGE";
         let videoStream = null;
-        let selectedFileBase64 = null;
-        let selectedFileMime = null;
-        let selectedFileName = null;
+        let isDrawing = false;
+        let canvas, ctx;
 
+        // ── INITIALIZATION ──
         function initApp() {
-            const params = new URLSearchParams(window.location.search);
-            urlParams = Object.fromEntries(params.entries());
-            evidenceType = (urlParams.evidence_type || "IMAGE").toUpperCase();
+            const badge = document.getElementById('typeBadge');
+            badge.innerText = evidenceType + " PROTOCOL";
 
-            if (evidenceType === "FILE") {
-                secFile.classList.remove('hidden');
-                statusText.innerText = "Scegli il file da allegare";
-            } else if (evidenceType === "TEXT") {
-                secText.classList.remove('hidden');
-                statusText.innerText = "Inserisci la nota testuale";
-            } else {
-                secImage.classList.remove('hidden');
-                statusText.innerText = "Prepara lo scatto live";
+            // Mostra sezione corretta
+            if (evidenceType === 'VISION') document.getElementById('section-vision').classList.remove('hidden');
+            else if (evidenceType === 'SIGNATURE') {
+                document.getElementById('section-signature').classList.remove('hidden');
+                initSignaturePad();
             }
+            else if (evidenceType === 'FILE') document.getElementById('section-file').classList.remove('hidden');
+            else if (evidenceType === 'TEXT') document.getElementById('section-text').classList.remove('hidden');
+
+            document.getElementById('statusText').innerText = "In attesa di acquisizione...";
         }
 
+        // ── SIGNATURE MODULE ──
+        function initSignaturePad() {
+            canvas = document.getElementById('signature-pad');
+            ctx = canvas.getContext('2d');
+            
+            const resize = () => {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                canvas.width = canvas.offsetWidth * ratio;
+                canvas.height = canvas.offsetHeight * ratio;
+                ctx.scale(ratio, ratio);
+                ctx.strokeStyle = "#000000";
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = "round";
+                ctx.lineJoin = "round";
+            };
+            window.addEventListener('resize', resize);
+            resize();
+
+            const start = (e) => {
+                isDrawing = true;
+                const { x, y } = getCoord(e);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            };
+            const move = (e) => {
+                if (!isDrawing) return;
+                const { x, y } = getCoord(e);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            };
+            const stop = () => isDrawing = false;
+
+            canvas.addEventListener('mousedown', start);
+            canvas.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', stop);
+            
+            canvas.addEventListener('touchstart', (e) => { start(e.touches[0]); e.preventDefault(); }, {passive: false});
+            canvas.addEventListener('touchmove', (e) => { move(e.touches[0]); e.preventDefault(); }, {passive: false});
+            canvas.addEventListener('touchend', stop);
+        }
+
+        function getCoord(e) {
+            const rect = canvas.getBoundingClientRect();
+            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        function clearSignature() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function saveSignature() {
+            // Verifica se il canvas è vuoto (semplice check trasparenza)
+            const blank = document.createElement('canvas');
+            blank.width = canvas.width; blank.height = canvas.height;
+            if (canvas.toDataURL() === blank.toDataURL()) {
+                tg.showAlert("È richiesta la firma per procedere.");
+                return;
+            }
+
+            const base64 = canvas.toDataURL('image/png').split(',')[1];
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            sendToServer(base64, "image/png", "digital_signature.png");
+        }
+
+        // ── VISION MODULE ──
         async function startCamera() {
             try {
                 document.getElementById('startCamBtn').classList.add('hidden');
-                loader.classList.remove('hidden');
-                statusText.innerText = "Accesso fotocamera...";
-
+                document.getElementById('camera-placeholder').classList.add('hidden');
+                
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment' }, 
-                    audio: false 
+                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
                 });
                 
                 videoStream = stream;
                 const video = document.getElementById('camera-feed');
                 video.srcObject = stream;
+                video.classList.remove('hidden');
                 
                 video.onloadedmetadata = () => {
                     video.play();
-                    loader.classList.add('hidden');
-                    video.classList.remove('hidden');
                     document.getElementById('snapBtn').classList.remove('hidden');
-                    document.getElementById('scan-line').classList.remove('hidden');
-                    statusText.innerText = "Inquadra l'evidenza";
+                    document.getElementById('statusText').innerText = "Inquadra l'evidenza richiesta";
                     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
                 };
             } catch (err) {
-                loader.classList.add('hidden');
+                tg.showAlert("Impossibile accedere alla fotocamera. Verifica i permessi.");
                 document.getElementById('startCamBtn').classList.remove('hidden');
-                statusText.innerText = "❌ Accesso negato alla camera";
-                tg.showAlert("È necessario autorizzare la fotocamera per scattare foto.");
             }
         }
 
         function takePhoto() {
             const video = document.getElementById('camera-feed');
-            const canvas = document.getElementById('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
+            const camCanvas = document.getElementById('camera-canvas');
+            camCanvas.width = video.videoWidth;
+            camCanvas.height = video.videoHeight;
+            camCanvas.getContext('2d').drawImage(video, 0, 0);
             
-            const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
-            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+            const base64 = camCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+            
+            if (videoStream) videoStream.getTracks().forEach(track => track.stop());
             
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
-            sendToServer(base64, "image/jpeg", `cert_${Date.now()}.jpg`);
+            sendToServer(base64, "image/jpeg", `evidence_${Date.now()}.jpg`);
         }
 
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            if (file.size > 10 * 1024 * 1024) {
-                tg.showAlert("Il file è troppo grande (Max 10MB)");
-                return;
-            }
-            
-            document.getElementById('fileNameDisplay').innerText = file.name.toUpperCase();
-            selectedFileName = file.name;
-            selectedFileMime = file.type;
-            
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                selectedFileBase64 = event.target.result.split(',')[1];
-                document.getElementById('uploadFileBtn').disabled = false;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function processAndSendFile() {
-            sendToServer(selectedFileBase64, selectedFileMime, selectedFileName);
-        }
-
-        function validateText() {
-            document.getElementById('sendTextBtn').disabled = document.getElementById('textInput').value.trim().length < 3;
-        }
-
-        function sendTextData() {
-            sendToServer(document.getElementById('textInput').value.trim(), "text/plain", "nota.txt", true);
-        }
-
+        // ── SENDING ENGINE ──
         function sendToServer(content, mimeType, fileName, isPlainText = false) {
-            loader.classList.remove('hidden');
-            statusText.innerText = "TRASMISSIONE DATI...";
+            document.getElementById('loader').classList.remove('hidden');
+            document.getElementById('statusText').innerText = "TRASMISSIONE CRIPTATA IN CORSO...";
             
             const payload = {
                 _auth: tg.initData,
+                chat_id: tg.initDataUnsafe?.user?.id,
                 action: "certificator",
                 evidence_type: evidenceType,
                 mime_type: mimeType,
                 file_name: fileName,
-                chat_id: chatId,
-                user_id: userId,
-                ...urlParams
+                sop_id: sopId,
+                message_id: messageId
             };
 
             if (isPlainText) payload.text_content = content;
             else payload.base64_content = content;
 
-            fetch('https://prod.workflow.trinai.it/webhook/ef4aece4-9ec0-4026-a7a7-328562bcbdf6', {
+            fetch(WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
             .then(res => {
                 if (res.ok) {
-                    statusText.innerText = "✅ TRASMESSO";
+                    document.getElementById('statusText').innerText = "✅ EVIDENZA TRASMESSA CON SUCCESSO";
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                     setTimeout(() => tg.close(), 1500);
-                } else { throw new Error(); }
+                } else throw new Error();
             })
             .catch(() => {
-                loader.classList.add('hidden');
-                statusText.innerText = "❌ ERRORE DI INVIO";
-                tg.showAlert("Errore durante la connessione al sistema SiteBoS.");
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('statusText').innerText = "❌ ERRORE DI TRASMISSIONE";
+                tg.showAlert("Errore durante l'invio al server SiteBoS.");
             });
         }
 
+        // ── FILE & TEXT HELPERS ──
+        let selectedFileBase64, selectedFileMime, selectedFileName;
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) { tg.showAlert("File troppo pesante (Max 10MB)"); return; }
+            
+            selectedFileName = file.name;
+            selectedFileMime = file.type;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                selectedFileBase64 = ev.target.result.split(',')[1];
+                document.getElementById('uploadFileBtn').disabled = false;
+                document.getElementById('fileNameDisplay').innerText = file.name.toUpperCase();
+                document.getElementById('fileNameDisplay').classList.replace('text-neutral-400', 'text-black');
+            };
+            reader.readAsDataURL(file);
+        }
+        function processAndSendFile() { sendToServer(selectedFileBase64, selectedFileMime, selectedFileName); }
+        
+        function validateText() { 
+            const val = document.getElementById('textInput').value.trim();
+            document.getElementById('sendTextBtn').disabled = val.length < 5; 
+        }
+        function sendTextData() { 
+            const val = document.getElementById('textInput').value.trim();
+            sendToServer(val, "text/plain", "validation_note.txt", true); 
+        }
+
+        // AVVIO
         window.onload = initApp;
     </script>
 </body>
