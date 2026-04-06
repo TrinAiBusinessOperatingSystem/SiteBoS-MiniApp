@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Agenda & Percorsi</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://web.telegram.org https://t.me;">
+
+    <script>
+        (function() {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.body.innerHTML = "<div style='padding:50px; text-align:center; font-family:sans-serif;'><h2>🚫 Accesso Negato</h2><p>Questa risorsa è ad uso interno dell'App SiteBoS.</p></div>";
+                window.stop();
+            }
+        })();
+    </script>
+
+    <style>
+        :root { 
+            --primary: #212D67; --accent: #895FE0; --bg: #f4f7f9; 
+            --surface: #ffffff; --border: #e8e8e8; --text: #1a1a2e; 
+            --text-muted: #888; --danger: #ff4444; --success: #27ae60; --radius: 12px; 
+            --trans: 180ms cubic-bezier(0.16,1,0.3,1);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background: var(--bg); color: var(--text); padding-bottom: 40px; }
+        
+        .page-header { background: var(--surface); padding: 14px 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 10; }
+        .container { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
+        .card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--primary); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+        
+        label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 14px; outline: none; background: var(--surface); transition: 0.2s; -webkit-appearance: none; }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(137,95,224,0.1); }
+
+        .row { display: flex; gap: 10px; }
+        .col { flex: 1; }
+
+        /* Agenda Cards */
+        #agenda-container { display: flex; flex-direction: column; gap: 12px; }
+        .appt-card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px; position: relative; animation: fadeIn 0.3s ease; }
+        .appt-header { display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 12px; font-weight: 700; font-size: 13px; color: var(--primary); }
+        
+        .segmented-control { display: flex; background: var(--bg); border-radius: 8px; padding: 3px; margin-bottom: 12px; border: 1px solid var(--border); }
+        .segmented-control input { display: none; }
+        .segmented-control label { flex: 1; text-align: center; padding: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 6px; margin: 0; color: #777; transition: 0.2s; }
+        .segmented-control input:checked + label { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.08); color: var(--primary); }
+
+        .smart-tags-container { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .smart-tag { border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 11px; font-weight: 500; color: #666; cursor: pointer; background: #fff; transition: 0.2s; }
+        .smart-tag.active { background: #f0ebff; border-color: var(--accent); color: var(--accent); font-weight: 700; }
+
+        .btn-add { width: 100%; background: none; border: 2px dashed var(--border); padding: 14px; border-radius: 10px; color: var(--primary); font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .btn-add:hover { background: #f0f3ff; border-color: var(--primary); }
+        
+        .btn-primary { width: 100%; padding: 16px; background: var(--primary); color: #fff; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-success { background: var(--success) !important; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <i class="fas fa-calendar-check" style="color:var(--primary); font-size:22px;"></i>
+        <div>
+            <h1 style="font-size:16px; font-weight:700;">Agenda TrinAI</h1>
+            <p style="font-size:11px; color:var(--text-muted);">Organizza viaggi misti Business & Leisure</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <form id="travelForm">
+            <!-- 1. BASE LOGISTICA -->
+            <div class="card">
+                <div class="section-title">📍 Partenza e Rientro</div>
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+                    <input type="checkbox" id="partenzaDaSede" checked style="width:18px; height:18px; accent-color:var(--primary);">
+                    <label for="partenzaDaSede" style="margin:0; font-size:14px;">Partenza da Sede Principale</label>
+                </div>
+                <div id="customPartenzaContainer" class="hidden" style="margin-bottom:15px;">
+                    <input type="text" id="partenza" placeholder="Inserisci indirizzo di partenza...">
+                </div>
+
+                <div style="display:flex; align-items:center; gap:12px; margin-top:12px;">
+                    <input type="checkbox" id="arrivoInSede" checked style="width:18px; height:18px; accent-color:var(--primary);">
+                    <label for="arrivoInSede" style="margin:0; font-size:14px;">Ritorno in Sede a fine giornata</label>
+                </div>
+                <div id="customArrivoContainer" class="hidden" style="margin-top:12px;">
+                    <input type="text" id="arrivo" placeholder="Inserisci indirizzo di rientro...">
+                </div>
+            </div>
+
+            <!-- 2. AGENDA DINAMICA -->
+            <div id="agenda-container"></div>
+
+            <button type="button" class="btn-add" id="btnAddStop">
+                <i class="fas fa-plus-circle"></i> Aggiungi Tappa / Appuntamento
+            </button>
+
+            <!-- 3. AI CONFIG -->
+            <div class="card" style="border-color:var(--accent); background:#faf8ff; margin-top:20px;">
+                <div class="section-title" style="color:var(--accent);"><i class="fas fa-brain"></i> Ottimizzazione A.I. Globale</div>
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:10px;">
+                    <input type="checkbox" id="aiOptimize" checked style="width:18px; height:18px; accent-color:var(--accent);">
+                    <label for="aiOptimize" style="margin:0; font-size:14px;">Calcola Percorso Ottimale</label>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px; margin-bottom:15px;">
+                    <input type="checkbox" id="aiLogistics" checked style="width:18px; height:18px; accent-color:var(--accent);">
+                    <label for="aiLogistics" style="margin:0; font-size:14px;">Pianifica Pasti e Soste</label>
+                </div>
+                <label>Direttive Extra per l'A.I.</label>
+                <textarea id="noteAI" rows="2" placeholder="Es. Preferenza per auto elettrica, dieta veg, etc..."></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn-primary">Genera Piano di Viaggio</button>
+        </form>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        const WH_SOLVER = "https://prod.workflow.trinai.it/webhook/26237ccb-3621-4dc7-b15f-fe8a50be3a6f";
+        const chatId = tg.initDataUnsafe.start_param || tg.initDataUnsafe.user?.id || "DEBUG_USER";
+
+        const dom = {
+            form: document.getElementById('travelForm'),
+            agenda: document.getElementById('agenda-container'),
+            btnAdd: document.getElementById('btnAddStop'),
+            btnSubmit: document.getElementById('submitBtn'),
+            pSede: document.getElementById('partenzaDaSede'),
+            aSede: document.getElementById('arrivoInSede')
+        };
+
+        let stopCount = 0;
+
+        function addStop() {
+            stopCount++;
+            const id = stopCount;
+            const div = document.createElement('div');
+            div.className = 'appt-card';
+            div.id = `stop-${id}`;
+            div.innerHTML = `
+                <div class="appt-header">
+                    <span>📍 Tappa #${id}</span>
+                    ${id > 1 ? `<i class="fas fa-trash-alt" style="color:var(--danger); cursor:pointer;" onclick="document.getElementById('stop-${id}').remove()"></i>` : ''}
+                </div>
+                
+                <div class="segmented-control">
+                    <input type="radio" id="bus-${id}" name="type-${id}" value="Lavoro" checked>
+                    <label for="bus-${id}">💼 Lavoro</label>
+                    <input type="radio" id="lei-${id}" name="type-${id}" value="Libero">
+                    <label for="lei-${id}"><i class="fas fa-camera"></i> Libero</label>
+                </div>
+
+                <div class="row">
+                    <div class="col">
+                        <label>Data</label>
+                        <input type="date" class="s-date" value="${new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                    <div class="col">
+                        <label>Fascia/Ora</label>
+                        <input type="text" class="s-time" placeholder="es. 10:30 o Pomeriggio" required>
+                    </div>
+                </div>
+                
+                <div style="margin-top:12px;">
+                    <label>Luogo / Azienda</label>
+                    <input type="text" class="s-loc" placeholder="Indirizzo o nome attività" required>
+                </div>
+
+                <div class="smart-tags-container" id="tags-${id}">
+                    <div class="smart-tag" data-val="Cerca prospect o clienti vicini">🔍 Cerca Clienti</div>
+                    <div class="smart-tag" data-val="Trova parcheggio comodo">🅿️ Parcheggio</div>
+                    <div class="smart-tag hidden" data-val="Consiglia ristorante tipico">🍝 Cibo Locale</div>
+                    <div class="smart-tag hidden" data-val="Cosa vedere in zona">🏛️ Arte/Storia</div>
+                </div>
+            `;
+            dom.agenda.appendChild(div);
+
+            const rBus = div.querySelector(`#bus-${id}`);
+            const rLei = div.querySelector(`#lei-${id}`);
+            const tags = div.querySelectorAll('.smart-tag');
+            
+            const updateTags = () => {
+                tags.forEach(t => {
+                    const isBus = t.dataset.val.includes("prospect") || t.dataset.val.includes("parcheggio");
+                    t.classList.toggle('hidden', rBus.checked ? !isBus : isBus);
+                    t.classList.remove('active');
+                });
+            };
+            rBus.onclick = updateTags; rLei.onclick = updateTags;
+            tags.forEach(t => t.onclick = () => t.classList.toggle('active'));
+            updateTags();
+        }
+
+        dom.pSede.onchange = () => document.getElementById('customPartenzaContainer').classList.toggle('hidden', dom.pSede.checked);
+        dom.aSede.onchange = () => document.getElementById('customArrivoContainer').classList.toggle('hidden', dom.aSede.checked);
+        
+        dom.btnAdd.onclick = addStop;
+        addStop();
+
+        dom.form.onsubmit = async (e) => {
+            e.preventDefault();
+            dom.btnSubmit.disabled = true;
+            dom.btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborazione A.I....';
+
+            const stops = [];
+            document.querySelectorAll('.appt-card').forEach((card, i) => {
+                const id = card.id.split('-')[1];
+                const activeTags = [];
+                card.querySelectorAll('.smart-tag.active').forEach(t => activeTags.push(t.dataset.val));
+                stops.push({
+                    tappa: i + 1,
+                    tipo: card.querySelector(`input[name="type-${id}"]:checked`).value,
+                    data: card.querySelector('.s-date').value,
+                    ora: card.querySelector('.s-time').value,
+                    luogo: card.querySelector('.s-loc').value,
+                    richieste_extra: activeTags
+                });
+            });
+
+            const payload = {
+                _auth: tg.initData,
+                type: 'AGENDA_MIXED_SUBMISSION',
+                payload: {
+                    Partenza: dom.pSede.checked ? 'Sede Principale' : document.getElementById('partenza').value,
+                    Arrivo: dom.aSede.checked ? 'Sede Principale' : document.getElementById('arrivo').value,
+                    Agenda: stops,
+                    Ottimizza: document.getElementById('aiOptimize').checked,
+                    PianificaLogistica: document.getElementById('aiLogistics').checked,
+                    NoteUtente: document.getElementById('noteAI').value
+                },
+                context: { chatId, user_id: tg.initDataUnsafe.user?.id }
+            };
+
+            try {
+                const res = await fetch(WH_SOLVER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (res.ok) {
+                    dom.btnSubmit.innerHTML = '✅ Richiesta Inviata!';
+                    dom.btnSubmit.classList.add('btn-success');
+                    
+                    let summary = `🗓️ *NUOVA PIANIFICAZIONE AGENDA*\n`;
+                    summary += `🏁 Partenza: ${payload.payload.Partenza}\n`;
+                    summary += `🔚 Rientro: ${payload.payload.Arrivo}\n\n`;
+                    stops.forEach(s => {
+                        summary += `${s.tipo === 'Lavoro' ? '💼' : '📸'} *${s.data} (${s.ora})* - ${s.luogo}\n`;
+                        if(s.richieste_extra.length > 0) summary += `   └ 🤖 AI: ${s.richieste_extra.join(', ')}\n`;
+                    });
+                    if(payload.payload.NoteUtente) summary += `\n*Note:* ${payload.payload.NoteUtente}`;
+
+                    setTimeout(() => {
+                        window.parent.postMessage({ type: 'SOLVER_DATA', payload: summary }, '*');
+                    }, 1200);
+                } else { throw new Error(); }
+            } catch (err) { 
+                tg.showAlert("Errore durante l'invio."); 
+                dom.btnSubmit.disabled = false; 
+                dom.btnSubmit.innerHTML = "Genera Piano di Viaggio";
+            }
+        };
+    </script>
+</body>
+</html>
