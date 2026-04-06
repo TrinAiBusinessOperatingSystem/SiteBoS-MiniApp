@@ -3,24 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>TrinAI OS</title>
+    <title>TrinAI OS - Assistant</title>
+    
+    <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- LINK AL CSS -->
-    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        secondary: '#ffffff',
+                        accent: '#333333',
+                        muted: '#f5f5f5',
+                        border: '#e5e5e5'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        #viewport { transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Animazione Toggle B&W */
+        input:checked ~ .dot { transform: translateX(100%); background-color: #fff; }
+        input:checked ~ .block { background-color: #000; }
+
+        /* Messaggi AI con ombra sottile */
+        .ai-shadow { box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    </style>
 
     <script>
+        // ── SICUREZZA: IL BUTTAFUORI ──
         (function() {
             const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "";
             if (!isTelegram) {
                 document.documentElement.innerHTML = `
-                    <body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;font-family:'Inter',sans-serif;padding:30px;">
+                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
                         <div>
-                            <h1 style="font-size:60px;margin-bottom:20px;">🚫</h1>
-                            <h2 style="font-size:24px;margin-bottom:10px;">Accesso Proibito</h2>
-                            <p style="opacity:0.7;line-height:1.5;">Questa applicazione è protetta e accessibile esclusivamente tramite il bot ufficiale SiteBoS su Telegram.</p>
+                            <h1 class="text-6xl mb-4">🚫</h1>
+                            <h2 class="text-2xl font-bold mb-2">Accesso Proibito</h2>
+                            <p class="opacity-50">Questa applicazione è accessibile esclusivamente tramite il bot ufficiale SiteBoS su Telegram.</p>
                         </div>
                     </body>`;
                 window.stop();
@@ -29,123 +67,146 @@
         })();
     </script>
 </head>
-<body class="os-body">
+<body class="bg-[#fafafa] text-primary overflow-hidden h-screen">
 
-    <div id="drawer-overlay" onclick="toggleDrawer()"></div>
-    <nav id="agent-drawer">
-        <div style="padding:20px; font-weight:700; background:var(--primary); color:#fff; font-size:15px;">Direzione Aziendale</div>
-        <div class="drawer-item" onclick="switchAgent('pm')"><i class="fas fa-tasks"></i> Gestione Lavori</div>
-        <div class="drawer-item" onclick="switchAgent('mkt')"><i class="fas fa-bullhorn"></i> Vendite & Promo</div>
-        <div class="drawer-item" onclick="switchAgent('hr')"><i class="fas fa-shield-alt"></i> Team & Sicurezza</div>
-        <div class="drawer-item" onclick="switchAgent('acc')"><i class="fas fa-wallet"></i> Cassa & Conti</div>
-        <div class="drawer-item" style="margin-top:auto; border-top:1px solid #eee; color:var(--accent); font-weight:700;" onclick="openSolver()">
-            <i class="fas fa-route"></i> Gestione Percorsi
+    <!-- DRAWER OVERLAY -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-black/40 z-[999] hidden opacity-0 transition-opacity duration-300" onclick="toggleDrawer()"></div>
+    
+    <!-- NAVIGATION DRAWER -->
+    <nav id="agent-drawer" class="fixed top-0 left-0 w-72 h-full bg-white shadow-2xl -translate-x-full transition-transform duration-300 z-[1000] flex flex-col">
+        <div class="p-8 border-b border-gray-100">
+            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">TrinAI Operating System</div>
+            <div class="text-2xl font-black tracking-tighter">Menu</div>
+        </div>
+        <div class="flex-1 overflow-y-auto py-4">
+            <div class="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('pm')"><i class="fas fa-tasks w-6 text-center text-lg"></i> Gestione Lavori</div>
+            <div class="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('mkt')"><i class="fas fa-bullhorn w-6 text-center text-lg"></i> Vendite & Promo</div>
+            <div class="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('hr')"><i class="fas fa-shield-alt w-6 text-center text-lg"></i> Team & Sicurezza</div>
+            <div class="px-6 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('acc')"><i class="fas fa-wallet w-6 text-center text-lg"></i> Cassa & Conti</div>
+        </div>
+        <div class="p-6 border-t border-gray-100">
+            <button class="w-full bg-black text-white py-5 rounded-[2rem] font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition" onclick="openSolver()">
+                <i class="fas fa-route"></i> Gestione Percorsi
+            </button>
         </div>
     </nav>
 
-    <div id="solver-overlay">
-        <div class="solver-close-bar">
-            <button onclick="closeSolver()"><i class="fas fa-arrow-left"></i></button>
-            <span>🚗 Pianifica Itinerario</span>
+    <!-- SOLVER OVERLAY (IFRAME) -->
+    <div id="solver-overlay" class="fixed inset-0 bg-white z-[2000] hidden flex flex-col translate-y-full transition-transform duration-500">
+        <div class="p-4 flex items-center justify-between border-b border-gray-100">
+            <button onclick="closeSolver()" class="p-2 text-2xl"><i class="fas fa-times text-black"></i></button>
+            <span class="font-black tracking-tighter text-lg uppercase">Pianificatore Itinerario</span>
+            <div class="w-10"></div>
         </div>
-        <iframe id="solver-frame" src=""></iframe>
+        <iframe id="solver-frame" class="flex-1 border-none w-full h-full"></iframe>
     </div>
 
-    <div id="insight-backdrop" onclick="closeInsightDrawer()"></div>
-    <div id="insight-drawer">
-        <div style="width:40px; height:4px; background:#ddd; border-radius:2px; margin:10px auto;"></div>
-        <div class="insight-header">
-            <span style="font-weight:700; color:var(--primary);">📊 Insight Conversazione</span>
-            <button onclick="closeInsightDrawer()" style="background:none; border:none; color:#aaa; font-size:18px;"><i class="fas fa-times"></i></button>
+    <!-- INSIGHT DRAWER (TABBED) -->
+    <div id="insight-backdrop" class="fixed inset-0 bg-black/20 z-[499] hidden" onclick="closeInsightDrawer()"></div>
+    <div id="insight-drawer" class="fixed bottom-0 left-0 right-0 h-[75vh] bg-white rounded-t-[3rem] shadow-[0_-20px_40px_rgba(0,0,0,0.1)] z-[500] translate-y-full transition-transform duration-500 flex flex-col overflow-hidden">
+        <div class="w-12 h-1.5 bg-gray-200 rounded-full mx-auto my-4"></div>
+        <div class="px-8 flex justify-between items-center mb-4">
+            <span class="text-xl font-black tracking-tighter uppercase">Insight Analisi</span>
+            <button onclick="closeInsightDrawer()" class="text-gray-300 hover:text-black transition text-2xl"><i class="fas fa-times-circle"></i></button>
         </div>
-        <div class="insight-tabs">
-            <div class="insight-tab active" onclick="switchInsightTab('trace', this)">Tracciabilità</div>
-            <div class="insight-tab" onclick="switchInsightTab('summary', this)">Riassunto</div>
-            <div class="insight-tab" onclick="switchInsightTab('rationale', this)">Razionale</div>
+        <div class="flex border-b border-gray-100 px-4">
+            <button class="insight-tab active flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 border-black" onclick="switchInsightTab('trace', this)">Tracciabilità</button>
+            <button class="insight-tab flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-300" onclick="switchInsightTab('summary', this)">Riassunto</button>
+            <button class="insight-tab flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-300" onclick="switchInsightTab('rationale', this)">Razionale</button>
         </div>
-        <div class="insight-content">
-            <div class="insight-panel active" id="panel-trace"></div>
-            <div class="insight-panel" id="panel-summary"></div>
-            <div class="insight-panel" id="panel-rationale"></div>
+        <div class="flex-1 overflow-y-auto p-8 no-scrollbar">
+            <div id="panel-trace" class="insight-panel block space-y-6"></div>
+            <div id="panel-summary" class="insight-panel hidden space-y-4"></div>
+            <div id="panel-rationale" class="insight-panel hidden italic text-gray-600 leading-relaxed"></div>
         </div>
     </div>
 
-    <div id="swipe-handle" onclick="openInsightDrawer()"><div id="swipe-handle-bar"></div></div>
+    <div id="swipe-handle" class="fixed bottom-0 left-0 right-0 h-4 z-[150] flex items-center justify-center cursor-pointer" onclick="openInsightDrawer()">
+        <div class="w-12 h-1 bg-gray-200 rounded-full opacity-50"></div>
+    </div>
 
-    <div id="viewport">
-        <!-- SCHERMO 1: STORICO -->
-        <section class="screen" id="screen-history">
-            <div class="os-header">
-                <button class="header-btn" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
-                <div style="font-weight:600; color:var(--primary);">Archivio Chat</div>
-                <div style="width:36px"></div>
-            </div>
-            <div id="thread-list"></div>
-            <button onclick="createNewThread()" style="margin:15px; padding:14px; border:none; background:var(--primary); color:white; border-radius:10px; font-weight:600; cursor:pointer;">+ Nuova Discussione</button>
-        </section>
-
-        <!-- SCHERMO 2: CHAT -->
-        <section class="screen" id="screen-main">
-            <div class="os-header">
-                <button class="header-btn" onclick="goToScreen(0)"><i class="fas fa-history"></i></button>
-                <div class="agent-info" onclick="renameCurrentThread()">
-                    <h1 id="ui-agent-name">🛠️ Gestione Lavori</h1>
-                    <p id="ui-thread-name">Discussione Attiva</p>
-                </div>
-                <button class="header-btn" onclick="goToScreen(2)"><i class="fas fa-microphone"></i></button>
-            </div>
-            <div id="active-agents-bar"></div>
-            <main id="chat-container"></main>
-            <div class="os-footer">
-                <button id="fab-menu" onclick="toggleFabMenu()"><i class="fas fa-bars"></i></button>
-                <div id="fab-overlay" onclick="closeFabMenu()"></div>
-                <div id="agent-popup">
-                    <div class="popup-item" id="popup-pm" onclick="addAgentToChat('pm')">
-                        <div class="popup-icon" style="background:#e8edf8; color:var(--primary);"><i class="fas fa-tasks"></i></div>
-                        <div class="popup-label">Gestione Lavori</div>
-                    </div>
-                    <div class="popup-item" id="popup-mkt" onclick="addAgentToChat('mkt')">
-                        <div class="popup-icon" style="background:#fef3e8; color:#e67e22;"><i class="fas fa-bullhorn"></i></div>
-                        <div class="popup-label">Vendite & Promo</div>
-                    </div>
-                    <div class="popup-item" id="popup-hr" onclick="addAgentToChat('hr')">
-                        <div class="popup-icon" style="background:#eafaf1; color:#27ae60;"><i class="fas fa-shield-alt"></i></div>
-                        <div class="popup-label">Team & Sicurezza</div>
-                    </div>
-                    <div class="popup-item" id="popup-acc" onclick="addAgentToChat('acc')">
-                        <div class="popup-icon" style="background:#f5eefb; color:#8e44ad;"><i class="fas fa-wallet"></i></div>
-                        <div class="popup-label">Cassa & Conti</div>
-                    </div>
-                </div>
-                <input type="text" id="chat-input" placeholder="Chiedi all'AI..." onkeydown="if(event.key==='Enter') sendText()">
-                <button class="icon-btn" onclick="sendText()"><i class="fas fa-paper-plane"></i></button>
+    <!-- VIEWPORT DI NAVIGAZIONE -->
+    <div id="viewport" class="flex w-[300vw] h-screen" style="transform: translateX(-100vw);">
+        
+        <!-- SCHERMO 0: HISTORY -->
+        <section class="w-screen h-full flex flex-col bg-white">
+            <header class="p-6 flex justify-between items-center border-b border-gray-50">
+                <button class="text-2xl" onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
+                <span class="font-black tracking-tighter uppercase text-lg">Discussioni</span>
+                <div class="w-8"></div>
+            </header>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar"></div>
+            <div class="p-6">
+                <button onclick="createNewThread()" class="w-full border-2 border-black py-5 rounded-[2rem] font-black uppercase tracking-widest text-sm active:scale-95 transition">Nuova Conversazione</button>
             </div>
         </section>
 
-        <!-- SCHERMO 3: VOCALE -->
-        <section class="screen" id="screen-voice">
-            <div class="os-header" style="background:transparent; box-shadow:none; color:white;">
-                <button class="header-btn" style="color:white" onclick="goToScreen(1)"><i class="fas fa-chevron-left"></i></button>
-                <span style="font-weight:600;">Modalità Vocale</span>
-                <div style="width:36px"></div>
+        <!-- SCHERMO 1: CHAT PRINCIPALE -->
+        <section class="w-screen h-full flex flex-col relative bg-[#fafafa]">
+            <header class="p-4 bg-white/80 backdrop-blur-md flex justify-between items-center border-b border-gray-100 z-50">
+                <button class="w-10 h-10 flex items-center justify-center text-xl" onclick="goToScreen(0)"><i class="fas fa-history"></i></button>
+                <div class="text-center flex-1 cursor-pointer" onclick="renameCurrentThread()">
+                    <h1 id="ui-agent-name" class="text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">PM AGENT</h1>
+                    <p id="ui-thread-name" class="text-sm font-black tracking-tight">Discussione Attiva</p>
+                </div>
+                <button class="w-10 h-10 flex items-center justify-center text-xl text-gray-200" onclick="goToScreen(2)"><i class="fas fa-microphone"></i></button>
+            </header>
+
+            <div id="active-agents-bar" class="bg-white border-b border-gray-100 px-4 flex items-center gap-2 overflow-x-auto no-scrollbar transition-all duration-300 h-0 opacity-0 overflow-hidden [&.has-agents]:h-12 [&.has-agents]:opacity-100"></div>
+
+            <main id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar"></main>
+
+            <footer class="p-4 bg-white border-t border-gray-100 flex items-center gap-4 pb-10">
+                <button id="fab-menu" onclick="toggleFabMenu()" class="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center text-xl shadow-xl active:scale-90 transition-transform duration-200">
+                    <i class="fas fa-plus transition-transform duration-300" id="fab-icon"></i>
+                </button>
+                
+                <div class="flex-1 relative">
+                    <input type="text" id="chat-input" placeholder="Scrivi qui..." class="w-full bg-gray-100 py-3.5 px-6 rounded-[2rem] outline-none text-sm font-medium border-2 border-transparent focus:border-black/5 transition-all" onkeydown="if(event.key==='Enter') sendText()">
+                </div>
+                
+                <button onclick="sendText()" class="w-10 h-10 flex items-center justify-center text-black active:scale-90 transition">
+                    <i class="fas fa-paper-plane text-xl"></i>
+                </button>
+            </footer>
+
+            <!-- AGENT SELECTOR POPUP -->
+            <div id="fab-overlay" class="fixed inset-0 z-[199] hidden" onclick="closeFabMenu()"></div>
+            <div id="agent-popup" class="fixed bottom-28 left-6 w-64 bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 p-3 scale-75 opacity-0 pointer-events-none transition-all duration-300 z-[200] origin-bottom-left [&.open]:scale-100 [&.open]:opacity-100 [&.open]:pointer-events-auto">
+                <div class="space-y-1" id="agent-list-popup"></div>
             </div>
-            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                <div id="voice-status" style="margin-bottom:30px; font-size:18px; font-weight:300;">Tieni premuto per parlare</div>
-                <div id="mic-btn" class="mic-sphere"><i class="fas fa-microphone"></i></div>
-                <div class="voice-agents-selector">
-                    <button class="v-agent-btn" id="v-btn-pm" onclick="addAgentToChat('pm')">🛠️ PM</button>
-                    <button class="v-agent-btn" id="v-btn-mkt" onclick="addAgentToChat('mkt')">🚀 MKT</button>
-                    <button class="v-agent-btn" id="v-btn-hr" onclick="addAgentToChat('hr')">🛡️ HR</button>
-                    <button class="v-agent-btn" id="v-btn-acc" onclick="addAgentToChat('acc')">💰 CONTI</button>
+        </section>
+
+        <!-- SCHERMO 2: VOICE -->
+        <section id="screen-voice" class="w-screen h-full flex flex-col bg-black text-white items-center justify-center px-10 relative overflow-hidden">
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-neutral-900 to-black opacity-50"></div>
+            
+            <header class="absolute top-0 w-full p-6 flex justify-between items-center z-10">
+                <button class="text-2xl" onclick="goToScreen(1)"><i class="fas fa-chevron-left text-white"></i></button>
+                <span class="font-black text-[10px] uppercase tracking-[0.3em] opacity-40">Voice OS</span>
+                <div class="w-8"></div>
+            </header>
+
+            <div class="relative z-10 text-center space-y-12">
+                <div id="voice-status" class="text-gray-500 font-bold uppercase tracking-widest text-[10px] animate-pulse">In attesa</div>
+                
+                <div id="mic-btn" class="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-[0_0_80px_rgba(255,255,255,0.15)] cursor-pointer active:scale-95 transition transform duration-500 [&.recording]:bg-white [&.recording]:scale-110">
+                    <i class="fas fa-microphone text-black text-5xl transition-all duration-500" id="mic-icon"></i>
+                    <!-- Cerchi animati per il mic -->
+                    <div class="absolute inset-0 rounded-full border-4 border-white opacity-0 [&.recording]:animate-ping"></div>
+                </div>
+                
+                <div class="flex flex-wrap justify-center gap-2 opacity-40" id="voice-agents-bar">
+                    <!-- Agenti attivi nel vocale -->
                 </div>
             </div>
         </section>
     </div>
 
-    <!-- LOGICA ESATTAMENTE IDENTICA ALLA TUA -->
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); tg.ready();
+        tg.expand();
+        tg.ready();
 
         const WH_CHAT = "https://prod.workflow.trinai.it/webhook/81ab5292-43c3-4f93-afaf-7411b95fc010";
 
@@ -161,27 +222,33 @@
         let lastRationale = null;
 
         const AGENT_META = {
-            pm:  { label: '🛠️ Gestione Lavori', short: 'PM', color: '#212D67', bg: '#e8edf8', icon: 'fas fa-tasks' },
-            mkt: { label: '🚀 Vendite & Promo', short: 'MKT', color: '#e67e22', bg: '#fef3e8', icon: 'fas fa-bullhorn' },
-            hr:  { label: '🛡️ Team & Sicurezza', short: 'HR', color: '#27ae60', bg: '#eafaf1', icon: 'fas fa-shield-alt' },
-            acc: { label: '💰 Cassa & Conti', short: 'CONTI', color: '#8e44ad', bg: '#f5eefb', icon: 'fas fa-wallet' }
+            pm:  { label: 'Gestione Lavori', short: 'PM', icon: 'fas fa-tasks', color: '#000' },
+            mkt: { label: 'Vendite & Promo', short: 'MKT', icon: 'fas fa-bullhorn', color: '#000' },
+            hr:  { label: 'Team & Sicurezza', short: 'HR', icon: 'fas fa-shield-alt', color: '#000' },
+            acc: { label: 'Cassa & Conti', short: 'ACC', icon: 'fas fa-wallet', color: '#000' }
         };
 
+        // ── GESTIONE NAVIGAZIONE ──
         let startX, startY, startTime;
         document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; startTime = Date.now(); }, { passive: true });
         document.addEventListener('touchend', e => {
             if (document.body.classList.contains('drawer-open') || document.getElementById('solver-overlay').classList.contains('active') || document.getElementById('insight-drawer').classList.contains('open')) return;
             const endX = e.changedTouches[0].clientX, endY = e.changedTouches[0].clientY;
             const diffX = startX - endX, diffY = startY - endY, elapsed = Date.now() - startTime;
-            if (diffY > 60 && Math.abs(diffY) > Math.abs(diffX) && elapsed < 500 && currentScreen === 1) { openInsightDrawer(); return; }
-            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 80) {
+            if (diffY > 80 && Math.abs(diffY) > Math.abs(diffX) && elapsed < 500 && currentScreen === 1) { openInsightDrawer(); return; }
+            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 100) {
                 if (diffX > 0 && currentScreen < 2) goToScreen(currentScreen + 1);
                 else if (diffX < 0 && currentScreen > 0) goToScreen(currentScreen - 1);
             }
         }, { passive: true });
 
-        function goToScreen(i) { currentScreen = i; document.getElementById('viewport').style.transform = `translateX(-${i * 100}vw)`; document.getElementById('swipe-handle').style.display = (i===1)?'flex':'none'; }
+        function goToScreen(i) {
+            currentScreen = i;
+            document.getElementById('viewport').style.transform = `translateX(-${i * 100}vw)`;
+            document.getElementById('swipe-handle').classList.toggle('hidden', i !== 1);
+        }
 
+        // ── API & LOGICA CHAT ──
         async function callApi(url, payload, showReply = true, targetAgentId = null) {
             const fullPayload = {
                 ...payload,
@@ -193,18 +260,300 @@
                 thread_id: currentThreadId,
                 lang: lang
             };
+            
             let loadingEl = null;
-            if (showReply) loadingEl = addMessage('ai', '⏳ Elaborazione...', true, targetAgentId || primaryAgent);
+            if (showReply) loadingEl = addMessage('ai', '...', true, targetAgentId || primaryAgent);
+            
             try {
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fullPayload) });
+                const res = await fetch(url, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(fullPayload) 
+                });
                 const data = await res.json();
                 if (loadingEl) loadingEl.remove();
+                
                 if (data.reply && showReply) {
                     addMessage('ai', data.reply, false, data.agent_id || targetAgentId || primaryAgent);
                     if (data.rationale) lastRationale = data.rationale;
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
                 }
                 if (data.threads) { threads = data.threads; renderThreadList(); }
-            } catch(e) { if (loadingEl) loadingEl.remove(); addMessage('ai', '⚠️ Connessione persa.'); }
+            } catch(e) { 
+                if (loadingEl) loadingEl.remove(); 
+                addMessage('ai', 'Errore di connessione con il sistema.'); 
+            }
+        }
+
+        function addMessage(sender, text, isLoading = false, agentId = null) {
+            if (!isLoading) {
+                const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                chatLog.push({ sender, text, agentId: agentId || primaryAgent, time: now });
+            }
+            
+            const container = document.getElementById('chat-container');
+            const div = document.createElement('div');
+            
+            if (sender === 'user') {
+                div.className = "flex flex-col items-end space-y-1 animate-fade-in";
+                div.innerHTML = `
+                    <div class="bg-black text-white px-5 py-3.5 rounded-[1.8rem] rounded-tr-none text-sm font-medium shadow-lg max-w-[85%]">
+                        ${text}
+                    </div>
+                `;
+            } else {
+                div.className = "flex flex-col items-start space-y-2 animate-fade-in";
+                const meta = AGENT_META[agentId] || AGENT_META[primaryAgent];
+                div.innerHTML = `
+                    ${activeAgents.length > 1 ? `<span class="text-[9px] font-black uppercase tracking-widest text-gray-300 ml-4">${meta.short}</span>` : ''}
+                    <div class="bg-white text-black border border-gray-100 px-5 py-3.5 rounded-[1.8rem] rounded-tl-none text-sm font-medium ai-shadow max-w-[85%] ${isLoading ? 'opacity-50' : ''}">
+                        ${text}
+                    </div>
+                `;
+            }
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            return div;
+        }
+
+        function sendText(customText = null) {
+            const input = document.getElementById('chat-input');
+            const text = customText || input.value.trim();
+            if (!text) return;
+            addMessage('user', text);
+            if (!customText) input.value = '';
+            activeAgents.forEach(id => callApi(WH_CHAT, { action: 'npl_chat', message: text }, true, id));
+        }
+
+        // ── GESTIONE AGENTI ──
+        function toggleFabMenu() {
+            const popup = document.getElementById('agent-popup');
+            const icon = document.getElementById('fab-icon');
+            const isOpen = popup.classList.contains('open');
+            
+            if (isOpen) {
+                closeFabMenu();
+            } else {
+                popup.classList.add('open');
+                icon.classList.add('rotate-45');
+                document.getElementById('fab-overlay').classList.remove('hidden');
+                renderAgentPopup();
+            }
+        }
+
+        function closeFabMenu() {
+            document.getElementById('agent-popup').classList.remove('open');
+            document.getElementById('fab-icon').classList.remove('rotate-45');
+            document.getElementById('fab-overlay').classList.add('hidden');
+        }
+
+        function renderAgentPopup() {
+            const container = document.getElementById('agent-list-popup');
+            container.innerHTML = Object.keys(AGENT_META).map(id => {
+                const isActive = activeAgents.includes(id);
+                return `
+                    <div class="flex items-center justify-between p-3 rounded-2xl transition active:bg-gray-100 ${isActive ? 'bg-gray-50' : ''}" onclick="addAgentToChat('${id}')">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs">
+                                <i class="${AGENT_META[id].icon}"></i>
+                            </div>
+                            <span class="text-sm font-black tracking-tight">${AGENT_META[id].label}</span>
+                        </div>
+                        ${isActive ? '<i class="fas fa-check-circle text-black text-lg"></i>' : '<div class="w-5 h-5 border-2 border-gray-100 rounded-full"></div>'}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addAgentToChat(id) {
+            if (activeAgents.includes(id)) {
+                if (id !== primaryAgent) {
+                    activeAgents = activeAgents.filter(a => a !== id);
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                }
+            } else {
+                activeAgents.push(id);
+                addMessage('ai', `Pronto a collaborare.`, false, id);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }
+            renderAgentBar();
+            renderAgentPopup();
+        }
+
+        function renderAgentBar() {
+            const bar = document.getElementById('active-agents-bar');
+            bar.innerHTML = '';
+            if (activeAgents.length <= 1) { bar.classList.remove('has-agents'); return; }
+            bar.classList.add('has-agents');
+            activeAgents.forEach(id => {
+                const isPri = id === primaryAgent;
+                const chip = document.createElement('div');
+                chip.className = `flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition shadow-sm ${isPri ? 'bg-black text-white' : 'bg-white text-black border border-gray-100'}`;
+                chip.innerHTML = `<span>${AGENT_META[id].short}</span>${isPri ? '' : `<i class="fas fa-times-circle opacity-30" onclick="event.stopPropagation(); addAgentToChat('${id}')"></i>`}`;
+                bar.appendChild(chip);
+            });
+        }
+
+        function switchAgent(id) {
+            primaryAgent = id;
+            if(!activeAgents.includes(id)) activeAgents.push(id);
+            document.getElementById('ui-agent-name').innerText = AGENT_META[id].short + " AGENT";
+            toggleDrawer();
+            renderAgentBar();
+            const thread = threads.find(t => t.agent === id);
+            if (thread) selectThread(thread.id); else createNewThread();
+        }
+
+        // ── DRAWER & OVERLAYS ──
+        function toggleDrawer() {
+            const d = document.getElementById('agent-drawer');
+            const o = document.getElementById('drawer-overlay');
+            const isOpen = !d.classList.contains('-translate-x-full');
+            
+            if (isOpen) {
+                d.classList.add('-translate-x-full');
+                o.classList.add('hidden');
+                o.classList.remove('opacity-100');
+            } else {
+                d.classList.remove('-translate-x-full');
+                o.classList.remove('hidden');
+                setTimeout(() => o.classList.add('opacity-100'), 10);
+            }
+        }
+
+        function openSolver() {
+            toggleDrawer();
+            const over = document.getElementById('solver-overlay');
+            over.classList.remove('hidden');
+            setTimeout(() => over.classList.remove('translate-y-full'), 10);
+            document.getElementById('solver-frame').src = "solver.html";
+        }
+
+        function closeSolver() {
+            const over = document.getElementById('solver-overlay');
+            over.classList.add('translate-y-full');
+            setTimeout(() => { over.classList.add('hidden'); document.getElementById('solver-frame').src = ""; }, 500);
+        }
+
+        // ── INSIGHTS ──
+        function openInsightDrawer() {
+            buildTrace(); buildSummary(); buildRationale();
+            const drawer = document.getElementById('insight-drawer');
+            const back = document.getElementById('insight-backdrop');
+            back.classList.remove('hidden');
+            drawer.classList.remove('translate-y-full');
+        }
+
+        function closeInsightDrawer() {
+            const drawer = document.getElementById('insight-drawer');
+            const back = document.getElementById('insight-backdrop');
+            drawer.classList.add('translate-y-full');
+            setTimeout(() => back.classList.add('hidden'), 500);
+        }
+
+        function switchInsightTab(tab, btn) {
+            document.querySelectorAll('.insight-tab').forEach(t => t.classList.remove('active', 'border-black', 'text-black'));
+            document.querySelectorAll('.insight-tab').forEach(t => t.classList.add('text-gray-300'));
+            btn.classList.add('active', 'border-black', 'text-black');
+            btn.classList.remove('text-gray-300');
+            
+            document.querySelectorAll('.insight-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById('panel-' + tab).classList.remove('hidden');
+        }
+
+        function buildTrace() {
+            const c = document.getElementById('panel-trace');
+            c.innerHTML = chatLog.map(e => `
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 rounded-full bg-black text-white flex-shrink-0 flex items-center justify-center text-[10px] font-black">
+                        ${e.sender === 'user' ? 'TU' : AGENT_META[e.agentId].short}
+                    </div>
+                    <div class="flex-1 border-b border-gray-50 pb-4">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[10px] font-black uppercase tracking-widest text-gray-300">${e.sender === 'user' ? 'User' : AGENT_META[e.agentId].label}</span>
+                            <span class="text-[9px] text-gray-200">${e.time}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 leading-relaxed">${e.text}</p>
+                    </div>
+                </div>
+            `).join('') || "Nessun dato nella sessione.";
+        }
+
+        function buildSummary() {
+            const panel = document.getElementById('panel-summary');
+            const lastMessages = {};
+            chatLog.forEach(e => { if(e.sender==='ai') lastMessages[e.agentId] = e.text; });
+            
+            panel.innerHTML = Object.keys(lastMessages).length ? Object.keys(lastMessages).map(id => `
+                <div class="p-5 bg-gray-50 rounded-3xl space-y-2">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-black rounded-full"></div>
+                        <span class="text-[10px] font-black uppercase tracking-widest text-black">${AGENT_META[id].label}</span>
+                    </div>
+                    <p class="text-sm text-gray-500">${lastMessages[id]}</p>
+                </div>
+            `).join('') : "Dati insufficienti.";
+        }
+
+        function buildRationale() {
+            document.getElementById('panel-rationale').innerText = lastRationale || "Analisi razionale non disponibile per questa risposta.";
+        }
+
+        // ── VOCALE ──
+        const micBtn = document.getElementById('mic-btn');
+        let mediaRecorder, audioChunks = [];
+
+        micBtn.addEventListener('mousedown', startRec);
+        micBtn.addEventListener('mouseup', stopRec);
+        micBtn.addEventListener('touchstart', e => { e.preventDefault(); startRec(); });
+        micBtn.addEventListener('touchend', e => { e.preventDefault(); stopRec(); });
+
+        async function startRec() {
+            try {
+                micBtn.classList.add('recording');
+                document.getElementById('mic-icon').classList.add('scale-125');
+                document.getElementById('voice-status').textContent = "Ti ascolto...";
+                audioChunks = [];
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(blob);
+                    reader.onloadend = () => {
+                        const base64 = reader.result.split(',')[1];
+                        activeAgents.forEach(id => callApi(WH_CHAT, { action: 'npl_voice', audio_base64: base64, mime_type: 'audio/webm' }, true, id));
+                    };
+                };
+                mediaRecorder.start();
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            } catch(e) { tg.showAlert("Microfono non autorizzato."); }
+        }
+
+        function stopRec() {
+            if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+                micBtn.classList.remove('recording');
+                document.getElementById('mic-icon').classList.remove('scale-125');
+                mediaRecorder.stop();
+                document.getElementById('voice-status').textContent = "Analisi voce...";
+            }
+        }
+
+        // ── STORICO DISCUSSIONI ──
+        function renderThreadList() {
+            const list = document.getElementById('thread-list');
+            const filtered = threads.filter(t => t.agent === primaryAgent);
+            list.innerHTML = filtered.map(t => `
+                <div class="p-5 rounded-[2rem] border border-gray-100 flex justify-between items-center transition active:bg-gray-50 ${t.id===currentThreadId ? 'bg-black text-white border-black' : 'bg-white'}" onclick="selectThread('${t.id}')">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-sm font-black tracking-tight">${t.name}</span>
+                        <span class="text-[9px] uppercase tracking-widest opacity-40">${t.date}</span>
+                    </div>
+                    <i class="fas fa-chevron-right opacity-20"></i>
+                </div>
+            `).join('') || "<div class='text-center py-20 text-gray-300 font-bold uppercase tracking-widest text-[10px]'>Nessun Archivio</div>";
         }
 
         function selectThread(id) {
@@ -217,7 +566,7 @@
             if(thread) {
                 document.getElementById('ui-thread-name').innerText = thread.name;
                 primaryAgent = thread.agent || 'pm';
-                document.getElementById('ui-agent-name').innerText = AGENT_META[primaryAgent].label;
+                document.getElementById('ui-agent-name').innerText = AGENT_META[primaryAgent].short + " AGENT";
             }
             callApi(WH_CHAT, { action: 'load_thread' }, false);
         }
@@ -226,17 +575,12 @@
             const id = 't_' + Date.now();
             const newThread = { id, name: 'Nuova Discussione', agent: primaryAgent, date: new Date().toLocaleDateString() };
             threads.unshift(newThread);
-            currentThreadId = id;
-            chatLog = [];
-            document.getElementById('chat-container').innerHTML = '';
-            document.getElementById('ui-thread-name').innerText = newThread.name;
-            renderThreadList();
-            goToScreen(1);
+            selectThread(id);
             callApi(WH_CHAT, { action: 'create_thread', thread_id: id }, false);
         }
 
         function renameCurrentThread() {
-            const n = prompt("Nuovo nome della discussione:", document.getElementById('ui-thread-name').innerText);
+            const n = prompt("Nome discussione:", document.getElementById('ui-thread-name').innerText);
             if(n && n.trim()) {
                 const t = threads.find(x => x.id === currentThreadId);
                 if(t) {
@@ -248,160 +592,10 @@
             }
         }
 
-        function sendText(customText = null) {
-            const input = document.getElementById('chat-input');
-            const text = customText || input.value.trim();
-            if (!text) return;
-            addMessage('user', text);
-            if (!customText) input.value = '';
-            activeAgents.forEach(id => callApi(WH_CHAT, { action: 'npl_chat', message: text }, true, id));
-        }
-
-        function addMessage(sender, text, isLoading = false, agentId = null) {
-            if (!isLoading) {
-                const now = new Date().toLocaleTimeString();
-                chatLog.push({ sender, text, agentId: agentId || primaryAgent, time: now });
-            }
-            const div = document.createElement('div');
-            div.className = `message ${sender}${isLoading ? ' loading' : ''}`;
-            if (sender === 'ai' && activeAgents.length > 1) {
-                const meta = AGENT_META[agentId] || AGENT_META[primaryAgent];
-                div.innerHTML = `<span class="msg-agent-badge" style="color:${meta.color}">${meta.label}</span>`;
-            }
-            const txtSpan = document.createElement('span'); txtSpan.textContent = text;
-            div.appendChild(txtSpan);
-            const container = document.getElementById('chat-container');
-            container.appendChild(div); container.scrollTop = container.scrollHeight;
-            return div;
-        }
-
-        function toggleDrawer() { document.body.classList.toggle('drawer-open'); }
-        function toggleFabMenu() { document.getElementById('agent-popup').classList.toggle('open'); document.getElementById('fab-menu').classList.toggle('open'); document.getElementById('fab-overlay').classList.toggle('open'); updatePopupActiveState(); }
-        function closeFabMenu() { document.getElementById('agent-popup').classList.remove('open'); document.getElementById('fab-menu').classList.remove('open'); document.getElementById('fab-overlay').classList.remove('open'); }
-        
-        function updatePopupActiveState() {
-            Object.keys(AGENT_META).forEach(id => {
-                const p = document.getElementById('popup-' + id);
-                if(p) p.classList.toggle('active-agent', activeAgents.includes(id));
-                const v = document.getElementById('v-btn-' + id);
-                if(v) v.classList.toggle('active', activeAgents.includes(id));
-            });
-            renderAgentBar();
-        }
-
-        function addAgentToChat(id) {
-            if (activeAgents.includes(id)) {
-                if (id !== primaryAgent) activeAgents = activeAgents.filter(a => a !== id);
-            } else {
-                activeAgents.push(id);
-                addMessage('ai', `👋 Sono ${AGENT_META[id].label}, sono qui per collaborare.`, false, id);
-            }
-            updatePopupActiveState();
-        }
-
-        function renderAgentBar() {
-            const bar = document.getElementById('active-agents-bar');
-            bar.innerHTML = '';
-            if (activeAgents.length <= 1) { bar.classList.remove('has-agents'); return; }
-            bar.classList.add('has-agents');
-            activeAgents.forEach(id => {
-                const isPri = id === primaryAgent;
-                bar.innerHTML += `<div class="agent-chip ${isPri?'primary-chip':''}"><span>${AGENT_META[id].short}</span>${isPri?'':`<i class="fas fa-times chip-remove" onclick="event.stopPropagation();addAgentToChat('${id}')"></i>`}</div>`;
-            });
-        }
-
-        function switchAgent(id) {
-            primaryAgent = id;
-            if(!activeAgents.includes(id)) activeAgents.push(id);
-            document.getElementById('ui-agent-name').innerText = AGENT_META[id].label;
-            toggleDrawer();
-            renderAgentBar();
-            updatePopupActiveState();
-            const thread = threads.find(t => t.agent === id);
-            if (thread) selectThread(thread.id); else createNewThread();
-        }
-
-        function openInsightDrawer() {
-            buildTrace(); buildSummary(); buildRationale();
-            document.getElementById('insight-drawer').classList.add('open');
-            document.getElementById('insight-backdrop').classList.add('open');
-        }
-        function closeInsightDrawer() { document.getElementById('insight-drawer').classList.remove('open'); document.getElementById('insight-backdrop').classList.remove('open'); }
-        function switchInsightTab(tab, btn) {
-            document.querySelectorAll('.insight-tab, .insight-panel').forEach(x => x.classList.remove('active'));
-            btn.classList.add('active'); document.getElementById('panel-' + tab).classList.add('active');
-        }
-
-        function buildTrace() {
-            const c = document.getElementById('panel-trace');
-            c.innerHTML = chatLog.map(e => `
-                <div class="trace-event">
-                    <div class="trace-dot ${e.sender==='user'?'user-dot':''}" style="${e.sender==='ai'?'background:'+AGENT_META[e.agentId].bg+';color:'+AGENT_META[e.agentId].color:''}">
-                        <i class="${e.sender==='user'?'fas fa-user':AGENT_META[e.agentId].icon}"></i>
-                    </div>
-                    <div class="trace-body">
-                        <div class="trace-label" style="color:${e.sender==='user'?'var(--primary)':AGENT_META[e.agentId].color}">${e.sender==='user'?'TU':AGENT_META[e.agentId].short}</div>
-                        <div class="trace-text">${e.text}</div>
-                        <div class="trace-time">${e.time}</div>
-                    </div>
-                </div>`).join('') || "Nessun dato.";
-        }
-
-        function buildSummary() {
-            const byAgent = {};
-            chatLog.forEach(e => { if(e.sender==='ai'){ if(!byAgent[e.agentId]) byAgent[e.agentId]=[]; byAgent[e.agentId].push(e.text); }});
-            document.getElementById('panel-summary').innerHTML = Object.keys(byAgent).length ? Object.keys(byAgent).map(id => `
-                <div style="margin-bottom:20px; border-bottom:1px solid #eee; padding-bottom:10px;">
-                    <strong style="color:${AGENT_META[id].color}">${AGENT_META[id].label}</strong>
-                    <p style="font-size:13px; color:#555; margin-top:5px;">${byAgent[id][byAgent[id].length-1]}</p>
-                </div>`).join('') : "Nessun riassunto disponibile.";
-        }
-
-        function buildRationale() {
-            document.getElementById('panel-rationale').innerHTML = lastRationale ? `
-                <div style="padding:15px; background:#f0f4f8; border-radius:12px; border-left:5px solid var(--accent);">
-                    <p style="font-size:14px; color:#2c3e50; line-height:1.6;">${lastRationale}</p>
-                </div>` : "Analisi razionale non ancora disponibile per l'ultima risposta.";
-        }
-
-        const micBtn = document.getElementById('mic-btn');
-        let mediaRecorder, audioChunks = [];
-        micBtn.addEventListener('mousedown', startRec); micBtn.addEventListener('mouseup', stopRec);
-        micBtn.addEventListener('touchstart', e => { e.preventDefault(); startRec(); }); micBtn.addEventListener('touchend', e => { e.preventDefault(); stopRec(); });
-
-        async function startRec() {
-            try {
-                micBtn.classList.add('recording'); audioChunks = [];
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = async () => {
-                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const reader = new FileReader(); reader.readAsDataURL(blob);
-                    reader.onloadend = () => {
-                        const base64 = reader.result.split(',')[1];
-                        activeAgents.forEach(id => callApi(WH_CHAT, { action: 'npl_voice', audio_base64: base64, mime_type: 'audio/webm' }, true, id));
-                    };
-                };
-                mediaRecorder.start();
-                document.getElementById('voice-status').textContent = "Ti ascolto...";
-            } catch(e) { tg.showAlert("Microfono non disponibile."); }
-        }
-        function stopRec() { if(mediaRecorder && mediaRecorder.state !== 'inactive') { micBtn.classList.remove('recording'); mediaRecorder.stop(); document.getElementById('voice-status').textContent = "Analisi voce..."; } }
-
-        function openSolver() { toggleDrawer(); document.getElementById('solver-frame').src = "solver.html"; document.getElementById('solver-overlay').classList.add('active'); }
-        function closeSolver() { document.getElementById('solver-overlay').classList.remove('active'); document.getElementById('solver-frame').src = ""; }
         window.addEventListener('message', e => { if(e.data.type === 'SOLVER_DATA'){ closeSolver(); sendText(e.data.payload); }});
-
-        function renderThreadList() {
-            const list = document.getElementById('thread-list');
-            const filtered = threads.filter(t => t.agent === primaryAgent);
-            list.innerHTML = filtered.map(t => `<div class="thread-item ${t.id===currentThreadId?'active':''}" onclick="selectThread('${t.id}')"><div><div class="thread-name">${t.name}</div><div class="thread-date">${t.date}</div></div><i class="fas fa-chevron-right" style="color:#ccc"></i></div>`).join('') || "<p style='text-align:center;color:#aaa;padding:20px;'>Nessuna discussione.</p>";
-        }
 
         window.onload = () => {
             renderThreadList();
-            updatePopupActiveState();
             callApi(WH_CHAT, { action: 'init_app' }, false);
         };
     </script>
