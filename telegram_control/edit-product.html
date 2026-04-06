@@ -62,7 +62,6 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
 
-        /* Tag Input Container finto */
         .tag-container-focus:focus-within { border-color: #000; }
     </style>
 
@@ -222,16 +221,12 @@
                 
                 <div class="space-y-2">
                     <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Competenze Richieste</label>
-                    <div id="skills-display" class="flex flex-wrap gap-2">
-                        <!-- Populated by JS -->
-                    </div>
+                    <div id="skills-display" class="flex flex-wrap gap-2"></div>
                 </div>
                 
                 <div class="space-y-2">
                     <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Provider Specifici</label>
-                    <div id="providers-display" class="flex flex-col gap-3">
-                        <!-- Populated by JS -->
-                    </div>
+                    <div id="providers-display" class="flex flex-col gap-3"></div>
                     <p class="text-[10px] font-bold text-gray-500 mt-3 uppercase tracking-widest leading-relaxed">
                         💡 Se vuoto, qualsiasi provider con le skill richieste può erogare il servizio
                     </p>
@@ -243,7 +238,7 @@
 
     <!-- FAB CONTAINER -->
     <div class="fixed bottom-6 left-0 w-full px-6 flex items-center justify-between z-[100] gap-4">
-        <button onclick="goBackToCatalog()" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-100 active:scale-90 transition" title="Torna al Catalogo">
+        <button onclick="window.history.back()" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-100 active:scale-90 transition" title="Indietro">
             <i class="fas fa-arrow-left"></i>
         </button>
         <button id="saveBtn" class="flex-1 h-16 bg-black text-white rounded-full shadow-2xl font-black uppercase tracking-widest active:scale-95 transition disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-3" disabled>
@@ -251,7 +246,7 @@
         </button>
     </div>
 
-    <!-- LOGICA JS ORIGINALE INTATTA -->
+    <!-- LOGICA JS -->
     <script>
         'use strict';
 
@@ -259,11 +254,13 @@
         const tg = window.Telegram.WebApp;
         try { tg.ready(); tg.expand(); } catch (e) { console.warn("TG WebApp not found"); }
 
+        // ── NUOVA LOGICA ESTRAZIONE PARAMETRI ──
         const urlParams = new URLSearchParams(window.location.search);
-        const productId = urlParams.get('productId');
-        const token = urlParams.get('token');
-        const vat = urlParams.get('vat');
-        const langParam = urlParams.get('lang') || 'it';
+        const sopId = urlParams.get('sop_id');
+        const messageId = urlParams.get('message_id');
+        
+        // Estraiamo la lingua direttamente dall'utente Telegram (se disponibile)
+        const langParam = tg.initDataUnsafe?.user?.language_code || 'it';
 
         let currentData = null;
         let initialDataString = "";
@@ -271,11 +268,10 @@
         let skillTags = [];
         let keywords = [];
 
-        // 2. I18N (FULL 6 LANGUAGES)
+        // I18N
         const i18n = {
             it: { page_title: "Modifica Prodotto", title: "✏️ Modifica", subtitle: "Gestione dettagli e prezzi", loading: "Caricamento...", saving: "Salvataggio...", saved: "✅ Salvato!", error: "❌ Errore", secIdentity: "📋 Identità", secPricing: "💰 Pricing", secOps: "⚙️ Operatività", lblName: "Nome Prodotto/Servizio", lblType: "Tipo", lblShort: "Descrizione Breve (max 100)", lblLong: "Descrizione Completa", lblInternal: "Note Interne (Staff)", lblPrice: "Prezzo Base", lblCurrency: "Valuta", lblUnit: "Unità", lblTax: "IVA (%)", chkBooking: "Richiede Prenotazione", chkInventory: "Controllo Inventario", lblSkills: "Skill Richieste (Invio per aggiungere)", lblKeywords: "Keywords (SEO, Invio per aggiungere)", btnSave: "Salva", hintCancel: "Chiudi la finestra per annullare", optService: "Servizio", optProduct: "Prodotto", optItem: "Pezzo", optHour: "Ora", optDay: "Giorno", optProject: "Progetto", optMonth: "Mese", phSkill: "Es: Senior, Junior...", phKw: "Es: consulenza, setup..." },
             en: { page_title: "Edit Product", title: "✏️ Edit", subtitle: "Manage details and pricing", loading: "Loading...", saving: "Saving...", saved: "✅ Saved!", error: "❌ Error", secIdentity: "📋 Identity", secPricing: "💰 Pricing", secOps: "⚙️ Operations", lblName: "Product/Service Name", lblType: "Type", lblShort: "Short Description (max 100)", lblLong: "Full Description", lblInternal: "Internal Notes (Staff)", lblPrice: "Base Price", lblCurrency: "Currency", lblUnit: "Unit", lblTax: "Tax (%)", chkBooking: "Requires Booking", chkInventory: "Inventory Check", lblSkills: "Required Skills (Enter to add)", lblKeywords: "Keywords (SEO, Enter to add)", btnSave: "Save", hintCancel: "Close the window to cancel", optService: "Service", optProduct: "Product", optItem: "Item", optHour: "Hour", optDay: "Day", optProject: "Project", optMonth: "Month", phSkill: "E.g.: Senior, Junior...", phKw: "E.g.: consulting, setup..." }
-            // Ometto le altre per brevità di codice visualizzato, ma la logica le gestisce se le aggiungi.
         };
         const t = i18n[langParam.slice(0,2)] || i18n.it;
 
@@ -296,10 +292,13 @@
 
         function init() {
             applyTranslations();
-            if (!productId || !token || !vat) {
-                dom.loaderText.textContent = "Error: Missing VAT/Token/ID";
+            
+            // ── NUOVA VALIDAZIONE ──
+            if (!sopId) {
+                dom.loaderText.textContent = "Errore: Parametro sop_id mancante";
                 return;
             }
+            
             loadProduct();
         }
 
@@ -320,10 +319,20 @@
         async function loadProduct() {
             showLoader(t.loading);
             try {
+                // ── NUOVO PAYLOAD GET ──
+                const payload = {
+                    _auth: tg.initData,
+                    chat_id: tg.initDataUnsafe?.user?.id,
+                    action: 'GET',
+                    type: 'PRODUCT',
+                    sop_id: sopId,
+                    message_id: messageId
+                };
+
                 const res = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'GET', type: 'PRODUCT', productId: productId, token: token, vat: vat })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -349,7 +358,6 @@
                 
                 dom.form.addEventListener('input', checkDirty);
                 dom.form.addEventListener('submit', handleSave);
-                // Intercetto il click sul fab e lo mando al submit del form
                 dom.saveBtn.addEventListener('click', (e) => { e.preventDefault(); dom.form.requestSubmit(); });
 
                 hideLoader();
@@ -402,7 +410,6 @@
             }
         }
 
-        // AGGIORNATO AL LOOK BLACK & WHITE (TAILWIND)
         function renderProviders(providerInfo) {
             const skills = providerInfo.required_skill_tags || [];
 
@@ -444,7 +451,6 @@
                         </div>`;
                 }
                 
-                // Oggetto Completo
                 const isInternal = provider.provider_type === 'INTERNAL';
                 const icon = isInternal ? '🏢' : (provider.provider_type === 'EXTERNAL' ? '🤝' : '👤');
                 
@@ -495,19 +501,30 @@
             currentData.operations.provider_info.required_skill_tags = skillTags;
 
             try {
+                // ── NUOVO PAYLOAD SAVE ──
+                const payloadToSave = {
+                    _auth: tg.initData,
+                    chat_id: tg.initDataUnsafe?.user?.id,
+                    action: 'SAVE',
+                    type: 'PRODUCT',
+                    sop_id: sopId,
+                    message_id: messageId,
+                    payload: currentData
+                };
+
                 const res = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        action: 'SAVE', type: 'PRODUCT', productId: productId, token: token, vat: vat, payload: currentData
-                    })
+                    body: JSON.stringify(payloadToSave)
                 });
                 
                 if (!res.ok) throw new Error("Save failed");
                 
                 setButtonLoading(dom.saveBtn, dom.saveBtnText, false, t.saved, true);
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => { try { tg.close(); } catch (e) { goBackToCatalog(); } }, 1500);
+                
+                // Su Telegram la miglior pratica dopo un salvataggio è chiudere la webapp
+                setTimeout(() => { try { tg.close(); } catch (e) { window.history.back(); } }, 1500);
 
             } catch (e) {
                 handleError(e);
@@ -530,7 +547,6 @@
             dom.saveBtn.disabled = !isDirty;
         }
 
-        // AGGIORNATO AL LOOK BLACK & WHITE (TAILWIND)
         function setupTagInput(input, container, tags) {
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ',') {
@@ -585,13 +601,6 @@
                 btn.classList.add('bg-green-500');
             }
         }
-
-        window.goBackToCatalog = () => {
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            const params = new URLSearchParams(window.location.search);
-            params.delete('productId');
-            window.location.href = `catalog.html?${params.toString()}`;
-        };
 
         // AVVIO
         init();
