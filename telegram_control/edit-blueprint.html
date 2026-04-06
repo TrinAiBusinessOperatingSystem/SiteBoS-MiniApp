@@ -131,16 +131,19 @@
         const tg = window.Telegram.WebApp;
         try { tg.ready(); tg.expand(); } catch (e) { console.warn("TG WebApp not found"); }
 
+        // ── NUOVA LOGICA ESTRAZIONE PARAMETRI ──
         const urlParams = new URLSearchParams(window.location.search);
-        const productId = urlParams.get('productId');
-        const token = urlParams.get('token');
-        const vat = urlParams.get('vat');
-        const langParam = urlParams.get('lang') || 'it';
+        const sopId = urlParams.get('sop_id');
+        const messageId = urlParams.get('message_id');
+        
+        // Lingua da Telegram
+        const langParam = tg.initDataUnsafe?.user?.language_code || 'it';
 
         let currentData = null;
         let stageSortable = null;
         let stepSortables = [];
 
+        // I18N
         const i18n = {
             it: { title: "Blueprint Operativo", subtitle: "Definisci il processo produttivo", btnAddStage: "Nuova Fase", btnSave: "Salva", loading: "Caricamento...", saved: "✅ Salvato!", error: "❌ Errore", phDesc: "Scopo del processo...", phStageName: "Nome Fase (es. Analisi)", phStepName: "Nome Step", phStageDesc: "Descrizione fase...", phStepInstr: "Istruzioni operative...", phQC: "Check Qualità...", phSkills: "Skill (es. Dev, Legal)", lblDesc: "DESCRIZIONE", min: "min", confirmDel: "Eliminare?", step: "Step", lblInstr: "ISTRUZIONI", lblQC: "QUALITY CHECK", lblSkills: "SKILLS", lblWip: "WIP", lblFin: "FINISHED", stepsCount: "passi" },
             en: { title: "Operational Blueprint", subtitle: "Define production process", btnAddStage: "New Stage", btnSave: "Save", loading: "Loading...", saved: "✅ Saved!", error: "❌ Error", phDesc: "Process purpose...", phStageName: "Stage Name", phStepName: "Step Name", phStageDesc: "Stage description...", phStepInstr: "Instructions...", phQC: "Quality Check...", phSkills: "Skills (e.g. Dev)", lblDesc: "DESCRIPTION", min: "min", confirmDel: "Delete?", step: "Step", lblInstr: "INSTRUCTIONS", lblQC: "QUALITY CHECK", lblSkills: "SKILLS", lblWip: "WIP", lblFin: "FINISHED", stepsCount: "steps" }
@@ -160,8 +163,15 @@
 
         function init() {
             applyTranslations();
-            if (!productId || !token || !vat) { alert("Error: Missing Parameters"); return; }
+            
+            // ── NUOVA VALIDAZIONE ──
+            if (!sopId) {
+                showError("Errore: Parametro sop_id mancante");
+                return;
+            }
+            
             loadBlueprint();
+            
             dom.stagesContainer.addEventListener('click', handleContainerClick);
             dom.stagesContainer.addEventListener('input', handleInput);
             document.getElementById('btnAddStageBtn').addEventListener('click', addStage);
@@ -177,7 +187,6 @@
             dom.loaderText.textContent = t.loading;
         }
 
-        // AGGIORNATO AL TAILWIND (B&W)
         function renderStages() {
             if (stageSortable) stageSortable.destroy();
             stepSortables.forEach(s => s.destroy());
@@ -196,7 +205,6 @@
                 stageEl.dataset.idx = sIdx;
 
                 stageEl.innerHTML = `
-                    <!-- HEADER FASE -->
                     <div class="flex items-center p-5 gap-4 bg-gray-50 border-b border-gray-100 ${!isOpen ? 'border-none' : ''}">
                         <i class="fas fa-grip-vertical drag-handle-stage text-gray-300 text-lg cursor-grab active:cursor-grabbing touch-none flex-shrink-0"></i>
                         
@@ -213,7 +221,6 @@
                         </button>
                     </div>
                     
-                    <!-- CORPO FASE (Nascosto se chiuso) -->
                     <div class="${isOpen ? 'block' : 'hidden'} p-6 space-y-4">
                         <input type="text" class="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold border border-transparent focus:border-black outline-none transition" 
                                value="${stage.stage_name || ''}" placeholder="${t.phStageName}" data-type="stage-name" data-sidx="${sIdx}">
@@ -221,7 +228,6 @@
                         <textarea rows="2" class="w-full bg-gray-50 p-4 rounded-2xl text-xs font-medium border border-transparent focus:border-black outline-none transition resize-none"
                                   placeholder="${t.phStageDesc}" data-type="stage-desc" data-sidx="${sIdx}">${stage.description || ''}</textarea>
                         
-                        <!-- CONTENITORE STEPS -->
                         <div class="step-list-container space-y-3" data-sidx="${sIdx}">
                             ${renderSteps(stage.steps, sIdx)}
                         </div>
@@ -234,7 +240,6 @@
                 `;
                 dom.stagesContainer.appendChild(stageEl);
 
-                // Init Sortable per gli Step interni
                 const stepSort = new Sortable(stageEl.querySelector('.step-list-container'), {
                     group: 'steps', handle: '.drag-handle-step', animation: 150,
                     touchStartThreshold: 3, delay: 50, delayOnTouchOnly: true,
@@ -244,7 +249,6 @@
                 stepSortables.push(stepSort);
             });
 
-            // Init Sortable per le Fasi (Esterno)
             stageSortable = new Sortable(dom.stagesContainer, {
                 handle: '.drag-handle-stage', animation: 150,
                 touchStartThreshold: 3, delay: 50, delayOnTouchOnly: true,
@@ -253,7 +257,6 @@
             });
         }
 
-        // AGGIORNATO AL TAILWIND (B&W)
         function renderSteps(steps, sIdx) {
             if (!steps || steps.length === 0) return `<div class="text-center py-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest border border-dashed border-gray-200 rounded-2xl">Nessuno step configurato</div>`;
             
@@ -265,15 +268,10 @@
                 
                 return `
                 <div class="bg-gray-50 border border-gray-100 rounded-[2rem] p-5">
-                    
-                    <!-- HEADER STEP -->
                     <div class="flex items-center gap-3 mb-4">
                         <i class="fas fa-grip-vertical drag-handle-step text-gray-300 text-lg cursor-grab active:cursor-grabbing touch-none flex-shrink-0"></i>
-                        
                         <div class="flex gap-1 flex-shrink-0">${wipBadge} ${finBadge}</div>
-                        
                         <div class="flex-1"></div>
-                        
                         <button class="w-8 h-8 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm active:scale-90 transition flex-shrink-0" data-action="toggle-step" data-sidx="${sIdx}" data-stidx="${stIdx}">
                             <i class="fas fa-chevron-${isOpen ? 'up' : 'down'} text-xs"></i>
                         </button>
@@ -282,47 +280,37 @@
                         </button>
                     </div>
 
-                    <!-- INPUT NOME & TEMPO -->
                     <div class="flex items-center gap-3 mb-3">
                         <input type="text" class="flex-1 bg-white p-4 rounded-2xl text-sm font-bold border border-transparent focus:border-black outline-none transition"
                                value="${step.step_name || ''}" placeholder="${t.phStepName}" data-type="step-name" data-sidx="${sIdx}" data-stidx="${stIdx}">
-                        
                         <div class="flex items-center gap-2 bg-white px-4 py-4 rounded-2xl border border-transparent focus-within:border-black transition w-28">
                             <i class="far fa-clock text-gray-400"></i>
                             <input type="number" min="0" value="${mins}" class="w-full bg-transparent border-none text-sm font-bold text-center outline-none" data-type="step-time" data-sidx="${sIdx}" data-stidx="${stIdx}">
                         </div>
                     </div>
 
-                    <!-- DETTAGLI (Aperti o Chiusi) -->
                     <div class="${isOpen ? 'block' : 'hidden'} space-y-4 pt-2">
-                        
                         <div>
                             <label class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block mb-2 ml-1">${t.lblInstr}</label>
                             <textarea rows="3" class="w-full bg-white p-4 rounded-2xl text-xs border border-transparent focus:border-black outline-none transition resize-none"
                                       placeholder="${t.phStepInstr}" data-type="step-instr" data-sidx="${sIdx}" data-stidx="${stIdx}">${step.instructions||''}</textarea>
                         </div>
-
                         <div>
                             <label class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-600 block mb-2 ml-1">${t.lblQC} (Opzionale)</label>
                             <textarea rows="2" class="w-full bg-white border-l-4 border-l-black p-4 rounded-2xl text-xs outline-none transition resize-none"
                                       placeholder="${t.phQC}" data-type="step-qc" data-sidx="${sIdx}" data-stidx="${stIdx}">${step.quality_check?.check_description||''}</textarea>
                         </div>
-
                         <div>
                             <label class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400 block mb-2 ml-1">${t.lblSkills}</label>
                             <input type="text" class="w-full bg-white p-4 rounded-2xl text-xs border border-transparent focus:border-black outline-none transition"
                                    value="${(step.resources_needed?.labor?.required_skill_tags||[]).join(', ')}" placeholder="${t.phSkills}" data-type="step-skills" data-sidx="${sIdx}" data-stidx="${stIdx}">
                         </div>
-
-                        <!-- FLAG DI LOGISTICA -->
                         <div class="flex gap-6 pt-4 border-t border-gray-200">
                             <label class="flex items-center gap-2 cursor-pointer text-xs font-bold uppercase tracking-widest">
-                                <input type="checkbox" ${step.logistics_flags?.requires_wip?'checked':''} data-type="flag-wip" data-sidx="${sIdx}" data-stidx="${stIdx}"> 
-                                ${t.lblWip}
+                                <input type="checkbox" ${step.logistics_flags?.requires_wip?'checked':''} data-type="flag-wip" data-sidx="${sIdx}" data-stidx="${stIdx}"> ${t.lblWip}
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer text-xs font-bold uppercase tracking-widest">
-                                <input type="checkbox" ${step.logistics_flags?.requires_finished?'checked':''} data-type="flag-fin" data-sidx="${sIdx}" data-stidx="${stIdx}"> 
-                                ${t.lblFin}
+                                <input type="checkbox" ${step.logistics_flags?.requires_finished?'checked':''} data-type="flag-fin" data-sidx="${sIdx}" data-stidx="${stIdx}"> ${t.lblFin}
                             </label>
                         </div>
                     </div>
@@ -331,7 +319,6 @@
             }).join('');
         }
 
-        // LOGICA EVENTI ORIGINALE (Intatta)
         function handleContainerClick(e) {
             const btn = e.target.closest('button');
             const toggleArea = e.target.closest('[data-action="toggle-stage"]');
@@ -444,48 +431,84 @@
         async function loadBlueprint() {
             showLoader(t.loading);
             try {
+                // ── NUOVO PAYLOAD GET ──
+                const payload = {
+                    _auth: tg.initData,
+                    chat_id: tg.initDataUnsafe?.user?.id,
+                    action: 'GET',
+                    type: 'BLUEPRINT',
+                    sop_id: sopId,
+                    message_id: messageId
+                };
+
                 const res = await fetch(WEBHOOK_URL, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'GET', type: 'BLUEPRINT', productId, token, vat })
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
                 });
+                
                 const data = await res.json();
                 const bp = Array.isArray(data) ? data[0] : data;
                 currentData = bp || { stages: [] };
+                
                 dom.desc.value = currentData.blueprint_description || '';
                 dom.sku.innerText = `SKU: ${currentData.service_sku || 'N/A'}`;
-                updateIndexes(); renderStages(); hideLoader();
-            } catch(e) { console.error('Load error:', e); showError(e.message); }
+                
+                updateIndexes(); 
+                renderStages(); 
+                hideLoader();
+            } catch(e) { 
+                console.error('Load error:', e); 
+                showError("Errore nel caricamento dei dati dal server."); 
+            }
         }
 
         async function handleSave(e) {
             e.preventDefault();
             
-            // UI Aggiornata durante salvataggio
             dom.saveBtn.disabled = true;
             dom.saveBtnText.innerHTML = `<i class="fas fa-circle-notch fa-spin mr-2"></i> Salvataggio...`;
 
             currentData.blueprint_description = dom.desc.value;
-            const payload = JSON.parse(JSON.stringify(currentData));
-            payload.stages.forEach(s => { delete s._ui_open; s.steps.forEach(st => delete st._ui_open); });
+            const dataToSave = JSON.parse(JSON.stringify(currentData));
+            dataToSave.stages.forEach(s => { delete s._ui_open; s.steps.forEach(st => delete st._ui_open); });
             
             try {
+                // ── NUOVO PAYLOAD SAVE ──
+                const payload = {
+                    _auth: tg.initData,
+                    chat_id: tg.initDataUnsafe?.user?.id,
+                    action: 'SAVE',
+                    type: 'BLUEPRINT',
+                    sop_id: sopId,
+                    message_id: messageId,
+                    payload: dataToSave
+                };
+
                 await fetch(WEBHOOK_URL, {
-                    method: 'POST', headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ action: 'SAVE', type: 'BLUEPRINT', productId, token, vat, payload })
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify(payload)
                 });
                 
                 dom.saveBtnText.innerText = "Salvato!";
                 dom.saveBtn.classList.replace('bg-black', 'bg-green-500');
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                
+                // Chiusura automatica
                 setTimeout(() => { try { tg.close(); } catch(e) { window.history.back(); } }, 1500);
-            } catch(err) { showError(err.message); }
+            } catch(err) { 
+                showError("Errore durante il salvataggio."); 
+            }
         }
 
         function showLoader(msg) { dom.loaderText.innerText = msg; dom.loader.classList.remove('hidden'); dom.content.classList.add('hidden'); }
         function hideLoader() { dom.loader.classList.add('hidden'); dom.content.classList.remove('hidden'); }
         function showError(msg) { 
-            alert(msg); hideLoader(); 
-            dom.saveBtn.disabled = false; dom.saveBtnText.innerText = "Salva Blueprint";
+            alert(msg); 
+            hideLoader(); 
+            dom.saveBtn.disabled = false; 
+            dom.saveBtnText.innerText = "Salva Blueprint"; 
         }
 
         document.addEventListener('DOMContentLoaded', init);
