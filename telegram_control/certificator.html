@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS Certificator</title>
+    
+    <!-- SDK ufficiale Telegram Mini Apps -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Protezione Iframe: Solo Telegram può ospitare questa pagina -->
+    <meta http-equiv="Content-Security-Policy" content="frame-ancestors 'self' https://web.telegram.org https://t.me;">
+
+    <script>
+        // ── 1. SICUREZZA: IL BUTTAFUORI ──
+        (function() {
+            const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "";
+            if (!isTelegram) {
+                document.documentElement.innerHTML = `
+                    <body style="background:#000;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh;text-align:center;font-family:sans-serif;padding:30px;">
+                        <div>
+                            <h1 style="font-size:60px;margin-bottom:20px;">🚫</h1>
+                            <h2>Accesso Negato</h2>
+                            <p style="opacity:0.7;">Questo modulo di certificazione è accessibile solo tramite l'App SiteBoS ufficiale su Telegram.</p>
+                        </div>
+                    </body>`;
+                window.stop();
+                throw new Error("Unauthorized Access");
+            }
+        })();
+    </script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            color: #1a1e24;
+            padding-top: 20px;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .logo {
+            font-weight: bold;
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #212D67;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .status-text {
+            font-size: 16px;
+            margin-bottom: 20px;
+            color: #4A4A4A;
+            font-weight: bold;
+        }
+
+        /* --- SEZIONI DINAMICHE --- */
+        .module-section {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        #camera-feed {
+            display: none;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            background-color: #000;
+            object-fit: cover;
+        }
+
+        .file-upload-box {
+            border: 2px dashed #212D67;
+            border-radius: 12px;
+            padding: 40px 20px;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #ffffff;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background-color 0.3s;
+        }
+        .file-upload-box:hover { background-color: #f0f4f8; }
+        .file-name-display { margin-top: 10px; font-size: 14px; color: #E63946; font-weight: bold; word-break: break-all; }
+        input[type="file"] { display: none; }
+
+        textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 150px;
+            margin-bottom: 20px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+        }
+        textarea:focus { outline: none; border-color: #212D67; box-shadow: 0 0 5px rgba(33, 45, 103, 0.3); }
+
+        .action-btn {
+            background-color: #212D67;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s, background-color 0.2s;
+            margin: 5px;
+            width: 100%;
+            max-width: 300px;
+        }
+        .action-btn:active { transform: scale(0.95); }
+        .action-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        .btn-danger { background-color: #E63946; }
+        .btn-success { background-color: #2a9d8f; }
+
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #212D67;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo">SiteBoS Certificator</div>
+        <div id="subtitle" class="subtitle">Modulo Acquisizione Evidenze</div>
+        <div id="status" class="status-text">Inizializzazione...</div>
+        <div id="loader" class="loader"></div>
+
+        <!-- MODULO: IMAGE -->
+        <div id="section-image" class="module-section">
+            <video id="camera-feed" autoplay playsinline webkit-playsinline muted></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+            <button id="startCamBtn" class="action-btn" onclick="startCamera()">📸 ATTIVA FOTOCAMERA</button>
+            <button id="snapBtn" class="action-btn btn-danger" style="display:none;" onclick="takePhoto()">🔴 SCATTA E INVIA</button>
+        </div>
+
+        <!-- MODULO: FILE -->
+        <div id="section-file" class="module-section">
+            <div class="file-upload-box" onclick="document.getElementById('fileInput').click()">
+                📄 Seleziona Documento<br>
+                <span style="font-size: 11px; color:#666; margin-top:5px; display:block;">(PDF, JPG, PNG - Max 10MB)</span>
+            </div>
+            <input type="file" id="fileInput" accept=".pdf,image/jpeg,image/png" onchange="handleFileSelect(event)">
+            <div id="fileNameDisplay" class="file-name-display">Nessun file selezionato</div>
+            <button id="uploadFileBtn" class="action-btn btn-success" disabled onclick="processAndSendFile()">📤 INVIA DOCUMENTO</button>
+        </div>
+
+        <!-- MODULO: TEXT -->
+        <div id="section-text" class="module-section">
+            <textarea id="textInput" placeholder="Inserisci qui il testo richiesto o la nota di validazione..." oninput="validateText()"></textarea>
+            <button id="sendTextBtn" class="action-btn btn-success" disabled onclick="sendTextData()">📤 INVIA TESTO</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        const statusText = document.getElementById('status');
+        const loader = document.getElementById('loader');
+        const secImage = document.getElementById('section-image');
+        const secFile = document.getElementById('section-file');
+        const secText = document.getElementById('section-text');
+
+        // RECUPERO DATI SICURI (ChatId e UserId da SDK)
+        const chatId = tg.initDataUnsafe.start_param || tg.initDataUnsafe.user?.id;
+        const userId = tg.initDataUnsafe.user?.id;
+
+        let urlParams = {};
+        let evidenceType = "IMAGE";
+        let videoStream = null;
+        let selectedFileBase64 = null;
+        let selectedFileMime = null;
+        let selectedFileName = null;
+
+        function initApp() {
+            const params = new URLSearchParams(window.location.search);
+            urlParams = Object.fromEntries(params.entries());
+            evidenceType = (urlParams.evidence_type || "IMAGE").toUpperCase();
+
+            if (evidenceType === "FILE") {
+                secFile.style.display = "flex";
+                statusText.innerText = "Allega il file richiesto";
+            } else if (evidenceType === "TEXT") {
+                secText.style.display = "flex";
+                statusText.innerText = "Inserisci la nota testuale";
+            } else {
+                secImage.style.display = "flex";
+                statusText.innerText = "Scatta una foto live";
+            }
+        }
+
+        async function startCamera() {
+            try {
+                document.getElementById('startCamBtn').style.display = 'none';
+                loader.style.display = 'block';
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                videoStream = stream;
+                const video = document.getElementById('camera-feed');
+                video.srcObject = stream;
+                video.onloadedmetadata = () => {
+                    video.play();
+                    loader.style.display = 'none';
+                    video.style.display = 'block';
+                    document.getElementById('snapBtn').style.display = 'block';
+                    statusText.innerText = 'Inquadra l\'oggetto...';
+                };
+            } catch (err) {
+                loader.style.display = 'none';
+                document.getElementById('startCamBtn').style.display = 'block';
+                statusText.innerText = '❌ Errore fotocamera.';
+                tg.showAlert("È necessario concedere i permessi per scattare la foto.");
+            }
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+            sendToServer(base64, "image/jpeg", `cert_${Date.now()}.jpg`);
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) { tg.showAlert("File troppo grande (Max 10MB)"); return; }
+            document.getElementById('fileNameDisplay').innerText = `📎 ${file.name}`;
+            selectedFileName = file.name;
+            selectedFileMime = file.type;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                selectedFileBase64 = event.target.result.split(',')[1];
+                document.getElementById('uploadFileBtn').disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function processAndSendFile() {
+            sendToServer(selectedFileBase64, selectedFileMime, selectedFileName);
+        }
+
+        function validateText() {
+            document.getElementById('sendTextBtn').disabled = document.getElementById('textInput').value.trim().length < 3;
+        }
+
+        function sendTextData() {
+            sendToServer(document.getElementById('textInput').value.trim(), "text/plain", "nota.txt", true);
+        }
+
+        function sendToServer(content, mimeType, fileName, isPlainText = false) {
+            loader.style.display = 'block';
+            statusText.innerText = 'Invio in corso...';
+            
+            // PAYLOAD SICURO: Parametri URL + Dati SDK + Auth
+            const payload = {
+                _auth: tg.initData, // Stringa di verifica
+                action: "certificator",
+                evidence_type: evidenceType,
+                mime_type: mimeType,
+                file_name: fileName,
+                chat_id: chatId,   // Preso da SDK
+                user_id: userId,   // Preso da SDK
+                ...urlParams       // sop_id, step_id, message_id presi dall'URL
+            };
+
+            if (isPlainText) payload.text_content = content;
+            else payload.base64_content = content;
+
+            fetch('https://prod.workflow.trinai.it/webhook/ef4aece4-9ec0-4026-a7a7-328562bcbdf6', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => {
+                if (res.ok) {
+                    statusText.innerText = '✅ Inviato con successo!';
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    setTimeout(() => tg.close(), 1500);
+                } else { throw new Error(); }
+            })
+            .catch(() => {
+                loader.style.display = 'none';
+                statusText.innerText = '❌ Errore. Riprova.';
+                tg.showAlert("Errore durante l'invio al sistema SiteBoS.");
+            });
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
