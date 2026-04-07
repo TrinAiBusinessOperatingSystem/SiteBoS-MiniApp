@@ -3,28 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Handover Response | SiteBoS</title>
+    <title>Handover Chat | SiteBoS</title>
     
     <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        brand: '#212D67',
-                        success: '#27ae60',
-                        bg: '#f4f7f9',
-                        border: '#e5e7eb'
-                    }
+                    colors: { brand: '#212D67', bg: '#f4f7f9', border: '#e5e7eb' }
                 }
             }
         }
@@ -33,84 +24,82 @@
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        .spinner { border: 3px solid rgba(33, 45, 103, 0.1); border-top-color: #212D67; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        /* Effetto focus sulla textarea */
         textarea:focus { border-color: #212D67; box-shadow: 0 0 0 4px rgba(33, 45, 103, 0.05); }
-
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.3s ease-out; }
     </style>
 
     <script>
         // ── 1. SICUREZZA: IL BUTTAFUORI ──
         (function() {
-            const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "";
-            if (!isTelegram) {
-                document.documentElement.innerHTML = `
-                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
-                        <div>
-                            <h1 class="text-6xl mb-4">🚫</h1>
-                            <h2 class="text-xl font-black uppercase tracking-widest">Accesso Negato</h2>
-                            <p class="opacity-40 text-sm mt-4 leading-relaxed">Interfaccia ad uso esclusivo dei Titolari SiteBoS.</p>
-                        </div>
-                    </body>`;
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-black uppercase tracking-widest">Accesso Proibito</h2></div></body>`;
                 window.stop();
-                throw new Error("Unauthorized Access");
             }
         })();
     </script>
 </head>
-<body class="bg-bg text-black min-h-screen flex flex-col">
+<body class="bg-bg text-black min-h-screen flex flex-col no-scrollbar">
 
-    <!-- OVERLAY DI CARICAMENTO -->
-    <div id="loadingOverlay" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4">
-        <div class="spinner"></div>
-        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-brand">Caricamento Contesto...</p>
-    </div>
-
-    <!-- HEADER FISSO -->
-    <header class="bg-white border-b border-border p-5 sticky top-0 z-50 shadow-sm flex items-center gap-4">
-        <div class="w-12 h-12 bg-brand text-white rounded-2xl flex items-center justify-center text-xl shadow-lg">
-            <i class="fas fa-headset"></i>
+    <!-- HEADER -->
+    <header class="bg-white border-b border-border p-6 sticky top-0 z-50 shadow-sm flex items-center gap-4">
+        <div class="w-12 h-12 bg-brand text-white rounded-2xl flex items-center justify-center text-xl">
+            <i class="fas fa-reply-all"></i>
         </div>
-        <div class="flex-1 overflow-hidden">
-            <p class="text-[9px] font-black text-gray-400 uppercase tracking-widest">Risposta a Stakeholder</p>
-            <h1 id="clientName" class="text-lg font-black tracking-tighter truncate leading-tight italic text-brand">...</h1>
-            <p id="productName" class="text-[10px] font-bold text-gray-500 truncate uppercase tracking-tighter">Oggetto: ...</p>
+        <div>
+            <h1 class="text-xl font-black tracking-tighter uppercase leading-none text-brand">Handover Chat</h1>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Risposta diretta al cliente</p>
         </div>
     </header>
 
-    <!-- AREA DI COMPOSIZIONE -->
-    <main class="flex-1 p-6 space-y-6 fade-in">
+    <!-- FORM DI RISPOSTA -->
+    <main class="flex-1 p-6 space-y-6">
+        
+        <!-- MESSAGGIO TEXT -->
         <div class="space-y-2">
-            <div class="flex justify-between items-center px-1">
-                <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Il tuo messaggio</label>
-                <span class="text-[9px] font-bold text-gray-300">Markdown supportato</span>
-            </div>
-            <textarea id="messageInput" rows="10" 
+            <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Messaggio di testo</label>
+            <textarea id="messageInput" rows="8" 
                 class="w-full bg-white p-6 rounded-[2rem] text-sm font-medium border border-border outline-none transition-all resize-none leading-relaxed shadow-sm"
-                placeholder="Scrivi qui la risposta per il cliente..."></textarea>
+                placeholder="Scrivi qui la tua risposta..."></textarea>
         </div>
 
-        <!-- TASTO CHIUSURA TICKET (LOGICA MongoDB STATE) -->
-        <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-border">
-            <input type="checkbox" id="closeTicketCheck" class="w-5 h-5 accent-brand cursor-pointer">
-            <label for="closeTicketCheck" class="text-xs font-bold text-gray-600 cursor-pointer flex-1">
-                Segna come Pratica Risolta (Close Ticket)
+        <!-- AREA ALLEGATO -->
+        <div class="space-y-2">
+            <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Allegato (Opzionale)</label>
+            <div id="uploadBox" onclick="document.getElementById('fileInput').click()" 
+                class="w-full border-2 border-dashed border-gray-200 bg-white rounded-[2rem] p-8 flex flex-col items-center justify-center cursor-pointer hover:border-brand transition-all group">
+                
+                <div id="uploadUI" class="text-center">
+                    <i class="fas fa-paperclip text-2xl text-gray-300 group-hover:text-brand transition-colors mb-2"></i>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-brand">PDF o Immagine</p>
+                </div>
+
+                <div id="filePreviewUI" class="hidden text-center animate-in">
+                    <i class="fas fa-file-circle-check text-2xl text-green-600 mb-2"></i>
+                    <p id="fileName" class="text-[11px] font-bold text-black truncate max-w-[200px]"></p>
+                    <button onclick="removeFile(event)" class="text-[9px] font-black uppercase text-red-500 mt-2 hover:underline">Rimuovi</button>
+                </div>
+            </div>
+            <input type="file" id="fileInput" class="hidden" accept=".pdf,image/jpeg,image/png" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- CHIUSURA TICKET -->
+        <div class="flex items-center gap-3 p-5 bg-white rounded-3xl border border-border shadow-sm">
+            <input type="checkbox" id="closeTicket" class="w-6 h-6 accent-brand cursor-pointer">
+            <label for="closeTicket" class="text-xs font-black text-gray-600 cursor-pointer flex-1 uppercase tracking-tight">
+                Chiudi Pratica (Stakeholder Risolto)
             </label>
         </div>
     </main>
 
     <!-- FOOTER AZIONI -->
-    <footer class="p-6 bg-white border-t border-border flex items-center gap-4 pb-10 shadow-[0_-10px_30px_rgba(0,0,0,0.02)]">
+    <footer class="p-6 bg-white border-t border-border flex items-center gap-4 pb-10">
         <button onclick="tg.close()" class="w-16 h-16 bg-white text-black rounded-full shadow-md flex items-center justify-center text-xl border border-border active:scale-90 transition">
             <i class="fas fa-times"></i>
         </button>
         <button id="sendBtn" class="flex-1 h-16 bg-brand text-white rounded-[2rem] shadow-2xl font-black uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-3">
-            <i class="fas fa-paper-plane"></i> <span id="sendBtnText">Invia Risposta</span>
+            <i class="fas fa-paper-plane"></i> <span id="btnText">Invia Risposta</span>
         </button>
     </footer>
 
@@ -125,72 +114,81 @@
         const ash = urlParams.get('ash');
 
         const dom = {
-            overlay: document.getElementById('loadingOverlay'),
-            clientName: document.getElementById('clientName'),
-            productName: document.getElementById('productName'),
             message: document.getElementById('messageInput'),
-            closeCheck: document.getElementById('closeTicketCheck'),
-            sendBtn: document.getElementById('sendBtn'),
-            sendBtnText: document.getElementById('sendBtnText')
+            close: document.getElementById('closeTicket'),
+            fileInput: document.getElementById('fileInput'),
+            uploadBox: document.getElementById('uploadBox'),
+            uploadUI: document.getElementById('uploadUI'),
+            previewUI: document.getElementById('filePreviewUI'),
+            fileName: document.getElementById('fileName'),
+            btn: document.getElementById('sendBtn'),
+            txt: document.getElementById('btnText')
         };
 
-        // ── 1. INIZIALIZZAZIONE (GET CONTEXT) ──
-        async function initHandover() {
-            if (!ash) {
-                tg.showAlert("Errore: Identificativo 'ash' mancante. Impossibile procedere.");
+        let selectedFile = null;
+
+        // ── GESTIONE FILE ──
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 10 * 1024 * 1024) {
+                tg.showAlert("Il file è troppo grande (Max 10MB)");
                 return;
             }
 
-            try {
-                const response = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        _auth: tg.initData,
-                        action: "get_handover_context",
-                        ash: ash
-                    })
-                });
-
-                const data = await response.json();
-
-                if (data.status === "success") {
-                    dom.clientName.innerText = data.client_name || "Cliente Sconosciuto";
-                    dom.productName.innerText = "Oggetto: " + (data.product_name || "Assistenza Generale");
-                    
-                    // Rimuovi loader
-                    dom.overlay.classList.add('opacity-0');
-                    setTimeout(() => dom.overlay.classList.add('hidden'), 500);
-                } else {
-                    throw new Error(data.message || "Errore nel caricamento dati");
-                }
-
-            } catch (err) {
-                console.error(err);
-                tg.showAlert("Impossibile recuperare i dati del cliente. Riprova più tardi.");
-            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                selectedFile = {
+                    base64_content: event.target.result.split(',')[1],
+                    mime_type: file.type,
+                    file_name: file.name
+                };
+                
+                // Aggiorna UI
+                dom.uploadUI.classList.add('hidden');
+                dom.previewUI.classList.remove('hidden');
+                dom.fileName.innerText = file.name;
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            };
+            reader.readAsDataURL(file);
         }
 
-        // ── 2. INVIO RISPOSTA ──
-        dom.sendBtn.onclick = async () => {
+        function removeFile(e) {
+            e.stopPropagation();
+            selectedFile = null;
+            dom.fileInput.value = '';
+            dom.previewUI.classList.add('hidden');
+            dom.uploadUI.classList.remove('hidden');
+        }
+
+        // ── INVIO ──
+        dom.btn.onclick = async () => {
             const text = dom.message.value.trim();
-            if (!text) {
-                tg.showAlert("Per favore, scrivi un messaggio prima di inviare.");
+            
+            if (!text && !selectedFile) {
+                tg.showAlert("Inserisci un messaggio o allega un file.");
+                return;
+            }
+
+            if (!ash) {
+                tg.showAlert("Errore: Identificativo ASH mancante.");
                 return;
             }
 
             // Lock UI
-            dom.sendBtn.disabled = true;
-            dom.sendBtn.classList.replace('bg-brand', 'bg-gray-400');
-            dom.sendBtnText.innerText = "TRASMISSIONE...";
+            dom.btn.disabled = true;
+            dom.btn.classList.replace('bg-brand', 'bg-gray-400');
+            dom.txt.innerText = "TRASMISSIONE...";
 
             const payload = {
                 _auth: tg.initData,
                 user_id: tg.initDataUnsafe?.user?.id,
-                action: "handover_send",
+                action: "handover",
                 ash: ash,
                 message_text: text,
-                close_ticket: dom.closeCheck.checked
+                close_ticket: dom.close.checked,
+                file_data: selectedFile // Sarà null se non caricato
             };
 
             try {
@@ -201,27 +199,22 @@
                 });
 
                 if (response.ok) {
-                    // Success Feedback
-                    dom.sendBtn.classList.replace('bg-gray-400', 'bg-success');
-                    dom.sendBtnText.innerText = "INVIATO!";
+                    dom.btn.classList.replace('bg-gray-400', 'bg-green-600');
+                    dom.txt.innerText = "INVIATO!";
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-
-                    // Chiusura automatica
-                    setTimeout(() => tg.close(), 1500);
+                    setTimeout(() => tg.close(), 1200);
                 } else {
-                    throw new Error("Errore Server");
+                    throw new Error();
                 }
-
             } catch (err) {
-                dom.sendBtn.disabled = false;
-                dom.sendBtn.classList.replace('bg-gray-400', 'bg-brand');
-                dom.sendBtnText.innerText = "INVIA RISPOSTA";
-                tg.showAlert("Errore durante l'invio. Verifica la connessione.");
+                dom.btn.disabled = false;
+                dom.btn.classList.replace('bg-gray-400', 'bg-brand');
+                dom.txt.innerText = "RIPROVA INVIO";
+                tg.showAlert("Errore durante l'invio a n8n.");
             }
         };
 
-        // Avvio
-        initHandover();
+        window.onload = () => dom.message.focus();
     </script>
 </body>
 </html>
