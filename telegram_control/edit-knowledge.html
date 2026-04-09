@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Knowledge Base Architect | SiteBoS</title>
+    
+    <!-- SDK e Librerie -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        bg: '#fafafa',
+                        border: '#eeeeee'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Stile Input Editabili Noir */
+        .editable-input { @apply w-full bg-gray-50 p-4 rounded-xl text-sm font-bold border border-transparent focus:border-black outline-none mb-4; }
+        .editable-textarea { @apply w-full bg-gray-50 p-4 rounded-xl text-sm font-medium border border-transparent focus:border-black outline-none mb-4 resize-none leading-relaxed; }
+        
+        .fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+
+    <script>
+        // ── SICUREZZA: IL BUTTAFUORI ──
+        (function() {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `
+                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div><h1 class="text-6xl mb-4 text-white">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2></div>
+                    </body>`;
+                window.stop();
+            }
+        })();
+    </script>
+</head>
+<body class="bg-bg text-black min-h-screen flex flex-col no-scrollbar">
+
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4 transition-opacity duration-500">
+        <div class="spinner"></div>
+        <p class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400">Loading Knowledge Base...</p>
+    </div>
+
+    <!-- HEADER -->
+    <header class="bg-white border-b border-border p-6 sticky top-0 z-50 shadow-sm flex items-center justify-between fade-in-up">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center text-xl shadow-lg">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-black tracking-tighter uppercase leading-none text-black">Blog & Contenuti</h1>
+                <p id="companyName" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Knowledge Engine</p>
+            </div>
+        </div>
+        <button onclick="loadKnowledgeBase(true)" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center active:rotate-180 transition-all duration-500">
+            <i class="fas fa-sync-alt text-xs text-gray-400"></i>
+        </button>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <div id="app-content" class="hidden flex-1 p-5 space-y-6">
+        
+        <!-- STATS GRID -->
+        <div class="grid grid-cols-2 gap-4 fade-in-up" style="animation-delay: 0.1s">
+            <div class="bg-white border border-border p-5 rounded-[2rem] shadow-sm flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center text-stone-400"><i class="fas fa-pencil-alt"></i></div>
+                <div>
+                    <p id="count-draft" class="text-xl font-black leading-none">0</p>
+                    <p class="text-[8px] font-black uppercase text-gray-300 tracking-widest mt-1">Bozze</p>
+                </div>
+            </div>
+            <div class="bg-black border border-black p-5 rounded-[2rem] shadow-lg flex items-center gap-4 text-white">
+                <div class="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-white"><i class="fas fa-check-circle"></i></div>
+                <div>
+                    <p id="count-published" class="text-xl font-black leading-none">0</p>
+                    <p class="text-[8px] font-black uppercase text-neutral-500 tracking-widest mt-1">Pubblicati</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOG LIST -->
+        <div id="blog-list" class="space-y-4 fade-in-up" style="animation-delay: 0.2s"></div>
+
+        <!-- EMPTY STATE -->
+        <div id="empty-state" class="hidden text-center py-20 opacity-20">
+            <i class="fas fa-newspaper text-6xl mb-4"></i>
+            <p class="font-black uppercase text-xs tracking-widest">Nessun contenuto presente</p>
+        </div>
+    </div>
+
+    <!-- FOOTER NAV & SAVE -->
+    <footer class="fixed bottom-8 left-0 w-full px-6 flex items-center justify-between z-[100] gap-4">
+        <button onclick="tg.close()" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-100 active:scale-90 transition">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <button id="save-fab" disabled onclick="handleSave()" class="flex-1 h-16 bg-black text-white rounded-full shadow-2xl font-black uppercase tracking-[0.2em] text-[11px] active:scale-95 transition-all opacity-0 pointer-events-none [&.visible]:opacity-100 [&.visible]:pointer-events-auto flex items-center justify-center gap-3">
+            <i class="fas fa-save text-sm"></i> <span id="saveBtnText">Update Knowledge</span>
+        </button>
+    </footer>
+
+    <script>
+        'use strict';
+
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0ca76af1-8c02-47f4-a3a4-fd19ad495afe";
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        const params = new URLSearchParams(window.location.search);
+        const apiCredentials = {
+            vat: params.get('vat'),
+            token: params.get('token'),
+            lang: params.get('lang') || 'it'
+        };
+
+        let catalogData = null, allFragments = [], publishedArticles = [], knowledgeData = [], hasChanges = false;
+
+        const dom = {
+            loader: document.getElementById('loader'),
+            content: document.getElementById('app-content'),
+            blogList: document.getElementById('blog-list'),
+            saveFab: document.getElementById('save-fab')
+        };
+
+        // ── INITIALIZATION ──
+        async function init() {
+            if (!apiCredentials.vat) { alert("Security Error: VAT missing"); return; }
+            document.getElementById('companyName').innerText = params.get('ragione_sociale') || 'Archive';
+            await loadKnowledgeBase();
+        }
+
+        async function loadKnowledgeBase(forceReload = false) {
+            dom.loader.classList.remove('hidden', 'opacity-0');
+            if (forceReload && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_kb', ...apiCredentials, _auth: tg.initData })
+                });
+                const data = await res.json();
+                const raw = Array.isArray(data) ? data[0] : data;
+
+                allFragments = raw.fragments || raw.Fragments || [];
+                catalogData = raw.catalog || null;
+                publishedArticles = raw.articles || [];
+
+                renderKnowledge();
+                dom.loader.classList.add('opacity-0');
+                setTimeout(() => { dom.loader.classList.add('hidden'); dom.content.classList.remove('hidden'); }, 500);
+
+            } catch (e) { alert("Fetch Error: " + e.message); }
+        }
+
+        // ── RENDERING ──
+        function renderKnowledge() {
+            if (!allFragments.length) { document.getElementById('empty-state').classList.remove('hidden'); return; }
+            
+            dom.blogList.innerHTML = '';
+            
+            // Raggruppamento per categorie dal catalogo
+            if (catalogData?.categories) {
+                catalogData.categories.forEach(cat => {
+                    const catFragments = allFragments.filter(f => 
+                        cat.subcategories?.some(sub => (f.fragment_id || f._id || '').includes(sub.callback_data))
+                    );
+                    if (catFragments.length) renderCategory(cat, catFragments);
+                });
+            } else {
+                renderCategory({ short_name: "Tutti i Contenuti" }, allFragments);
+            }
+
+            const pubCount = publishedArticles.length;
+            document.getElementById('count-published').innerText = pubCount;
+            document.getElementById('count-draft').innerText = Math.max(0, allFragments.length - pubCount);
+        }
+
+        function renderCategory(cat, fragments) {
+            const div = document.createElement('div');
+            div.className = "bg-white rounded-[2rem] border border-border shadow-sm overflow-hidden mb-6";
+            div.innerHTML = `
+                <div class="flex items-center justify-between p-6 bg-gray-50 border-b border-gray-100 cursor-pointer" onclick="this.parentElement.classList.toggle('is-open')">
+                    <div class="flex items-center gap-3">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-black">${cat.short_name}</span>
+                        <span class="bg-black text-white text-[8px] font-black px-2 py-0.5 rounded-full">${fragments.length}</span>
+                    </div>
+                    <i class="fas fa-chevron-down text-gray-300 text-xs transition-transform duration-300"></i>
+                </div>
+                <div class="cat-content hidden p-2 space-y-2">
+                    ${fragments.map(f => renderItem(f)).join('')}
+                </div>`;
+            
+            // Style hack for accordion
+            div.style.cssText = ".cat-content { display: none; }";
+            const style = document.createElement('style');
+            style.innerHTML = ".is-open .cat-content { display: block; } .is-open i { transform: rotate(180deg); }";
+            document.head.appendChild(style);
+
+            dom.blogList.appendChild(div);
+        }
+
+        function renderItem(f) {
+            const id = f.fragment_id || f._id;
+            const isPub = publishedArticles.some(art => art.articleId === id || art.articleId?.includes(id.split('-').pop()));
+            
+            return `
+                <div class="bg-gray-50 rounded-[1.5rem] border border-gray-100 overflow-hidden" id="item-${id}">
+                    <div class="flex items-center p-4 gap-4">
+                        <div class="flex-1 cursor-pointer" onclick="expandFragment('${id}')">
+                            <p class="text-[7px] font-black uppercase tracking-widest ${isPub?'text-green-500':'text-gray-300'} mb-1">${isPub?'✅ Published':'📝 Draft'}</p>
+                            <h4 class="text-xs font-bold uppercase tracking-tight truncate">${f.title}</h4>
+                        </div>
+                        <button onclick="${isPub ? `goToEdit('${id}')` : `goToDeploy('${id}')`}" 
+                            class="px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest ${isPub?'bg-black text-white':'bg-white text-black border border-gray-200'} active:scale-90 transition-all">
+                            ${isPub ? 'Edit' : 'Deploy'}
+                        </button>
+                    </div>
+                    <div id="details-${id}" class="hidden p-5 pt-0 space-y-4 animate-fade-in"></div>
+                </div>`;
+        }
+
+        // ── LOGIC ──
+        window.expandFragment = async function(id) {
+            const container = document.getElementById(`details-${id}`);
+            if (!container.classList.contains('hidden')) { container.classList.add('hidden'); return; }
+
+            if (container.innerHTML !== "") { container.classList.remove('hidden'); return; }
+
+            container.innerHTML = `<div class="py-4 text-center"><i class="fas fa-circle-notch fa-spin text-gray-200"></i></div>`;
+            container.classList.remove('hidden');
+
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_kb_details', fragment_id: id, ...apiCredentials, _auth: tg.initData })
+                });
+                const data = await res.json();
+                const frag = data.fragment ||
