@@ -4,78 +4,125 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Knowledge Editor | SiteBoS</title>
+    
+    <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script>
-        tailwind.config = { theme: { extend: { colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' } } } }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        bg: '#fafafa',
+                        border: '#eeeeee'
+                    }
+                }
+            }
+        }
     </script>
+
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .editable-input { @apply w-full bg-gray-50 p-4 rounded-xl text-sm font-bold border border-transparent focus:border-black outline-none mb-4 transition-all; }
-        .editable-textarea { @apply w-full bg-gray-50 p-4 rounded-xl text-sm font-medium border border-transparent focus:border-black outline-none mb-4 resize-none leading-relaxed transition-all; }
+        
+        /* Stile Editor Noir */
+        .field-label { @apply text-[9px] font-black uppercase text-gray-400 ml-2 tracking-widest mb-1 block; }
+        .editable-input { @apply w-full bg-white p-4 rounded-2xl text-sm font-bold border border-border focus:border-black outline-none mb-6 transition-all shadow-sm; }
+        .editable-textarea { @apply w-full bg-white p-5 rounded-[2rem] text-sm font-medium border border-border focus:border-black outline-none mb-6 resize-none leading-relaxed transition-all shadow-sm; }
+        
         .fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-        .cat-content { display: none; }
-        .is-open .cat-content { display: block; }
-        .is-open .chevron-icon { transform: rotate(180deg); }
     </style>
+
+    <script>
+        // ── SICUREZZA ──
+        (function() {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4 text-white">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2></div></body>`;
+                window.stop();
+            }
+        })();
+    </script>
 </head>
 <body class="bg-bg text-black min-h-screen flex flex-col no-scrollbar pb-32">
 
     <!-- LOADER -->
-    <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4">
+    <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4 transition-opacity duration-500">
         <div class="spinner"></div>
-        <p class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Syncing Knowledge Base...</p>
+        <p class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Knowledge Engine Syncing...</p>
     </div>
 
     <!-- HEADER -->
-    <header class="bg-white border-b border-border p-6 sticky top-0 z-50 shadow-sm flex items-center justify-between fade-in-up">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center text-xl shadow-lg">
-                <i class="fas fa-brain"></i>
-            </div>
-            <div>
-                <h1 class="text-xl font-black tracking-tighter uppercase leading-none text-black">Knowledge Base</h1>
-                <p id="companyName" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic italic">Architect Mode</p>
-            </div>
+    <header class="bg-white border-b border-border p-6 sticky top-0 z-50 shadow-sm flex items-center gap-4 fade-in-up">
+        <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center text-xl shadow-lg">
+            <i class="fas fa-brain"></i>
         </div>
-        <button onclick="loadKnowledgeBase(true)" class="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center active:rotate-180 transition-all">
-            <i class="fas fa-sync-alt text-xs text-gray-400"></i>
-        </button>
+        <div>
+            <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-[0.2em] rounded-full mb-1">Knowledge Fragment</div>
+            <h1 id="headerTitle" class="text-lg font-black tracking-tighter uppercase leading-none text-black truncate max-w-[200px]">Editor</h1>
+            <p id="fragmentIdDisplay" class="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-tighter">ID: ...</p>
+        </div>
     </header>
 
-    <!-- CONTENT -->
-    <div id="app-content" class="hidden flex-1 p-5 space-y-6">
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-white border border-border p-5 rounded-[2rem] shadow-sm flex items-center gap-4">
-                <div class="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 text-xs font-black"><span id="count-draft">0</span></div>
-                <p class="text-[8px] font-black uppercase text-gray-300 tracking-widest">Bozze</p>
-            </div>
-            <div class="bg-black border border-black p-5 rounded-[2rem] shadow-lg flex items-center gap-4 text-white">
-                <div class="w-10 h-10 rounded-full bg-neutral-800 flex items-center justify-center text-white text-xs font-black"><span id="count-published">0</span></div>
-                <p class="text-[8px] font-black uppercase text-neutral-500 tracking-widest">Pubblicati</p>
-            </div>
+    <!-- CONTENT AREA -->
+    <div id="app-content" class="hidden flex-1 p-5 space-y-2 fade-in-up" style="animation-delay: 0.1s">
+        
+        <!-- TITOLO -->
+        <div>
+            <label class="field-label">Content Title</label>
+            <input type="text" id="field-title" class="editable-input" oninput="updateField('title', this.value)">
         </div>
 
-        <div id="blog-list" class="space-y-4"></div>
-        <div id="empty-state" class="hidden text-center py-20 opacity-20 font-black uppercase text-xs tracking-widest italic">Nessun frammento trovato</div>
+        <!-- SUMMARY -->
+        <div>
+            <label class="field-label">Executive Summary</label>
+            <textarea id="field-summary" rows="3" class="editable-textarea" oninput="updateField('summary', this.value)"></textarea>
+        </div>
+
+        <!-- ANSWER FRAGMENT -->
+        <div>
+            <label class="field-label">Direct AI Answer (Answer Fragment)</label>
+            <textarea id="field-answer" rows="6" class="editable-textarea" oninput="updateField('answer_fragment', this.value)"></textarea>
+        </div>
+
+        <!-- USER UTTERANCES -->
+        <div>
+            <label class="field-label">User Utterances (One per line)</label>
+            <textarea id="field-utterances" rows="4" class="editable-textarea" oninput="updateUtterances(this.value)"></textarea>
+        </div>
+
+        <!-- DETAILED SECTIONS (Q&A + ANALOGY) -->
+        <div class="pt-4">
+            <p class="field-label !text-black !mb-4">Detailed Knowledge Sections</p>
+            <div id="sections-container" class="space-y-6">
+                <!-- Dinamico: Q&A Cards -->
+            </div>
+        </div>
     </div>
 
     <!-- FOOTER -->
     <footer class="fixed bottom-8 left-0 w-full px-6 flex items-center justify-between z-[100] gap-4">
-        <button onclick="tg.close()" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-100 active:scale-90 transition"><i class="fas fa-arrow-left"></i></button>
-        <button id="save-fab" disabled onclick="handleSave()" class="flex-1 h-16 bg-black text-white rounded-full shadow-2xl font-black uppercase tracking-[0.2em] text-[11px] active:scale-95 transition-all opacity-0 pointer-events-none [&.visible]:opacity-100 [&.visible]:pointer-events-auto flex items-center justify-center gap-3">
-            <i class="fas fa-save text-sm"></i> <span id="saveBtnText">Update Knowledge</span>
+        <button onclick="tg.close()" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-100 active:scale-90 transition">
+            <i class="fas fa-times"></i>
+        </button>
+        <button id="save-fab" disabled onclick="handleSave()" class="flex-1 h-16 bg-black text-white rounded-full shadow-2xl font-black uppercase tracking-[0.2em] text-[11px] active:scale-95 transition-all opacity-20 flex items-center justify-center gap-3">
+            <i class="fas fa-save text-sm"></i> <span id="saveBtnText">Update Fragment</span>
         </button>
     </footer>
 
     <script>
         'use strict';
+
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0ca76af1-8c02-47f4-a3a4-fd19ad495afe";
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
@@ -84,160 +131,152 @@
         const ash = urlParams.get('ash');
         const sopId = urlParams.get('sop_id');
 
-        let catalogData = null, allFragments = [], publishedArticles = [], knowledgeData = [], hasChanges = false;
+        let currentFragment = null;
+        let initialDataString = "";
 
-        async function loadKnowledgeBase(forceReload = false) {
-            document.getElementById('loader').classList.remove('hidden');
-            try {
-                const res = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_kb', ash: ash, sop_id: sopId, _auth: tg.initData })
-                });
-                const responseData = await res.json();
-                const raw = Array.isArray(responseData) ? responseData[0] : responseData;
-
-                // FIX: Supporta sia 'fragment' (tuo JSON) che 'fragments'
-                allFragments = raw.fragment || raw.fragments || raw.Fragments || [];
-                catalogData = raw.catalog || null;
-                // FIX: Pulisce gli articoli null o invalidi per evitare crash
-                publishedArticles = (raw.article || raw.articles || []).filter(a => a && a.articleId);
-
-                renderKnowledge();
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('app-content').classList.remove('hidden');
-            } catch (e) { console.error("Error:", e); }
-        }
-
-        function renderKnowledge() {
-            const list = document.getElementById('blog-list');
-            list.innerHTML = '';
-            
-            if (!allFragments.length) { document.getElementById('empty-state').classList.remove('hidden'); return; }
-            document.getElementById('empty-state').classList.add('hidden');
-
-            if (catalogData?.categories) {
-                catalogData.categories.forEach(cat => {
-                    const catFragments = allFragments.filter(f => 
-                        cat.subcategories?.some(sub => (f.fragment_id || f._id || '').includes(sub.callback_data))
-                    );
-                    if (catFragments.length) renderCategory(cat, catFragments);
-                });
-            } else {
-                renderCategory({ short_name: "Archive" }, allFragments);
-            }
-
-            document.getElementById('count-published').innerText = publishedArticles.length;
-            document.getElementById('count-draft').innerText = Math.max(0, allFragments.length - publishedArticles.length);
-        }
-
-        function renderCategory(cat, fragments) {
-            const div = document.createElement('div');
-            div.className = "bg-white rounded-[2rem] border border-border shadow-sm overflow-hidden mb-6";
-            div.innerHTML = `
-                <div class="flex items-center justify-between p-6 bg-gray-50 border-b border-gray-100 cursor-pointer" onclick="this.parentElement.classList.toggle('is-open')">
-                    <div class="flex items-center gap-3">
-                        <span class="text-[10px] font-black uppercase tracking-widest text-black">${cat.short_name}</span>
-                        <span class="bg-black text-white text-[8px] font-black px-2 py-0.5 rounded-full">${fragments.length}</span>
-                    </div>
-                    <i class="fas fa-chevron-down text-gray-300 text-xs transition-transform duration-300 chevron-icon"></i>
-                </div>
-                <div class="cat-content p-2 space-y-2">
-                    ${fragments.map(f => renderItem(f)).join('')}
-                </div>`;
-            document.getElementById('blog-list').appendChild(div);
-        }
-
-        function renderItem(f) {
-            const id = f.fragment_id || f._id;
-            // FIX: Check robusto per evitare crash su null
-            const isPub = publishedArticles.some(art => art && art.articleId && (art.articleId === id || art.articleId.includes(id.split('-').pop())));
-            
-            return `
-                <div class="bg-gray-50 rounded-[1.5rem] border border-gray-100 overflow-hidden mb-2">
-                    <div class="flex items-center p-4 gap-4">
-                        <div class="flex-1 cursor-pointer" onclick="expandFragment('${id}')">
-                            <p class="text-[7px] font-black uppercase tracking-widest ${isPub?'text-green-500':'text-gray-300'} mb-1">${isPub?'✅ Published':'📝 Draft'}</p>
-                            <h4 class="text-xs font-bold uppercase tracking-tight truncate">${f.title}</h4>
-                        </div>
-                        <button onclick="${isPub ? `goToEdit('${id}')` : `goToDeploy('${id}')`}" class="px-4 py-2 rounded-full text-[9px] font-black uppercase bg-black text-white active:scale-90 transition-all">${isPub?'Edit':'Deploy'}</button>
-                    </div>
-                    <div id="details-${id}" class="hidden p-5 pt-0 space-y-4"></div>
-                </div>`;
-        }
-
-        window.expandFragment = async function(id) {
-            const container = document.getElementById(`details-${id}`);
-            if (!container.classList.contains('hidden')) { container.classList.add('hidden'); return; }
-            if (container.innerHTML !== "") { container.classList.remove('hidden'); return; }
-
-            container.innerHTML = `<div class="py-4 text-center"><i class="fas fa-circle-notch fa-spin text-gray-200"></i></div>`;
-            container.classList.remove('hidden');
-
-            try {
-                const res = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_kb_details', fragment_id: id, ash: ash, sop_id: sopId, _auth: tg.initData })
-                });
-                const data = await res.json();
-                const frag = data.fragment || data;
-                knowledgeData.push(frag);
-                
-                container.innerHTML = `
-                    <div class="h-[1px] bg-gray-100 w-full mb-6 mt-2"></div>
-                    <div class="space-y-1">
-                        <label class="text-[8px] font-black uppercase text-gray-400 ml-2">Title</label>
-                        <input type="text" value="${frag.title}" oninput="updateField('${id}', 'title', this.value)" class="editable-input">
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[8px] font-black uppercase text-gray-400 ml-2">Direct Answer</label>
-                        <textarea rows="5" oninput="updateField('${id}', 'answer_fragment', this.value)" class="editable-textarea">${frag.answer_fragment}</textarea>
-                    </div>
-                    <div class="space-y-4">
-                        <p class="text-[8px] font-black uppercase text-gray-300 ml-2 italic">Detailed Q&A</p>
-                        ${frag.sections.map((s, i) => `
-                            <div class="p-5 bg-white rounded-3xl border border-gray-100 space-y-2">
-                                <input type="text" value="${s.question}" oninput="updateField('${id}', 'sections.${i}.question', this.value)" class="text-[10px] font-black w-full outline-none uppercase">
-                                <textarea rows="3" oninput="updateField('${id}', 'sections.${i}.answer', this.value)" class="text-xs text-gray-500 w-full outline-none resize-none leading-relaxed">${s.answer}</textarea>
-                            </div>
-                        `).join('')}
-                    </div>`;
-            } catch (e) { container.innerHTML = "Error."; }
-        }
-
-        window.updateField = (id, path, val) => {
-            const frag = knowledgeData.find(f => (f.fragment_id || f._id) === id);
-            if (!frag) return;
-            const parts = path.split('.');
-            let curr = frag;
-            for (let i = 0; i < parts.length - 1; i++) curr = curr[parts[i]];
-            curr[parts[parts.length - 1]] = val;
-            
-            if (!hasChanges) { hasChanges = true; document.getElementById('save-fab').classList.add('visible'); document.getElementById('save-fab').disabled = false; }
+        const dom = {
+            loader: document.getElementById('loader'),
+            content: document.getElementById('app-content'),
+            saveBtn: document.getElementById('save-fab'),
+            saveBtnText: document.getElementById('saveBtnText'),
+            sections: document.getElementById('sections-container')
         };
 
-        window.handleSave = async function() {
-            const btn = document.getElementById('save-fab');
-            btn.disabled = true;
-            document.getElementById('saveBtnText').innerText = "SAVING...";
-            try {
-                await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'save_kb', fragments: knowledgeData, ash: ash, _auth: tg.initData })
-                });
-                btn.classList.replace('bg-black', 'bg-green-600');
-                document.getElementById('saveBtnText').innerText = "SUCCESSFUL";
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                setTimeout(() => { btn.classList.remove('visible'); btn.classList.replace('bg-green-600', 'bg-black'); hasChanges = false; }, 2000);
-            } catch (e) { alert("Error"); btn.disabled = false; }
+        // ── 1. INIZIALIZZAZIONE ──
+        async function init() {
+            if (!ash || !sopId) {
+                document.getElementById('loaderText').innerHTML = "<span class='text-red-500'>SEC_ERR</span><br>Missing Identity Hash or SOP ID";
+                return;
+            }
+            await loadFragment();
         }
 
-        window.goToDeploy = (id) => { window.location.href = `deployblog.html?fragment_id=${id}&ash=${ash}&sop_id=${sopId}`; };
-        window.goToEdit = (id) => { window.location.href = `edit_blog.html?blog_id=${id}&ash=${ash}&sop_id=${sopId}`; };
+        async function loadFragment() {
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'get_kb_details', 
+                        ash: ash, 
+                        fragment_id: sopId, // Nel tuo workflow sop_id e fragment_id coincidono
+                        _auth: tg.initData 
+                    })
+                });
+                
+                const data = await res.json();
+                // Mappatura basata sul tuo JSON di risposta
+                currentFragment = (Array.isArray(data) ? data[0] : data).Fragment || (Array.isArray(data) ? data[0] : data);
 
-        window.onload = loadKnowledgeBase;
+                if (!currentFragment) throw new Error("Fragment not found");
+
+                populateUI();
+                
+                initialDataString = JSON.stringify(currentFragment);
+                dom.loader.classList.add('hidden');
+                dom.content.classList.remove('hidden');
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loaderText').innerText = "Error loading knowledge fragment.";
+            }
+        }
+
+        // ── 2. UI ENGINE ──
+        function populateUI() {
+            document.getElementById('headerTitle').innerText = currentFragment.title;
+            document.getElementById('fragmentIdDisplay').innerText = `SKU: ${currentFragment.fragment_id}`;
+            
+            document.getElementById('field-title').value = currentFragment.title;
+            document.getElementById('field-summary').value = currentFragment.summary;
+            document.getElementById('field-answer').value = currentFragment.answer_fragment;
+            document.getElementById('field-utterances').value = (currentFragment.user_utterances || []).join('\n');
+            
+            renderSections();
+        }
+
+        function renderSections() {
+            dom.sections.innerHTML = '';
+            (currentFragment.sections || []).forEach((s, i) => {
+                const div = document.createElement('div');
+                div.className = "bg-white rounded-[2rem] border border-border p-6 space-y-4 shadow-sm transition-all";
+                div.innerHTML = `
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black uppercase text-gray-300 ml-2">Question</label>
+                        <input type="text" value="${s.question}" oninput="updateSection(${i}, 'question', this.value)" 
+                            class="w-full bg-gray-50 p-4 rounded-xl text-[11px] font-black uppercase outline-none border border-transparent focus:border-black transition-all">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black uppercase text-gray-300 ml-2">Answer</label>
+                        <textarea rows="3" oninput="updateSection(${i}, 'answer', this.value)" 
+                            class="w-full bg-gray-50 p-4 rounded-xl text-xs font-medium outline-none border border-transparent focus:border-black transition-all resize-none leading-relaxed">${s.answer}</textarea>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black uppercase text-gray-400 ml-2 italic">Analogy (Tono di Voce)</label>
+                        <textarea rows="2" oninput="updateSection(${i}, 'analogy', this.value)" 
+                            class="w-full bg-stone-100 p-4 rounded-xl text-xs italic font-medium text-stone-600 outline-none border border-transparent focus:border-stone-400 transition-all resize-none leading-relaxed">${s.analogy || ''}</textarea>
+                    </div>
+                `;
+                dom.sections.appendChild(div);
+            });
+        }
+
+        // ── 3. LOGICA DI AGGIORNAMENTO (NO RE-RENDER ON INPUT) ──
+        window.updateField = (k, v) => {
+            currentFragment[k] = v;
+            checkDirty();
+        };
+
+        window.updateUtterances = (v) => {
+            currentFragment.user_utterances = v.split('\n').filter(line => line.trim() !== "");
+            checkDirty();
+        };
+
+        window.updateSection = (idx, k, v) => {
+            currentFragment.sections[idx][k] = v;
+            checkDirty();
+        };
+
+        function checkDirty() {
+            const isDirty = JSON.stringify(currentFragment) !== initialDataString;
+            dom.saveBtn.disabled = !isDirty;
+            dom.saveBtn.style.opacity = isDirty ? "1" : "0.2";
+        }
+
+        // ── 4. SALVATAGGIO (SAVE_KB) ──
+        window.handleSave = async function() {
+            dom.saveBtn.disabled = true;
+            dom.saveBtnText.innerText = "SYNCHRONIZING...";
+            
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'save_kb', 
+                        fragments: [currentFragment], // Inviamo come array per compatibilità backend
+                        ash: ash, 
+                        _auth: tg.initData 
+                    })
+                });
+                
+                if (res.ok) {
+                    dom.saveBtn.classList.replace('bg-black', 'bg-green-600');
+                    dom.saveBtnText.innerText = "SUCCESSFUL";
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    setTimeout(() => {
+                        tg.close();
+                    }, 1500);
+                } else throw new Error();
+
+            } catch (e) {
+                alert("Save failed. Connection error.");
+                dom.saveBtn.disabled = false;
+                dom.saveBtnText.innerText = "RETRY UPDATE";
+            }
+        }
+
+        init();
     </script>
 </body>
 </html>
