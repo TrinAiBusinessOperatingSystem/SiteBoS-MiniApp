@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>HoneyPot Architect | SiteBoS</title>
+    
+    <!-- SDK e Librerie -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Custom Input & Card Style */
+        .card-noir { @apply bg-white rounded-[2rem] p-6 border border-border shadow-sm transition-all duration-300; }
+        .input-noir { @apply w-full bg-gray-50 p-4 rounded-2xl text-sm font-medium border border-transparent focus:border-black outline-none transition-all; }
+        
+        /* Checkbox Noir */
+        input[type="checkbox"] {
+            appearance: none; width: 20px; height: 20px; border: 2px solid #000; border-radius: 6px; position: relative; cursor: pointer;
+        }
+        input[type="checkbox"]:checked { background-color: #000; }
+        input[type="checkbox"]:checked::after {
+            content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; color: white; font-size: 10px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+
+        .fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Accordion custom */
+        .card-content { display: none; }
+        .knowledge-card.open .card-content { display: block; }
+        .knowledge-card.open .chevron { transform: rotate(180deg); }
+    </style>
+
+    <script>
+        // ── 1. SICUREZZA: IL BUTTAFUORI ──
+        (function() {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `
+                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest text-white">Accesso Negato</h2></div>
+                    </body>`;
+                window.stop();
+            }
+        })();
+    </script>
+</head>
+<body class="bg-bg text-black pb-32 overflow-x-hidden no-scrollbar">
+
+    <!-- LOADER -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4">
+        <div class="spinner"></div>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Architecting Knowledge Base...</p>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="app-content" class="hidden max-w-2xl mx-auto p-5 space-y-6">
+        
+        <!-- HEADER -->
+        <header class="mb-8 pt-4 fade-in-up text-center">
+            <h1 data-i18n="title" class="text-2xl font-black tracking-tighter uppercase leading-none">Editor Conoscenza</h1>
+            <p data-i18n="subtitle" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 leading-relaxed">Modella l'anima AI della tua azienda</p>
+        </header>
+
+        <!-- SEZIONE 1: OFFERTA BENVENUTO (AI GENERATED) -->
+        <section class="card-noir space-y-4 fade-in-up shadow-lg border-black/5" style="animation-delay: 0.1s">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="fas fa-gift text-black text-lg"></i>
+                <h3 class="text-sm font-black uppercase tracking-tight" data-i18n="section_offer_title">Offerta Benvenuto</h3>
+            </div>
+            <p class="text-[10px] text-gray-400 font-medium" data-i18n="offer_desc"></p>
+            
+            <textarea id="offer-prompt" rows="2" class="input-noir" data-i18n-placeholder="lbl_offer_prompt"></textarea>
+            
+            <button id="btn-generate-offer" class="w-full bg-black text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2">
+                <i class="fas fa-magic"></i> <span data-i18n="btn_generate_offer">Genera con AI</span>
+            </button>
+            
+            <div class="relative mt-4 group">
+                <div id="offer-preview-box" class="w-full min-h-[100px] p-5 bg-gray-50 rounded-3xl text-xs leading-relaxed border border-gray-100 overflow-hidden"></div>
+                <button id="btn-copy-offer" class="absolute top-3 right-3 bg-white/80 backdrop-blur-md p-2 rounded-full shadow-sm hover:bg-black hover:text-white transition-all text-xs">
+                    <i class="far fa-copy"></i>
+                </button>
+                <input type="hidden" id="offer_html_storage">
+            </div>
+        </section>
+
+        <!-- SEZIONE 2: ASSET VISIVI -->
+        <section class="card-noir space-y-5 fade-in-up" style="animation-delay: 0.2s">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="fas fa-photo-video text-black text-lg"></i>
+                <h3 class="text-sm font-black uppercase tracking-tight" data-i18n="section_assets_title">Asset Visivi</h3>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <label class="text-[9px] font-black uppercase text-gray-400 ml-1" data-i18n="lbl_logo">Logo</label>
+                    <div id="logo-upload-box" class="w-full aspect-square bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-black transition-all relative overflow-hidden">
+                        <i class="fas fa-cloud-upload-alt text-gray-300"></i>
+                        <div id="logo-preview" class="absolute inset-0 bg-white hidden"></div>
+                        <input type="file" id="logo-input" class="hidden" accept="image/*">
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[9px] font-black uppercase text-gray-400 ml-1" data-i18n="lbl_photo">Foto</label>
+                    <div id="photo-upload-box" class="w-full aspect-square bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center cursor-pointer hover:border-black transition-all relative overflow-hidden">
+                        <i class="fas fa-camera text-gray-300"></i>
+                        <div id="photo-preview" class="absolute inset-0 bg-white hidden"></div>
+                        <input type="file" id="photo-input" class="hidden" accept="image/*">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEZIONE 3: ORARI -->
+        <section class="card-noir space-y-6 fade-in-up" style="animation-delay: 0.3s">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="fas fa-clock text-black text-lg"></i>
+                <h3 class="text-sm font-black uppercase tracking-tight" data-i18n="section_hours_title">Orari di Apertura</h3>
+            </div>
+            <div id="hours-container" class="space-y-4"></div>
+        </section>
+
+        <!-- SEZIONE 4: BOT CONFIG -->
+        <section class="card-noir space-y-6 fade-in-up" style="animation-delay: 0.4s">
+            <div class="flex items-center gap-3 mb-2">
+                <i class="fas fa-robot text-black text-lg"></i>
+                <h3 class="text-sm font-black uppercase tracking-tight" data-i18n="section_bot_title">Configurazione Bot</h3>
+            </div>
+            <div class="space-y-3">
+                <input type="text" id="bot-token-input" class="input-noir text-xs font-mono" placeholder="Incolla Telegram Token...">
+                <button id="btn-link-bot" class="w-full bg-black text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">
+                    <i class="fas fa-link mr-2"></i> <span data-i18n="btn_link_bot">Associa Bot Pubblico</span>
+                </button>
+                <div id="bot-status" class="hidden text-center text-[10px] font-black text-green-600 uppercase tracking-widest"></div>
+            </div>
+        </section>
+
+        <!-- SEZIONE 5: FRAGMENTS (HONEYPOT DINAMICO) -->
+        <div id="honeypot-container" class="space-y-6 fade-in-up" style="animation-delay: 0.5s"></div>
+
+    </div>
+
+    <!-- FOOTER AZIONI -->
+    <div class="fixed bottom-8 left-0 w-full px-6 flex items-center justify-between z-[100] gap-4">
+        <button id="btn-back-dashboard" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-100 active:scale-90 transition">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <button id="saveBtn" class="hidden flex-1 h-16 bg-black text-white rounded-full shadow-2xl font-black uppercase tracking-[0.2em] text-xs active:scale-95 transition-all flex items-center justify-center gap-3">
+            <i class="fas fa-shield-check text-lg"></i> <span id="saveBtnText" data-i18n="btn_save">Salva Architettura</span>
+        </button>
+    </div>
+
+    <!-- LOGICA INTEGRALE -->
+    <script>
+        'use strict';
+
+        const CONFIG = {
+            WEBHOOK_URL: "https://trinai.api.workflow.dcmake.it/webhook/48ee3cba-99dc-407a-98af-624e97b1e888",
+        };
+
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        const STATE = {
+            vatNumber: urlParams.get('vat'),
+            accessToken: urlParams.get('token'),
+            ownerId: urlParams.get('owner'),
+            companyName: urlParams.get('ragione_sociale'),
+            currentLang: 'it',
+            data: {},          
+            initialString: '', 
+            hasChanges: false
+        };
+
+        // ── I18N DICTIONARY ──
+        const I18n = {
+            dict: {
+                it: {
+                    title: "Knowledge Base Architect", subtitle: "Definisci la conoscenza della tua azienda",
+                    section_offer_title: "Offerta Benvenuto", lbl_offer_prompt: "Di cosa parla l'offerta?", btn_generate_offer: "Genera con AI",
+                    section_hours_title: "Orari di Apertura", lbl_morning: "Mattina", lbl_afternoon: "Pomeriggio",
+                    section_assets_title: "Asset Visivi", lbl_logo: "Logo Aziendale", lbl_photo: "Foto Copertina",
+                    section_bot_title: "Telegram Bot", btn_link_bot: "Collega Bot", status_linked: "Bot Sincronizzato ✅",
+                    lbl_utterances: "Domande Frequenti", lbl_answer: "Risposta AI", lbl_summary: "Sintesi Tecnica", 
+                    lbl_deepdive: "Q&A Dettagliate", lbl_question: "Domanda", btn_add_qa: "Nuova Q&A",
+                    btn_save: "Salva Modifiche", saving: "Salvataggio...", saved: "Salvato ✅",
+                    day_monday: "Lunedì", day_tuesday: "Martedì", day_wednesday: "Mercoledì", day_thursday: "Giovedì", day_friday: "Venerdì", day_saturday: "Sabato", day_sunday: "Domenica"
+                },
+                en: { /* Aggiungere se necessario come nel sorgente originale */ }
+            },
+            init() {
+                let l = tg.initDataUnsafe?.user?.language_code || 'it';
+                STATE.currentLang = this.dict[l.slice(0,2)] ? l.slice(0,2) : 'it';
+                this.apply();
+            },
+            apply() {
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    el.innerHTML = this.dict[STATE.currentLang][key] || key;
+                });
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-placeholder');
+                    el.placeholder = this.dict[STATE.currentLang][key] || key;
+                });
+            }
+        };
+
+        // ── API ENGINE ──
+        const Api = {
+            async request(payload) {
+                const res = await fetch(CONFIG.WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        ...payload, _auth: tg.initData, 
+                        vat_number: STATE.vatNumber, token: STATE.accessToken, owner_id: STATE.ownerId 
+                    })
+                });
+                return await res.json();
+            },
+            getData: () => Api.request({ action: 'get_honeypot_data' }),
+            saveData: (data) => Api.request({ action: 'save_honeypot_data', honeypot_update: data }),
+            generateOffer: (prompt) => Api.request({ action: 'generate_offer_html', user_prompt: prompt }),
+            linkBot: (token) => Api.request({ action: 'link_telegram_bot', bot_token: token }),
+            analyzeAsset: (type, base64, mime) => Api.request({ action: 'analyze_image_asset', asset_type: type, file_data: base64, mime_type: mime })
+        };
+
+        // ── UI ENGINE ──
+        const UI = {
+            renderAll() {
+                UI.renderOffer();
+                UI.renderKnowledge();
+                UI.renderHours();
+                UI.renderAssets();
+                UI.renderBotConfig();
+                I18n.apply();
+            },
+            renderOffer() {
+                const box = document.getElementById('offer-preview-box');
+                box.innerHTML = STATE.data.offer_text || '<em class="text-gray-300 uppercase font-black text-[9px] tracking-widest">Nessuna offerta generata</em>';
+            },
+            renderKnowledge() {
+                const container = document.getElementById('honeypot-container');
+                container.innerHTML = '';
+                (STATE.data.knowledge_fragments || []).forEach((f, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'knowledge-card card-noir';
+                    div.innerHTML = `
+                        <div class="flex justify-between items-center cursor-pointer" onclick="this.parentElement.classList.toggle('open')">
+                            <h3 class="text-xs font-black uppercase tracking-tight"><i class="fas fa-book-open mr-2"></i> ${f.fragment_id.replace(/_/g, ' ')}</h3>
+                            <i class="fas fa-chevron-down text-gray-300 chevron transition-transform"></i>
+                        </div>
+                        <div class="card-content mt-6 space-y-5">
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black uppercase text-gray-400 ml-1">Risposta Principale</label>
+                                <textarea class="input-noir h-32" oninput="updateFrag(${idx}, 'answer_fragment', this.value)">${f.answer_fragment || ''}</textarea>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black uppercase text-gray-400 ml-1">Sintesi</label>
+                                <input type="text" class="input-noir" value="${f.summary || ''}" oninput="updateFrag(${idx}, 'summary', this.value)">
+                            </div>
+                            <div id="deep-dives-${idx}" class="space-y-3"></div>
+                            <button onclick="addQA(${idx})" class="w-full py-3 rounded-xl border border-gray-100 text-[9px] font-black uppercase tracking-widest text-gray-400">+ Aggiungi Q&A</button>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                    UI.renderQA(idx);
+                });
+            },
+            renderQA(idx) {
+                const container = document.getElementById(`deep-dives-${idx}`);
+                container.innerHTML = (STATE.data.knowledge_fragments[idx].sections || []).map((s, sIdx) => `
+                    <div class="p-4 bg-gray-50 rounded-2xl space-y-2 relative">
+                        <input type="text" class="bg-transparent w-full text-xs font-bold outline-none" value="${s.question}" oninput="updateQA(${idx}, ${sIdx}, 'question', this.value)" placeholder="Domanda...">
+                        <textarea class="bg-transparent w-full text-xs outline-none" oninput="updateQA(${idx}, ${sIdx}, 'answer', this.value)" placeholder="Risposta...">${s.answer}</textarea>
+                        <button onclick="removeQA(${idx}, ${sIdx})" class="absolute top-2 right-2 text-gray-300"><i class="fas fa-times-circle"></i></button>
+                    </div>
+                `).join('');
+            },
+            renderHours() {
+                const container = document.getElementById('hours-container');
+                container.innerHTML = '';
+                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+                days.forEach(day => {
+                    const h = STATE.data.availability_schedule?.hours?.[day] || { morning: { from: '', to: '' }, afternoon: { from: '', to: '' } };
+                    const div = document.createElement('div');
+                    div.className = "flex items-center gap-4 py-3 border-b border-gray-50";
+                    div.innerHTML = `
+                        <span class="text-[10px] font-black uppercase w-20 text-gray-400">${day.slice(0,3)}</span>
+                        <div class="flex-1 grid grid-cols-2 gap-2 text-[10px] font-bold">
+                            <div class="flex items-center gap-1">
+                                <input type="text" value="${h.morning.from}" class="w-8 text-center bg-gray-100 rounded" oninput="updateHour('${day}', 'morning', 'from', this.value)"> : 
+                                <input type="text" value="${h.morning.to}" class="w-8 text-center bg-gray-100 rounded" oninput="updateHour('${day}', 'morning', 'to', this.value)">
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <input type="text" value="${h.afternoon.from}" class="w-8 text-center bg-gray-100 rounded" oninput="updateHour('${day}', 'afternoon', 'from', this.value)"> : 
+                                <input type="text" value="${h.afternoon.to}" class="w-8 text-center bg-gray-100 rounded" oninput="updateHour('${day}', 'afternoon', 'to', this.value)">
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            },
+            renderAssets() {
+                const draw = (id, data) => {
+                    const el = document.getElementById(`${id}-preview`);
+                    if (data?.url || data?.base64) {
+                        el.classList.remove('hidden');
+                        el.innerHTML = `<img src="${data.url || 'data:image/jpeg;base64,'+data.base64}" class="w-full h-full object-cover">`;
+                    }
+                };
+                draw('logo', STATE.data.assets?.logo);
+                draw('photo', STATE.data.assets?.photo);
+            },
+            renderBotConfig() {
+                const status = document.getElementById('bot-status');
+                if (STATE.data.config?.bot_linked) {
+                    status.classList.remove('hidden');
+                    status.innerText = I18n.dict[STATE.currentLang].status_linked;
+                    document.getElementById('bot-token-input').disabled = true;
+                    document.getElementById('btn-link-bot').classList.add('hidden');
+                }
+            },
+            toggleDirty() {
+                const currentStr = JSON.stringify(STATE.data);
+                STATE.hasChanges = (currentStr !== STATE.initialString);
+                document.getElementById('saveBtn').classList.toggle('hidden', !STATE.hasChanges);
+            }
+        };
+
+        // ── LOGIC ──
+        window.updateFrag = (i, k, v) => { STATE.data.knowledge_fragments[i][k] = v; UI.toggleDirty(); };
+        window.updateQA = (i, si, k, v) => { STATE.data.knowledge_fragments[i].sections[si][k] = v; UI.toggleDirty(); };
+        window.addQA = (i) => { if(!STATE.data.knowledge_fragments[i].sections) STATE.data.knowledge_fragments[i].sections = []; STATE.data.knowledge_fragments[i].sections.push({question:'', answer:''}); UI.renderKnowledge(); UI.toggleDirty(); };
+        window.removeQA = (i, si) => { STATE.data.knowledge_fragments[i].sections.splice(si, 1); UI.renderKnowledge(); UI.toggleDirty(); };
+        window.updateHour = (d, p, t, v) => { 
+            if(!STATE.data.availability_schedule) STATE.data.availability_schedule = { hours: {} };
+            if(!STATE.data.availability_schedule.hours[d]) STATE.data.availability_schedule.hours[d] = { morning: {}, afternoon: {} };
+            STATE.data.availability_schedule.hours[d][p][t] = v; UI.toggleDirty(); 
+        };
+
+        // ── ACTIONS ──
+        const App = {
+            async init() {
+                I18n.init();
+                try {
+                    const res = await Api.getData();
+                    STATE.data = res.HoneyPot || res;
+                    STATE.initialString = JSON.stringify(STATE.data);
+                    UI.renderAll();
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    document.getElementById('app-content').classList.remove('hidden');
+                } catch(e) { tg.showAlert("Errore inizializzazione."); }
+                
+                this.attachUploads();
+            },
+            attachUploads() {
+                const up = async (type, file) => {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const base64 = e.target.result.split(',')[1];
+                        const res = await Api.analyzeAsset(type, base64, 'image/jpeg');
+                        if (res) {
+                            if(!STATE.data.assets) STATE.data.assets = {};
+                            STATE.data.assets[type] = { url: res.url, description: res.description };
+                            UI.renderAssets(); UI.toggleDirty();
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                };
+                document.getElementById('logo-upload-box').onclick = () => document.getElementById('logo-input').click();
+                document.getElementById('photo-upload-box').onclick = () => document.getElementById('photo-input').click();
+                document.getElementById('logo-input').onchange = (e) => up('logo', e.target.files[0]);
+                document.getElementById('photo-input').onchange = (e) => up('photo', e.target.files[0]);
+            },
+            async save() {
+                const btn = document.getElementById('saveBtn');
+                btn.disabled = true;
+                const original = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                try {
+                    await Api.saveData(STATE.data);
+                    tg.HapticFeedback.notificationOccurred('success');
+                    STATE.initialString = JSON.stringify(STATE.data);
+                    UI.toggleDirty();
+                    tg.showAlert(I18n.dict[STATE.currentLang].saved);
+                } catch(e) { tg.showAlert("Errore salvataggio."); }
+                finally { btn.innerHTML = original; btn.disabled = false; }
+            }
+        };
+
+        // ── LISTENERS ──
+        document.getElementById('saveBtn').onclick = () => App.save();
+        document.getElementById('btn-generate-offer').onclick = async () => {
+            const prompt = document.getElementById('offer-prompt').value;
+            const res = await Api.generateOffer(prompt);
+            if(res?.html_content) { STATE.data.offer_text = res.html_content; UI.renderOffer(); UI.toggleDirty(); }
+        };
+        document.getElementById('btn-back-dashboard').onclick = () => window.history.back();
+        document.getElementById('btn-link-bot').onclick = async () => {
+            const token = document.getElementById('bot-token-input').value;
+            const res = await Api.linkBot(token);
+            if(res?.ok) { STATE.data.config.bot_linked = true; UI.renderBotConfig(); UI.toggleDirty(); }
+        };
+
+        App.init();
+    </script>
+</body>
+</html>
