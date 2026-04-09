@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Knowledge Editor | SiteBoS</title>
     
+    <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -17,34 +21,30 @@
     </script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #fafafa; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 35px; height: 35px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        .field-label { @apply text-[10px] font-black uppercase text-gray-400 mb-2 block tracking-widest ml-1; }
-        .enterprise-input { @apply w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold border border-transparent focus:border-black focus:bg-white outline-none transition-all shadow-sm mb-6; }
-        .enterprise-textarea { @apply w-full bg-gray-50 p-5 rounded-[1.8rem] text-sm font-medium border border-transparent focus:border-black focus:bg-white outline-none resize-none leading-relaxed transition-all shadow-sm mb-6; }
-        
         .fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 
     <script>
+        // ── SICUREZZA ──
         (function() {
             if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
-                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase">Accesso Negato</h2></div></body>`;
+                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2></div></body>`;
                 window.stop();
             }
         })();
     </script>
 </head>
-<body class="text-black min-h-screen flex flex-col no-scrollbar pb-32">
+<body class="bg-bg text-black min-h-screen flex flex-col no-scrollbar pb-40 overflow-x-hidden">
 
     <!-- LOADER -->
     <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4 transition-opacity duration-300">
         <div class="spinner"></div>
-        <p id="loaderStatus" class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Caricamento...</p>
+        <p id="loaderStatus" class="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 italic">Syncing Data...</p>
     </div>
 
     <!-- HEADER -->
@@ -55,44 +55,57 @@
         <div class="flex-1 min-w-0">
             <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-[0.2em] rounded-full mb-1">Knowledge Fragment</div>
             <h1 id="headerTitle" class="text-lg font-black tracking-tighter uppercase leading-tight text-black break-words">Editor</h1>
-            <p id="fragmentIdDisplay" class="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-tighter italic">SKU: ...</p>
+            <p id="fragmentIdDisplay" class="text-[8px] font-bold text-gray-400 uppercase mt-1 tracking-widest italic">SKU: ...</p>
         </div>
     </header>
 
     <!-- CONTENT -->
-    <div id="app-content" class="hidden flex-1 p-5 space-y-10 fade-in">
+    <div id="app-content" class="hidden flex-1 p-5 space-y-8 fade-in">
         
         <!-- CARD 1: CORE CONTEXT -->
-        <section class="bg-white rounded-[2.5rem] p-8 border border-border shadow-sm space-y-2">
-            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300 block mb-4 italic">General Context</span>
+        <section class="bg-white rounded-[2.5rem] p-6 sm:p-8 border border-border shadow-sm w-full">
+            <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300 block mb-6 italic">General Context</span>
             
-            <label class="field-label">Content Title</label>
-            <input type="text" id="field-title" class="enterprise-input" oninput="updateField('title', this.value)">
+            <div class="flex flex-col gap-2 mb-6 w-full">
+                <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Content Title</label>
+                <input type="text" id="field-title" class="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold border border-gray-100 focus:border-black outline-none transition-all shadow-inner" oninput="updateField('title', this.value)">
+            </div>
 
-            <label class="field-label">Executive Summary</label>
-            <textarea id="field-summary" rows="3" class="enterprise-textarea" oninput="updateField('summary', this.value)"></textarea>
+            <div class="flex flex-col gap-2 mb-6 w-full">
+                <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Executive Summary</label>
+                <textarea id="field-summary" rows="3" class="w-full bg-gray-50 p-4 rounded-2xl text-sm font-medium border border-gray-100 focus:border-black outline-none resize-none leading-relaxed transition-all shadow-inner" oninput="updateField('summary', this.value)"></textarea>
+            </div>
 
-            <label class="field-label">Direct AI Answer</label>
-            <textarea id="field-answer" rows="6" class="enterprise-textarea" oninput="updateField('answer_fragment', this.value)"></textarea>
+            <div class="flex flex-col gap-2 mb-6 w-full">
+                <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Direct AI Answer</label>
+                <textarea id="field-answer" rows="6" class="w-full bg-gray-50 p-4 rounded-[1.5rem] text-sm font-medium border border-gray-100 focus:border-black outline-none resize-none leading-relaxed transition-all shadow-inner" oninput="updateField('answer_fragment', this.value)"></textarea>
+            </div>
 
-            <label class="field-label">User Utterances (One per line)</label>
-            <textarea id="field-utterances" rows="4" class="enterprise-textarea" oninput="updateUtterances(this.value)"></textarea>
+            <div class="flex flex-col gap-2 w-full">
+                <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">User Utterances (One per line)</label>
+                <textarea id="field-utterances" rows="4" class="w-full bg-gray-50 p-4 rounded-2xl text-xs font-mono text-gray-600 border border-gray-100 focus:border-black outline-none resize-none leading-relaxed transition-all shadow-inner" oninput="updateUtterances(this.value)"></textarea>
+            </div>
         </section>
 
         <!-- SECTIONS -->
-        <div class="space-y-6">
+        <div class="space-y-6 w-full">
             <div class="flex items-center gap-3 mb-2 px-2">
                 <div class="h-[2px] w-8 bg-black"></div>
                 <p class="text-[10px] font-black uppercase text-black tracking-[0.2em]">Detailed Knowledge Sections</p>
             </div>
-            <div id="sections-container" class="space-y-6"></div>
+            
+            <div id="sections-container" class="space-y-6 w-full">
+                <!-- Generato dal JS -->
+            </div>
         </div>
     </div>
 
     <!-- FOOTER -->
     <footer class="fixed bottom-8 left-0 w-full px-6 flex items-center justify-between z-[100] gap-4">
-        <button onclick="tg.close()" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-100 active:scale-90 transition"><i class="fas fa-times"></i></button>
-        <button id="save-fab" disabled onclick="handleSave()" class="flex-1 h-16 bg-black text-white rounded-full shadow-2xl font-black uppercase tracking-[0.2em] text-[11px] active:scale-95 transition-all opacity-20 flex items-center justify-center gap-3">
+        <button onclick="tg.close()" class="w-16 h-16 bg-white text-black rounded-full shadow-2xl flex items-center justify-center text-xl border border-gray-200 active:scale-90 transition">
+            <i class="fas fa-times"></i>
+        </button>
+        <button id="save-fab" disabled onclick="handleSave()" class="flex-1 h-16 bg-black text-white rounded-full shadow-2xl font-black uppercase tracking-[0.2em] text-[11px] active:scale-95 transition-all disabled:bg-gray-200 disabled:text-gray-400 flex items-center justify-center gap-3">
             <i class="fas fa-save text-sm"></i> <span id="saveBtnText">Update Fragment</span>
         </button>
     </footer>
@@ -104,7 +117,8 @@
         tg.ready(); tg.expand();
 
         const urlParams = new URLSearchParams(window.location.search);
-        const ash = urlParams.get('ash'), sopId = urlParams.get('sop_id');
+        const ash = urlParams.get('ash');
+        const sopId = urlParams.get('sop_id');
 
         let currentFragment = null, initialDataString = "";
         const dom = { 
@@ -132,14 +146,11 @@
                 });
                 
                 const data = await res.json();
-                console.log("Dati ricevuti:", data);
-
-                // --- PARSING ULTRA-ROBUSTO ---
                 const raw = Array.isArray(data) ? data[0] : data;
                 currentFragment = raw.Fragment || raw.fragment || raw;
 
                 if (!currentFragment || (!currentFragment.title && !currentFragment._id)) {
-                    throw new Error("Struttura dati non valida o Fragment mancante.");
+                    throw new Error("Struttura dati non valida.");
                 }
 
                 // Popolamento UI
@@ -168,19 +179,24 @@
             const sections = currentFragment.sections || [];
             sections.forEach((s, i) => {
                 const div = document.createElement('div');
-                div.className = "bg-white rounded-[2.5rem] border border-border p-8 space-y-6 shadow-sm fade-in";
+                div.className = "bg-white rounded-[2rem] border border-gray-100 p-6 sm:p-8 space-y-6 shadow-sm fade-in w-full";
                 div.innerHTML = `
-                    <div class="space-y-1">
-                        <label class="field-label !text-gray-300">Question ${i+1}</label>
-                        <input type="text" value="${s.question || ''}" oninput="updateSection(${i}, 'question', this.value)" class="enterprise-input !mb-0 uppercase text-[11px]">
+                    <div class="flex flex-col gap-2 w-full">
+                        <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Question ${i+1}</label>
+                        <input type="text" value="${s.question || ''}" oninput="updateSection(${i}, 'question', this.value)" 
+                            class="w-full bg-gray-50 p-4 rounded-2xl text-[11px] font-black border border-gray-100 focus:border-black outline-none transition-all uppercase">
                     </div>
-                    <div class="space-y-1">
-                        <label class="field-label">Detailed Answer</label>
-                        <textarea rows="4" oninput="updateSection(${i}, 'answer', this.value)" class="enterprise-textarea !mb-0">${s.answer || ''}</textarea>
+                    
+                    <div class="flex flex-col gap-2 w-full">
+                        <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1">Detailed Answer</label>
+                        <textarea rows="4" oninput="updateSection(${i}, 'answer', this.value)" 
+                            class="w-full bg-gray-50 p-5 rounded-[1.5rem] text-xs font-medium border border-gray-100 focus:border-black outline-none resize-none leading-relaxed transition-all shadow-inner">${s.answer || ''}</textarea>
                     </div>
-                    <div class="space-y-1">
-                        <label class="field-label italic">Analogy / Tone</label>
-                        <textarea rows="2" oninput="updateSection(${i}, 'analogy', this.value)" class="enterprise-textarea !bg-stone-100 italic text-stone-600 border-none !mb-0">${s.analogy || ''}</textarea>
+                    
+                    <div class="flex flex-col gap-2 w-full">
+                        <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-1 italic">Analogy / Tone</label>
+                        <textarea rows="2" oninput="updateSection(${i}, 'analogy', this.value)" 
+                            class="w-full bg-stone-100 p-4 rounded-2xl text-xs italic text-stone-600 border border-transparent focus:border-stone-400 outline-none resize-none leading-relaxed transition-all">${s.analogy || ''}</textarea>
                     </div>`;
                 dom.sections.appendChild(div);
             });
@@ -193,8 +209,6 @@
         function checkDirty() {
             const isDirty = JSON.stringify(currentFragment) !== initialDataString;
             dom.saveBtn.disabled = !isDirty;
-            dom.saveBtn.classList.toggle('opacity-20', !isDirty);
-            dom.saveBtn.classList.toggle('opacity-100', isDirty);
         }
 
         window.handleSave = async function() {
