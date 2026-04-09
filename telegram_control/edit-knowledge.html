@@ -257,4 +257,69 @@
                     body: JSON.stringify({ action: 'get_kb_details', fragment_id: id, ...apiCredentials, _auth: tg.initData })
                 });
                 const data = await res.json();
-                const frag = data.fragment ||
+                const frag = data.fragment || data;
+                knowledgeData.push(frag);
+                
+                container.innerHTML = `
+                    <div class="h-[1px] bg-gray-100 w-full mb-4"></div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black uppercase text-gray-300 ml-2">Title</label>
+                        <input type="text" value="${frag.title}" oninput="updateField('${id}', 'title', this.value)" class="editable-input">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black uppercase text-gray-400 ml-2">Summary</label>
+                        <textarea rows="3" oninput="updateField('${id}', 'summary', this.value)" class="editable-textarea">${frag.summary}</textarea>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black uppercase text-gray-400 ml-2">Direct Answer (AI Source)</label>
+                        <textarea rows="5" oninput="updateField('${id}', 'answer_fragment', this.value)" class="editable-textarea">${frag.answer_fragment}</textarea>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[8px] font-black uppercase text-gray-400 ml-2">Q&A Sections</label>
+                        ${frag.sections.map((s, i) => `
+                            <div class="p-4 bg-white rounded-2xl border border-gray-100 mb-3 space-y-2">
+                                <input type="text" value="${s.question}" oninput="updateField('${id}', 'sections.${i}.question', this.value)" class="text-[10px] font-black w-full outline-none uppercase">
+                                <textarea rows="2" oninput="updateField('${id}', 'sections.${i}.answer', this.value)" class="text-xs text-gray-500 w-full outline-none resize-none">${s.answer}</textarea>
+                            </div>
+                        `).join('')}
+                    </div>`;
+            } catch (e) { container.innerHTML = "Error loading details."; }
+        }
+
+        window.updateField = (id, path, val) => {
+            const frag = knowledgeData.find(f => (f.fragment_id || f._id) === id);
+            if (!frag) return;
+            const parts = path.split('.');
+            let curr = frag;
+            for (let i = 0; i < parts.length - 1; i++) curr = curr[parts[i]];
+            curr[parts[parts.length - 1]] = val;
+            
+            if (!hasChanges) { hasChanges = true; dom.saveFab.classList.add('visible'); }
+        };
+
+        window.handleSave = async function() {
+            dom.saveFab.disabled = true;
+            document.getElementById('saveBtnText').innerText = "SYNCHRONIZING...";
+            
+            try {
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'save_kb', fragments: knowledgeData, ...apiCredentials, _auth: tg.initData })
+                });
+                
+                dom.saveFab.classList.replace('bg-black', 'bg-green-600');
+                document.getElementById('saveBtnText').innerText = "SUCCESSFUL";
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                setTimeout(() => { dom.saveFab.classList.remove('visible'); hasChanges = false; }, 2000);
+            } catch (e) { alert("Save failed"); }
+        }
+
+        // ── NAVIGATION ──
+        window.goToDeploy = (id) => { window.location.href = `deployblog.html?fragment_id=${id}&${params.toString()}`; };
+        window.goToEdit = (id) => { window.location.href = `edit_blog.html?blog_id=${id}&${params.toString()}`; };
+
+        init();
+    </script>
+</body>
+</html>
