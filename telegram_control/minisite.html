@@ -2,48 +2,48 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>SiteBoS Editor</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
   <style>
     :root { --bg: #fafafa; --surface: #ffffff; --text: #000000; --line: #eeeeee; --radius-card: 2.5rem; --radius-input: 1.4rem; --shadow-card: 0 18px 40px rgba(0,0,0,0.06); }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; margin:0; }
-    .noir-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden; }
-    .noir-input, .noir-textarea, .noir-select { width: 100%; border: 2px solid var(--line); border-radius: var(--radius-input); background: #f9fafb; padding: 1rem 1.1rem; transition: all .15s ease; font-size: 0.95rem; }
-    .noir-input:focus, .noir-textarea:focus, .noir-select:focus { outline: none; background: #fff; border-color: #000; box-shadow: 0 0 0 4px rgba(0,0,0,0.06); }
+    .noir-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
+    .noir-input, .noir-textarea, .noir-select { width: 100%; border: 2px solid var(--line); border-radius: var(--radius-input); background: #f9fafb; padding: 1rem 1.1rem; transition: all .15s ease; outline:none; }
+    .noir-input:focus, .noir-textarea:focus { background: #fff; border-color: #000; box-shadow: 0 0 0 4px rgba(0,0,0,0.06); }
     .label-k { display: block; margin-bottom: .6rem; font-size: 9px; font-weight: 900; letter-spacing: 0.25em; text-transform: uppercase; color: #6b7280; }
     .noir-btn { min-height: 48px; border-radius: 999px; padding: 0 1.5rem; border: 2px solid #000; background: #000; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; font-size: .7rem; cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
     .noir-btn.secondary { background: #fff; color: #000; }
     .tab-btn { border: none; background: transparent; padding: 1.2rem; font-weight: 900; font-size: .7rem; text-transform: uppercase; letter-spacing: .15em; cursor: pointer; border-bottom: 4px solid transparent; opacity: 0.4; white-space: nowrap; }
     .tab-btn.active { opacity: 1; border-bottom-color: #000; }
     .hidden { display: none; }
-    .loader { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #000; border-radius: 50%; animation: spin 1s linear infinite; }
+    .loader-spin { width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #000; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .img-container { width: 100%; height: 200px; border-radius: 1.8rem; background: #f3f4f6; position: relative; overflow: hidden; border: 1px solid var(--line); }
-    .img-container img { width: 100%; height: 100%; object-fit: cover; }
-    .img-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
-    .img-container:hover .img-overlay { opacity: 1; }
+    .media-box { width: 100%; height: 180px; border-radius: 2rem; background: #f3f4f6; overflow: hidden; position: relative; border: 1px solid var(--line); }
+    .media-box img { width: 100%; height: 100%; object-fit: cover; }
+    .media-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.4); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .media-box:hover .media-overlay { opacity: 1; }
   </style>
 </head>
 <body>
 
-  <!-- FLASH INIT: Chiamata immediata prima di tutto il resto -->
+  <!-- FLASH INIT -->
   <script>
     const tg = window.Telegram.WebApp;
     const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/50891655-84c8-4213-90e8-26ebbc3d6c4c';
     
     // Sicurezza bloccante
     if (!tg.initData) {
-      document.body.innerHTML = `<div style="display:flex;height:100vh;align-items:center;justify-content:center;background:#000;color:#fff;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;text-align:center;padding:20px;">Accesso negato.</div>`;
+      document.body.innerHTML = `<div style="display:flex;height:100vh;align-items:center;justify-content:center;background:#000;color:#fff;font-weight:900;text-transform:uppercase;text-align:center;">Accesso negato.</div>`;
       window.stop();
     }
 
-    // Lancio fetch istantaneo (non aspetta window.onload)
+    // Parte subito, n8n riceve la chiamata mentre il resto carica
     const dataFetch = fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -53,19 +53,19 @@
 
   <div id="loading" class="fixed inset-0 flex items-center justify-center bg-[#fafafa] z-50">
     <div class="text-center">
-      <div class="loader mb-4 mx-auto"></div>
-      <div class="label-k text-black">FLASH SYNCING...</div>
+      <div class="loader-spin mb-4 mx-auto"></div>
+      <div class="label-k">Syncing SiteBoS...</div>
     </div>
   </div>
 
   <main id="app" class="hidden max-w-[1200px] mx-auto p-4 pb-32">
-    <!-- HEADER -->
+    <!-- HEADER CON LOGO -->
     <header class="noir-card p-8 mb-6 flex flex-col md:flex-row justify-between items-center gap-6">
-      <div class="flex items-center gap-5">
+      <div class="flex items-center gap-6">
         <img id="header-logo" class="w-16 h-16 rounded-full border border-line bg-gray-50 object-cover" src="">
         <div>
-          <div class="label-k">SiteBoS Noir Enterprise</div>
-          <h1 id="header-name" class="text-3xl font-black uppercase tracking-tighter leading-tight">Editor</h1>
+          <div class="label-k">Noir Enterprise v4</div>
+          <h1 id="header-name" class="text-3xl font-black uppercase tracking-tighter">Editor</h1>
           <p id="header-meta" class="text-xs opacity-50 font-medium"></p>
         </div>
       </div>
@@ -78,18 +78,18 @@
     <nav class="noir-card px-4 mb-6 flex overflow-x-auto no-scrollbar">
       <button class="tab-btn active" data-tab="overview">Azienda</button>
       <button class="tab-btn" data-tab="content">Testi</button>
-      <button class="tab-btn" data-tab="media">Media Gallery</button>
+      <button class="tab-btn" data-tab="gallery">Gallery</button>
       <button class="tab-btn" data-tab="services">Servizi</button>
       <button class="tab-btn" data-tab="faq">FAQ</button>
     </nav>
 
-    <!-- PANEL: OVERVIEW -->
+    <!-- PANEL: AZIENDA -->
     <section data-panel="overview" class="tab-panel">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="noir-card p-6">
-          <label class="label-k">Dati Core</label>
+          <label class="label-k">Setup Generale</label>
           <div class="space-y-4">
-            <div><label class="label-k opacity-50">Stile Template</label>
+            <div><label class="label-k opacity-50">Template</label>
               <select id="template" class="noir-select">
                 <option value="classic">Classic</option>
                 <option value="tailwind">Tailwind</option>
@@ -115,17 +115,17 @@
       </div>
     </section>
 
-    <!-- PANEL: CONTENT -->
+    <!-- PANEL: TESTI -->
     <section data-panel="content" class="tab-panel hidden space-y-6">
       <div class="noir-card p-8">
         <label class="label-k">Sezione Hero</label>
         <div class="space-y-4">
           <input id="hero-h1" class="noir-input font-bold" placeholder="Titolo H1">
-          <textarea id="hero-sub" class="noir-textarea" rows="3" placeholder="Sottotitolo Hero"></textarea>
+          <textarea id="hero-sub" class="noir-textarea" rows="3" placeholder="Sottotitolo"></textarea>
         </div>
       </div>
       <div class="noir-card p-8">
-        <label class="label-k">Business Context (AI Memory)</label>
+        <label class="label-k">Contesto Aziendale (AI)</label>
         <textarea id="company-context" class="noir-textarea" rows="5"></textarea>
       </div>
       <div class="noir-card p-8">
@@ -134,41 +134,41 @@
       </div>
     </section>
 
-    <!-- PANEL: MEDIA -->
-    <section data-panel="media" class="tab-panel hidden">
+    <!-- PANEL: GALLERY (UPLOAD) -->
+    <section data-panel="gallery" class="tab-panel hidden">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="noir-card p-5" id="card-gallery1">
-          <label class="label-k">Hero Gallery 1</label>
-          <div class="img-container">
+        <div class="noir-card p-5 text-center">
+          <label class="label-k">Hero (Gallery 1)</label>
+          <div class="media-box">
             <img id="view-gallery1" src="">
-            <div class="img-overlay">
+            <div class="media-overlay">
               <button onclick="triggerUpload('gallery1')" class="noir-btn secondary scale-75">Upload</button>
               <button onclick="regenerateAI('gallery1')" class="noir-btn scale-75">AI</button>
             </div>
           </div>
-          <input type="file" id="file-gallery1" class="hidden" accept="image/*" onchange="processFile(this, 'gallery1')">
+          <input type="file" id="file-gallery1" class="hidden" accept="image/*" onchange="processMedia(this, 'gallery1')">
         </div>
-        <div class="noir-card p-5" id="card-gallery2">
+        <div class="noir-card p-5 text-center">
           <label class="label-k">Gallery 2</label>
-          <div class="img-container">
+          <div class="media-box">
             <img id="view-gallery2" src="">
-            <div class="img-overlay">
+            <div class="media-overlay">
               <button onclick="triggerUpload('gallery2')" class="noir-btn secondary scale-75">Upload</button>
               <button onclick="regenerateAI('gallery2')" class="noir-btn scale-75">AI</button>
             </div>
           </div>
-          <input type="file" id="file-gallery2" class="hidden" accept="image/*" onchange="processFile(this, 'gallery2')">
+          <input type="file" id="file-gallery2" class="hidden" accept="image/*" onchange="processMedia(this, 'gallery2')">
         </div>
-        <div class="noir-card p-5" id="card-gallery3">
+        <div class="noir-card p-5 text-center">
           <label class="label-k">Gallery 3</label>
-          <div class="img-container">
+          <div class="media-box">
             <img id="view-gallery3" src="">
-            <div class="img-overlay">
+            <div class="media-overlay">
               <button onclick="triggerUpload('gallery3')" class="noir-btn secondary scale-75">Upload</button>
               <button onclick="regenerateAI('gallery3')" class="noir-btn scale-75">AI</button>
             </div>
           </div>
-          <input type="file" id="file-gallery3" class="hidden" accept="image/*" onchange="processFile(this, 'gallery3')">
+          <input type="file" id="file-gallery3" class="hidden" accept="image/*" onchange="processMedia(this, 'gallery3')">
         </div>
       </div>
     </section>
@@ -176,7 +176,7 @@
     <!-- PANEL: SERVICES -->
     <section data-panel="services" class="tab-panel hidden">
       <div class="noir-card p-6">
-        <label class="label-k mb-4">Servizi SER/PRO Attivi</label>
+        <label class="label-k mb-4">Servizi Commerciali Pronti</label>
         <div id="services-list" class="grid gap-4"></div>
       </div>
     </section>
@@ -185,23 +185,13 @@
     <section data-panel="faq" class="tab-panel hidden">
       <div class="noir-card p-6">
         <div class="flex justify-between items-center mb-6">
-          <label class="label-k">FAQ SEO</label>
+          <label class="label-k">FAQ SEO Strategiche</label>
           <button id="add-faq" class="noir-btn secondary scale-75">Aggiungi</button>
         </div>
         <div id="faq-list" class="space-y-4"></div>
       </div>
     </section>
   </main>
-
-  <div id="preview-modal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[60] p-4 flex flex-col">
-    <div class="flex justify-between items-center mb-4 px-4">
-      <div class="text-white font-black uppercase tracking-widest text-xs">Live Preview</div>
-      <button id="close-preview" class="noir-btn secondary scale-75">Chiudi</button>
-    </div>
-    <div class="flex-1 rounded-[2rem] overflow-hidden bg-white">
-      <iframe id="preview-frame" class="w-full h-full border-0"></iframe>
-    </div>
-  </div>
 
   <script>
     const state = { root: {}, originalHash: '', dirty: false };
@@ -211,13 +201,16 @@
 
     function ensureShape(d) {
       if(!d) return {};
-      // Normalizzazione ownerdata
+      // Normalizzazione Ownerdata e Social
       d.ownerdata = d.ownerdata || d.owner_data || {};
       d.ownerbot = d.ownerbot || d.owner_bot || {};
+      d.ownerdata.linkedin = d.ownerdata.linkedin_page || d.ownerdata.linkedin || "";
+      d.ownerdata.facebook = d.ownerdata.facebook_page || d.ownerdata.facebook || "";
+      d.ownerdata.instagram = d.ownerdata.instagram_page || d.ownerdata.instagram || "";
+      d.ownerdata.twitter = d.ownerdata.twitter_page || d.ownerdata.twitter || "";
+
       d.HoneyPot = d.HoneyPot || {};
-      d.MiniSiteJson = d.MiniSiteJson || {};
-      d.MiniSiteJson.seo = d.MiniSiteJson.seo || { faq: [] };
-      d.MiniSiteJson.hero = d.MiniSiteJson.hero || {};
+      d.MiniSiteJson = d.MiniSiteJson || { seo:{faq:[]}, hero:{}, sections:{} };
       d.HoneyPot.assets = d.HoneyPot.assets || { logo:{}, gallery1:{}, gallery2:{}, gallery3:{} };
       return d;
     }
@@ -280,6 +273,37 @@
       }
     }
 
+    function triggerUpload(k) { haptic(); byId('file-'+k).click(); }
+
+    function processMedia(input, k) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          byId('view-'+k).src = e.target.result;
+          state.root.HoneyPot.assets[k].url = e.target.result; // Passiamo il base64 a n8n
+          syncDirty();
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    async function regenerateAI(k) {
+      haptic();
+      tg.showConfirm(`Vuoi generare una nuova immagine con AI per "${k}"?`, async ok => {
+        if(!ok) return;
+        tg.MainButton.showProgress();
+        try {
+          const res = await call({ _auth: tg.initData, action:'REGENERATE_ASSET', asset_type: k, ...state.root });
+          if(res.new_url) {
+            byId('view-'+k).src = res.new_url;
+            state.root.HoneyPot.assets[k].url = res.new_url;
+            syncDirty();
+          }
+        } catch(e){ tg.showAlert(e.message); }
+        finally { tg.MainButton.hideProgress(); }
+      });
+    }
+
     function renderServices() {
       const list = byId('services-list');
       list.innerHTML = '';
@@ -302,43 +326,8 @@
       });
     }
 
-    function triggerUpload(k) { haptic(); byId('file-'+k).click(); }
-
-    function processFile(input, k) {
-      if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-          byId('view-'+k).src = e.target.result;
-          state.root.HoneyPot.assets[k].url = e.target.result; // Base64 per n8n
-          syncDirty();
-        };
-        reader.readAsDataURL(input.files[0]);
-      }
-    }
-
-    async function regenerateAI(k) {
-      haptic();
-      tg.showConfirm(`Rigenerare l'immagine "${k}" con AI?`, async ok => {
-        if(!ok) return;
-        tg.MainButton.showProgress();
-        try {
-          const res = await call({ _auth: tg.initData, action:'REGENERATE_ASSET', asset_type: k, ...state.root });
-          if(res.new_url) {
-            byId('view-'+k).src = res.new_url;
-            state.root.HoneyPot.assets[k].url = res.new_url;
-            syncDirty();
-          }
-        } catch(e){ tg.showAlert(e.message); }
-        finally { tg.MainButton.hideProgress(); }
-      });
-    }
-
     async function call(body, asHtml = false) {
-      const r = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
       return asHtml ? r.text() : r.json();
     }
 
@@ -353,7 +342,7 @@
       finally { tg.MainButton.hideProgress(); }
     }
 
-    // GESTIONE TABS
+    // LISTENER TABS E INPUT
     document.querySelectorAll('.tab-btn').forEach(b => {
       b.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
@@ -364,27 +353,19 @@
     });
 
     document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', () => { syncDirty(); haptic(); }));
+    tg.MainButton.onClick(handlePublish);
 
-    byId('preview-btn').addEventListener('click', async () => {
-      haptic();
-      const html = await call({ _auth: tg.initData, action: 'PREVIEW_MINISITE', ...state.root }, true);
-      byId('preview-frame').srcdoc = html;
-      byId('preview-modal').classList.remove('hidden');
-    });
-
-    byId('close-preview').addEventListener('click', () => byId('preview-modal').classList.add('hidden'));
-
-    // ESECUZIONE FLASH
+    // EXECUTION
     (async () => {
       try {
-        const res = await dataFetch; // Utilizza la fetch lanciata all'inizio
+        const res = await dataFetch;
         state.root = ensureShape(res);
         state.originalHash = JSON.stringify(state.root);
         populateForm();
         byId('loading').classList.add('hidden');
         byId('app').classList.remove('hidden');
         tg.expand();
-      } catch (e) { tg.showAlert("Errore caricamento: " + e.message); }
+      } catch (e) { tg.showAlert("Errore: " + e.message); }
     })();
   </script>
 </body>
