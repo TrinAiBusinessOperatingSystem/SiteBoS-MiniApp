@@ -20,194 +20,144 @@
       --shadow-card: 0 18px 40px rgba(0,0,0,0.06);
     }
     * { box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; margin:0; padding:0; }
 
     .noir-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-card); }
     
     .noir-input, .noir-textarea, .noir-select {
       width: 100%; border: 2px solid var(--line); border-radius: var(--radius-input);
-      background: #f9fafb; padding: 1rem 1.1rem; transition: all .18s ease;
+      background: #f9fafb; padding: 1rem 1.1rem; transition: all .2s ease;
     }
     .noir-input:focus, .noir-textarea:focus {
-      outline: none; background: #fff; border-color: #000; box-shadow: inset 0 2px 8px rgba(0,0,0,0.04), 0 0 0 4px rgba(0,0,0,0.06);
+      outline: none; background: #fff; border-color: #000; box-shadow: 0 0 0 4px rgba(0,0,0,0.05);
     }
 
-    .label-k { display: block; margin-bottom: .55rem; font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: #6b7280; }
+    .label-k { display: block; margin-bottom: .6rem; font-size: 9px; font-weight: 900; letter-spacing: 0.25em; text-transform: uppercase; color: #6b7280; }
     
     .noir-btn {
       min-height: 48px; border-radius: 999px; padding: 0 1.5rem; border: 2px solid #000;
-      background: #000; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .14em; font-size: .78rem; cursor: pointer;
-      transition: all .18s ease;
+      background: #000; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; font-size: .7rem; cursor: pointer;
     }
     .noir-btn.secondary { background: #fff; color: #000; }
-    .noir-btn.ghost { background: transparent; color: #000; border-color: var(--line); }
-    .noir-btn:disabled { opacity: .3; cursor: not-allowed; transform: none !important; }
+    .noir-btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-    .tab-btn { border: none; background: transparent; padding: 16px 18px; font-weight: 900; font-size: .78rem; text-transform: uppercase; letter-spacing: .14em; cursor: pointer; border-bottom: 4px solid transparent; opacity: 0.4; }
+    .tab-btn { border: none; background: transparent; padding: 1rem 1.2rem; font-weight: 900; font-size: .7rem; text-transform: uppercase; letter-spacing: .15em; cursor: pointer; border-bottom: 4px solid transparent; opacity: 0.5; }
     .tab-btn.active { opacity: 1; border-bottom-color: #000; }
     
-    .loader { width: 46px; height: 46px; border: 4px solid #f3f3f3; border-top: 4px solid #000; border-radius: 999px; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .chip { display: inline-flex; align-items: center; gap: .45rem; background: #000; color: #fff; padding: .45rem .7rem; border-radius: 999px; font-size: .74rem; font-weight: 800; margin: .3rem .35rem 0 0; }
-    .chip button { background: transparent; border: none; color: #fff; cursor: pointer; font-weight: 900; }
+    .hidden { display: none; }
+    .loader { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #000; border-radius: 50%; animation: spin 1s linear infinite; margin: auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
+  <!-- SICUREZZA BLOCCANTE -->
   <script>
     if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initData) {
-      document.body.innerHTML = `<div style="position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:Inter,sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;">Accesso negato.<br>Usa Telegram.</div>`;
+      document.body.innerHTML = `<div style="display:flex;height:100vh;align-items:center;justify-content:center;background:#000;color:#fff;font-weight:900;text-transform:uppercase;letter-spacing:0.2em;text-align:center;padding:20px;">Accesso negato.<br>Apri questa app dentro Telegram.</div>`;
       window.stop();
     }
   </script>
 
-  <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fafafa;z-index:50;">
+  <div id="loading" class="fixed inset-0 flex items-center justify-center bg-[#fafafa] z-50">
     <div class="text-center">
-      <div class="loader mb-6 mx-auto"></div>
-      <div class="label-k">SiteBoS Engine Loading...</div>
+      <div class="loader mb-4"></div>
+      <div class="label-k">Sincronizzazione SiteBoS...</div>
     </div>
   </div>
 
-  <main id="app" class="hidden" style="max-width:1300px;margin:0 auto;padding:16px;">
+  <main id="app" class="hidden max-w-[1200px] mx-auto p-4 pb-32">
     <!-- HEADER -->
-    <section class="noir-card" style="padding:28px; margin-bottom:16px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;">
-        <div>
-          <h1 id="ent-name" style="font-size:36px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;line-height:1;">MiniSite Editor</h1>
-          <div id="ent-meta" style="margin-top:8px;font-size:14px;font-weight:700;color:#6b7280;">—</div>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button id="preview-btn" class="noir-btn secondary">Preview</button>
-          <button id="save-btn" class="noir-btn ghost" disabled>Salva</button>
-          <button id="publish-btn" class="noir-btn" disabled>Pubblica</button>
-        </div>
+    <header class="noir-card p-8 mb-6 flex mobile-stack justify-between items-center gap-6">
+      <div>
+        <div class="label-k">SiteBoS Noir Enterprise</div>
+        <h1 id="header-name" class="text-3xl font-black uppercase tracking-tighter">Editor</h1>
+        <p id="header-meta" class="text-xs opacity-50 font-medium"></p>
       </div>
-    </section>
+      <div class="flex gap-3">
+        <button id="preview-btn" class="noir-btn secondary">Preview</button>
+        <button id="save-btn" class="noir-btn">Salva</button>
+      </div>
+    </header>
 
     <!-- TABS -->
-    <section class="noir-card" style="padding:0 16px; margin-bottom:16px; overflow:auto;">
-      <div style="display:flex;min-width:max-content;">
-        <button class="tab-btn active" data-tab="overview">Overview</button>
-        <button class="tab-btn" data-tab="content">Contenuti</button>
-        <button class="tab-btn" data-tab="style">Stile</button>
-        <button class="tab-btn" data-tab="services">Servizi</button>
-        <button class="tab-btn" data-tab="faq">FAQ</button>
-        <button class="tab-btn" data-tab="raw">Dati</button>
-      </div>
-    </section>
+    <nav class="noir-card px-4 mb-6 flex overflow-x-auto no-scrollbar">
+      <button class="tab-btn active" data-tab="overview">Overview</button>
+      <button class="tab-btn" data-tab="content">Contenuti</button>
+      <button class="tab-btn" data-tab="services">Servizi</button>
+      <button class="tab-btn" data-tab="faq">FAQ</button>
+      <button class="tab-btn" data-tab="raw">Debug</button>
+    </nav>
 
     <!-- PANEL: OVERVIEW -->
     <section data-panel="overview" class="tab-panel">
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;">
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">Template</div>
-          <select id="template" class="noir-select">
-            <option value="dark-tech">Dark Tech</option>
-            <option value="editorial">Editorial</option>
-            <option value="premium-editorial">Premium Editorial</option>
-          </select>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="noir-card p-6">
+          <label class="label-k">Dati Core</label>
+          <div class="space-y-4">
+            <div><label class="label-k opacity-50">Ragione Sociale</label><input id="ragione-sociale" class="noir-input"></div>
+            <div><label class="label-k opacity-50">Partita IVA</label><input id="vat-number" class="noir-input"></div>
+            <div><label class="label-k opacity-50">Template Style</label><input id="template-style" class="noir-input"></div>
+          </div>
         </div>
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">Ragione Sociale</div>
-          <input id="ragione-sociale" class="noir-input" type="text">
-        </div>
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">P.IVA</div>
-          <input id="vat-number" class="noir-input" type="text">
-        </div>
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">Bot Username</div>
-          <input id="bot-username" class="noir-input" type="text">
+        <div class="noir-card p-6">
+          <label class="label-k">Social Connect</label>
+          <div class="space-y-4">
+            <div><label class="label-k opacity-50">LinkedIn</label><input id="social-linkedin" class="noir-input" placeholder="https://..."></div>
+            <div><label class="label-k opacity-50">Facebook</label><input id="social-facebook" class="noir-input"></div>
+            <div><label class="label-k opacity-50">Instagram</label><input id="social-instagram" class="noir-input"></div>
+            <div><label class="label-k opacity-50">Twitter / X</label><input id="social-twitter" class="noir-input"></div>
+          </div>
         </div>
       </div>
-
-      <!-- SOCIAL SECTION -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-top:16px;">
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">LinkedIn</div>
-          <input id="social-linkedin" class="noir-input" type="url">
-        </div>
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">Facebook</div>
-          <input id="social-facebook" class="noir-input" type="url">
-        </div>
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">Instagram</div>
-          <input id="social-instagram" class="noir-input" type="url">
-        </div>
-        <div class="noir-card" style="padding:24px;">
-          <div class="label-k">Twitter / X</div>
-          <input id="social-twitter" class="noir-input" type="url">
-        </div>
-      </div>
-
-      <div class="noir-card" style="padding:24px; margin-top:16px;">
-        <div class="label-k">AI Business Context</div>
-        <textarea id="company-context" class="noir-textarea" rows="5"></textarea>
+      <div class="noir-card p-6 mt-6">
+        <label class="label-k">Business Context (AI Memory)</label>
+        <textarea id="company-context" class="noir-textarea" rows="4"></textarea>
       </div>
     </section>
 
     <!-- PANEL: CONTENT -->
-    <section data-panel="content" class="tab-panel hidden">
-      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
-        <div class="label-k">SEO Title</div>
-        <input id="seo-title" class="noir-input" type="text">
+    <section data-panel="content" class="tab-panel hidden space-y-6">
+      <div class="noir-card p-6">
+        <label class="label-k">Sezione Hero</label>
+        <div class="space-y-4">
+          <input id="hero-h1" class="noir-input font-bold" placeholder="Titolo H1">
+          <textarea id="hero-sub" class="noir-textarea" rows="3" placeholder="Sottotitolo"></textarea>
+        </div>
       </div>
-      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
-        <div class="label-k">SEO Description</div>
-        <textarea id="seo-description" class="noir-textarea" rows="3"></textarea>
-      </div>
-      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
-        <div class="label-k">Hero Title (H1)</div>
-        <input id="hero-h1" class="noir-input" type="text">
-      </div>
-      <div class="noir-card" style="padding:24px;">
-        <div class="label-k">Offerta Principale</div>
+      <div class="noir-card p-6">
+        <label class="label-k">Offerta Irresistibile</label>
         <textarea id="offer-text" class="noir-textarea" rows="6"></textarea>
       </div>
     </section>
 
     <!-- PANEL: SERVICES -->
     <section data-panel="services" class="tab-panel hidden">
-      <div class="noir-card" style="padding:24px;">
-        <div class="label-k">Asset Commerciali Attivi</div>
-        <div id="services-list" style="display:grid;gap:12px;margin-top:16px;"></div>
+      <div class="noir-card p-6">
+        <label class="label-k mb-4">Servizi Commerciali (SER/PRO)</label>
+        <div id="services-list" class="grid gap-4"></div>
       </div>
     </section>
 
     <!-- PANEL: FAQ -->
     <section data-panel="faq" class="tab-panel hidden">
-      <div class="noir-card" style="padding:24px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div class="label-k">FAQ SEO</div>
-          <button id="add-faq" class="noir-btn secondary" style="min-height:32px; font-size:10px;">Aggiungi</button>
+      <div class="noir-card p-6">
+        <div class="flex justify-between items-center mb-6">
+          <label class="label-k">FAQ SEO</label>
+          <button id="add-faq" class="noir-btn secondary scale-75">Aggiungi</button>
         </div>
-        <div id="faq-list" style="display:grid;gap:12px;margin-top:16px;"></div>
+        <div id="faq-list" class="space-y-4"></div>
       </div>
     </section>
 
-    <!-- PANEL: RAW -->
+    <!-- PANEL: DEBUG -->
     <section data-panel="raw" class="tab-panel hidden">
-      <div class="noir-card" style="padding:24px;">
-        <div class="label-k">Payload n8n Dispatcher</div>
-        <textarea id="raw-preview" class="noir-textarea" rows="20" readonly style="font-family:monospace; font-size:12px;"></textarea>
+      <div class="noir-card p-6">
+        <label class="label-k">JSON Outbound</label>
+        <textarea id="raw-preview" class="noir-textarea font-mono text-[10px]" rows="25" readonly></textarea>
       </div>
     </section>
   </main>
-
-  <!-- PREVIEW MODAL -->
-  <div id="preview-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);z-index:100;padding:20px;">
-    <div style="max-width:1200px;height:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px;">
-      <div class="noir-card" style="padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">
-        <div class="label-k" style="margin:0;">Live Preview</div>
-        <button id="close-preview" class="noir-btn secondary" style="min-height:36px;">Chiudi</button>
-      </div>
-      <div class="noir-card" style="flex:1;overflow:hidden;border-radius:2rem;">
-        <iframe id="preview-frame" style="width:100%;height:100%;border:0;background:#fff;"></iframe>
-      </div>
-    </div>
-  </div>
 
   <script>
     const tg = window.Telegram.WebApp;
@@ -222,35 +172,35 @@
     function byId(id) { return document.getElementById(id); }
     function haptic() { try { tg.HapticFeedback.impactOccurred('light'); } catch(e){} }
 
-    // 2. Data Integrity: ensureShape per gestire ownerdata e social
-    function ensureShape() {
-      const r = state.root;
-      r.ownerdata = r.ownerdata || {};
-      r.ownerbot = r.ownerbot || {};
+    // NORMALIZZAZIONE DATI
+    function ensureShape(data) {
+      if (!data) return {};
+      const r = data;
+      r.ownerdata = r.ownerdata || r.owner_data || {};
+      r.ownerbot = r.ownerbot || r.owner_bot || {};
       r.HoneyPot = r.HoneyPot || {};
-      r.MiniSiteJson = r.MiniSiteJson || { seo: { faq: [] }, hero: {}, sections: { usp: [], process: [] } };
+      r.MiniSiteJson = r.MiniSiteJson || {};
       
-      // Social Mapping
+      // Social Link Mapping
       r.ownerdata.linkedin = r.ownerdata.linkedin || "";
       r.ownerdata.facebook = r.ownerdata.facebook || "";
       r.ownerdata.instagram = r.ownerdata.instagram || "";
       r.ownerdata.twitter = r.ownerdata.twitter || "";
 
-      r.HoneyPot.assets = r.HoneyPot.assets || { logo: { url:'', meta:{colors:['#000','#000']} } };
-      r.HoneyPot.active_services = Array.isArray(r.HoneyPot.active_services) ? r.HoneyPot.active_services : [];
+      r.MiniSiteJson.seo = r.MiniSiteJson.seo || { faq: [] };
+      r.MiniSiteJson.hero = r.MiniSiteJson.hero || {};
+      r.HoneyPot.active_services = r.HoneyPot.active_services || [];
+      return r;
     }
 
     function populateForm() {
-      ensureShape();
       const r = state.root;
+      byId('header-name').textContent = r.ownerdata.ragione_sociale || 'MiniSite Editor';
+      byId('header-meta').textContent = `VAT: ${r.ownerdata.vat_number || '---'} | Template: ${r.template || 'classic'}`;
       
-      byId('ent-name').textContent = r.ownerdata.ragione_sociale || 'MiniSite Editor';
-      byId('ent-meta').textContent = `VAT: ${r.ownerdata.vat_number || 'N/A'} | Template: ${r.template || 'classic'}`;
-
-      byId('template').value = r.template || 'dark-tech';
       byId('ragione-sociale').value = r.ownerdata.ragione_sociale || '';
       byId('vat-number').value = r.ownerdata.vat_number || '';
-      byId('bot-username').value = r.ownerbot.username || '';
+      byId('template-style').value = r.template || '';
       
       byId('social-linkedin').value = r.ownerdata.linkedin || '';
       byId('social-facebook').value = r.ownerdata.facebook || '';
@@ -258,9 +208,8 @@
       byId('social-twitter').value = r.ownerdata.twitter || '';
 
       byId('company-context').value = r.HoneyPot.company_context_string || '';
-      byId('seo-title').value = r.MiniSiteJson.seo.title || '';
-      byId('seo-description').value = r.MiniSiteJson.seo.description || '';
       byId('hero-h1').value = r.MiniSiteJson.hero.h1 || '';
+      byId('hero-sub').value = r.MiniSiteJson.hero.sub || '';
       byId('offer-text').value = r.HoneyPot.offer_text || '';
 
       renderServices();
@@ -270,10 +219,9 @@
 
     function syncDirty() {
       const r = state.root;
-      r.template = byId('template').value;
       r.ownerdata.ragione_sociale = byId('ragione-sociale').value;
       r.ownerdata.vat_number = byId('vat-number').value;
-      r.ownerbot.username = byId('bot-username').value;
+      r.template = byId('template-style').value;
       
       r.ownerdata.linkedin = byId('social-linkedin').value;
       r.ownerdata.facebook = byId('social-facebook').value;
@@ -281,60 +229,55 @@
       r.ownerdata.twitter = byId('social-twitter').value;
 
       r.HoneyPot.company_context_string = byId('company-context').value;
-      r.MiniSiteJson.seo.title = byId('seo-title').value;
-      r.MiniSiteJson.seo.description = byId('seo-description').value;
       r.MiniSiteJson.hero.h1 = byId('hero-h1').value;
+      r.MiniSiteJson.hero.sub = byId('hero-sub').value;
       r.HoneyPot.offer_text = byId('offer-text').value;
 
       const currentHash = JSON.stringify(r);
       state.dirty = currentHash !== state.originalHash;
       
       byId('save-btn').disabled = !state.dirty;
-      byId('publish-btn').disabled = !state.dirty;
       byId('raw-preview').value = JSON.stringify(r, null, 2);
 
       if (state.dirty) {
         tg.MainButton.setText("PUBBLICA MODIFICHE");
-        tg.MainButton.setParams({ is_active: true, color: '#000000', is_visible: true });
+        tg.MainButton.show();
+        tg.MainButton.enable();
       } else {
         tg.MainButton.hide();
       }
     }
 
     function renderServices() {
-      const wrap = byId('services-list');
-      wrap.innerHTML = '';
+      const list = byId('services-list');
+      list.innerHTML = '';
+      if (state.root.HoneyPot.active_services.length === 0) {
+        list.innerHTML = '<div class="text-xs opacity-40">Nessun servizio commerciale attivo (SER/PRO + blueprint_ready).</div>';
+        return;
+      }
       state.root.HoneyPot.active_services.forEach(s => {
         const div = document.createElement('div');
-        div.className = 'noir-card';
-        div.style.padding = '16px';
-        div.innerHTML = `<div style="font-weight:900;font-size:12px;">${s.name}</div><div class="label-k" style="margin:4px 0 0; opacity:0.5;">${s.macro} | ${s.category_short}</div>`;
-        wrap.appendChild(div);
+        div.className = 'noir-card p-4 flex justify-between items-center';
+        div.innerHTML = `
+          <div><div class="font-bold text-[11px] uppercase">${s.short_name || s.name}</div><div class="text-[9px] opacity-40 uppercase tracking-widest">${s.macro} | ${s.category_short}</div></div>
+          <div class="bg-green-50 text-green-600 text-[8px] px-2 py-1 rounded-full font-black uppercase">Active</div>
+        `;
+        list.appendChild(div);
       });
     }
 
     function renderFAQ() {
-      const wrap = byId('faq-list');
-      wrap.innerHTML = '';
-      state.root.MiniSiteJson.seo.faq.forEach((f, i) => {
+      const list = byId('faq-list');
+      list.innerHTML = '';
+      (state.root.MiniSiteJson.seo.faq || []).forEach((f, i) => {
         const div = document.createElement('div');
-        div.className = 'noir-card';
-        div.style.padding = '16px';
+        div.className = 'noir-card p-4 space-y-2';
         div.innerHTML = `
-          <input class="noir-input mb-2" value="${f.q || f.question}" oninput="state.root.MiniSiteJson.seo.faq[${i}].q=this.value;syncDirty()">
-          <textarea class="noir-textarea" oninput="state.root.MiniSiteJson.seo.faq[${i}].a=this.value;syncDirty()">${f.a || f.answer}</textarea>
+          <input class="noir-input text-xs font-bold" value="${f.q || f.question || ''}" oninput="state.root.MiniSiteJson.seo.faq[${i}].q=this.value;syncDirty()">
+          <textarea class="noir-textarea text-xs" oninput="state.root.MiniSiteJson.seo.faq[${i}].a=this.value;syncDirty()">${f.a || f.answer || ''}</textarea>
         `;
-        wrap.appendChild(div);
+        list.appendChild(div);
       });
-    }
-
-    async function call(body, asHtml = false) {
-      const r = await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      return asHtml ? r.text() : r.json();
     }
 
     async function init() {
@@ -343,37 +286,48 @@
       tg.MainButton.onClick(handlePublish);
 
       try {
-        const res = await call({ _auth: tg.initData, action: 'GET_MINISITE_DATA' });
-        state.root = res;
-        ensureShape();
+        const res = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _auth: tg.initData, action: 'GET_MINISITE_DATA' })
+        });
+        
+        if (!res.ok) throw new Error("n8n ha risposto con errore " + res.status);
+        
+        const data = await res.json();
+        state.root = ensureShape(data);
         state.originalHash = JSON.stringify(state.root);
+        
         populateForm();
         byId('loading').classList.add('hidden');
         byId('app').classList.remove('hidden');
-      } catch (e) { alert("Init Error: " + e.message); }
+        haptic();
+      } catch (e) {
+        byId('loading').innerHTML = `<div class="p-8 text-center"><div class="text-red-600 font-black mb-2">ERRORE DI CARICAMENTO</div><div class="text-xs opacity-50">${e.message}</div></div>`;
+        tg.showAlert("Errore critico: " + e.message);
+      }
     }
 
     async function handlePublish() {
       tg.MainButton.showProgress();
       try {
-        await call({ _auth: tg.initData, action: 'PUBLISH_MINISITE', ...state.root });
+        const res = await fetch(WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ _auth: tg.initData, action: 'PUBLISH_MINISITE', ...state.root })
+        });
+        if (!res.ok) throw new Error("Errore durante la pubblicazione");
         state.originalHash = JSON.stringify(state.root);
         syncDirty();
-        tg.showAlert("MiniSite Pubblicato correttamente.");
-      } catch (e) { alert(e.message); }
-      tg.MainButton.hideProgress();
+        tg.showAlert("MiniSite pubblicato con successo!");
+      } catch (e) {
+        tg.showAlert("Errore: " + e.message);
+      } finally {
+        tg.MainButton.hideProgress();
+      }
     }
 
-    // EVENT LISTENERS
-    byId('preview-btn').addEventListener('click', async () => {
-      haptic();
-      const html = await call({ _auth: tg.initData, action: 'PREVIEW_MINISITE', ...state.root }, true);
-      byId('preview-frame').srcdoc = html;
-      byId('preview-modal').classList.remove('hidden');
-    });
-
-    byId('close-preview').addEventListener('click', () => byId('preview-modal').classList.add('hidden'));
-
+    // TABS LOGIC
     document.querySelectorAll('.tab-btn').forEach(b => {
       b.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
@@ -384,7 +338,7 @@
       });
     });
 
-    document.querySelectorAll('input, textarea, select').forEach(el => el.addEventListener('input', () => { syncDirty(); haptic(); }));
+    document.querySelectorAll('input, textarea').forEach(el => el.addEventListener('input', () => { syncDirty(); haptic(); }));
 
     window.onload = init;
   </script>
