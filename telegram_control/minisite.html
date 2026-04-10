@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiteBoS MiniSite Editor</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .noir-input { 
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.08); 
+            transition: all 0.2s ease;
+        }
+        .noir-card { 
+            border-radius: 2.5rem; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+        .loading-spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-gray-50 text-black antialiased min-h-screen">
+    
+    <!-- SECURITY CHECK (IIFE) -->
+    <script>
+        (function() {
+            if (!window.Telegram?.WebApp?.initDataUnsafe) {
+                document.body.innerHTML = `
+                    <div class="fixed inset-0 bg-black flex items-center justify-center z-50">
+                        <div class="text-white text-2xl font-black uppercase tracking-widest text-center px-8">
+                            🔒<br>ACCESSO NEGATO<br><span class="text-lg tracking-normal">Telegram Web App Only</span>
+                        </div>
+                    </div>
+                `;
+                document.body.style.overflow = 'hidden';
+                return;
+            }
+        })();
+    </script>
+
+    <div id="app" class="p-4 md:p-6 max-w-6xl mx-auto">
+        
+        <!-- LOADING SCREEN -->
+        <div id="loading" class="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
+            <div class="noir-card bg-white p-12 text-center max-w-sm mx-auto">
+                <div class="loading-spinner mx-auto mb-6"></div>
+                <h1 class="text-3xl md:text-4xl font-black uppercase tracking-widest mb-4 text-black">MINISITE EDITOR</h1>
+                <p class="text-lg font-medium text-gray-600 mb-2">Recupero dati...</p>
+                <p class="text-sm text-gray-500">Validazione Telegram Auth</p>
+            </div>
+        </div>
+
+        <!-- MAIN EDITOR -->
+        <div id="editor" class="hidden space-y-8">
+            
+            <!-- HEADER BAR -->
+            <div class="noir-card bg-white p-8 shadow-2xl">
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <div class="flex-1 min-w-0">
+                        <h1 class="text-4xl lg:text-5xl font-black uppercase tracking-widest text-black mb-2 leading-tight" id="site-title">Caricamento...</h1>
+                        <p class="text-xl font-medium text-gray-600" id="site-subtitle">Template: Dark Tech</p>
+                    </div>
+                    <div class="flex flex-wrap gap-4 items-center justify-end">
+                        <button id="preview-btn" class="px-8 py-4 bg-black text-white font-black uppercase tracking-widest text-sm rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 min-h-[52px]">
+                            👁️ Preview Live
+                        </button>
+                        <button id="reset-btn" class="px-8 py-4 border-2 border-black font-black uppercase tracking-widest text-sm rounded-full hover:bg-black hover:text-white transition-all duration-200 min-h-[52px]">
+                            🔄 Reset
+                        </button>
+                        <button id="publish-btn" class="px-10 py-4 bg-black text-white font-black uppercase tracking-widest text-sm rounded-full shadow-2xl hover:shadow-3xl transition-all duration-200 min-h-[52px]" disabled>
+                            🚀 Pubblica
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABS NAVIGATION -->
+            <div class="noir-card bg-white p-1 shadow-xl border border-gray-200">
+                <div class="flex overflow-x-auto -mb-px" id="tabs-nav">
+                    <button class="tab-btn flex-shrink-0 px-8 py-4 font-black uppercase tracking-widest text-sm border-b-4 border-transparent data-active:border-black whitespace-nowrap" data-tab="content">
+                        📝 Contenuti
+                    </button>
+                    <button class="tab-btn flex-shrink-0 px-8 py-4 font-black uppercase tracking-widest text-sm border-b-4 border-transparent data-active:border-black whitespace-nowrap" data-tab="style">
+                        🎨 Stili
+                    </button>
+                    <button class="tab-btn flex-shrink-0 px-8 py-4 font-black uppercase tracking-widest text-sm border-b-4 border-transparent data-active:border-black whitespace-nowrap" data-tab="assets">
+                        🖼️ Assets
+                    </button>
+                    <button class="tab-btn flex-shrink-0 px-8 py-4 font-black uppercase tracking-widest text-sm border-b-4 border-transparent data-active:border-black whitespace-nowrap" data-tab="services">
+                        ⚙️ Servizi
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTENT TAB -->
+            <div id="content-tab" class="tab-content noir-card bg-white p-10 shadow-2xl space-y-10">
+                
+                <!-- SEO SECTION -->
+                <section>
+                    <h2 class="text-3xl font-black uppercase tracking-widest mb-8 text-black">SEO & Meta</h2>
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <label class="block text-sm font-black uppercase tracking-widest mb-4 text-gray-800">Titolo Pagina (60 char)</label>
+                            <input id="seo-title" type="text" maxlength="60" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-xl font-medium focus:border-black focus:shadow-inner focus:outline-none focus:ring-4 ring-black/10 transition-all" placeholder="Es: Garofalo Consulting - AI Architecture">
+                            <span class="text-xs font-medium text-gray-500 mt-2 block" id="seo-title-count">0/60</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-black uppercase tracking-widest mb-4 text-gray-800">Descrizione Meta (160 char)</label>
+                            <textarea id="seo-description" rows="4" maxlength="160" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-lg font-medium focus:border-black focus:shadow-inner focus:outline-none focus:ring-4 ring-black/10 resize-vertical transition-all" placeholder="Descrizione breve e persuasiva per Google e AI..."></textarea>
+                            <span class="text-xs font-medium text-gray-500 mt-2 block" id="seo-desc-count">0/160</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- HERO SECTION -->
+                <section>
+                    <h2 class="text-3xl font-black uppercase tracking-widest mb-8 text-black">Hero Section</h2>
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-black uppercase tracking-widest mb-3 text-gray-800">Titolo Principale</label>
+                            <input id="hero-title" type="text" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-2xl font-black focus:border-black focus:shadow-inner focus:outline-none focus:ring-4 ring-black/10 transition-all" placeholder="Il tuo messaggio d'impatto">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-black uppercase tracking-widest mb-3 text-gray-800">Sottotitolo</label>
+                            <textarea id="hero-subtitle" rows="4" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-xl font-medium focus:border-black focus:shadow-inner focus:outline-none focus:ring-4 ring-black/10 resize-vertical transition-all" placeholder="Spiegazione sintetica del valore unico..."></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- USP SECTION -->
+                <section>
+                    <h2 class="text-3xl font-black uppercase tracking-widest mb-8 text-black">Punti Chiave (USP)</h2>
+                    <div id="usp-container" class="space-y-4 mb-8">
+                        <!-- Dynamic USP cards will be inserted here -->
+                    </div>
+                    <button id="add-usp-btn" class="px-10 py-4 bg-black text-white font-black uppercase tracking-widest text-sm rounded-full shadow-xl hover:shadow-2xl transition-all duration-200 inline-flex items-center gap-2">
+                        ➕ Aggiungi Punto Chiave
+                    </button>
+                </section>
+
+            </div>
+
+            <!-- STYLE TAB -->
+            <div id="style-tab" class="tab-content hidden noir-card bg-white p-10 shadow-2xl space-y-10">
+                <h2 class="text-3xl font-black uppercase tracking-widest mb-8 text-black">Template & Design System</h2>
+                
+                <div class="grid lg:grid-cols-2 gap-10">
+                    <div>
+                        <label class="block text-sm font-black uppercase tracking-widest mb-6 text-gray-800">Template Render</label>
+                        <select id="template-select" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-xl font-black focus:border-black focus:shadow-inner focus:outline-none focus:ring-4 ring-black/10 transition-all">
+                            <option value="dark-tech">🌙 Dark Tech</option>
+                            <option value="editorial">📖 Editorial</option>
+                            <option value="minimal-luxury-bento">🥢 Minimal Luxury Bento</option>
+                            <option value="classic">📄 Classic Tailwind</option>
+                            <option value="premium">✨ Premium</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-black uppercase tracking-widest mb-6 text-gray-800">Font Principale</label>
+                        <select id="design-font" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-xl font-black focus:border-black focus:shadow-inner focus:outline-none focus:ring-4 ring-black/10 transition-all">
+                            <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                            <option value="Inter">Inter</option>
+                            <option value="Work Sans">Work Sans</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-black uppercase tracking-widest mb-6 text-gray-800">Curvatura Bordi</label>
+                    <div class="flex items-center gap-8">
+                        <input id="design-radius" type="range" min="16" max="40" value="24" class="w-80 h-4 bg-gray-300 rounded-2xl appearance-none cursor-pointer accent-black shadow-inner">
+                        <span id="radius-display" class="text-2xl font-black text-black min-w-[3rem]">24px</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ASSETS TAB -->
+            <div id="assets-tab" class="tab-content hidden noir-card bg-white p-10 shadow-2xl space-y-10">
+                <h2 class="text-3xl font-black uppercase tracking-widest mb-10 text-black">Galleria Immagini</h2>
+                <div class="grid md:grid-cols-3 gap-10">
+                    <div class="space-y-6">
+                        <label class="block text-lg font-black uppercase tracking-widest mb-4 text-gray-800">🖼️ Gallery 1 (Hero)</label>
+                        <div id="gallery1-preview" class="w-full h-64 bg-gray-100 rounded-3xl border-4 border-dashed border-gray-400 flex items-center justify-center text-gray-500 font-medium text-lg">
+                            Nessuna immagine caricata
+                        </div>
+                        <input id="gallery1-url" type="url" placeholder="https://example.com/hero.jpg" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-lg font-medium focus:border-black">
+                    </div>
+                    <div class="space-y-6">
+                        <label class="block text-lg font-black uppercase tracking-widest mb-4 text-gray-800">📸 Gallery 2 (About)</label>
+                        <div id="gallery2-preview" class="w-full h-64 bg-gray-100 rounded-3xl border-4 border-dashed border-gray-400 flex items-center justify-center text-gray-500 font-medium text-lg">
+                            Nessuna immagine caricata
+                        </div>
+                        <input id="gallery2-url" type="url" placeholder="https://example.com/about.jpg" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-lg font-medium focus:border-black">
+                    </div>
+                    <div class="space-y-6">
+                        <label class="block text-lg font-black uppercase tracking-widest mb-4 text-gray-800">🔄 Gallery 3 (Processo)</label>
+                        <div id="gallery3-preview" class="w-full h-64 bg-gray-100 rounded-3xl border-4 border-dashed border-gray-400 flex items-center justify-center text-gray-500 font-medium text-lg">
+                            Nessuna immagine caricata
+                        </div>
+                        <input id="gallery3-url" type="url" placeholder="https://example.com/process.jpg" class="w-full noir-input p-6 border-2 border-gray-300 rounded-3xl text-lg font-medium focus:border-black">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SERVICES TAB -->
+            <div id="services-tab" class="tab-content hidden noir-card bg-white p-10 shadow-2xl space-y-10">
+                <h2 class="text-3xl font-black uppercase tracking-widest mb-10 text-black">Servizi Attivi</h2>
+                <div id="services-container" class="space-y-6">
+                    <!-- Dynamic services list -->
+                    <div class="noir-card bg-gray-50 p-8 border-2 border-dashed border-gray-300 rounded-3xl text-center text-gray-500 font-medium py-20">
+                        📦 Nessun servizio attivo<br>
+                        <small class="text-gray-400">I servizi verranno caricati dal tuo catalogo</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREVIEW MODAL -->
+        <div id="preview-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[9999] hidden flex items-center justify-center p-6">
+            <div class="noir-card bg-white w-full max-w-6xl max-h-[95vh] flex flex-col shadow-3xl overflow-hidden">
+                <div class="p-8 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-3xl font-black uppercase tracking-widest text-black">🔍 Live Preview</h2>
+                    <div class="flex gap-4">
+                        <button id="preview-download" class="px-6 py-3 bg-gray-900 text-white font-black uppercase tracking-widest text-sm rounded-2xl hover:bg-black transition-all">💾 Download HTML</button>
+                        <button id="close-preview" class="px-8 py-3 border-2 border-black font-black uppercase tracking-widest text-sm rounded-2xl hover:bg-black hover:text-white transition-all">✕ Chiudi</button>
+                    </div>
+                </div>
+                <iframe id="preview-frame" class="w-full flex-1 border-0 bg-white"></iframe>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ========== TELEGRAM WEBAPP INIT ==========
+        const tg = window.Telegram.WebApp;
+        const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/50891655-84c8-4213-90e8-26ebbc3d6c4c';
+
+        // ========== STATE ==========
+        let currentData = {};
+        let vatNumber = null;
+        let isDirty = false;
+        let originalDataHash = '';
+
+        // ========== HAPTIC FEEDBACK ==========
+        function haptic(type = 'light') {
+            try {
+                tg.HapticFeedback.impactOccurred(type);
+            } catch(e) {}
+        }
+
+        // ========== INIT ==========
+        async function initApp() {
+            tg.ready();
+            tg.expand();
+            tg.enableClosingConfirmation();
+
+            showLoading('Validazione Auth...');
+            
+            try {
+                const initData = tg.initDataUnsafe;
+                
+                // ACTION GET - Carica dati MiniSite dell'utente
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        _auth: initData,
+                        action: 'GET_MINISITE_DATA'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                
+                if (!result.success) {
+                    throw new Error(result.error || 'Dati non trovati');
+                }
+
+                // Salva dati globali
+                currentData = result.data;
+                vatNumber = result.vat;
+                
+                // Hash originale per dirty check
+                originalDataHash = JSON.stringify(currentData);
+                
+                populateForm();
+                setupEventListeners();
+                
+                // MainButton Publish
+                tg.MainButton.setText('🚀 Pubblica Modifiche');
+                tg.MainButton.setParams({ 
+                    color: '#000000', 
+                    text_color: '#FFFFFF',
+                    is_visible: true,
+                    is_active: false
+                });
+                tg.MainButton.onClick(onMainButtonPublish);
+                
+                hideLoading();
+                haptic('success');
+                
+            } catch (error) {
+                tg.showAlert(`❌ Errore inizializzazione\n${error.message}`);
+                tg.close();
+            }
+        }
+
+        // ========== POPULATE FORM ==========
+        function populateForm() {
+            // SEO
+            document.getElementById('seo-title').value = currentData.MiniSiteJson?.seo?.title || '';
+            document.getElementById('seo-description').value = currentData.MiniSiteJson?.seo?.description || '';
+            
+            // Hero
+            document.getElementById('hero-title').value = currentData.MiniSiteJson?.hero?.h1 || '';
+            document.getElementById('hero-subtitle').value = currentData.MiniSiteJson?.hero?.sub || '';
+            
+            // Template
+            document.getElementById('template-select').value = currentData.currentTemplate || 'dark-tech';
+            document.getElementById('design-font').value = currentData.MiniSiteJson?.design?.font || 'Plus Jakarta Sans';
+            document.getElementById('design-radius').value = currentData.MiniSiteJson?.design?.radius || 24;
+            document.getElementById('radius-display').textContent = (currentData.MiniSiteJson?.design?.radius || 24) + 'px';
+            
+            // Site Title
+            document.getElementById('site-title').textContent = currentData.MiniSiteJson?.seo?.title || 'Nuovo MiniSite';
+            
+            // Gallery Previews
+            updateGalleryPreviews();
+            
+            // USP
+            populateUSP();
+        }
+
+        // ========== EVENT LISTENERS ==========
+        function setupEventListeners() {
+            // Tab Switching
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('border-black', 'text-black'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                    
+                    e.currentTarget.classList.add('border-black', 'text-black');
+                    document.getElementById(e.currentTarget.dataset.tab + '-tab').classList.remove('hidden');
+                    
+                    haptic('light');
+                });
+            });
+
+            // Dirty Check - abilita Publish
+            document.querySelectorAll('input, textarea, select').forEach(el => {
+                el.addEventListener('input', debounce(handleInputChange, 300));
+            });
+
+            // Radius Slider
+            document.getElementById('design-radius').addEventListener('input', (e) => {
+                document.getElementById('radius-display').textContent = e.target.value + 'px';
+                handleInputChange();
+                haptic('light');
+            });
+
+            // Buttons
+            document.getElementById('preview-btn').addEventListener('click', showPreview);
+            document.getElementById('reset-btn').addEventListener('click', confirmReset);
+            document.getElementById('close-preview').addEventListener('click', () => {
+                document.getElementById('preview-modal').classList.add('hidden');
+            });
+            document.getElementById('preview-download').addEventListener('click', downloadPreview);
+        }
+
+        // ========== DIRTY CHECK ==========
+        function handleInputChange() {
+            const currentHash = JSON.stringify(collectFormData());
+            isDirty = currentHash !== originalDataHash;
+            
+            tg.MainButton.setParams({
+                is_active: isDirty
+            });
+            
+            document.getElementById('publish-btn').disabled = !isDirty;
+            haptic('light');
+        }
+
+        // ========== PREVIEW ==========
+        async function showPreview() {
+            haptic('medium');
+            
+            const previewData = collectFormData();
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'text/html'
+                    },
+                    body: JSON.stringify({
+                        _auth: tg.initDataUnsafe,
+                        action: 'PREVIEW_MINISITE',
+                        data: previewData
+                    })
+                });
+
+                const html = await response.text();
+                const frame = document.getElementById('preview-frame');
+                frame.srcdoc = html;
+                
+                document.getElementById('preview-modal').classList.remove('hidden');
+                frame.focus();
+                
+            } catch (error) {
+                tg.showAlert('Errore preview: ' + error.message);
+            }
+        }
+
+        // ========== PUBLISH (MainButton) ==========
+        async function onMainButtonPublish() {
+            tg.MainButton.showProgress(true);
+            tg.MainButton.setText('⏳ Pubblicazione...');
+            
+            haptic('heavy');
+            
+            try {
+                const publishData = collectFormData();
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initDataUnsafe,
+                        action: 'PUBLISH_MINISITE',
+                        data: publishData,
+                        vat: vatNumber
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    tg.showAlert(`✅ MiniSite pubblicato!\n\n📱 URL: ${result.deployUrl}`);
+                    tg.HapticFeedback.notificationOccurred('success');
+                    tg.close();
+                } else {
+                    tg.showAlert('❌ ' + (result.error || 'Errore sconosciuto'));
+                }
+                
+            } catch (error) {
+                tg.showAlert('❌ Errore deploy: ' + error.message);
+            } finally {
+                tg.MainButton.showProgress(false);
+            }
+        }
+
+        // ========== UTILITY FUNCTIONS ==========
+        function collectFormData() {
+            return {
+                seo: {
+                    title: document.getElementById('seo-title').value.trim(),
+                    description: document.getElementById('seo-description').value.trim()
+                },
+                hero: {
+                    h1: document.getElementById('hero-title').value.trim(),
+                    sub: document.getElementById('hero-subtitle').value.trim()
+                },
+                design: {
+                    font: document.getElementById('design-font').value,
+                    radius: parseInt(document.getElementById('design-radius').value)
+                },
+                template: document.getElementById('template-select').value,
+                gallery: {
+                    gallery1: document.getElementById('gallery1-url').value.trim(),
+                    gallery2: document.getElementById('gallery2-url').value.trim(),
+                    gallery3: document.getElementById('gallery3-url').value.trim()
+                },
+                usp: collectUSP()
+            };
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function showLoading(text = 'Caricamento...') {
+            document.getElementById('loading').querySelector('p').textContent = text;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        function confirmReset() {
+            tg.showConfirm('Ripristinare i dati originali?', '⚠️ Reset', async (confirmed) => {
+                if (confirmed) {
+                    currentData = JSON.parse(originalDataHash);
+                    populateForm();
+                    isDirty = false;
+                    tg.MainButton.setParams({ is_active: false });
+                    haptic('medium');
+                }
+            });
+        }
+
+        function downloadPreview() {
+            // Implement download logic
+            haptic('light');
+        }
+
+        function updateGalleryPreviews() {
+            const galleries = ['gallery1', 'gallery2', 'gallery3'];
+            galleries.forEach(g => {
+                const input = document.getElementById(g + '-url');
+                const preview = document.getElementById(g + '-preview');
+                
+                input.addEventListener('input', () => {
+                    if (input.value.trim()) {
+                        preview.innerHTML = `<img src="${input.value}" class="w-full h-64 object-cover rounded-3xl border-4 border-gray-200" onerror="this.parentNode.innerHTML='⚠️ Immagine non valida'">`;
+                    } else {
+                        preview.innerHTML = 'Nessuna immagine caricata';
+                    }
+                });
+            });
+        }
+
+        function populateUSP() {
+            const container = document.getElementById('usp-container');
+            const usp = currentData.MiniSiteJson?.sections?.usp || [];
+            
+            usp.forEach((item, index) => {
+                addUSPItem(item.title || '', item.text || '', index);
+            });
+        }
+
+        function addUSPItem(title = '', text = '', index = null) {
+            const id = index !== null ? index : Date.now();
+            const container = document.getElementById('usp-container');
+            
+            container.insertAdjacentHTML('beforeend', `
+                <div class="group p-8 border-2 border-gray-300 rounded-3xl bg-white hover:border-black hover:shadow-2xl transition-all duration-300 noir-card">
+                    <div class="flex gap-4 items-start pb-4">
+                        <input type="text" value="${title}" placeholder="Titolo USP" class="flex-1 noir-input p-4 border-2 border-gray-300 rounded-2xl font-semibold text-lg focus:border-black">
+                        <textarea rows="3" value="${text}" placeholder="Descrizione dettagliata" class="flex-2 noir-input p-4 border-2 border-gray-300 rounded-2xl font-medium focus:border-black resize-vertical"></textarea>
+                        <button onclick="removeUSP(${id})" class="px-4 py-4 bg-red-500 hover:bg-red-600 text-white font-black uppercase text-xs rounded-2xl shadow-lg transition-all min-h-[52px] flex items-center justify-center">×</button>
+                    </div>
+                    <input type="hidden" class="usp-index" value="${id}">
+                </div>
+            `);
+        }
+
+        function removeUSP(id) {
+            document.querySelectorAll('.usp-index').forEach((input, index) => {
+                if (parseInt(input.value) === id) {
+                    input.closest('.group').remove();
+                }
+            });
+            haptic('medium');
+        }
+
+        function collectUSP() {
+            const uspItems = [];
+            document.querySelectorAll('#usp-container .group').forEach(item => {
+                const title = item.querySelector('input[type="text"]').value.trim();
+                const text = item.querySelector('textarea').value.trim();
+                if (title || text) {
+                    uspItems.push({ title, text });
+                }
+            });
+            return uspItems;
+        }
+
+        // ========== START APP ==========
+        window.addEventListener('load', initApp);
+    </script>
+</body>
+</html>
