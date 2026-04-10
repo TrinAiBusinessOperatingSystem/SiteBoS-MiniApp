@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SiteBoS MiniSite Editor</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --text: #000000;
+      --muted: #6b7280;
+      --line: #eeeeee;
+      --soft: #f3f4f6;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --radius-card: 2.5rem; /* 40px - Stile Apple Noir */
+      --radius-input: 1.4rem;
+      --shadow-card: 0 18px 40px rgba(0,0,0,0.06);
+      --shadow-hover: 0 24px 52px rgba(0,0,0,0.1);
+      --shadow-inner: inset 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    .noir-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+    }
+
+    .noir-input,
+    .noir-textarea,
+    .noir-select {
+      width: 100%;
+      border: 2px solid var(--line);
+      border-radius: var(--radius-input);
+      background: #f9fafb; /* bg-gray-50 iniziale */
+      color: #000;
+      padding: 1rem 1.1rem;
+      font: inherit;
+      box-shadow: var(--shadow-inner);
+      transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, transform .18s ease;
+    }
+
+    /* Effetto Focus Stile Noir */
+    .noir-input:focus,
+    .noir-textarea:focus,
+    .noir-select:focus {
+      outline: none;
+      background: #ffffff; /* Diventa bianco */
+      border-color: #000;  /* Bordo nero netto */
+      box-shadow: var(--shadow-inner), 0 0 0 4px rgba(0,0,0,0.06);
+    }
+
+    .noir-btn {
+      min-height: 48px;
+      border-radius: 999px;
+      padding: 0 1.1rem;
+      border: 2px solid #000;
+      background: #000;
+      color: #fff;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .14em;
+      font-size: .78rem;
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease;
+    }
+
+    .noir-btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover); }
+    .noir-btn.secondary { background: #fff; color: #000; }
+    .noir-btn.ghost { background: transparent; color: #000; border-color: var(--line); }
+    .noir-btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+    .noir-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    .tab-btn.active {
+      border-bottom-color: #000 !important;
+      color: #000;
+      background: #fff;
+    }
+
+    .loader {
+      width: 46px;
+      height: 46px;
+      border: 4px solid #e5e7eb;
+      border-top-color: #000;
+      border-radius: 999px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Label micro-tecniche stile Noir */
+    .label-k {
+      display: block;
+      margin-bottom: .55rem;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      background: #000;
+      color: #fff;
+      padding: .45rem .7rem;
+      border-radius: 999px;
+      font-size: .74rem;
+      font-weight: 800;
+      margin: .3rem .35rem 0 0;
+    }
+
+    .chip button {
+      background: transparent;
+      border: none;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 900;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .preview-shell {
+      background: #fff;
+      border-radius: 2rem;
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    @media (max-width: 768px) {
+      .mobile-stack { flex-direction: column !important; }
+      .mobile-full { width: 100% !important; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 1. Il Buttafuori (Sicurezza Bloccante) -->
+  <script>
+    (function () {
+      if (!window.Telegram || !window.Telegram.WebApp || !window.Telegram.WebApp.initData) {
+        document.body.innerHTML = `
+          <div style="position:fixed;inset:0;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;padding:32px;text-align:center;font-family:Inter,sans-serif;z-index:9999;">
+            <div>
+              <div style="font-weight:900;letter-spacing:.18em;text-transform:uppercase;font-size:28px;">Accesso negato</div>
+              <div style="margin-top:12px;font-size:15px;opacity:.8;">Ambiente non autorizzato. Questa applicazione opera esclusivamente all'interno dell'ecosistema Telegram.</div>
+            </div>
+          </div>
+        `;
+        window.stop(); // Arresta l'esecuzione di qualsiasi altro script
+      }
+    })();
+  </script>
+
+  <div id="loading" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fafafa;z-index:50;padding:24px;">
+    <div class="noir-card" style="padding:40px;max-width:420px;width:100%;text-align:center;">
+      <div class="loader" style="margin:0 auto 20px;"></div>
+      <div style="font-size:28px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;">MiniSite Editor</div>
+      <div id="loading-text" style="margin-top:10px;color:#6b7280;font-weight:500;">Caricamento dati...</div>
+    </div>
+  </div>
+
+  <main id="app" class="hidden" style="max-width:1320px;margin:0 auto;padding:16px;">
+    <section class="noir-card" style="padding:26px 28px; margin-bottom:16px;">
+      <div class="mobile-stack" style="display:flex;gap:18px;justify-content:space-between;align-items:flex-start;">
+        <div style="min-width:0;flex:1;">
+          <div style="font-size:36px;line-height:1; font-weight:900; letter-spacing:.14em; text-transform:uppercase;">MiniSite Editor</div>
+          <div id="entity-name" style="margin-top:10px;font-size:18px;font-weight:700;">—</div>
+          <div id="entity-meta" style="margin-top:6px;color:#6b7280;font-size:14px;">Dataset non ancora caricato</div>
+        </div>
+        <div class="mobile-stack mobile-full" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+          <button id="preview-btn" class="noir-btn secondary mobile-full">Preview</button>
+          <button id="save-btn" class="noir-btn ghost mobile-full" disabled>Salva Bozza</button>
+          <!-- Il bottone pubblica HTML rimane come fallback visuale, ma l'azione primaria è nel MainButton -->
+          <button id="publish-btn" class="noir-btn mobile-full" disabled>Pubblica</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="noir-card" style="padding:8px 16px; margin-bottom:16px; overflow:auto;">
+      <div style="display:flex;gap:4px;min-width:max-content;">
+        <button class="tab-btn active" data-tab="overview" style="border:none;border-bottom:4px solid transparent;background:transparent;padding:16px 18px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;cursor:pointer;">Overview</button>
+        <button class="tab-btn" data-tab="content" style="border:none;border-bottom:4px solid transparent;background:transparent;padding:16px 18px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;cursor:pointer;">Contenuti</button>
+        <button class="tab-btn" data-tab="style" style="border:none;border-bottom:4px solid transparent;background:transparent;padding:16px 18px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;cursor:pointer;">Stile</button>
+        <button class="tab-btn" data-tab="services" style="border:none;border-bottom:4px solid transparent;background:transparent;padding:16px 18px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;cursor:pointer;">Servizi</button>
+        <button class="tab-btn" data-tab="faq" style="border:none;border-bottom:4px solid transparent;background:transparent;padding:16px 18px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;cursor:pointer;">FAQ</button>
+        <button class="tab-btn" data-tab="raw" style="border:none;border-bottom:4px solid transparent;background:transparent;padding:16px 18px;font-weight:900;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem;cursor:pointer;">Dati</button>
+      </div>
+    </section>
+
+    <section data-panel="overview" class="tab-panel">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Template</div>
+          <select id="template" class="noir-select">
+            <option value="dark-tech">Dark Tech</option>
+            <option value="editorial">Editorial</option>
+            <option value="minimal-luxury-bento">Minimal Luxury Bento</option>
+            <option value="tailwind">Tailwind Light</option>
+            <option value="premium-editorial">Premium Editorial</option>
+          </select>
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Ragione Sociale</div>
+          <input id="ragione-sociale" class="noir-input" type="text" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Bot Telegram</div>
+          <input id="bot-username" class="noir-input" type="text" placeholder="username_bot" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">P.IVA</div>
+          <input id="vat-number" class="noir-input" type="text" />
+        </div>
+      </div>
+
+      <div class="noir-card" style="padding:24px; margin-top:16px;">
+        <div class="label-k">Contesto Aziendale</div>
+        <textarea id="company-context" class="noir-textarea" rows="6"></textarea>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:16px;">
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Logo URL</div>
+          <input id="asset-logo" class="noir-input" type="url" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Gallery 1</div>
+          <input id="asset-gallery1" class="noir-input" type="url" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Gallery 2</div>
+          <input id="asset-gallery2" class="noir-input" type="url" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Gallery 3</div>
+          <input id="asset-gallery3" class="noir-input" type="url" />
+        </div>
+      </div>
+    </section>
+
+    <section data-panel="content" class="tab-panel hidden">
+      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
+        <div class="label-k">SEO Title</div>
+        <input id="seo-title" class="noir-input" type="text" />
+      </div>
+      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
+        <div class="label-k">SEO Description</div>
+        <textarea id="seo-description" class="noir-textarea" rows="4"></textarea>
+      </div>
+      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
+        <div class="label-k">Keywords</div>
+        <input id="seo-keyword-input" class="noir-input" type="text" placeholder="Aggiungi keyword e premi Invio" />
+        <div id="seo-keywords-wrap" style="margin-top:10px;"></div>
+      </div>
+      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
+        <div class="label-k">Hero Title</div>
+        <input id="hero-h1" class="noir-input" type="text" />
+      </div>
+      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
+        <div class="label-k">Hero Subtitle</div>
+        <textarea id="hero-sub" class="noir-textarea" rows="5"></textarea>
+      </div>
+      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
+        <div class="label-k">Offerta</div>
+        <textarea id="offer-text" class="noir-textarea" rows="8"></textarea>
+      </div>
+
+      <div class="noir-card" style="padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="label-k" style="margin:0;">USP</div>
+          <button id="add-usp" class="noir-btn secondary">Aggiungi USP</button>
+        </div>
+        <div id="usp-list" style="margin-top:16px;display:grid;gap:12px;"></div>
+      </div>
+
+      <div class="noir-card" style="padding:24px; margin-top:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="label-k" style="margin:0;">Processo</div>
+          <button id="add-process" class="noir-btn secondary">Aggiungi Step</button>
+        </div>
+        <div id="process-list" style="margin-top:16px;display:grid;gap:12px;"></div>
+      </div>
+    </section>
+
+    <section data-panel="style" class="tab-panel hidden">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Font</div>
+          <input id="design-font" class="noir-input" type="text" placeholder="Plus Jakarta Sans" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Radius</div>
+          <input id="design-radius" class="noir-input" type="text" placeholder="24px" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Primary Color</div>
+          <input id="theme-primary" class="noir-input" type="text" placeholder="#212D67" />
+        </div>
+        <div class="noir-card" style="padding:24px;">
+          <div class="label-k">Accent Color</div>
+          <input id="theme-accent" class="noir-input" type="text" placeholder="#895FE0" />
+        </div>
+      </div>
+
+      <div class="noir-card" style="padding:24px; margin-top:16px;">
+        <div class="label-k">Headline About</div>
+        <input id="about-headline" class="noir-input" type="text" />
+        <div class="label-k" style="margin-top:16px;">Body About</div>
+        <textarea id="about-body" class="noir-textarea" rows="6"></textarea>
+      </div>
+    </section>
+
+    <section data-panel="services" class="tab-panel hidden">
+      <div class="noir-card" style="padding:24px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="label-k" style="margin:0;">Servizi Attivi</div>
+          <button id="add-service" class="noir-btn secondary">Aggiungi Servizio</button>
+        </div>
+        <div id="services-list" style="margin-top:16px;display:grid;gap:12px;"></div>
+      </div>
+    </section>
+
+    <section data-panel="faq" class="tab-panel hidden">
+      <div class="noir-card" style="padding:24px; margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div class="label-k" style="margin:0;">FAQ SEO</div>
+          <button id="add-faq" class="noir-btn secondary">Aggiungi FAQ</button>
+        </div>
+        <div id="faq-list" style="margin-top:16px;display:grid;gap:12px;"></div>
+      </div>
+
+      <div class="noir-card" style="padding:24px;">
+        <div class="label-k">Knowledge Fragments</div>
+        <div id="knowledge-info" style="color:#6b7280;font-size:14px;line-height:1.6;">I knowledge fragments vengono preservati nel payload. In questa versione li lasciamo integri e non li destrutturiamo nel form per evitare regressioni sul renderer.</div>
+      </div>
+    </section>
+
+    <section data-panel="raw" class="tab-panel hidden">
+      <div class="noir-card" style="padding:24px;">
+        <div class="label-k">Payload verso il renderer</div>
+        <textarea id="raw-preview" class="noir-textarea" rows="24" readonly></textarea>
+      </div>
+    </section>
+  </main>
+
+  <div id="preview-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.86);backdrop-filter:blur(6px);z-index:60;padding:20px;">
+    <div style="max-width:1280px;height:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px;">
+      <div class="noir-card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <div style="font-weight:900;letter-spacing:.14em;text-transform:uppercase;">Preview Live</div>
+        <button id="close-preview" class="noir-btn secondary">Chiudi</button>
+      </div>
+      <div class="preview-shell" style="flex:1;min-height:0;">
+        <iframe id="preview-frame" title="Preview" style="width:100%;height:100%;border:0;background:#fff;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/50891655-84c8-4213-90e8-26ebbc3d6c4c';
+
+    const state = {
+      template: 'dark-tech',
+      root: {
+        HoneyPot: {},
+        ownerdata: {},
+        MiniSiteJson: {},
+        ownerbot: {}
+      },
+      originalHash: '',
+      dirty: false,
+      previewHtml: ''
+    };
+
+    function haptic(type = 'light') {
+      try { tg.HapticFeedback.impactOccurred(type); } catch (e) {}
+    }
+
+    function notify(type = 'success') {
+      try { tg.HapticFeedback.notificationOccurred(type); } catch (e) {}
+    }
+
+    function deepClone(obj) {
+      return JSON.parse(JSON.stringify(obj || {}));
+    }
+
+    function stableStringify(obj) {
+      return JSON.stringify(obj);
+    }
+
+    function setLoading(text) {
+      document.getElementById('loading-text').textContent = text;
+    }
+
+    function byId(id) { return document.getElementById(id); }
+
+    function showApp() {
+      byId('loading').classList.add('hidden');
+      byId('app').classList.remove('hidden');
+    }
+
+    function activateTab(tabName) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabName);
+      });
+      document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.toggle('hidden', panel.dataset.panel !== tabName);
+      });
+    }
+
+    function mountTags(container, values, onRemove) {
+      container.innerHTML = '';
+      (values || []).forEach((value, index) => {
+        const chip = document.createElement('span');
+        chip.className = 'chip';
+        chip.innerHTML = `<span>${escapeHtml(value)}</span><button type="button" data-index="${index}">×</button>`;
+        chip.querySelector('button').addEventListener('click', () => onRemove(index));
+        container.appendChild(chip);
+      });
+    }
+
+    function escapeHtml(txt) {
+      return String(txt || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function getRoot() {
+      return state.root;
+    }
+
+    // 2. Data Integrity: Assicurarsi che ogni proprietà esista sempre
+    function ensureShape() {
+      const root = state.root;
+      root.HoneyPot = root.HoneyPot || {};
+      root.ownerdata = root.ownerdata || {};
+      root.MiniSiteJson = root.MiniSiteJson || {};
+      root.ownerbot = root.ownerbot || {};
+
+      root.HoneyPot.assets = root.HoneyPot.assets || {};
+      root.HoneyPot.assets.logo = root.HoneyPot.assets.logo || {};
+      root.HoneyPot.assets.logo.meta = root.HoneyPot.assets.logo.meta || {};
+      root.HoneyPot.assets.logo.meta.colors = Array.isArray(root.HoneyPot.assets.logo.meta.colors) ? root.HoneyPot.assets.logo.meta.colors : ['#212D67', '#895FE0', '#FFFFFF'];
+      root.HoneyPot.assets.gallery1 = root.HoneyPot.assets.gallery1 || { url: '' };
+      root.HoneyPot.assets.gallery2 = root.HoneyPot.assets.gallery2 || { url: '' };
+      root.HoneyPot.assets.gallery3 = root.HoneyPot.assets.gallery3 || { url: '' };
+      root.HoneyPot.assets.photo = root.HoneyPot.assets.photo || { url: '' };
+      root.HoneyPot.active_services = Array.isArray(root.HoneyPot.active_services) ? root.HoneyPot.active_services : [];
+      root.HoneyPot.knowledge_fragments = Array.isArray(root.HoneyPot.knowledge_fragments) ? root.HoneyPot.knowledge_fragments : [];
+      root.HoneyPot.availability_schedule = root.HoneyPot.availability_schedule || { hours: {} };
+
+      root.MiniSiteJson.seo = root.MiniSiteJson.seo || {};
+      root.MiniSiteJson.seo.title = root.MiniSiteJson.seo.title || '';
+      root.MiniSiteJson.seo.description = root.MiniSiteJson.seo.description || '';
+      root.MiniSiteJson.seo.keywords = Array.isArray(root.MiniSiteJson.seo.keywords) ? root.MiniSiteJson.seo.keywords : [];
+      root.MiniSiteJson.seo.faq = Array.isArray(root.MiniSiteJson.seo.faq) ? root.MiniSiteJson.seo.faq : [];
+      
+      root.MiniSiteJson.hero = root.MiniSiteJson.hero || { h1: '', sub: '' };
+      root.MiniSiteJson.design = root.MiniSiteJson.design || { font: 'Plus Jakarta Sans', radius: '24px' };
+      
+      root.MiniSiteJson.sections = root.MiniSiteJson.sections || {};
+      root.MiniSiteJson.sections.about = root.MiniSiteJson.sections.about || { headline: '', body: '' };
+      root.MiniSiteJson.sections.usp = Array.isArray(root.MiniSiteJson.sections.usp) ? root.MiniSiteJson.sections.usp : [];
+      root.MiniSiteJson.sections.process = Array.isArray(root.MiniSiteJson.sections.process) ? root.MiniSiteJson.sections.process : [];
+      
+      root.MiniSiteJson.service_descriptions = Array.isArray(root.MiniSiteJson.service_descriptions) ? root.MiniSiteJson.service_descriptions : [];
+    }
+
+    function populateForm() {
+      ensureShape();
+      const root = getRoot();
+      const hp = root.HoneyPot;
+      const od = root.ownerdata;
+      const ai = root.MiniSiteJson;
+      const bot = root.ownerbot;
+
+      state.template = root.template || root.currentTemplate || state.template || 'dark-tech';
+      byId('template').value = state.template;
+
+      byId('ragione-sociale').value = od.ragionesociale || od.ragione_sociale || '';
+      byId('bot-username').value = bot.username || '';
+      byId('vat-number').value = od.vatnumber || od.vat_number || '';
+      byId('company-context').value = hp.companycontextstring || hp.company_context_string || od.businessdescription || od.business_description || '';
+
+      byId('asset-logo').value = hp.assets.logo?.url || '';
+      byId('asset-gallery1').value = hp.assets.gallery1?.url || '';
+      byId('asset-gallery2').value = hp.assets.gallery2?.url || '';
+      byId('asset-gallery3').value = hp.assets.gallery3?.url || '';
+
+      byId('seo-title').value = ai.seo.title || '';
+      byId('seo-description').value = ai.seo.description || '';
+      byId('hero-h1').value = ai.hero.h1 || '';
+      byId('hero-sub').value = ai.hero.sub || '';
+      byId('offer-text').value = hp.offertext || hp.offer_text || '';
+
+      byId('design-font').value = ai.design.font || 'Plus Jakarta Sans';
+      byId('design-radius').value = ai.design.radius || '24px';
+      byId('theme-primary').value = hp.assets.logo?.meta?.colors?.[0] || '';
+      byId('theme-accent').value = hp.assets.logo?.meta?.colors?.[1] || '';
+
+      byId('about-headline').value = ai.sections.about?.headline || '';
+      byId('about-body').value = ai.sections.about?.body || '';
+
+      renderUSPList();
+      renderProcessList();
+      renderServicesList();
+      renderFaqList();
+      renderKeywords();
+      refreshHeader();
+      refreshRawPreview();
+      syncDirtyState();
+    }
+
+    function refreshHeader() {
+      const root = getRoot();
+      const od = root.ownerdata || {};
+      const bot = root.ownerbot || {};
+      const ai = root.MiniSiteJson || {};
+      const title = (od.ragionesociale || od.ragione_sociale || ai.seo?.title || bot.firstname || 'MiniSite').trim();
+      const vat = od.vatnumber || od.vat_number || 'P.IVA non disponibile';
+      byId('entity-name').textContent = title;
+      byId('entity-meta').textContent = `Template: ${state.template} · ${vat}`;
+    }
+
+    function renderKeywords() {
+      const root = getRoot();
+      const arr = Array.isArray(root.MiniSiteJson.seo.keywords) ? root.MiniSiteJson.seo.keywords : [];
+      mountTags(byId('seo-keywords-wrap'), arr, (index) => {
+        arr.splice(index, 1);
+        markDirty();
+        renderKeywords();
+      });
+    }
+
+    function renderUSPList() {
+      const root = getRoot();
+      const list = root.MiniSiteJson.sections.usp || [];
+      const wrap = byId('usp-list');
+      wrap.innerHTML = '';
+
+      if (!list.length) {
+        wrap.innerHTML = `<div style="padding:16px;border:2px dashed #e5e7eb;border-radius:24px;color:#6b7280;">Nessuna USP presente.</div>`;
+        return;
+      }
+
+      list.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'noir-card';
+        row.style.padding = '16px';
+        row.innerHTML = `
+          <div style="display:grid;gap:10px;grid-template-columns:1fr;">
+            <input class="noir-input usp-title" data-index="${index}" type="text" placeholder="Titolo USP" value="${escapeHtml(item.title || '')}">
+            <textarea class="noir-textarea usp-text" data-index="${index}" rows="3" placeholder="Testo USP">${escapeHtml(item.text || '')}</textarea>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="button" class="noir-btn danger remove-usp" data-index="${index}">Rimuovi</button>
+            </div>
+          </div>
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll('.usp-title').forEach(el => {
+        el.addEventListener('input', e => {
+          list[Number(e.target.dataset.index)].title = e.target.value;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.usp-text').forEach(el => {
+        el.addEventListener('input', e => {
+          list[Number(e.target.dataset.index)].text = e.target.value;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.remove-usp').forEach(el => {
+        el.addEventListener('click', e => {
+          list.splice(Number(e.target.dataset.index), 1);
+          renderUSPList();
+          markDirty();
+          haptic('medium');
+        });
+      });
+    }
+
+    function renderProcessList() {
+      const root = getRoot();
+      const list = root.MiniSiteJson.sections.process || [];
+      const wrap = byId('process-list');
+      wrap.innerHTML = '';
+      if (!list.length) {
+        wrap.innerHTML = `<div style="padding:16px;border:2px dashed #e5e7eb;border-radius:24px;color:#6b7280;">Nessuno step presente.</div>`;
+        return;
+      }
+      list.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'noir-card';
+        row.style.padding = '16px';
+        row.innerHTML = `
+          <div style="display:grid;gap:10px;grid-template-columns:1fr;">
+            <input class="noir-input process-title" data-index="${index}" type="text" placeholder="Titolo step" value="${escapeHtml(item.title || '')}">
+            <textarea class="noir-textarea process-text" data-index="${index}" rows="3" placeholder="Descrizione step">${escapeHtml(item.text || '')}</textarea>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="button" class="noir-btn danger remove-process" data-index="${index}">Rimuovi</button>
+            </div>
+          </div>
+        `;
+        wrap.appendChild(row);
+      });
+      wrap.querySelectorAll('.process-title').forEach(el => {
+        el.addEventListener('input', e => {
+          list[Number(e.target.dataset.index)].title = e.target.value;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.process-text').forEach(el => {
+        el.addEventListener('input', e => {
+          list[Number(e.target.dataset.index)].text = e.target.value;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.remove-process').forEach(el => {
+        el.addEventListener('click', e => {
+          list.splice(Number(e.target.dataset.index), 1);
+          renderProcessList();
+          markDirty();
+          haptic('medium');
+        });
+      });
+    }
+
+    function renderServicesList() {
+      const root = getRoot();
+      const services = root.HoneyPot.active_services || [];
+      const descriptions = root.MiniSiteJson.service_descriptions || [];
+      const wrap = byId('services-list');
+      wrap.innerHTML = '';
+      if (!services.length) {
+        wrap.innerHTML = `<div style="padding:16px;border:2px dashed #e5e7eb;border-radius:24px;color:#6b7280;">Nessun servizio attivo.</div>`;
+        return;
+      }
+      services.forEach((svc, index) => {
+        const descObj = descriptions.find(d => d && d.name === svc.name) || { name: svc.name || '', refineddesc: svc.categoryshort || svc.category || '' };
+        const row = document.createElement('div');
+        row.className = 'noir-card';
+        row.style.padding = '16px';
+        row.innerHTML = `
+          <div style="display:grid;gap:10px;grid-template-columns:1fr;">
+            <input class="noir-input service-name" data-index="${index}" type="text" placeholder="Nome servizio" value="${escapeHtml(svc.name || '')}">
+            <input class="noir-input service-category" data-index="${index}" type="text" placeholder="Categoria" value="${escapeHtml(svc.category || '')}">
+            <textarea class="noir-textarea service-desc" data-index="${index}" rows="3" placeholder="Descrizione raffinata">${escapeHtml(descObj.refineddesc || descObj.refined_desc || '')}</textarea>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="button" class="noir-btn danger remove-service" data-index="${index}">Rimuovi</button>
+            </div>
+          </div>
+        `;
+        wrap.appendChild(row);
+      });
+
+      wrap.querySelectorAll('.service-name').forEach(el => {
+        el.addEventListener('input', e => {
+          const idx = Number(e.target.dataset.index);
+          const oldName = services[idx].name || '';
+          services[idx].name = e.target.value;
+          const d = descriptions.find(x => x && x.name === oldName);
+          if (d) d.name = e.target.value;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.service-category').forEach(el => {
+        el.addEventListener('input', e => {
+          services[Number(e.target.dataset.index)].category = e.target.value;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.service-desc').forEach(el => {
+        el.addEventListener('input', e => {
+          const idx = Number(e.target.dataset.index);
+          const svc = services[idx];
+          let d = descriptions.find(x => x && x.name === svc.name);
+          if (!d) {
+            d = { name: svc.name || '', refineddesc: '' };
+            descriptions.push(d);
+          }
+          d.refineddesc = e.target.value;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.remove-service').forEach(el => {
+        el.addEventListener('click', e => {
+          const idx = Number(e.target.dataset.index);
+          const removed = services.splice(idx, 1)[0];
+          const dIdx = descriptions.findIndex(d => d && d.name === removed?.name);
+          if (dIdx >= 0) descriptions.splice(dIdx, 1);
+          renderServicesList();
+          markDirty();
+          haptic('medium');
+        });
+      });
+    }
+
+    function renderFaqList() {
+      const root = getRoot();
+      const list = root.MiniSiteJson.seo.faq || [];
+      const wrap = byId('faq-list');
+      wrap.innerHTML = '';
+      if (!list.length) {
+        wrap.innerHTML = `<div style="padding:16px;border:2px dashed #e5e7eb;border-radius:24px;color:#6b7280;">Nessuna FAQ SEO presente.</div>`;
+        return;
+      }
+      list.forEach((item, index) => {
+        const row = document.createElement('div');
+        row.className = 'noir-card';
+        row.style.padding = '16px';
+        row.innerHTML = `
+          <div style="display:grid;gap:10px;grid-template-columns:1fr;">
+            <input class="noir-input faq-q" data-index="${index}" type="text" placeholder="Domanda" value="${escapeHtml(item.q || item.question || '')}">
+            <textarea class="noir-textarea faq-a" data-index="${index}" rows="3" placeholder="Risposta">${escapeHtml(item.a || item.answer || '')}</textarea>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="button" class="noir-btn danger remove-faq" data-index="${index}">Rimuovi</button>
+            </div>
+          </div>
+        `;
+        wrap.appendChild(row);
+      });
+      wrap.querySelectorAll('.faq-q').forEach(el => {
+        el.addEventListener('input', e => {
+          const idx = Number(e.target.dataset.index);
+          const target = list[idx];
+          target.q = e.target.value;
+          delete target.question;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.faq-a').forEach(el => {
+        el.addEventListener('input', e => {
+          const idx = Number(e.target.dataset.index);
+          const target = list[idx];
+          target.a = e.target.value;
+          delete target.answer;
+          markDirty();
+        });
+      });
+      wrap.querySelectorAll('.remove-faq').forEach(el => {
+        el.addEventListener('click', e => {
+          list.splice(Number(e.target.dataset.index), 1);
+          renderFaqList();
+          markDirty();
+          haptic('medium');
+        });
+      });
+    }
+
+    function applyInputsToState() {
+      ensureShape();
+      const root = getRoot();
+      const hp = root.HoneyPot;
+      const od = root.ownerdata;
+      const ai = root.MiniSiteJson;
+      const bot = root.ownerbot;
+
+      root.template = byId('template').value;
+      state.template = byId('template').value;
+
+      od.ragionesociale = byId('ragione-sociale').value;
+      od.vatnumber = byId('vat-number').value;
+      bot.username = byId('bot-username').value;
+
+      hp.companycontextstring = byId('company-context').value;
+      hp.offertext = byId('offer-text').value;
+      hp.assets.logo.url = byId('asset-logo').value;
+      hp.assets.gallery1.url = byId('asset-gallery1').value;
+      hp.assets.gallery2.url = byId('asset-gallery2').value;
+      hp.assets.gallery3.url = byId('asset-gallery3').value;
+
+      const currentColors = Array.isArray(hp.assets.logo.meta?.colors) ? hp.assets.logo.meta.colors : [];
+      hp.assets.logo.meta = hp.assets.logo.meta || {};
+      hp.assets.logo.meta.colors = [
+        byId('theme-primary').value || currentColors[0] || '#212D67',
+        byId('theme-accent').value || currentColors[1] || '#895FE0',
+        currentColors[2] || '#FFFFFF'
+      ];
+
+      ai.seo.title = byId('seo-title').value;
+      ai.seo.description = byId('seo-description').value;
+      ai.hero.h1 = byId('hero-h1').value;
+      ai.hero.sub = byId('hero-sub').value;
+      ai.design.font = byId('design-font').value;
+      ai.design.radius = byId('design-radius').value;
+      ai.sections.about.headline = byId('about-headline').value;
+      ai.sections.about.body = byId('about-body').value;
+    }
+
+    function refreshRawPreview() {
+      applyInputsToState();
+      byId('raw-preview').value = JSON.stringify(buildRendererPayload(), null, 2);
+      refreshHeader();
+    }
+
+    function buildRendererPayload() {
+      applyInputsToState();
+      const root = deepClone(state.root);
+      return {
+        HoneyPot: root.HoneyPot,
+        ownerdata: root.ownerdata,
+        MiniSiteJson: root.MiniSiteJson,
+        ownerbot: root.ownerbot,
+        template: state.template
+      };
+    }
+
+    // 5. Dirty Check: Controllo logico del salvataggio
+    function syncDirtyState() {
+      const payloadHash = stableStringify(buildRendererPayload());
+      state.dirty = payloadHash !== state.originalHash;
+      
+      byId('save-btn').disabled = !state.dirty;
+      byId('publish-btn').disabled = !state.dirty;
+      
+      // 3. Integrazione Nativa (MainButton per Pubblica)
+      if (state.dirty) {
+        tg.MainButton.enable();
+        tg.MainButton.setParams({ color: '#000000', text_color: '#FFFFFF' });
+      } else {
+        tg.MainButton.disable();
+        tg.MainButton.setParams({ color: '#e5e7eb', text_color: '#9ca3af' });
+      }
+    }
+
+    function markDirty() {
+      refreshRawPreview();
+      syncDirtyState();
+    }
+
+    async function callWebhook(body, expectHtml = false) {
+      const response = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': expectHtml ? 'text/html,application/json' : 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      if (expectHtml) {
+        const text = await response.text();
+        return text;
+      }
+      return response.json();
+    }
+
+    async function initApp() {
+      tg.ready();
+      tg.expand();
+      tg.enableClosingConfirmation();
+      
+      // Setup MainButton Nativo
+      tg.MainButton.setText('PUBBLICA MODIFICHE');
+      tg.MainButton.show();
+      tg.MainButton.disable();
+      tg.MainButton.setParams({ color: '#e5e7eb', text_color: '#9ca3af' });
+      tg.MainButton.onClick(handlePublish);
+
+      setLoading('Richiesta dati al workflow...');
+
+      try {
+        const result = await callWebhook({
+          _auth: tg.initData, // <-- Vincolo Extra: Raw InitData
+          action: 'GET_MINISITE_DATA'
+        });
+
+        if (!result || result.success === false) {
+          throw new Error(result?.error || 'Payload non valido');
+        }
+
+        state.root = {
+          HoneyPot: deepClone(result.HoneyPot || result.honeypot || result.data?.HoneyPot || {}),
+          ownerdata: deepClone(result.ownerdata || result.owner_data || result.data?.ownerdata || result.data?.owner_data || {}),
+          MiniSiteJson: deepClone(result.MiniSiteJson || result.miniSiteJson || result.data?.MiniSiteJson || {}),
+          ownerbot: deepClone(result.ownerbot || result.owner_bot || result.data?.ownerbot || result.data?.owner_bot || {}),
+          template: result.template || result.currentTemplate || result.data?.template || 'dark-tech'
+        };
+
+        ensureShape();
+        state.originalHash = stableStringify(buildRendererPayload());
+        populateForm();
+        activateTab('overview');
+        showApp();
+        notify('success');
+      } catch (error) {
+        setLoading('Errore caricamento');
+        alert('Errore inizializzazione: ' + error.message);
+      }
+    }
+
+    async function handlePreview() {
+      haptic('medium');
+      const payload = buildRendererPayload();
+
+      try {
+        const html = await callWebhook({
+          _auth: tg.initData, // <-- Vincolo Extra: Raw InitData
+          action: 'PREVIEW_MINISITE',
+          template: state.template,
+          HoneyPot: payload.HoneyPot,
+          ownerdata: payload.ownerdata,
+          MiniSiteJson: payload.MiniSiteJson,
+          ownerbot: payload.ownerbot
+        }, true);
+
+        state.previewHtml = html;
+        byId('preview-frame').srcdoc = html;
+        byId('preview-modal').classList.remove('hidden');
+      } catch (error) {
+        alert('Errore preview: ' + error.message);
+      }
+    }
+
+    async function handleSave() {
+      haptic('medium');
+      const payload = buildRendererPayload();
+      try {
+        const result = await callWebhook({
+          _auth: tg.initData, // <-- Vincolo Extra: Raw InitData
+          action: 'SAVE_DRAFT_MINISITE',
+          template: state.template,
+          HoneyPot: payload.HoneyPot,
+          ownerdata: payload.ownerdata,
+          MiniSiteJson: payload.MiniSiteJson,
+          ownerbot: payload.ownerbot
+        });
+
+        if (result?.success === false) {
+          throw new Error(result.error || 'Salvataggio fallito');
+        }
+
+        state.originalHash = stableStringify(buildRendererPayload());
+        syncDirtyState();
+        notify('success');
+      } catch (error) {
+        alert('Errore salvataggio: ' + error.message);
+      }
+    }
+
+    async function handlePublish() {
+      const payload = buildRendererPayload();
+      
+      // Feedback nativo di caricamento sul pulsante in basso
+      tg.MainButton.showProgress(true);
+      tg.MainButton.setText('PUBBLICAZIONE IN CORSO...');
+      haptic('heavy');
+      
+      try {
+        const result = await callWebhook({
+          _auth: tg.initData, // <-- Vincolo Extra: Raw InitData
+          action: 'PUBLISH_MINISITE',
+          template: state.template,
+          HoneyPot: payload.HoneyPot,
+          ownerdata: payload.ownerdata,
+          MiniSiteJson: payload.MiniSiteJson,
+          ownerbot: payload.ownerbot
+        });
+
+        if (result?.success === false) {
+          throw new Error(result.error || 'Pubblicazione fallita');
+        }
+
+        state.originalHash = stableStringify(buildRendererPayload());
+        syncDirtyState();
+        notify('success');
+        tg.showAlert(result?.deployUrl ? `MiniSite pubblicato\n${result.deployUrl}` : 'MiniSite pubblicato con successo');
+      } catch (error) {
+        alert('Errore pubblicazione: ' + error.message);
+      } finally {
+        tg.MainButton.showProgress(false);
+        tg.MainButton.setText('PUBBLICA MODIFICHE');
+      }
+    }
+
+    function bindSimpleInputs() {
+      [
+        'template','ragione-sociale','bot-username','vat-number','company-context',
+        'asset-logo','asset-gallery1','asset-gallery2','asset-gallery3',
+        'seo-title','seo-description','hero-h1','hero-sub','offer-text',
+        'design-font','design-radius','theme-primary','theme-accent',
+        'about-headline','about-body'
+      ].forEach(id => {
+        byId(id).addEventListener('input', () => { markDirty(); haptic('light'); });
+        byId(id).addEventListener('change', () => { markDirty(); haptic('light'); });
+      });
+
+      byId('seo-keyword-input').addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const value = e.target.value.trim();
+        if (!value) return;
+        const list = getRoot().MiniSiteJson.seo.keywords;
+        list.push(value);
+        e.target.value = '';
+        renderKeywords();
+        markDirty();
+        haptic('light');
+      });
+    }
+
+    function bindButtons() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activateTab(btn.dataset.tab);
+          haptic('light');
+        });
+      });
+
+      byId('add-usp').addEventListener('click', () => {
+        getRoot().MiniSiteJson.sections.usp.push({ title: '', text: '' });
+        renderUSPList();
+        markDirty();
+        haptic('light');
+      });
+
+      byId('add-process').addEventListener('click', () => {
+        getRoot().MiniSiteJson.sections.process.push({ title: '', text: '' });
+        renderProcessList();
+        markDirty();
+        haptic('light');
+      });
+
+      byId('add-service').addEventListener('click', () => {
+        getRoot().HoneyPot.active_services.push({ name: '', shortname: '', category: '', categoryshort: '', callbackdata: '' });
+        renderServicesList();
+        markDirty();
+        haptic('light');
+      });
+
+      byId('add-faq').addEventListener('click', () => {
+        getRoot().MiniSiteJson.seo.faq.push({ q: '', a: '' });
+        renderFaqList();
+        markDirty();
+        haptic('light');
+      });
+
+      byId('preview-btn').addEventListener('click', handlePreview);
+      byId('save-btn').addEventListener('click', handleSave);
+      byId('publish-btn').addEventListener('click', handlePublish);
+      byId('close-preview').addEventListener('click', () => byId('preview-modal').classList.add('hidden'));
+    }
+
+    window.addEventListener('load', () => {
+      bindSimpleInputs();
+      bindButtons();
+      initApp();
+    });
+  </script>
+</body>
+</html>
