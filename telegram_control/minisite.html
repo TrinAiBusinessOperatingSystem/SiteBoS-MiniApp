@@ -12,22 +12,35 @@
   <style>
     :root { --bg: #fafafa; --surface: #ffffff; --text: #000000; --line: #eeeeee; --radius-card: 2.5rem; --radius-input: 1.4rem; --shadow-card: 0 18px 40px rgba(0,0,0,0.06); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; margin:0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; margin:0; padding-bottom: 120px; }
+    
     .noir-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden; }
-    .noir-input, .noir-textarea, .noir-select { width: 100%; border: 2px solid var(--line); border-radius: var(--radius-input); background: #f9fafb; padding: 1rem 1.1rem; transition: all .15s ease; outline:none; }
+    .noir-input, .noir-textarea, .noir-select { width: 100%; border: 2px solid var(--line); border-radius: var(--radius-input); background: #f9fafb; padding: 1rem 1.1rem; transition: all .15s ease; outline:none; font-size: 14px; }
     .noir-input:focus, .noir-textarea:focus { background: #fff; border-color: #000; box-shadow: 0 0 0 4px rgba(0,0,0,0.06); }
     .noir-input[readonly] { opacity: 0.6; cursor: not-allowed; background: #f3f4f6; border-color: transparent; }
+    
     .label-k { display: block; margin-bottom: .6rem; font-size: 9px; font-weight: 900; letter-spacing: 0.25em; text-transform: uppercase; color: #6b7280; }
-    .noir-btn { min-height: 48px; border-radius: 999px; padding: 0 1.5rem; border: 2px solid #000; background: #000; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; font-size: .7rem; cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+    
+    .noir-btn { min-height: 52px; border-radius: 999px; padding: 0 1.8rem; border: 2px solid #000; background: #000; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; font-size: .75rem; cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
     .noir-btn.secondary { background: #fff; color: #000; }
-    .noir-btn.ai { background: linear-gradient(135deg, #000 0%, #444 100%); border: none; }
+    .noir-btn.ai { background: #000; border: none; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.2); }
+    
     .tab-btn { border: none; background: transparent; padding: 1.2rem; font-weight: 900; font-size: .7rem; text-transform: uppercase; letter-spacing: .15em; cursor: pointer; border-bottom: 4px solid transparent; opacity: 0.4; white-space: nowrap; }
     .tab-btn.active { opacity: 1; border-bottom-color: #000; }
+    
     .hidden { display: none; }
     .loader-spin { width: 32px; height: 32px; border: 3px solid #f3f3f3; border-top: 3px solid #000; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .header-img { width: 70px; height: 70px; border-radius: 1.5rem; border: 1px solid var(--line); object-fit: cover; background: #f9fafb; }
-    .offer-render-box { background: #f9fafb; border: 1px solid var(--line); border-radius: 1.5rem; padding: 1.5rem; font-size: 0.9rem; line-height: 1.6; color: #374151; max-height: 350px; overflow-y: auto; }
+    
+    .header-img { width: 70px; height: 70px; border-radius: 1.5rem; border: 1px solid var(--line); object-fit: cover; background: #f9fafb; flex-shrink: 0; }
+    .asset-box { width: 100%; height: 160px; border-radius: 1.8rem; background: #f3f4f6; overflow: hidden; position: relative; border: 1px solid var(--line); }
+    .asset-box img { width: 100%; height: 100%; object-fit: cover; }
+    .asset-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .asset-box:hover .asset-overlay { opacity: 1; }
+    
+    .offer-render-box { background: #fff; border: 2px solid var(--line); border-radius: 1.5rem; padding: 1.5rem; font-size: 0.9rem; line-height: 1.6; color: #333; max-height: 400px; overflow-y: auto; }
+
+    .fixed-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(250,250,250,0.9); backdrop-filter: blur(10px); padding: 20px; border-top: 1px solid var(--line); z-index: 50; display: flex; justify-content: center; gap: 12px; }
   </style>
 </head>
 <body>
@@ -47,39 +60,36 @@
   <div id="loading" class="fixed inset-0 flex items-center justify-center bg-[#fafafa] z-50">
     <div class="text-center">
       <div class="loader-spin mb-4 mx-auto"></div>
-      <div class="label-k">Flash Syncing...</div>
+      <div class="label-k">Sincronizzazione...</div>
     </div>
   </div>
 
-  <main id="app" class="hidden max-w-[1200px] mx-auto p-4 pb-32">
+  <main id="app" class="hidden max-w-[1200px] mx-auto p-4">
     <!-- HEADER -->
-    <header class="noir-card p-8 mb-6 flex flex-col md:flex-row justify-between items-center gap-6">
-      <div class="flex items-center gap-4">
-        <div class="flex gap-2">
-          <img id="h-logo" class="header-img">
-          <img id="h-photo" class="header-img">
+    <header class="noir-card p-8 mb-6">
+        <div class="flex items-center gap-6">
+            <div class="flex gap-3">
+                <img id="h-logo" class="header-img">
+                <img id="h-photo" class="header-img">
+            </div>
+            <div>
+                <h1 id="ent-name" class="text-3xl font-black uppercase tracking-tighter leading-none mb-2">Editor</h1>
+                <p id="ent-vat" class="text-[10px] opacity-40 font-black uppercase tracking-[0.2em]"></p>
+            </div>
         </div>
-        <div>
-          <div class="label-k">Noir Enterprise v4</div>
-          <h1 id="ent-name" class="text-3xl font-black uppercase tracking-tighter leading-tight">Editor</h1>
-          <p id="ent-vat" class="text-xs opacity-50 font-bold tracking-widest"></p>
-        </div>
-      </div>
-      <div class="flex gap-3">
-        <button id="preview-btn" class="noir-btn secondary">Preview</button>
-        <button id="save-btn" class="noir-btn">Salva</button>
-      </div>
     </header>
 
+    <!-- TABS -->
     <nav class="noir-card px-4 mb-6 flex overflow-x-auto no-scrollbar">
       <button class="tab-btn active" data-tab="content">Testi</button>
-      <button class="tab-btn" data-tab="offer">Offerta AI</button>
+      <button class="tab-btn" data-tab="offer">Offerta</button>
+      <button class="tab-btn" data-tab="assets">Asset Visivi</button>
       <button class="tab-btn" data-tab="services">Servizi</button>
       <button class="tab-btn" data-tab="faq">FAQ</button>
       <button class="tab-btn" data-tab="info">Info</button>
     </nav>
 
-    <!-- PANEL: TESTI (MINISITEJSON) -->
+    <!-- PANEL: TESTI -->
     <section data-panel="content" class="tab-panel space-y-6">
       <div class="noir-card p-8">
         <label class="label-k">Sezione Hero</label>
@@ -97,40 +107,92 @@
       </div>
     </section>
 
-    <!-- PANEL: OFFERTA (READ ONLY HTML + GENERATE) -->
+    <!-- PANEL: OFFERTA (HTML RENDER) -->
     <section data-panel="offer" class="tab-panel hidden space-y-6">
       <div class="noir-card p-8">
-        <label class="label-k">Offerta Irresistibile (Renderizzata)</label>
+        <label class="label-k">Anteprima Offerta (Sola Lettura)</label>
         <div id="offer-render" class="offer-render-box mb-6"></div>
         
-        <label class="label-k">Prompt di Rigenerazione AI (1 Credito)</label>
-        <textarea id="offer-prompt" class="noir-textarea mb-4" rows="3" placeholder="Es: Crea un'offerta focalizzata sulla trasformazione digitale per studi legali..."></textarea>
-        <button id="btn-gen-offer" class="noir-btn ai w-full text-white">✨ Generate_Offer</button>
-        <p class="text-[10px] text-center opacity-40 mt-3 font-bold uppercase tracking-tighter italic">L'offerta verrà riscritta interamente basandosi sulla memoria aziendale.</p>
+        <label class="label-k">Prompt Rigenerazione AI (1 Credito)</label>
+        <textarea id="offer-prompt" class="noir-textarea mb-4" rows="3" placeholder="Descrivi come vuoi cambiare l'offerta..."></textarea>
+        <button id="btn-gen-offer" class="noir-btn ai w-full">✨ Generate_Offer</button>
       </div>
     </section>
 
-    <!-- PANEL: SERVIZI (SYNC LOGIC) -->
+    <!-- PANEL: ASSET VISIVI -->
+    <section data-panel="assets" class="tab-panel hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- GALLERY 1 (HERO) -->
+        <div class="noir-card p-6 text-center">
+            <label class="label-k">Hero Image (Gallery 1)</label>
+            <div class="asset-box mb-4">
+                <img id="v-g1" src="">
+                <div class="asset-overlay">
+                    <button onclick="triggerUp('gallery1')" class="noir-btn secondary scale-75">Upload</button>
+                    <button onclick="regenAsset('gallery1')" class="noir-btn scale-75">AI</button>
+                </div>
+            </div>
+            <input type="file" id="f-gallery1" class="hidden" accept="image/*" onchange="procMedia(this, 'gallery1')">
+        </div>
+        <!-- GALLERY 2 -->
+        <div class="noir-card p-6 text-center">
+            <label class="label-k">Gallery 2</label>
+            <div class="asset-box mb-4">
+                <img id="v-g2" src="">
+                <div class="asset-overlay">
+                    <button onclick="triggerUp('gallery2')" class="noir-btn secondary scale-75">Upload</button>
+                    <button onclick="regenAsset('gallery2')" class="noir-btn scale-75">AI</button>
+                </div>
+            </div>
+            <input type="file" id="f-gallery2" class="hidden" accept="image/*" onchange="procMedia(this, 'gallery2')">
+        </div>
+        <!-- GALLERY 3 -->
+        <div class="noir-card p-6 text-center">
+            <label class="label-k">Gallery 3</label>
+            <div class="asset-box mb-4">
+                <img id="v-g3" src="">
+                <div class="asset-overlay">
+                    <button onclick="triggerUp('gallery3')" class="noir-btn secondary scale-75">Upload</button>
+                    <button onclick="regenAsset('gallery3')" class="noir-btn scale-75">AI</button>
+                </div>
+            </div>
+            <input type="file" id="f-gallery3" class="hidden" accept="image/*" onchange="procMedia(this, 'gallery3')">
+        </div>
+      </div>
+      <!-- LOGO E PHOTO (SOLO VISTA) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="noir-card p-6 flex items-center gap-4">
+              <img id="v-logo" class="header-img">
+              <div><label class="label-k">Logo Brand</label><p class="text-[10px] opacity-40 uppercase">Sola visualizzazione</p></div>
+          </div>
+          <div class="noir-card p-6 flex items-center gap-4">
+              <img id="v-photo" class="header-img">
+              <div><label class="label-k">Foto Owner</label><p class="text-[10px] opacity-40 uppercase">Sola visualizzazione</p></div>
+          </div>
+      </div>
+    </section>
+
+    <!-- PANEL: SERVIZI -->
     <section data-panel="services" class="tab-panel hidden space-y-6">
       <div id="sync-warning" class="noir-card p-6 bg-amber-50 border-amber-200 hidden">
         <div class="flex items-center gap-5">
           <div class="text-3xl">⚠️</div>
           <div class="flex-1">
             <div class="font-black text-[10px] uppercase tracking-widest text-amber-900">Discrepanza Rilevata</div>
-            <p class="text-xs text-amber-800">I servizi commerciali attivi non corrispondono alle descrizioni caricate sul sito.</p>
+            <p class="text-xs text-amber-800">I servizi attivi non corrispondono alle descrizioni del sito.</p>
           </div>
           <button id="btn-sync-services" class="noir-btn scale-90 ai">Sincronizza Asset AI</button>
         </div>
       </div>
       <div class="noir-card p-6">
-        <label class="label-k mb-4">Servizi Commerciali (SER/PRO)</label>
+        <label class="label-k mb-4">Offerta Commerciale Attiva</label>
         <div id="services-list" class="grid gap-4"></div>
       </div>
     </section>
 
     <!-- PANEL: FAQ -->
     <section data-panel="faq" class="tab-panel hidden">
-      <div class="noir-card p-6">
+      <div class="noir-card p-6 text-center">
         <div class="flex justify-between items-center mb-6">
           <label class="label-k">FAQ SEO Strategiche</label>
           <button id="add-faq" class="noir-btn secondary scale-75">Aggiungi</button>
@@ -139,28 +201,28 @@
       </div>
     </section>
 
-    <!-- PANEL: INFO (READ ONLY) -->
+    <!-- PANEL: INFO -->
     <section data-panel="info" class="tab-panel hidden space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="noir-card p-6">
-          <label class="label-k">Dati Anagrafici (Read Only)</label>
-          <div class="space-y-4">
-            <div><label class="label-k opacity-50 font-normal">Ragione Sociale</label><input id="v-ragione" class="noir-input" readonly></div>
-            <div><label class="label-k opacity-50 font-normal">P.IVA</label><input id="v-vat" class="noir-input" readonly></div>
-            <div><label class="label-k opacity-50 font-normal">Bot Username</label><input id="v-bot" class="noir-input" readonly></div>
-          </div>
+        <div class="noir-card p-6 space-y-4">
+          <label class="label-k">Anagrafica</label>
+          <div><label class="label-k opacity-50">Ragione Sociale</label><input id="v-ragione" class="noir-input" readonly></div>
+          <div><label class="label-k opacity-50">P.IVA</label><input id="v-vat" class="noir-input" readonly></div>
         </div>
-        <div class="noir-card p-6">
+        <div class="noir-card p-6 space-y-4">
           <label class="label-k">Social Connect</label>
-          <div class="space-y-4">
-            <div><label class="label-k opacity-50 font-normal">LinkedIn</label><input id="v-li" class="noir-input" readonly></div>
-            <div><label class="label-k opacity-50 font-normal">Facebook</label><input id="v-fb" class="noir-input" readonly></div>
-            <div><label class="label-k opacity-50 font-normal">Instagram</label><input id="v-ig" class="noir-input" readonly></div>
-          </div>
+          <div><label class="label-k opacity-50">LinkedIn</label><input id="v-li" class="noir-input" readonly></div>
+          <div><label class="label-k opacity-50">Facebook</label><input id="v-fb" class="noir-input" readonly></div>
         </div>
       </div>
     </section>
   </main>
+
+  <!-- FIXED FOOTER -->
+  <footer class="fixed-footer">
+      <button id="preview-btn" class="noir-btn secondary">Preview</button>
+      <button id="save-btn" class="noir-btn">Salva Modifiche</button>
+  </footer>
 
   <script>
     const state = { root: {}, originalHash: '', dirty: false };
@@ -178,18 +240,16 @@
 
     function populateForm() {
       const r = state.root;
-      // Header & Info
       byId('ent-name').textContent = r.ownerdata.ragione_sociale || 'Editor';
-      byId('ent-vat').textContent = `P.IVA: ${r.ownerdata.vat_number || '---'}`;
-      byId('h-logo').src = r.HoneyPot.assets.logo?.url || '';
-      byId('h-photo').src = r.HoneyPot.assets.photo?.url || '';
+      byId('ent-vat').textContent = r.ownerdata.vat_number || '---';
+      byId('h-logo').src = byId('v-logo').src = r.HoneyPot.assets.logo?.url || '';
+      byId('h-photo').src = byId('v-photo').src = r.HoneyPot.assets.photo?.url || '';
 
+      // Info Panels
       byId('v-ragione').value = r.ownerdata.ragione_sociale || '';
       byId('v-vat').value = r.ownerdata.vat_number || '';
-      byId('v-bot').value = r.ownerbot.username || '';
       byId('v-li').value = r.ownerdata.linkedin || r.ownerdata.linkedin_page || '';
       byId('v-fb').value = r.ownerdata.facebook || r.ownerdata.facebook_page || '';
-      byId('v-ig').value = r.ownerdata.instagram || r.ownerdata.instagram_page || '';
 
       // Editable
       byId('hero-h1').value = r.MiniSiteJson.hero.h1 || '';
@@ -197,8 +257,13 @@
       byId('seo-title').value = r.MiniSiteJson.seo.title || '';
       byId('seo-description').value = r.MiniSiteJson.seo.description || '';
 
-      // Offer HTML
+      // Offer
       byId('offer-render').innerHTML = r.HoneyPot.offer_text || '<em>Nessuna offerta caricata.</em>';
+
+      // Gallery
+      byId('v-g1').src = r.HoneyPot.assets.gallery1?.url || '';
+      byId('v-g2').src = r.HoneyPot.assets.gallery2?.url || '';
+      byId('v-g3').src = r.HoneyPot.assets.gallery3?.url || '';
 
       checkSyncStatus();
       renderServices();
@@ -215,7 +280,6 @@
 
     function syncDirty() {
       const r = state.root;
-      // Solo le modifiche a MiniSiteJson influenzano il dirty state
       r.MiniSiteJson.hero.h1 = byId('hero-h1').value;
       r.MiniSiteJson.hero.sub = byId('hero-sub').value;
       r.MiniSiteJson.seo.title = byId('seo-title').value;
@@ -225,7 +289,7 @@
       state.dirty = currentHash !== state.originalHash;
       byId('save-btn').disabled = !state.dirty;
       
-      if (state.dirty) { tg.MainButton.setText("PUBBLICA MODIFICHE"); tg.MainButton.show(); tg.MainButton.enable(); }
+      if (state.dirty) { tg.MainButton.setText("PUBBLICA SITO"); tg.MainButton.show(); tg.MainButton.enable(); }
       else { tg.MainButton.hide(); }
     }
 
@@ -234,17 +298,17 @@
       return r.json();
     }
 
-    // AI ACTIONS
+    // ACTIONS
     byId('btn-gen-offer').onclick = async () => {
-      const p = byId('offer-prompt').value;
       haptic();
+      const p = byId('offer-prompt').value;
       tg.MainButton.showProgress();
       try {
         const res = await call({ _auth: tg.initData, action: 'Generate_Offer', prompt: p, ...state.root });
         if(res.html_content) {
           state.root.HoneyPot.offer_text = res.html_content;
           byId('offer-render').innerHTML = res.html_content;
-          tg.showAlert("Offerta rigenerata!");
+          tg.showAlert("Offerta generata!");
         }
       } catch(e) { tg.showAlert(e.message); }
       finally { tg.MainButton.hideProgress(); }
@@ -258,11 +322,40 @@
         if(res.service_descriptions) {
           state.root.MiniSiteJson.service_descriptions = res.service_descriptions;
           populateForm();
-          tg.showAlert("Asset Sincronizzati!");
+          tg.showAlert("Servizi Sincronizzati!");
         }
       } catch(e) { tg.showAlert(e.message); }
       finally { tg.MainButton.hideProgress(); }
     };
+
+    function triggerUp(k) { haptic(); byId('f-'+k).click(); }
+    function procMedia(input, k) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+          byId('v-g' + k.slice(-1)).src = e.target.result;
+          state.root.HoneyPot.assets[k].url = e.target.result; 
+          syncDirty();
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    async function regenAsset(k) {
+        haptic();
+        tg.showConfirm(`Generare nuova AI Image per ${k}?`, async ok => {
+            if(!ok) return;
+            tg.MainButton.showProgress();
+            try {
+                const res = await call({ _auth: tg.initData, action:'REGENERATE_ASSET', asset_type: k, ...state.root });
+                if(res.new_url) {
+                    state.root.HoneyPot.assets[k].url = res.new_url;
+                    populateForm();
+                }
+            } catch(e){ tg.showAlert(e.message); }
+            finally { tg.MainButton.hideProgress(); }
+        });
+    }
 
     function renderServices() {
       const list = byId('services-list');
@@ -286,7 +379,6 @@
       });
     }
 
-    // TABS LOGIC
     document.querySelectorAll('.tab-btn').forEach(b => {
       b.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
@@ -304,14 +396,15 @@
         await call({ _auth: tg.initData, action: 'PUBLISH_MINISITE', ...state.root });
         state.originalHash = JSON.stringify(state.root.MiniSiteJson);
         syncDirty();
-        tg.showAlert("Sito aggiornato!");
+        tg.showAlert("MiniSite Pubblicato con successo!");
       } catch (e) { tg.showAlert(e.message); }
       finally { tg.MainButton.hideProgress(); }
     }
 
     tg.MainButton.onClick(handlePublish);
+    byId('save-btn').onclick = handlePublish;
 
-    // START FLASH
+    // START
     (async () => {
       try {
         const res = await dataFetch;
@@ -321,7 +414,7 @@
         byId('loading').classList.add('hidden');
         byId('app').classList.remove('hidden');
         tg.expand();
-      } catch (e) { tg.showAlert("Errore Init: " + e.message); }
+      } catch (e) { tg.showAlert("Errore: " + e.message); }
     })();
   </script>
 </body>
