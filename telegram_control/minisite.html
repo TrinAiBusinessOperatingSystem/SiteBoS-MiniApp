@@ -60,7 +60,7 @@
   </script>
 
   <div id="loading" class="fixed inset-0 flex items-center justify-center bg-[#fafafa] z-50">
-    <div class="text-center"><div class="loader-spin mb-4 mx-auto"></div><div class="label-k">Sincronizzazione Noir...</div></div>
+    <div class="text-center"><div class="loader-spin mb-4 mx-auto"></div><div class="label-k text-black">Syncing SiteBoS...</div></div>
   </div>
 
   <!-- MENU HAMBURGER -->
@@ -125,6 +125,7 @@
 
     <!-- PANEL: ASSET VISIVI -->
     <section data-panel="assets" class="tab-panel hidden space-y-6">
+      <!-- LOGO E PHOTO (NON EDITABILI) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="noir-card p-6 flex items-center gap-4">
           <img id="v-logo" class="header-img">
@@ -135,6 +136,7 @@
           <div><label class="label-k">Foto Owner</label><div class="label-trinai">Modificabile dalla Piattaforma TrinAI</div></div>
         </div>
       </div>
+      <!-- GALLERY EDITABILI -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="noir-card p-6 text-center">
           <label class="label-k">Gallery 1 (Hero)</label>
@@ -152,9 +154,9 @@
           <input type="file" id="f-gallery3" class="hidden" accept="image/*" onchange="procMedia(this, 'gallery3')">
         </div>
       </div>
-      <!-- SOCIAL BLOCK -->
+      <!-- SOCIAL BLOCK (NON EDITABILI) -->
       <div class="noir-card p-8 space-y-4">
-        <label class="label-k">Social Links Attivi</label>
+        <label class="label-k">Social Connect</label>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div><label class="label-k opacity-50">LinkedIn</label><input id="v-li" class="noir-input" readonly><div class="label-trinai">Modificabile dalla Piattaforma TrinAI</div></div>
           <div><label class="label-k opacity-50">Facebook</label><input id="v-fb" class="noir-input" readonly><div class="label-trinai">Modificabile dalla Piattaforma TrinAI</div></div>
@@ -185,7 +187,7 @@
     </section>
   </main>
 
-  <!-- FIXED FOOTER -->
+  <!-- FOOTER FISSO -->
   <footer class="fixed-footer">
     <button id="preview-btn-f" class="noir-btn secondary">Preview</button>
     <button id="save-btn" class="noir-btn" disabled>Aggiorna MiniSite</button>
@@ -196,6 +198,13 @@
     function byId(id) { return document.getElementById(id); }
     function haptic() { try { tg.HapticFeedback.impactOccurred('light'); } catch(e){} }
     function toggleMenu() { haptic(); byId('side-menu').classList.toggle('open'); byId('overlay').classList.toggle('open'); }
+
+    // Cache Busting: aggiunge timestamp agli URL per forzare il reload
+    function bust(url) { 
+      if(!url || url.startsWith('data:')) return url;
+      const t = Date.now();
+      return url.includes('?') ? `${url}&t=${t}` : `${url}?t=${t}`;
+    }
 
     function ensureShape(d) {
       if(!d) return {};
@@ -210,8 +219,13 @@
       const r = state.root;
       byId('ent-name').textContent = r.ownerdata.ragione_sociale || 'Editor';
       byId('ent-vat').textContent = `P.IVA: ${r.ownerdata.vat_number || '---'}`;
-      byId('v-logo').src = r.HoneyPot.assets.logo?.url || '';
-      byId('v-photo').src = r.HoneyPot.assets.photo?.url || '';
+      
+      // Asset Visivi (Cache Busted)
+      byId('v-logo').src = bust(r.HoneyPot.assets.logo?.url);
+      byId('v-photo').src = bust(r.HoneyPot.assets.photo?.url);
+      byId('v-g1').src = bust(r.HoneyPot.assets.gallery1?.url);
+      byId('v-g2').src = bust(r.HoneyPot.assets.gallery2?.url);
+      byId('v-g3').src = bust(r.HoneyPot.assets.gallery3?.url);
       
       byId('template').value = r.template || 'classic';
       byId('hero-h1').value = r.MiniSiteJson.hero.h1 || '';
@@ -224,10 +238,6 @@
       byId('v-fb').value = r.ownerdata.facebook || r.ownerdata.facebook_page || '';
       byId('v-ig').value = r.ownerdata.instagram || r.ownerdata.instagram_page || '';
       byId('v-tw').value = r.ownerdata.twitter || r.ownerdata.twitter_page || '';
-
-      byId('v-g1').src = r.HoneyPot.assets.gallery1?.url || '';
-      byId('v-g2').src = r.HoneyPot.assets.gallery2?.url || '';
-      byId('v-g3').src = r.HoneyPot.assets.gallery3?.url || '';
 
       checkSync(); renderServices(); renderFAQ(); syncDirty();
     }
@@ -258,7 +268,7 @@
     byId('btn-gen-offer').onclick = async () => {
       const p = byId('offer-prompt').value; haptic();
       try {
-        const res = await call({ _auth: tg.initData, action: 'Generate_Offer', prompt: p, ...state.root });
+        const res = await call({ _auth: tg.initData, action: 'Generate_Offer', prompt: p, company_context: state.root.HoneyPot.company_context_string });
         if(res.html_content) { state.root.HoneyPot.offer_text = res.html_content; populateForm(); }
       } catch(e) { tg.showAlert(e.message); }
     };
@@ -266,7 +276,7 @@
     byId('btn-sync-services').onclick = async () => {
       haptic();
       try {
-        const res = await call({ _auth: tg.initData, action: 'REGENERATE_SERVICES', ...state.root });
+        const res = await call({ _auth: tg.initData, action: 'REGENERATE_SERVICES', active_services: state.root.HoneyPot.active_services });
         if(res.service_descriptions) { state.root.MiniSiteJson.service_descriptions = res.service_descriptions; populateForm(); }
       } catch(e) { tg.showAlert(e.message); }
     };
@@ -275,31 +285,28 @@
     function procMedia(input, k) {
       if (input.files && input.files[0]) {
         const reader = new FileReader();
-        reader.onload = e => { byId('v-g' + k.slice(-1)).src = e.target.result; state.root.HoneyPot.assets[k].url = e.target.result; syncDirty(); };
+        reader.onload = e => { 
+          const base64 = e.target.result;
+          state.root.HoneyPot.assets[k].url = base64; 
+          populateForm(); // Qui il bust() non serve perché è base64, ma ricarica la UI
+          syncDirty(); 
+        };
         reader.readAsDataURL(input.files[0]);
       }
     }
 
     async function regenAsset(k) {
         haptic();
-        tg.showConfirm(`Rigenerare l'immagine AI per ${k}? (Costo 2 Crediti)`, async ok => {
+        tg.showConfirm(`Rigenerare l'immagine AI per ${k}? (Costo 1 Credito)`, async ok => {
             if(!ok) return;
             const assetData = state.root.HoneyPot.assets[k] || {};
-            tg.MainButton.showProgress();
             try {
-                const res = await call({ 
-                    _auth: tg.initData, 
-                    action: 'REGENERATE_ASSET', 
-                    asset_type: k,
-                    asset_description: assetData.description || "",
-                    asset_rationale: assetData.rationale || ""
-                });
+                const res = await call({ _auth: tg.initData, action: 'REGENERATE_ASSET', asset_type: k, asset_description: assetData.description || "", asset_rationale: assetData.rationale || "" });
                 if(res.new_url) {
                     state.root.HoneyPot.assets[k].url = res.new_url;
-                    populateForm();
+                    populateForm(); // Bust() forzerà il ricaricamento del nuovo URL
                 }
             } catch(e) { tg.showAlert(e.message); }
-            finally { tg.MainButton.hideProgress(); }
         });
     }
 
@@ -325,13 +332,13 @@
 
     async function handlePublish() {
       haptic();
-      tg.showConfirm("Aggiornando la pagina pubblicata applicherai le modifiche live. Questa operazione ha un costo in crediti (solitamente 1 o 2) basato sulla complessità dell'aggiornamento. Proseguire?", async ok => {
+      tg.showConfirm("Aggiornare il sito live? (Costo 1-2 Crediti)", async ok => {
           if(!ok) return;
           try {
             await call({ _auth: tg.initData, action: 'PUBLISH_MINISITE', ...state.root });
             state.originalHash = JSON.stringify(state.root.MiniSiteJson);
             syncDirty();
-            tg.showAlert("MiniSite aggiornato correttamente!");
+            tg.showAlert("MiniSite Pubblicato!");
           } catch (e) { tg.showAlert(e.message); }
       });
     }
