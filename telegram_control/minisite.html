@@ -252,27 +252,36 @@
     function checkSync() { const hpLen = state.root.HoneyPot.active_services.length; const msjLen = state.root.MiniSiteJson.service_descriptions.length; byId('sync-warning').classList.toggle('hidden', hpLen === msjLen); }
     async function call(body) { return await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); }
 
-    byId('preview-btn-f').onclick = async () => {
-        haptic(); byId('preview-btn-f').innerText = "Generando...";
-        syncDirty(); // Applica cambiamenti prima di inviare
-        try {
-            const res = await call({ _auth: tg.initData, action: 'PREVIEW_MINISITE', ...state.root });
-            const html = await res.text();
-            if(html.includes('<html')) { byId('preview-frame').srcdoc = html; byId('preview-modal').classList.remove('hidden'); }
-            else { tg.showAlert("Errore Server Preview"); }
-        } catch(e) { tg.showAlert(e.message); } finally { byId('preview-btn-f').innerText = "Preview"; }
-    };
-    function closePreview() { byId('preview-modal').classList.add('hidden'); byId('preview-frame').srcdoc = ""; }
-
-    async function regenAsset(k) {
-        haptic(); tg.showConfirm(`Rigenerare ${k}? (2 Crediti)`, async ok => {
-            if(!ok) return; const asset = state.root.HoneyPot.assets[k] || {};
-            try {
-                const res = await (await call({ _auth: tg.initData, action: 'REGENERATE_ASSET', asset_type: k, asset_description: asset.description || "", asset_rationale: asset.rationale || "" })).json();
-                if(res.new_url) { state.root.HoneyPot.assets[k].url = res.new_url; populateForm(); }
-            } catch(e) { tg.showAlert(e.message); }
+// MODIFICA CHIRURGICA PREVIEW PER GESTIRE RISPOSTA JSON { "html": "..." }
+byId('preview-btn-f').onclick = async () => {
+    haptic(); 
+    byId('preview-btn-f').innerText = "Generando...";
+    syncDirty(); // Applica cambiamenti (incluso lo stile) allo stato prima di inviare
+    
+    try {
+        const res = await call({ 
+            _auth: tg.initData, 
+            action: 'PREVIEW_MINISITE', 
+            ...state.root 
         });
+
+        // Leggiamo come JSON invece di .text()
+        const data = await res.json(); 
+        const html = data.html; // Pesca il contenuto della chiave "html"
+
+        if(html && html.includes('<html')) {
+            const iframe = byId('preview-frame');
+            iframe.srcdoc = html;
+            byId('preview-modal').classList.remove('hidden');
+        } else { 
+            tg.showAlert("Errore: La chiave 'html' è vuota o non valida."); 
+        }
+    } catch(e) { 
+        tg.showAlert("Errore Preview: " + e.message); 
+    } finally { 
+        byId('preview-btn-f').innerText = "Preview"; 
     }
+};
 
     byId('btn-gen-offer').onclick = async () => {
       const p = byId('offer-prompt').value; haptic();
