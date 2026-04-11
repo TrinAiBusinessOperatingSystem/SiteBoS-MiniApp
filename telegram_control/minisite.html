@@ -24,6 +24,11 @@
     .noir-btn { min-height: 52px; border-radius: 999px; padding: 0 1.8rem; border: 2px solid #000; background: #000; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .15em; font-size: .75rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .15s ease; }
     .noir-btn.secondary { background: #fff; color: #000; }
     
+    /* ROUND SYNC BUTTON */
+    .sync-platform-btn { width: 48px; height: 48px; border-radius: 50%; border: 2px solid var(--line); background: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; flex-shrink: 0; font-size: 18px; }
+    .sync-platform-btn:hover { border-color: #000; transform: scale(1.05); }
+    .sync-platform-btn.spinning span { animation: spin 1s linear infinite; display: inline-block; }
+
     /* SIDE MENU */
     #side-menu { position: fixed; top: 0; right: -100%; width: 280px; height: 100%; background: #fff; z-index: 1000; transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); box-shadow: -10px 0 30px rgba(0,0,0,0.05); padding: 40px 20px; display: flex; flex-direction: column; gap: 15px; }
     #side-menu.open { right: 0; }
@@ -82,7 +87,12 @@
         <h1 id="ent-name" class="text-2xl font-black uppercase tracking-tighter leading-none mb-2">Editor</h1>
         <p id="ent-vat" class="text-[10px] opacity-40 font-black uppercase tracking-widest"></p>
       </div>
-      <button onclick="toggleMenu()" class="noir-btn secondary scale-90">Menu</button>
+      <div class="flex items-center gap-3">
+        <button id="btn-sync-platform" class="sync-platform-btn" title="Sincronizza TrinAI">
+            <span>🔄</span>
+        </button>
+        <button onclick="toggleMenu()" class="noir-btn secondary scale-90">Menu</button>
+      </div>
     </header>
 
     <!-- PANEL: TESTI & STILE (EDITABILE) -->
@@ -194,11 +204,7 @@
     const state = { root: {}, originalHash: '', dirty: false };
     function byId(id) { return document.getElementById(id); }
     function haptic() { try { tg.HapticFeedback.impactOccurred('light'); } catch(e){} }
-    function toggleMenu() { 
-      haptic();
-      byId('side-menu').classList.toggle('open');
-      byId('overlay').classList.toggle('open');
-    }
+    function toggleMenu() { haptic(); byId('side-menu').classList.toggle('open'); byId('overlay').classList.toggle('open'); }
 
     function ensureShape(d) {
       if(!d) return {};
@@ -221,7 +227,6 @@
       byId('hero-sub').value = r.MiniSiteJson.hero.sub || '';
       byId('seo-title').value = r.MiniSiteJson.seo.title || '';
       byId('seo-description').value = r.MiniSiteJson.seo.description || '';
-
       byId('offer-render').innerHTML = r.HoneyPot.offer_text || '<em>Nessuna offerta caricata.</em>';
 
       byId('v-li').value = r.ownerdata.linkedin || r.ownerdata.linkedin_page || '';
@@ -243,7 +248,6 @@
       msj.hero.sub = byId('hero-sub').value;
       msj.seo.title = byId('seo-title').value;
       msj.seo.description = byId('seo-description').value;
-
       const hash = JSON.stringify(msj);
       state.dirty = hash !== state.originalHash;
       byId('save-btn').disabled = !state.dirty;
@@ -261,7 +265,26 @@
       return r.json();
     }
 
-    // HANDLERS
+    // ACTION: SYNC_PLATFORM
+    byId('btn-sync-platform').onclick = async () => {
+        haptic();
+        tg.showConfirm("La sincronizzazione con la piattaforma TrinAI aggiornerà i dati HoneyPot e costa 1 Credito. Continuare?", async ok => {
+            if(!ok) return;
+            const btn = byId('btn-sync-platform');
+            btn.classList.add('spinning');
+            btn.disabled = true;
+            try {
+                const res = await call({ _auth: tg.initData, action: 'SYNC_PLATFORM', ...state.root });
+                if(res) {
+                    state.root = ensureShape(res);
+                    populateForm();
+                    tg.showAlert("Dati sincronizzati con TrinAI!");
+                }
+            } catch(e) { tg.showAlert(e.message); }
+            finally { btn.classList.remove('spinning'); btn.disabled = false; }
+        });
+    };
+
     byId('btn-gen-offer').onclick = async () => {
       const p = byId('offer-prompt').value; haptic(); tg.MainButton.showProgress();
       try {
@@ -302,7 +325,7 @@
       state.root.HoneyPot.active_services.forEach(s => {
         const div = document.createElement('div');
         div.className = 'noir-card p-4 flex justify-between items-center';
-        div.innerHTML = `<div><div class="font-black text-xs uppercase">${s.name}</div><div class="text-[9px] opacity-40 font-bold">${s.macro} | ${s.category_short}</div></div>`;
+        div.innerHTML = `<div><div class="font-black text-xs uppercase">${s.short_name || s.name}</div><div class="text-[9px] opacity-40 font-bold">${s.macro} | ${s.category_short}</div></div>`;
         list.appendChild(div);
       });
     }
@@ -317,7 +340,6 @@
       });
     }
 
-    // INIT
     document.querySelectorAll('.menu-btn').forEach(b => b.onclick = () => {
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
       document.querySelector(`[data-panel="${b.dataset.tab}"]`).classList.remove('hidden');
