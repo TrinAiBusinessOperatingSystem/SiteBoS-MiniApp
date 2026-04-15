@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Blog Editor | SiteBoS Enterprise</title>
+    <title>Enterprise Editor | SiteBoS</title>
     
+    <!-- SDK & Styles -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -17,18 +18,19 @@
     </script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #fafafa; }
+        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         input, textarea { outline: none !important; }
-        .editable-field:focus { border-color: #000 !important; background-color: #fff !important; }
+        .editable-field:focus { border-color: #000 !important; background-color: #fff !important; shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .section-card { background: white; border: 1px solid #eeeeee; border-radius: 2rem; padding: 1.5rem; transition: all 0.3s ease; }
     </style>
 
     <script>
-        // ── SICUREZZA: IL BUTTAFUORI ──
+        // ── SICUREZZA ──
         (function() {
             const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "";
             if (!isTelegram) {
@@ -41,55 +43,66 @@
         })();
     </script>
 </head>
-<body class="bg-bg text-black min-h-screen flex flex-col items-center p-6 pb-32">
+<body class="text-black min-h-screen p-4 pb-32">
 
-    <div class="w-full max-w-xl flex flex-col space-y-8 fade-in">
+    <div class="w-full max-w-xl mx-auto space-y-6 fade-in">
         
         <!-- HEADER -->
-        <header class="flex justify-between items-end border-b-2 border-black pb-4">
-            <div class="space-y-1">
-                <div class="inline-block px-2 py-1 bg-black text-white text-[7px] font-black uppercase tracking-[0.2em] rounded">SITEBOS EDITOR</div>
-                <h1 class="text-3xl font-black tracking-tighter uppercase leading-none">Modifica Post</h1>
+        <header class="flex justify-between items-center py-4 px-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-2 h-8 bg-black rounded-full"></div>
+                <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">Editor Architetturale</h1>
             </div>
             <div id="loader" class="spinner hidden"></div>
         </header>
 
-        <!-- SEZIONE: COPERTINA (ATTENDE URL DA BACKEND) -->
-        <section class="space-y-4">
-            <div class="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-neutral-400">
-                <i class="fas fa-image"></i> <span>Immagine di Copertina</span>
+        <!-- 00. COPERTINA -->
+        <section class="space-y-3">
+            <div class="flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400 px-2">
+                <i class="fas fa-image"></i> <span>Asset Visivo Copertina</span>
             </div>
-            <div id="imageBtn" class="relative group w-full aspect-video bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm flex items-center justify-center cursor-pointer active:scale-[0.98] transition-transform" onclick="document.getElementById('fileInput').click()">
+            <div id="imageBtn" class="relative group w-full aspect-video bg-white rounded-[2.5rem] overflow-hidden border border-neutral-100 shadow-sm flex items-center justify-center cursor-pointer active:scale-[0.98] transition-all" onclick="document.getElementById('fileInput').click()">
                 <img id="featuredImage" src="" class="hidden w-full h-full object-cover">
                 <div id="imagePlaceholder" class="flex flex-col items-center space-y-2 text-neutral-300">
-                    <i id="imageIcon" class="fas fa-arrow-up-from-bracket text-2xl"></i>
-                    <span id="imageText" class="text-[9px] font-black uppercase tracking-widest text-center px-4">In attesa dell'architettura...</span>
+                    <i id="imageIcon" class="fas fa-camera-retro text-3xl"></i>
+                    <span id="imageText" class="text-[9px] font-black uppercase tracking-widest">Carica Immagine</span>
                 </div>
             </div>
             <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="previewFile(event)">
         </section>
 
-        <!-- SEZIONE: SEO & HERO -->
-        <section class="space-y-6">
-            <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase tracking-widest text-neutral-400">Titolo Principale (H1)</label>
-                <input type="text" id="editTitle" class="w-full bg-white border border-gray-100 rounded-2xl p-5 font-bold text-lg editable-field transition-all shadow-sm" placeholder="Caricamento...">
+        <!-- 01. SEO & HERO -->
+        <section class="section-card space-y-5">
+            <div class="flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400">
+                <i class="fas fa-search"></i> <span>Configurazione SEO & Hero</span>
             </div>
-            <div class="space-y-2">
-                <label class="text-[10px] font-black uppercase tracking-widest text-neutral-400">Meta Description (SEO)</label>
-                <textarea id="editMeta" class="w-full bg-white border border-gray-100 rounded-2xl p-5 text-xs text-neutral-500 min-h-[100px] editable-field transition-all shadow-sm leading-relaxed" placeholder="Caricamento..."></textarea>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[8px] font-bold uppercase text-neutral-400 ml-2">Titolo Pagina (H1 / SEO)</label>
+                    <input type="text" id="editTitle" class="w-full bg-neutral-50 border border-transparent rounded-2xl p-4 font-black text-lg editable-field transition-all" placeholder="Inserisci titolo...">
+                </div>
+                <div>
+                    <label class="text-[8px] font-bold uppercase text-neutral-400 ml-2">Sottotitolo Hero (Promessa)</label>
+                    <textarea id="editHeroSubtitle" class="w-full bg-neutral-50 border border-transparent rounded-2xl p-4 text-xs font-medium editable-field transition-all leading-relaxed" rows="2"></textarea>
+                </div>
+                <div>
+                    <label class="text-[8px] font-bold uppercase text-neutral-400 ml-2">Meta Description (Snippet Google)</label>
+                    <textarea id="editMeta" class="w-full bg-neutral-50 border border-transparent rounded-2xl p-4 text-[11px] text-neutral-500 editable-field transition-all leading-relaxed" rows="2"></textarea>
+                </div>
             </div>
         </section>
 
         <!-- SEZIONI DINAMICHE -->
-        <div id="dynamicSections" class="space-y-10 pt-4"></div>
+        <div id="dynamicSections" class="space-y-6">
+            <!-- Popolato via JS -->
+        </div>
 
     </div>
 
     <!-- ACTION BAR -->
     <div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-bg via-bg to-transparent z-50">
-        <div class="max-w-md mx-auto flex gap-4">
-            <button onclick="sendUpdate('save_blog')" class="flex-1 bg-white border border-gray-200 text-black py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition shadow-sm">
+        <div class="max-w-md mx-auto flex gap-3">
+            <button onclick="sendUpdate('save_blog')" class="flex-1 bg-white border border-neutral-200 text-black py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition shadow-sm">
                 <i class="fas fa-save mr-2"></i> Salva
             </button>
             <button onclick="confirmPublish()" class="flex-[1.5] bg-black text-white py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition">
@@ -106,94 +119,92 @@
         tg.ready();
 
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/914bd78e-8a41-46d7-8935-7eb73cbbae66";
-        
-        // Estrae l'ID dopo il '?' (es: SVC_STBZ2RG7)
         const blogId = window.location.search.substring(1); 
 
         let currentData = null;
         let base64Image = null;
 
-        // ── CARICAMENTO DATI (POST) ──
+        // ── CARICAMENTO ──
         async function loadData() {
-            if (!blogId) {
-                tg.showAlert("Errore: blog_id non presente nell'URL.");
-                return;
-            }
-
+            if (!blogId) { tg.showAlert("ID mancante nell'URL."); return; }
             toggleLoader(true);
             try {
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        _auth: tg.initData,
-                        action: 'get_blog',
-                        blog_id: blogId
-                    })
+                    body: JSON.stringify({ _auth: tg.initData, action: 'get_blog', blog_id: blogId })
                 });
-
                 const res = await response.json();
                 if (res.status === 'success') {
                     currentData = res.blog_content_structure;
-                    // Passiamo l'URL dell'immagine ricevuto dal backend
                     renderEditor(res.image_url);
-                } else {
-                    tg.showAlert(res.message || "Errore nel recupero dati.");
-                }
-            } catch (err) {
-                tg.showAlert("Impossibile contattare l'infrastruttura SiteBoS.");
-            } finally {
-                toggleLoader(false);
-            }
+                } else { tg.showAlert(res.message); }
+            } catch (err) { tg.showAlert("Errore server SiteBoS."); }
+            finally { toggleLoader(false); }
         }
 
         function renderEditor(imageUrl) {
-            const imgElement = document.getElementById('featuredImage');
+            // Immagine
+            const img = document.getElementById('featuredImage');
             const placeholder = document.getElementById('imagePlaceholder');
-            const imgText = document.getElementById('imageText');
-            const imgIcon = document.getElementById('imageIcon');
-            
-            // Applichiamo l'immagine solo se l'URL è presente nella risposta del server
             if (imageUrl) {
-                imgElement.src = imageUrl + "?t=" + Date.now();
-                imgElement.onload = () => {
-                    imgElement.classList.remove('hidden');
-                    placeholder.classList.add('hidden');
-                };
-            } else {
-                imgText.innerText = "Carica Foto Custom";
-                imgIcon.className = "fas fa-camera text-2xl";
+                img.src = imageUrl + "?t=" + Date.now();
+                img.classList.remove('hidden');
+                placeholder.classList.add('hidden');
             }
 
+            // SEO & Hero
             document.getElementById('editTitle').value = currentData.seo.meta_title || "";
             document.getElementById('editMeta').value = currentData.seo.meta_description || "";
+            document.getElementById('editHeroSubtitle').value = currentData.hero?.subtitle || "";
 
             const container = document.getElementById('dynamicSections');
             container.innerHTML = '';
 
-            const sections = [
-                { key: 'problem', label: '01. Analisi Critica', icon: 'fa-triangle-exclamation' },
+            const schema = [
+                { key: 'problem', label: '01. Analisi del Problema', icon: 'fa-triangle-exclamation' },
                 { key: 'solution', label: '02. Meccanismo Unico', icon: 'fa-lightbulb' },
                 { key: 'authority', label: '03. Proof & Authority', icon: 'fa-shield-halved' },
-                { key: 'cta_final', label: '04. Next Step', icon: 'fa-bullseye' }
+                { key: 'comparison', label: '04. Confronto Tecnico', icon: 'fa-scale-balanced' },
+                { key: 'cta_final', label: '05. Next Step Operativo', icon: 'fa-bullseye' }
             ];
 
-            sections.forEach(s => {
+            schema.forEach(s => {
                 if (!currentData[s.key]) return;
-                const html = `
-                    <div class="space-y-4 fade-in">
-                        <div class="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-neutral-400">
+                let extras = '';
+                
+                // Campi Speciali
+                if (s.key === 'problem' && currentData.problem.quote) {
+                    extras += `<div class="mt-2"><label class="text-[7px] font-bold text-neutral-400 uppercase ml-2">Citazione d'impatto</label>
+                               <input type="text" class="w-full bg-neutral-50 border border-transparent rounded-xl p-3 text-xs italic editable-field" data-sec="problem" data-field="quote" value="${currentData.problem.quote}"></div>`;
+                }
+                if (s.key === 'comparison' && currentData.comparison.table_html) {
+                    extras += `<div class="mt-2"><label class="text-[7px] font-bold text-neutral-400 uppercase ml-2">Tabella Comparativa (HTML)</label>
+                               <textarea class="w-full bg-neutral-900 text-green-500 font-mono rounded-xl p-4 text-[9px] editable-field" rows="4" data-sec="comparison" data-field="table_html">${currentData.comparison.table_html}</textarea></div>`;
+                }
+
+                const sectionHtml = `
+                    <div class="section-card space-y-4 fade-in">
+                        <div class="flex items-center space-x-2 text-[9px] font-black uppercase tracking-[0.2em] text-neutral-400">
                             <i class="fas ${s.icon}"></i> <span>${s.label}</span>
                         </div>
-                        <input type="text" class="w-full bg-transparent border-b-2 border-neutral-100 py-2 font-black text-sm editable-field" 
-                               data-sec="${s.key}" data-field="title" value="${currentData[s.key].title || ''}">
-                        <textarea class="w-full bg-white border border-gray-100 rounded-[1.5rem] p-6 text-xs font-medium leading-relaxed min-h-[150px] editable-field shadow-sm" 
-                                  data-sec="${s.key}" data-field="paragraphs">${(currentData[s.key].paragraphs || []).join('\n\n')}</textarea>
+                        <div>
+                            <label class="text-[7px] font-bold text-neutral-400 uppercase ml-2">Titolo Sezione</label>
+                            <input type="text" class="w-full bg-transparent border-b border-neutral-100 py-2 font-black text-sm editable-field" 
+                                   data-sec="${s.key}" data-field="title" value="${currentData[s.key].title || ''}">
+                        </div>
+                        ${extras}
+                        <div>
+                            <label class="text-[7px] font-bold text-neutral-400 uppercase ml-2">Testo (Paragrafi)</label>
+                            <textarea class="w-full bg-neutral-50 border border-transparent rounded-[1.5rem] p-5 text-xs font-medium leading-relaxed min-h-[140px] editable-field transition-all" 
+                                      data-sec="${s.key}" data-field="paragraphs">${(currentData[s.key].paragraphs || []).join('\n\n')}</textarea>
+                        </div>
                     </div>`;
-                container.insertAdjacentHTML('beforeend', html);
+                container.insertAdjacentHTML('beforeend', sectionHtml);
             });
         }
 
+        // ── HELPERS ──
         function previewFile(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -211,9 +222,15 @@
         function syncData() {
             currentData.seo.meta_title = document.getElementById('editTitle').value;
             currentData.seo.meta_description = document.getElementById('editMeta').value;
+            if(currentData.hero) currentData.hero.subtitle = document.getElementById('editHeroSubtitle').value;
+
             document.querySelectorAll('[data-sec]').forEach(el => {
                 const { sec, field } = el.dataset;
-                currentData[sec][field] = (field === 'paragraphs') ? el.value.split('\n\n').filter(p => p.trim()) : el.value;
+                if (field === 'paragraphs') {
+                    currentData[sec][field] = el.value.split('\n\n').filter(p => p.trim());
+                } else {
+                    currentData[sec][field] = el.value;
+                }
             });
         }
 
@@ -234,23 +251,18 @@
                 });
                 if (response.ok) {
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    tg.showAlert(action === 'publish_blog' ? "Architettura pubblicata live." : "Bozza salvata.");
+                    tg.showAlert(action === 'publish_blog' ? "Pubblicazione inviata ai server CDN." : "Bozza salvata.");
                     if (action === 'publish_blog') setTimeout(() => tg.close(), 1000);
                 } else throw new Error();
-            } catch (err) {
-                tg.showAlert("Errore durante l'aggiornamento.");
-            } finally {
-                toggleLoader(false);
-            }
+            } catch (err) { tg.showAlert("Errore durante l'invio."); }
+            finally { toggleLoader(false); }
         }
 
         function confirmPublish() {
-            tg.showConfirm("L'articolo verrà messo online immediatamente. Confermi?", (ok) => { if(ok) sendUpdate('publish_blog'); });
+            tg.showConfirm("L'architettura verrà pubblicata live. Procedere?", (ok) => { if(ok) sendUpdate('publish_blog'); });
         }
 
-        function toggleLoader(show) {
-            document.getElementById('loader').classList.toggle('hidden', !show);
-        }
+        function toggleLoader(show) { document.getElementById('loader').classList.toggle('hidden', !show); }
 
         window.onload = loadData;
     </script>
