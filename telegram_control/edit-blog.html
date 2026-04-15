@@ -5,41 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Blog Editor | SiteBoS Enterprise</title>
     
-    <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#000000',
-                        bg: '#fafafa',
-                        border: '#eeeeee'
-                    }
-                }
-            }
+            theme: { extend: { colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' } } }
         }
     </script>
 
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* Spinner Noir */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
-
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
         input, textarea { outline: none !important; }
         .editable-field:focus { border-color: #000 !important; background-color: #fff !important; }
     </style>
@@ -51,14 +34,9 @@
             if (!isTelegram) {
                 document.documentElement.innerHTML = `
                     <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
-                        <div>
-                            <h1 class="text-6xl mb-4 text-white">🚫</h1>
-                            <h2 class="text-xl font-bold uppercase tracking-widest text-white">Accesso Negato</h2>
-                            <p class="opacity-40 text-sm mt-4 leading-relaxed">Questo modulo è accessibile solo tramite link certificato SiteBoS.</p>
-                        </div>
+                        <div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Negato</h2></div>
                     </body>`;
                 window.stop();
-                throw new Error("Unauthorized Access");
             }
         })();
     </script>
@@ -70,13 +48,13 @@
         <!-- HEADER -->
         <header class="flex justify-between items-end border-b-2 border-black pb-4">
             <div class="space-y-1">
-                <div class="inline-block px-2 py-1 bg-black text-white text-[7px] font-black uppercase tracking-[0.2em] rounded">BLOG EDITOR</div>
+                <div class="inline-block px-2 py-1 bg-black text-white text-[7px] font-black uppercase tracking-[0.2em] rounded">SITEBOS EDITOR</div>
                 <h1 class="text-3xl font-black tracking-tighter uppercase leading-none">Modifica Post</h1>
             </div>
             <div id="loader" class="spinner hidden"></div>
         </header>
 
-        <!-- SEZIONE: COPERTINA -->
+        <!-- SEZIONE: COPERTINA (ATTENDE URL DA BACKEND) -->
         <section class="space-y-4">
             <div class="flex items-center space-x-2 text-[10px] font-black uppercase tracking-widest text-neutral-400">
                 <i class="fas fa-image"></i> <span>Immagine di Copertina</span>
@@ -84,8 +62,8 @@
             <div id="imageBtn" class="relative group w-full aspect-video bg-white rounded-[2rem] overflow-hidden border border-gray-100 shadow-sm flex items-center justify-center cursor-pointer active:scale-[0.98] transition-transform" onclick="document.getElementById('fileInput').click()">
                 <img id="featuredImage" src="" class="hidden w-full h-full object-cover">
                 <div id="imagePlaceholder" class="flex flex-col items-center space-y-2 text-neutral-300">
-                    <i class="fas fa-arrow-up-from-bracket text-2xl"></i>
-                    <span class="text-[9px] font-black uppercase tracking-widest">Carica Foto Custom</span>
+                    <i id="imageIcon" class="fas fa-arrow-up-from-bracket text-2xl"></i>
+                    <span id="imageText" class="text-[9px] font-black uppercase tracking-widest text-center px-4">In attesa dell'architettura...</span>
                 </div>
             </div>
             <input type="file" id="fileInput" class="hidden" accept="image/*" onchange="previewFile(event)">
@@ -115,7 +93,7 @@
                 <i class="fas fa-save mr-2"></i> Salva
             </button>
             <button onclick="confirmPublish()" class="flex-[1.5] bg-black text-white py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-2xl active:scale-95 transition">
-                <i class="fas fa-rocket mr-2"></i> Pubblica
+                <i class="fas fa-rocket mr-2"></i> Pubblica Live
             </button>
         </div>
     </div>
@@ -129,60 +107,75 @@
 
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/914bd78e-8a41-46d7-8935-7eb73cbbae66";
         
+        // Estrae l'ID dopo il '?' (es: SVC_STBZ2RG7)
+        const blogId = window.location.search.substring(1); 
+
         let currentData = null;
         let base64Image = null;
 
-        // ── INITIAL LOAD ──
+        // ── CARICAMENTO DATI (POST) ──
         async function loadData() {
+            if (!blogId) {
+                tg.showAlert("Errore: blog_id non presente nell'URL.");
+                return;
+            }
+
             toggleLoader(true);
             try {
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        _auth: tg.initData, // Unica fonte di verità
-                        action: 'get_blog'
+                        _auth: tg.initData,
+                        action: 'get_blog',
+                        blog_id: blogId
                     })
                 });
 
                 const res = await response.json();
                 if (res.status === 'success') {
                     currentData = res.blog_content_structure;
+                    // Passiamo l'URL dell'immagine ricevuto dal backend
                     renderEditor(res.image_url);
                 } else {
-                    tg.showAlert("Errore: " + (res.message || "Impossibile recuperare i dati."));
+                    tg.showAlert(res.message || "Errore nel recupero dati.");
                 }
             } catch (err) {
-                tg.showAlert("Errore di connessione con il server SiteBoS.");
+                tg.showAlert("Impossibile contattare l'infrastruttura SiteBoS.");
             } finally {
                 toggleLoader(false);
             }
         }
 
         function renderEditor(imageUrl) {
-            // Featured Image
             const imgElement = document.getElementById('featuredImage');
             const placeholder = document.getElementById('imagePlaceholder');
+            const imgText = document.getElementById('imageText');
+            const imgIcon = document.getElementById('imageIcon');
             
+            // Applichiamo l'immagine solo se l'URL è presente nella risposta del server
             if (imageUrl) {
                 imgElement.src = imageUrl + "?t=" + Date.now();
-                imgElement.classList.remove('hidden');
-                placeholder.classList.add('hidden');
+                imgElement.onload = () => {
+                    imgElement.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                };
+            } else {
+                imgText.innerText = "Carica Foto Custom";
+                imgIcon.className = "fas fa-camera text-2xl";
             }
 
-            // SEO Fields
             document.getElementById('editTitle').value = currentData.seo.meta_title || "";
             document.getElementById('editMeta').value = currentData.seo.meta_description || "";
 
-            // Content Sections
             const container = document.getElementById('dynamicSections');
             container.innerHTML = '';
 
             const sections = [
-                { key: 'problem', label: '01. Il Problema', icon: 'fa-triangle-exclamation' },
-                { key: 'solution', label: '02. La Soluzione', icon: 'fa-lightbulb' },
-                { key: 'authority', label: '03. Autorità', icon: 'fa-shield-halved' },
-                { key: 'cta_final', label: '04. CTA Finale', icon: 'fa-bullseye' }
+                { key: 'problem', label: '01. Analisi Critica', icon: 'fa-triangle-exclamation' },
+                { key: 'solution', label: '02. Meccanismo Unico', icon: 'fa-lightbulb' },
+                { key: 'authority', label: '03. Proof & Authority', icon: 'fa-shield-halved' },
+                { key: 'cta_final', label: '04. Next Step', icon: 'fa-bullseye' }
             ];
 
             sections.forEach(s => {
@@ -232,26 +225,27 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        _auth: tg.initData, // Sempre inviato
+                        _auth: tg.initData,
                         action: action,
+                        blog_id: blogId,
                         updated_content: currentData,
                         new_image_base64: base64Image
                     })
                 });
                 if (response.ok) {
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    tg.showAlert(action === 'publish_blog' ? "Pubblicazione completata." : "Modifiche salvate.");
+                    tg.showAlert(action === 'publish_blog' ? "Architettura pubblicata live." : "Bozza salvata.");
                     if (action === 'publish_blog') setTimeout(() => tg.close(), 1000);
                 } else throw new Error();
             } catch (err) {
-                tg.showAlert("Errore durante l'invio.");
+                tg.showAlert("Errore durante l'aggiornamento.");
             } finally {
                 toggleLoader(false);
             }
         }
 
         function confirmPublish() {
-            tg.showConfirm("Vuoi pubblicare la pagina live?", (ok) => { if(ok) sendUpdate('publish_blog'); });
+            tg.showConfirm("L'articolo verrà messo online immediatamente. Confermi?", (ok) => { if(ok) sendUpdate('publish_blog'); });
         }
 
         function toggleLoader(show) {
