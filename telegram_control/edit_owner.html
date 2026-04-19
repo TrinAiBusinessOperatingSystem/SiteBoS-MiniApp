@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Gestione Dati Azienda</title>
+  
+  <!-- Telegram Script -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- TUO FILE CSS COMPLETO -->
+  <link rel="stylesheet" href="styles.css"> 
+</head>
+<body>
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="spinner-ring"></div> <!-- Classe dal tuo CSS -->
+    <div style="margin-top:10px; opacity:0.7; text-align:center;">Loading Secure Data...</div>
+  </div>
+
+  <!-- ACCESS DENIED -->
+  <div id="access-denied" class="hidden container text-center" style="padding-top:50px;">
+    <div style="font-size:50px; margin-bottom:20px;">🚫</div>
+    <h2 data-i18n="error_token_title">Link Scaduto o Invalido</h2>
+    <p class="subtitle" data-i18n="error_token_desc">Per motivi di sicurezza, richiedi un nuovo link dal bot.</p>
+    <button onclick="tg.close()" class="btn btn-primary mt-2">Chiudi</button>
+  </div>
+
+  <!-- MAIN APP -->
+  <div id="app-content" class="container hidden fade-in">
+    <div class="dashboard-header">
+        <div class="header-info">
+            <h1 data-i18n="title">Gestione Dati Azienda</h1>
+            <small data-i18n="subtitle">Modifica le informazioni per aggiornare il sistema.</small>
+        </div>
+    </div>
+
+    <form id="editForm" onsubmit="return false;">
+      
+      <!-- 1. ANAGRAFICA -->
+      <div class="form-section">
+        <div class="form-section-title" data-i18n="section_core">Dati Anagrafici</div>
+        <div class="row">
+          <div class="col">
+              <div class="input-group">
+                  <label data-i18n="lbl_name">Nome</label>
+                  <input type="text" id="name">
+              </div>
+          </div>
+          <div class="col">
+              <div class="input-group">
+                  <label data-i18n="lbl_surname">Cognome</label>
+                  <input type="text" id="surname">
+              </div>
+          </div>
+        </div>
+        
+        <div class="input-group">
+            <label data-i18n="lbl_email" class="required">Email</label>
+            <input type="email" id="email" required>
+        </div>
+        <div class="input-group">
+            <label data-i18n="lbl_phone">Telefono</label>
+            <input type="tel" id="phone">
+        </div>
+      </div>
+
+      <!-- 2. AZIENDA -->
+      <div class="form-section">
+        <div class="form-section-title" data-i18n="section_company">Dati Aziendali</div>
+        
+        <div class="input-group">
+            <label data-i18n="lbl_company_name" class="required">Ragione Sociale</label>
+            <input type="text" id="ragione_sociale" required>
+        </div>
+        
+        <div class="input-group">
+            <label data-i18n="lbl_vat">P.IVA (Non modificabile)</label>
+            <input type="text" id="vat_number" readonly disabled>
+        </div>
+        
+        <div class="input-group">
+            <label data-i18n="lbl_address">Indirizzo</label>
+            <input type="text" id="indirizzo">
+        </div>
+        
+        <div class="input-group">
+            <label data-i18n="lbl_site">Sito Web</label>
+            <input type="url" id="site">
+        </div>
+        
+        <div class="row">
+            <div class="col">
+                <div class="input-group">
+                    <label>LinkedIn</label>
+                    <input type="url" id="linkedin_page">
+                </div>
+            </div>
+            <div class="col">
+                <div class="input-group">
+                    <label>Facebook</label>
+                    <input type="url" id="facebook_page">
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <!-- 3. CONFIGURAZIONE -->
+      <div class="form-section">
+        <div class="form-section-title" data-i18n="section_config">Configurazione Operativa</div>
+        
+        <div class="input-group">
+            <label data-i18n="lbl_owner_avail">Orari NON reperibilità (Owner)</label>
+            <div class="row gap-2 align-center" style="margin-bottom:0;">
+                <select id="owner_unav_from" class="col"></select> 
+                <span style="color:var(--text-muted)">-</span> 
+                <select id="owner_unav_to" class="col"></select>
+            </div>
+        </div>
+        
+        <div class="input-group mt-2">
+            <label data-i18n="lbl_op_avail">Orari NON reperibilità (Operatori)</label>
+            <div class="row gap-2 align-center" style="margin-bottom:0;">
+                <select id="operator_unav_from" class="col"></select> 
+                <span style="color:var(--text-muted)">-</span> 
+                <select id="operator_unav_to" class="col"></select>
+            </div>
+        </div>
+        
+        <div class="input-group mt-2">
+            <label>Gemini API Key</label>
+            <input type="text" id="gemini_key">
+        </div>
+      </div>
+      
+      <!-- 4. OPERATORI -->
+      <div class="card">
+          <div class="card-header" style="border-bottom: 1px solid var(--glass-border); margin-bottom:15px;">
+            <h3 style="margin:0;"><i class="fas fa-users"></i> <span data-i18n="op_title">Gestione Operatori</span></h3>
+            <span id="slot-counter" style="font-size:12px; background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:10px;">0 / 3</span>
+          </div>
+          
+          <div id="operators-list"></div>
+          
+          <button type="button" class="btn btn-secondary btn-block mt-2" id="add-operator-btn" onclick="openModal()">
+            <i class="fas fa-plus-circle"></i> <span data-i18n="op_btn_invite">Invita Nuovo Operatore</span>
+          </button>
+          
+          <div class="hint hidden text-center" id="upgrade-prompt" style="color:var(--warning); margin-top:10px;">
+            <p data-i18n="op_limit_reached">Limite raggiunto.</p>
+          </div>
+      </div>
+
+      <!-- ⚠️ RIMOSSO bottone inline, ora usa FAB -->
+      <div style="height: 80px;"></div>
+     
+    </form>
+  </div>
+  
+  <!-- 👉 FAB CONTAINER STANDARD -->
+  <div class="fab-container">
+    <button class="fab-btn fab-secondary" onclick="goBack()" title="Torna a Dashboard">
+      <i class="fas fa-arrow-left"></i>
+    </button>
+    
+    <button class="fab-btn" id="saveBtn" disabled title="Salva Modifiche">
+      <i class="fas fa-save"></i>
+    </button>
+  </div>
+
+  <!-- MODAL OPERATORE -->
+  <div id="operator-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3 id="modal-title" data-i18n="modal_title">Invita Operatore</h3>
+      <p class="subtitle" data-i18n="modal_subtitle">Inserisci il nome per generare il link.</p>
+      
+      <div class="input-group">
+          <label data-i18n="modal_lbl_name">Nome Operatore</label>
+          <input type="text" id="op-name" placeholder="Es: Mario Rossi">
+      </div>
+      
+      <div class="btn-container">
+        <button type="button" class="btn btn-secondary col" onclick="closeModal()"><span data-i18n="btn_cancel">Annulla</span></button>
+        <button type="button" class="btn btn-primary col" onclick="generateInvitation()"><span data-i18n="btn_generate">Genera</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LOGICA -->
+  <script src="edit_owner_logic.js"></script>
+</body>
+</html>
