@@ -1,197 +1,425 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Gestione Dati Azienda</title>
-  
-  <!-- Telegram Script -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  
-  <!-- Fonts & Icons -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- TUO FILE CSS COMPLETO -->
-  <link rel="stylesheet" href="styles.css"> 
-</head>
-<body>
-
-  <!-- LOADER -->
-  <div id="loader">
-    <div class="spinner-ring"></div> <!-- Classe dal tuo CSS -->
-    <div style="margin-top:10px; opacity:0.7; text-align:center;">Loading Secure Data...</div>
-  </div>
-
-  <!-- ACCESS DENIED -->
-  <div id="access-denied" class="hidden container text-center" style="padding-top:50px;">
-    <div style="font-size:50px; margin-bottom:20px;">🚫</div>
-    <h2 data-i18n="error_token_title">Link Scaduto o Invalido</h2>
-    <p class="subtitle" data-i18n="error_token_desc">Per motivi di sicurezza, richiedi un nuovo link dal bot.</p>
-    <button onclick="tg.close()" class="btn btn-primary mt-2">Chiudi</button>
-  </div>
-
-  <!-- MAIN APP -->
-  <div id="app-content" class="container hidden fade-in">
-    <div class="dashboard-header">
-        <div class="header-info">
-            <h1 data-i18n="title">Gestione Dati Azienda</h1>
-            <small data-i18n="subtitle">Modifica le informazioni per aggiornare il sistema.</small>
-        </div>
-    </div>
-
-    <form id="editForm" onsubmit="return false;">
-      
-      <!-- 1. ANAGRAFICA -->
-      <div class="form-section">
-        <div class="form-section-title" data-i18n="section_core">Dati Anagrafici</div>
-        <div class="row">
-          <div class="col">
-              <div class="input-group">
-                  <label data-i18n="lbl_name">Nome</label>
-                  <input type="text" id="name">
-              </div>
-          </div>
-          <div class="col">
-              <div class="input-group">
-                  <label data-i18n="lbl_surname">Cognome</label>
-                  <input type="text" id="surname">
-              </div>
-          </div>
-        </div>
-        
-        <div class="input-group">
-            <label data-i18n="lbl_email" class="required">Email</label>
-            <input type="email" id="email" required>
-        </div>
-        <div class="input-group">
-            <label data-i18n="lbl_phone">Telefono</label>
-            <input type="tel" id="phone">
-        </div>
-      </div>
-
-      <!-- 2. AZIENDA -->
-      <div class="form-section">
-        <div class="form-section-title" data-i18n="section_company">Dati Aziendali</div>
-        
-        <div class="input-group">
-            <label data-i18n="lbl_company_name" class="required">Ragione Sociale</label>
-            <input type="text" id="ragione_sociale" required>
-        </div>
-        
-        <div class="input-group">
-            <label data-i18n="lbl_vat">P.IVA (Non modificabile)</label>
-            <input type="text" id="vat_number" readonly disabled>
-        </div>
-        
-        <div class="input-group">
-            <label data-i18n="lbl_address">Indirizzo</label>
-            <input type="text" id="indirizzo">
-        </div>
-        
-        <div class="input-group">
-            <label data-i18n="lbl_site">Sito Web</label>
-            <input type="url" id="site">
-        </div>
-        
-        <div class="row">
-            <div class="col">
-                <div class="input-group">
-                    <label>LinkedIn</label>
-                    <input type="url" id="linkedin_page">
-                </div>
-            </div>
-            <div class="col">
-                <div class="input-group">
-                    <label>Facebook</label>
-                    <input type="url" id="facebook_page">
-                </div>
-            </div>
-        </div>
-      </div>
-
-      <!-- 3. CONFIGURAZIONE -->
-      <div class="form-section">
-        <div class="form-section-title" data-i18n="section_config">Configurazione Operativa</div>
-        
-        <div class="input-group">
-            <label data-i18n="lbl_owner_avail">Orari NON reperibilità (Owner)</label>
-            <div class="row gap-2 align-center" style="margin-bottom:0;">
-                <select id="owner_unav_from" class="col"></select> 
-                <span style="color:var(--text-muted)">-</span> 
-                <select id="owner_unav_to" class="col"></select>
-            </div>
-        </div>
-        
-        <div class="input-group mt-2">
-            <label data-i18n="lbl_op_avail">Orari NON reperibilità (Operatori)</label>
-            <div class="row gap-2 align-center" style="margin-bottom:0;">
-                <select id="operator_unav_from" class="col"></select> 
-                <span style="color:var(--text-muted)">-</span> 
-                <select id="operator_unav_to" class="col"></select>
-            </div>
-        </div>
-        
-        <div class="input-group mt-2">
-            <label>Gemini API Key</label>
-            <input type="text" id="gemini_key">
-        </div>
-      </div>
-      
-      <!-- 4. OPERATORI -->
-      <div class="card">
-          <div class="card-header" style="border-bottom: 1px solid var(--glass-border); margin-bottom:15px;">
-            <h3 style="margin:0;"><i class="fas fa-users"></i> <span data-i18n="op_title">Gestione Operatori</span></h3>
-            <span id="slot-counter" style="font-size:12px; background:rgba(255,255,255,0.1); padding:4px 10px; border-radius:10px;">0 / 3</span>
-          </div>
-          
-          <div id="operators-list"></div>
-          
-          <button type="button" class="btn btn-secondary btn-block mt-2" id="add-operator-btn" onclick="openModal()">
-            <i class="fas fa-plus-circle"></i> <span data-i18n="op_btn_invite">Invita Nuovo Operatore</span>
-          </button>
-          
-          <div class="hint hidden text-center" id="upgrade-prompt" style="color:var(--warning); margin-top:10px;">
-            <p data-i18n="op_limit_reached">Limite raggiunto.</p>
-          </div>
-      </div>
-
-      <!-- ⚠️ RIMOSSO bottone inline, ora usa FAB -->
-      <div style="height: 80px;"></div>
-     
-    </form>
-  </div>
-  
-  <!-- 👉 FAB CONTAINER STANDARD -->
-  <div class="fab-container">
-    <button class="fab-btn fab-secondary" onclick="goBack()" title="Torna a Dashboard">
-      <i class="fas fa-arrow-left"></i>
-    </button>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Profile Manager</title>
     
-    <button class="fab-btn" id="saveBtn" disabled title="Salva Modifiche">
-      <i class="fas fa-save"></i>
-    </button>
-  </div>
+    <!-- SDK Telegram -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        (function () {
+            // Hard gate: questa pagina deve aprirsi solo dentro Telegram WebApp
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `
+                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div>
+                            <h1 class="text-6xl mb-4">🚫</h1>
+                            <h2 class="text-xl font-black uppercase tracking-widest">Accesso Proibito</h2>
+                        </div>
+                    </body>`;
+                window.stop();
+            }
+        })();
+    </script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#212D67',
+                        accent: '#895FE0',
+                        bg: '#f4f7f9',
+                        surface: '#ffffff',
+                        border: '#e8e8e8'
+                    },
+                    borderRadius: {
+                        '3xl': '1.5rem',
+                        '4xl': '2rem'
+                    }
+                }
+            }
+        }
+    </script>
 
-  <!-- MODAL OPERATORE -->
-  <div id="operator-modal" class="modal-overlay hidden">
-    <div class="modal-content">
-      <h3 id="modal-title" data-i18n="modal_title">Invita Operatore</h3>
-      <p class="subtitle" data-i18n="modal_subtitle">Inserisci il nome per generare il link.</p>
-      
-      <div class="input-group">
-          <label data-i18n="modal_lbl_name">Nome Operatore</label>
-          <input type="text" id="op-name" placeholder="Es: Mario Rossi">
-      </div>
-      
-      <div class="btn-container">
-        <button type="button" class="btn btn-secondary col" onclick="closeModal()"><span data-i18n="btn_cancel">Annulla</span></button>
-        <button type="button" class="btn btn-primary col" onclick="generateInvitation()"><span data-i18n="btn_generate">Genera</span></button>
-      </div>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; }
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
+        .input-group:focus-within label { color: #895FE0; }
+        .shimmer { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        
+        /* Hide scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="safe-area-inset text-[#1a1a2e] h-screen flex flex-col overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="p-6 bg-white border-b border-border flex justify-between items-center z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white">
+                <i class="fas fa-user-tie"></i>
+            </div>
+            <div>
+                <h1 class="text-xs font-black uppercase tracking-[0.2em] text-gray-400 leading-none mb-1">Manager Desk</h1>
+                <p class="text-sm font-black tracking-tight">Profilo Owner</p>
+            </div>
+        </div>
+        <button onclick="tg.close()" class="text-gray-300 hover:text-primary transition">
+            <i class="fas fa-times-circle text-2xl"></i>
+        </button>
+    </header>
+
+    <!-- CONTENT AREA -->
+    <main class="flex-1 overflow-y-auto p-5 space-y-6 no-scrollbar pb-32">
+        
+        <!-- STEP 1: IDENTITY (KYC) -->
+        <section id="section-kyc" class="bg-white rounded-4xl p-6 shadow-sm border border-border">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="w-8 h-8 bg-accent/10 text-accent rounded-full flex items-center justify-center text-sm font-bold">1</span>
+                <h2 class="font-black uppercase tracking-widest text-xs">Identità & KYC</h2>
+            </div>
+            
+            <div class="space-y-4">
+                <p class="text-xs text-gray-400 font-medium leading-relaxed">
+                    Carica una foto nitida del tuo documento (CI, Passaporto o Patente). L'AI estrarrà automaticamente i dati legali.
+                </p>
+                
+                <div id="dropzone" class="border-2 border-dashed border-border rounded-3xl p-8 text-center cursor-pointer hover:bg-gray-50 transition relative overflow-hidden group">
+                    <input type="file" id="kyc-upload" class="hidden" accept="image/*" onchange="handleKycUpload(this)">
+                    <div id="upload-placeholder" class="space-y-3">
+                        <div class="w-12 h-12 bg-bg rounded-full mx-auto flex items-center justify-center text-gray-400 group-hover:text-accent transition">
+                            <i class="fas fa-camera text-xl"></i>
+                        </div>
+                        <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Tocca per caricare</p>
+                    </div>
+                    <div id="upload-preview" class="hidden absolute inset-0 bg-cover bg-center">
+                        <div class="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-sm">
+                            <div class="text-white text-center">
+                                <i class="fas fa-sync-alt animate-spin text-2xl mb-2"></i>
+                                <p class="text-[10px] font-black uppercase tracking-widest">Analizzatndo documento...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 2: BUSINESS DATA -->
+        <section id="section-business" class="bg-white rounded-4xl p-6 shadow-sm border border-border">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="w-8 h-8 bg-accent/10 text-accent rounded-full flex items-center justify-center text-sm font-bold">2</span>
+                <h2 class="font-black uppercase tracking-widest text-xs">Dati Aziendali</h2>
+            </div>
+
+            <form id="owner-form" class="space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="input-group">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Nome</label>
+                        <input type="text" name="name" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-bold focus:border-accent outline-none transition" placeholder="Nome">
+                    </div>
+                    <div class="input-group">
+                        <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Cognome</label>
+                        <input type="text" name="surname" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-bold focus:border-accent outline-none transition" placeholder="Cognome">
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Ragione Sociale</label>
+                    <input type="text" name="ragione_sociale" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-bold focus:border-accent outline-none transition" placeholder="Es. TrinAI S.r.l.">
+                </div>
+
+                <div class="input-group">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Partita IVA / Tax ID</label>
+                    <input type="text" name="vat_number" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-bold focus:border-accent outline-none transition" placeholder="Identificativo Fiscale">
+                </div>
+
+                <div class="input-group">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Email Business</label>
+                    <input type="email" name="email" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-bold focus:border-accent outline-none transition" placeholder="admin@azienda.com">
+                </div>
+
+                <div class="input-group">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Settore</label>
+                    <select name="sector" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-bold focus:border-accent outline-none transition appearance-none">
+                        <option value="Servizi">Servizi Professionali</option>
+                        <option value="Tech">Tecnologia & Software</option>
+                        <option value="Retail">E-commerce & Retail</option>
+                        <option value="Food">Ristorazione & Food</option>
+                        <option value="Other">Altro</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Cosa fa la tua azienda? (Mission)</label>
+                    <textarea name="what_we_do" rows="3" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-medium focus:border-accent outline-none transition" placeholder="Descrivi brevemente la tua attività..."></textarea>
+                </div>
+
+                <div class="input-group">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Obiettivo AI</label>
+                    <input type="text" name="main_goal" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-bold focus:border-accent outline-none transition" placeholder="Es. Automatizzare le vendite">
+                </div>
+
+                <div class="input-group">
+                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2 mb-1 block">Gemini API Key</label>
+                    <input type="password" name="gemini_key" class="w-full bg-bg border border-border rounded-2xl px-4 py-3.5 text-sm font-mono focus:border-accent outline-none transition" placeholder="AIzaSy...">
+                </div>
+            </form>
+        </section>
+
+    </main>
+
+    <!-- FOOTER NAV -->
+    <div class="fixed bottom-0 left-0 right-0 p-6 bg-white/80 backdrop-blur-xl border-t border-border z-50">
+        <div class="flex gap-4">
+            <button onclick="saveData()" class="flex-1 bg-white border-2 border-primary text-primary py-4 rounded-2xl font-black text-xs uppercase tracking-widest active:scale-95 transition">
+                Salva Bozza
+            </button>
+            <button id="btn-activate" onclick="finalizeProvisioning()" class="flex-[1.5] bg-primary text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition flex items-center justify-center gap-2">
+                <span>Attiva Istanza</span>
+                <i class="fas fa-rocket"></i>
+            </button>
+        </div>
     </div>
-  </div>
 
-  <!-- SCRIPT LOGICA -->
-  <script src="edit_owner_logic.js"></script>
+    <!-- LOADER OVERLAY -->
+    <div id="global-loader" class="fixed inset-0 bg-white/90 z-[100] hidden flex flex-col items-center justify-center p-10 text-center">
+        <div class="w-16 h-16 border-4 border-bg border-t-accent rounded-full animate-spin mb-6"></div>
+        <h3 id="loader-title" class="text-lg font-black uppercase tracking-tighter mb-2">Configurazione in corso</h3>
+        <p id="loader-msg" class="text-xs text-gray-400 font-medium max-w-xs leading-relaxed italic">Stiamo collegando i tuoi dati ai motori neurali di SiteBoS...</p>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4";
+        
+        // URL Utils
+        const params = new URLSearchParams(window.location.search);
+        // Il token resta effimero (no localStorage): riduce il rischio di riuso fuori da Telegram
+        let currentToken = params.get('token');
+
+        let ownerData = {};
+        const tgUserId = tg.initDataUnsafe?.user?.id || null;
+
+        function buildEnvelope(payload) {
+            // Standard del progetto: inviare sempre initData per validazione server-side
+            return {
+                _auth: tg.initData,
+                user_id: tgUserId,
+                ...payload
+            };
+        }
+
+        // INITIALIZATION
+        window.onload = async () => {
+            if (currentToken) {
+                showLoader("Recupero Dati", "Caricamento del tuo profilo in corso...");
+                await fetchOwnerData();
+                hideLoader();
+            } else {
+                tg.showAlert("Token mancante. Apri questa pagina solo dal link inviato su Telegram.");
+            }
+        };
+
+        // UI HELPERS
+        function showLoader(title, msg) {
+            document.getElementById('loader-title').innerText = title;
+            document.getElementById('loader-msg').innerText = msg;
+            document.getElementById('global-loader').classList.remove('hidden');
+        }
+        function hideLoader() {
+            document.getElementById('global-loader').classList.add('hidden');
+        }
+
+        // API CALLS
+        async function fetchOwnerData() {
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildEnvelope({ 
+                        user_request: { 
+                            action: 'get_owner_data_by_token',
+                            token: currentToken 
+                        } 
+                    }))
+                });
+                const result = await response.json();
+                if (result.status === 'success' && result.owner_data) {
+                    ownerData = result.owner_data;
+                    populateForm(ownerData);
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+                tg.showAlert("Errore nel recupero dati. Riprova tra poco.");
+            }
+        }
+
+        function populateForm(data) {
+            const form = document.getElementById('owner-form');
+            const fields = ['name', 'surname', 'ragione_sociale', 'vat_number', 'email', 'sector', 'what_we_do', 'main_goal', 'gemini_key'];
+            fields.forEach(f => {
+                if (form.elements[f]) form.elements[f].value = data[f] || '';
+            });
+        }
+
+        function getFormData() {
+            const form = document.getElementById('owner-form');
+            const data = {};
+            new FormData(form).forEach((value, key) => data[key] = value);
+            return data;
+        }
+
+        async function saveData() {
+            showLoader("Salvataggio", "Aggiornamento profilo in corso...");
+            const dataUpdate = getFormData();
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildEnvelope({ 
+                        user_request: { 
+                            action: 'save_owner_data_by_token',
+                            token: currentToken,
+                            data_update: dataUpdate
+                        } 
+                    }))
+                });
+                const result = await response.json();
+                if (result.status === 'success') {
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    tg.showScanQrPopup({ text: "Dati Salvati ✅" }); // Usiamo un trucco per mostrare un feedback veloce
+                    setTimeout(() => tg.closeScanQrPopup(), 1000);
+                } else {
+                    tg.showAlert("Salvataggio non riuscito. Controlla la connessione e riprova.");
+                }
+            } catch (error) {
+                tg.showAlert("Errore durante il salvataggio.");
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // KYC LOGIC
+        document.getElementById('dropzone').onclick = () => document.getElementById('kyc-upload').click();
+
+        async function handleKycUpload(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+
+            // Safety: limiti minimi client-side (il backend deve comunque validare)
+            const MAX_FILE_MB = 5;
+            if (!file.type || !file.type.startsWith('image/')) {
+                tg.showAlert("Formato non supportato. Carica un'immagine (JPG/PNG).");
+                input.value = "";
+                return;
+            }
+            if (file.size > MAX_FILE_MB * 1024 * 1024) {
+                tg.showAlert(`File troppo grande. Dimensione massima: ${MAX_FILE_MB}MB.`);
+                input.value = "";
+                return;
+            }
+            
+            // Preview
+            const preview = document.getElementById('upload-preview');
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.style.backgroundImage = `url(${e.target.result})`;
+                preview.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+
+            // Convert to Base64
+            const base64 = await toBase64(file);
+            const geminiKey = document.querySelector('[name="gemini_key"]').value;
+
+            if (!geminiKey) {
+                tg.showAlert("Inserisci prima la tua Gemini API Key per permettere all'AI di analizzare il documento.");
+                preview.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildEnvelope({ 
+                        user_request: { 
+                            action: 'analyze_id',
+                            file_data: base64.split(',')[1],
+                            mime_type: file.type,
+                            gemini_key: geminiKey,
+                            user_id: currentToken
+                        } 
+                    }))
+                });
+                const result = await response.json();
+                if (result.status === 'success' && result.data) {
+                    const doc = result.data;
+                    document.querySelector('[name="name"]').value = doc.name || '';
+                    document.querySelector('[name="surname"]').value = doc.surname || '';
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                } else {
+                    tg.showAlert("L'AI non è riuscita a leggere il documento. Controlla la nitidezza della foto.");
+                }
+            } catch (error) {
+                tg.showAlert("Errore durante l'analisi AI.");
+            } finally {
+                preview.classList.add('hidden');
+            }
+        }
+
+        const toBase64 = file => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = error => reject(error);
+        });
+
+        // FINALIZATION
+        async function finalizeProvisioning() {
+            showLoader("Attivazione", "Inizializzazione della tua istanza SiteBoS...");
+            const data = getFormData();
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildEnvelope({ 
+                        owner_data: {
+                            ...ownerData,
+                            ...data
+                        },
+                        user_request: { 
+                            action: 'payment_checkout',
+                            chat_id: ownerData.chat_id || tgUserId
+                        } 
+                    }))
+                });
+                const result = await response.json();
+                if (result.status === 'success' || result.telegramPayload) {
+                    tg.showConfirm("Attivazione Completata! Ti abbiamo inviato i dettagli su Telegram.", (ok) => {
+                        tg.close();
+                    });
+                } else {
+                    tg.showAlert("Attivazione non riuscita. Riprova tra poco.");
+                }
+            } catch (error) {
+                tg.showAlert("Errore durante l'attivazione finale.");
+            } finally {
+                hideLoader();
+            }
+        }
+    </script>
 </body>
 </html>

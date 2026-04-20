@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Smart Ecommerce</title>
+    
+    <!-- SDK Telegram -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        (function () {
+            // Security Gate: Solo per Telegram
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `
+                    <body class="bg-[#0f172a] text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div>
+                            <h1 class="text-6xl mb-4">🚫</h1>
+                            <h2 class="text-xl font-black uppercase tracking-widest">Accesso Proibito</h2>
+                            <p class="text-xs text-gray-500 mt-4">Apri questa applicazione tramite il bot ufficiale.</p>
+                        </div>
+                    </body>`;
+                window.stop();
+            }
+        })();
+    </script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#212D67',
+                        accent: '#895FE0',
+                        dark: '#0f172a',
+                        surface: '#1e293b',
+                        border: 'rgba(255,255,255,0.08)'
+                    },
+                    borderRadius: {
+                        '3xl': '1.5rem',
+                        '4xl': '2rem',
+                        '5xl': '2.5rem'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            -webkit-tap-highlight-color: transparent; 
+            user-select: none;
+        }
+        .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .bento-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .bento-card:active { transform: scale(0.95); }
+        
+        .quantity-badge {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        
+        .cart-dot {
+            width: 8px; height: 8px; background: #895FE0; border-radius: 50%;
+            box-shadow: 0 0 10px #895FE0;
+        }
+    </style>
+</head>
+<body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- HEADER -->
+    <header class="p-6 glass sticky top-0 z-50 flex justify-between items-center border-b border-white/5">
+        <div class="flex items-center gap-4">
+            <div id="brand-logo" class="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-white shadow-xl shadow-accent/20 overflow-hidden">
+                <i class="fas fa-shopping-bag text-xl"></i>
+            </div>
+            <div>
+                <h1 id="brand-name" class="text-[10px] font-black uppercase tracking-[0.3em] text-accent leading-none mb-1">BOS Store</h1>
+                <p id="customer-name" class="text-lg font-extrabold tracking-tight">Loading...</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleHistory()" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-gray-400">
+                <i class="fas fa-history"></i>
+            </button>
+            <button onclick="tg.close()" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-gray-400 font-bold">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main id="main-content" class="flex-1 overflow-y-auto p-5 space-y-10 no-scrollbar pb-40">
+        
+        <!-- SUGGESTED FOR YOU (Dynamic) -->
+        <section id="section-suggested" class="hidden">
+            <div class="flex items-center justify-between mb-5 px-1">
+                <div class="flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-accent animate-pulse"></span>
+                    <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Personalizzati</h2>
+                </div>
+                <span class="text-[9px] font-black bg-white/5 text-white/40 px-3 py-1 rounded-full uppercase tracking-widest">Scelti dall'IA</span>
+            </div>
+            <div id="suggested-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+                <!-- Dinamico: Suggested Cards -->
+            </div>
+        </section>
+
+        <!-- MAIN CATALOG -->
+        <section>
+            <div class="flex items-center gap-2 mb-5 px-1">
+                <h2 class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Tutti i Prodotti</h2>
+            </div>
+            <div id="catalog-grid" class="grid grid-cols-2 gap-4">
+                <!-- Dinamico: Catalog Cards -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ORDER HISTORY OVERLAY -->
+    <div id="history-overlay" class="fixed inset-0 bg-dark/95 z-[200] translate-x-full transition-transform duration-500 flex flex-col hidden">
+        <header class="p-8 flex justify-between items-center border-b border-white/5">
+            <h2 class="text-xl font-black uppercase tracking-tighter">I tuoi ordini</h2>
+            <button onclick="toggleHistory()" class="text-2xl text-gray-500"><i class="fas fa-times-circle"></i></button>
+        </header>
+        <div id="history-list" class="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+            <!-- Dinamico: History items -->
+        </div>
+    </div>
+
+    <!-- FLOATING CHECKOUT BAR -->
+    <div id="checkout-bar" class="fixed bottom-0 left-0 right-0 p-8 glass border-t border-white/5 z-[150] translate-y-full transition-transform duration-500">
+        <div class="flex items-center justify-between gap-8">
+            <div class="flex flex-col">
+                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1">Totale Stimato</span>
+                <span id="total-price" class="text-3xl font-black tracking-tighter text-white">€ 0,00</span>
+            </div>
+            <button onclick="confirmOrder()" class="flex-1 bg-white text-dark h-16 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-white/10 active:scale-95 transition flex items-center justify-center gap-3">
+                <span>Invia Ordine</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- GLOBAL LOADER -->
+    <div id="global-loader" class="fixed inset-0 bg-dark z-[500] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
+        <div class="w-16 h-16 border-4 border-surface border-t-accent rounded-full animate-spin mb-8 shadow-[0_0_30px_rgba(137,95,224,0.2)]"></div>
+        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-accent animate-pulse">SiteBoS Intelligence Sync</p>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/8eb69e84-d20d-486e-a70e-9acf31c3da9e";
+        const params = new URLSearchParams(window.location.search);
+        const ashToken = params.get('ash');
+
+        let catalog = [];
+        let history = [];
+        let cart = {}; 
+        let urlMiniApp = "https://trinaibusinessoperatingsystem.github.io/SiteBoS-MiniApp"; // Fallback
+        let vat = params.get('vat') || 'default';
+
+        window.onload = async () => {
+            if (!ashToken) {
+                tg.showAlert("Accesso Negato: ASH Token non valido.");
+                return;
+            }
+            await initApp();
+        };
+
+        async function initApp() {
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ashToken,
+                        action: 'u_calc_ecom_get'
+                    })
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    catalog = data.catalog || [];
+                    history = data.history || [];
+                    if (data.urlMiniApp) urlMiniApp = data.urlMiniApp;
+                    if (data.vat) vat = data.vat;
+                    
+                    renderUI(data.brand || {});
+                    hideLoader();
+                } else {
+                    tg.showAlert("Impossibile caricare il catalogo. Riprova più tardi.");
+                }
+            } catch (error) {
+                console.error("Init error:", error);
+                tg.showAlert("Errore di connessione con SiteBoS OS.");
+            }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('global-loader');
+            loader.classList.add('opacity-0');
+            setTimeout(() => loader.classList.add('hidden'), 300);
+        }
+
+        function renderUI(brand) {
+            document.getElementById('brand-name').innerText = brand.name || "SiteBoS Store";
+            document.getElementById('customer-name').innerText = (tg.initDataUnsafe.user?.first_name || "Cliente").toUpperCase();
+            
+            if (brand.logo) {
+                document.getElementById('brand-logo').innerHTML = `<img src="${brand.logo}" class="w-full h-full object-cover">`;
+            }
+
+            renderSuggested();
+            renderCatalog();
+            renderHistory();
+        }
+
+        function renderSuggested() {
+            const suggestedList = document.getElementById('suggested-list');
+            const counts = {};
+            history.forEach(order => {
+                order.items?.forEach(item => {
+                    counts[item.sku] = (counts[item.sku] || 0) + 1;
+                });
+            });
+
+            const sortedSkus = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
+            const suggestedProducts = catalog.filter(p => sortedSkus.includes(p.callback_data));
+
+            if (suggestedProducts.length > 0) {
+                document.getElementById('section-suggested').classList.remove('hidden');
+                suggestedList.innerHTML = suggestedProducts.map(p => `
+                    <div class="flex-shrink-0 w-44 glass p-4 rounded-5xl space-y-4 bento-card relative overflow-hidden" onclick="addToCart('${p.callback_data}')">
+                        <div class="w-full aspect-square rounded-4xl bg-dark/50 overflow-hidden border border-white/5">
+                            <img src="${urlMiniApp}/images/${vat}/${p.callback_data.toLowerCase()}.jpg" 
+                                 onerror="this.src='https://via.placeholder.com/400x400/1e293b/ffffff?text=PRODOTTO'"
+                                 class="w-full h-full object-cover">
+                        </div>
+                        <div class="px-1">
+                            <h3 class="font-bold text-[11px] truncate leading-tight text-white/90">${p.short_name || p.name}</h3>
+                            <p class="text-accent font-black text-sm mt-1">€ ${p.price || '0.00'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderCatalog() {
+            const grid = document.getElementById('catalog-grid');
+            grid.innerHTML = catalog.map(p => `
+                <div class="glass p-4 rounded-5xl space-y-4 bento-card relative overflow-hidden group">
+                    <div class="w-full aspect-square rounded-[2rem] bg-dark/30 overflow-hidden border border-white/5">
+                        <img src="${urlMiniApp}/images/${vat}/${p.callback_data.toLowerCase()}.jpg" 
+                             onerror="this.src='https://via.placeholder.com/400x400/1e293b/ffffff?text=${p.short_name || 'PRD'}'"
+                             class="w-full h-full object-cover group-hover:scale-110 transition duration-700 ease-out">
+                    </div>
+                    <div class="px-1">
+                        <h3 class="font-bold text-xs leading-snug mb-2 h-8 overflow-hidden text-white/80">${p.name}</h3>
+                        <div class="flex justify-between items-center">
+                            <span class="text-white font-black text-lg">€ ${p.price || '0.00'}</span>
+                            <button onclick="event.stopPropagation(); addToCart('${p.callback_data}')" 
+                                    class="w-10 h-10 bg-white text-dark rounded-full flex items-center justify-center active:scale-75 transition-all shadow-lg">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ${cart[p.callback_data] ? `
+                        <div class="quantity-badge absolute top-3 right-3 bg-accent text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-dark shadow-xl">
+                            ${cart[p.callback_data]}
+                        </div>
+                    ` : ''}
+                </div>
+            `).join('');
+        }
+
+        function addToCart(sku) {
+            cart[sku] = (cart[sku] || 0) + 1;
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            updateCheckoutBar();
+            renderCatalog();
+        }
+
+        function updateCheckoutBar() {
+            const bar = document.getElementById('checkout-bar');
+            let total = 0;
+            let count = 0;
+
+            Object.keys(cart).forEach(sku => {
+                const product = catalog.find(p => p.callback_data === sku);
+                if (product) {
+                    total += (parseFloat(product.price) || 0) * cart[sku];
+                    count += cart[sku];
+                }
+            });
+
+            document.getElementById('total-price').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
+            
+            if (count > 0) {
+                bar.classList.remove('translate-y-full');
+            } else {
+                bar.classList.add('translate-y-full');
+            }
+        }
+
+        function toggleHistory() {
+            const overlay = document.getElementById('history-overlay');
+            const isHidden = overlay.classList.contains('hidden');
+            if (isHidden) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('translate-x-full'), 10);
+            } else {
+                overlay.classList.add('translate-x-full');
+                setTimeout(() => overlay.classList.add('hidden'), 500);
+            }
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            if (history.length === 0) {
+                list.innerHTML = `<div class="text-center py-20 opacity-20 font-black uppercase text-[10px] tracking-[0.2em]">Nessun ordine trovato</div>`;
+                return;
+            }
+
+            list.innerHTML = history.map(h => `
+                <div class="glass p-6 rounded-4xl space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <div class="text-[10px] font-black uppercase text-accent mb-1">${h.order_info?.status || 'PENDING'}</div>
+                            <div class="text-sm font-bold text-white/90">${new Date(h.order_info?.timestamp).toLocaleDateString('it-IT', {day:'2-digit', month:'short', year:'numeric'})}</div>
+                        </div>
+                        <div class="text-lg font-black tracking-tighter italic">#${h.order_info?.order_id?.slice(-4) || '----'}</div>
+                    </div>
+                    <div class="space-y-2 border-t border-white/5 pt-4">
+                        ${h.items?.map(i => `
+                            <div class="flex justify-between text-xs text-gray-400 font-medium">
+                                <span>${i.quantity}x ${i.name}</span>
+                                <span>€ ${(i.price * i.quantity).toFixed(2)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="flex justify-between items-center border-t border-white/5 pt-4">
+                        <span class="text-[10px] font-black uppercase text-gray-500">Totale Pagato</span>
+                        <span class="text-white font-black">€ ${h.order_info?.total_amount?.toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function confirmOrder() {
+            const items = Object.keys(cart).map(sku => {
+                const p = catalog.find(x => x.callback_data === sku);
+                return {
+                    sku: sku,
+                    name: p.name,
+                    price: p.price,
+                    quantity: cart[sku]
+                };
+            });
+
+            const total = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+
+            tg.showConfirm(`Confermi l'invio di questo ordine per un totale di € ${total.toFixed(2)}?\n\nIl pagamento avverrà alla consegna.`, async (ok) => {
+                if (ok) {
+                    try {
+                        const response = await fetch(WH_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                _auth: tg.initData,
+                                ash: ashToken,
+                                action: 'u_calc_ecom_save',
+                                order_data: {
+                                    items: items,
+                                    total_amount: total,
+                                    timestamp: new Date().toISOString()
+                                }
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                            tg.showAlert("✅ Ordine inoltrato correttamente!\n\nAbbiamo notificato l'Owner. Riceverai presto un aggiornamento su Telegram.", () => {
+                                tg.close();
+                            });
+                        } else {
+                            tg.showAlert("Errore durante l'elaborazione dell'ordine.");
+                        }
+                    } catch (e) {
+                        tg.showAlert("Errore critico durante l'invio. Verifica la tua connessione.");
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
