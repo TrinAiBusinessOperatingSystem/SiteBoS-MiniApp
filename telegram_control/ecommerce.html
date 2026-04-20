@@ -56,11 +56,12 @@
         .modal-hidden .modal-content { transform: translateY(100%); }
         
         select { -webkit-appearance: none; background: transparent; border: none; outline: none; width: 100%; }
+        input, textarea { outline: none; }
     </style>
 </head>
 <body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm">
 
-    <!-- HEADER (Redesigned for better spacing) -->
+    <!-- HEADER (Double Row for better layout) -->
     <header class="bg-white border-b border-gray-50 sticky top-0 z-50 shadow-sm flex flex-col">
         <div class="px-6 pt-6 pb-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
@@ -68,7 +69,7 @@
                     <i class="fas fa-shopping-bag text-lg"></i>
                 </div>
                 <div class="flex flex-col">
-                    <p id="customer-name" class="text-[10px] font-black tracking-[0.15em] text-gray-400 leading-none mb-1 uppercase truncate max-w-[120px]">Loading...</p>
+                    <p id="customer-name" class="text-[10px] font-black tracking-[0.15em] text-gray-400 leading-none mb-1 uppercase truncate max-w-[120px]">Marketplace</p>
                     <h1 class="font-black text-xs tracking-tighter uppercase">Marketplace BOS</h1>
                 </div>
             </div>
@@ -78,7 +79,6 @@
             </div>
         </div>
         
-        <!-- CATEGORY DROPDOWN (Distinct Row) -->
         <div class="px-6 pb-4">
             <div class="relative bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100 flex items-center">
                 <i class="fas fa-filter text-[10px] mr-3 opacity-20"></i>
@@ -102,7 +102,7 @@
     <!-- PRODUCT DETAIL MODAL -->
     <div id="product-modal" class="fixed inset-0 z-[500] modal-hidden flex flex-col">
         <div class="modal-overlay absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModal()"></div>
-        <div class="modal-content mt-auto bg-white rounded-t-[3rem] p-8 space-y-6 relative flex flex-col max-h-[92vh] shadow-2xl">
+        <div class="modal-content mt-auto bg-white rounded-t-[3rem] p-8 space-y-6 relative flex flex-col max-h-[92vh] shadow-2xl border-t border-gray-100">
             <div class="w-12 h-1 bg-gray-100 rounded-full mx-auto mb-2"></div>
             <div class="overflow-y-auto no-scrollbar space-y-6 pb-10">
                 <div id="modal-img-container" class="w-full aspect-video rounded-3xl bg-gray-50 overflow-hidden border border-gray-100">
@@ -137,14 +137,26 @@
         <div class="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar pb-40">
             <div id="summary-list" class="space-y-4"></div>
             
-            <div id="location-box" class="p-6 bg-gray-50 rounded-4xl space-y-4 border border-gray-100 relative overflow-hidden">
+            <div id="location-box" class="p-6 bg-gray-50 rounded-4xl space-y-6 border border-gray-100 relative overflow-hidden">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Indirizzo di consegna</h3>
-                    <button onclick="requestLocation()" id="btn-location" class="text-[9px] font-black uppercase text-blue-500 px-3 py-1.5 bg-blue-50 rounded-full">Condividi GPS</button>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Dati Consegna</h3>
+                    <button onclick="requestLocation()" id="btn-location" class="text-[9px] font-black uppercase text-blue-500 px-3 py-1.5 bg-blue-50 rounded-full flex items-center gap-2">
+                        <i class="fas fa-location-arrow"></i>
+                        <span>Usa GPS</span>
+                    </button>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-gray-300" id="location-icon"><i class="fas fa-map-marker-alt"></i></div>
-                    <span id="location-status" class="font-bold text-gray-400 text-xs">Richiesto per procedere</span>
+                
+                <div class="space-y-4">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-gray-300" id="location-icon"><i class="fas fa-map-marker-alt"></i></div>
+                        <span id="location-status" class="font-bold text-gray-400 text-[11px]">Coordinate GPS richieste</span>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label class="text-[9px] font-black uppercase tracking-widest text-gray-400 ml-2">Indirizzo Esatto (Via, N., Città)</label>
+                        <textarea id="manual-address" rows="3" oninput="updateConfirmButton()" class="w-full bg-white border border-gray-100 rounded-2xl p-4 text-xs font-bold focus:border-black transition" placeholder="Es: Via Roma 10, Gela (CL)"></textarea>
+                        <p class="text-[9px] text-gray-400 italic px-2">L'indirizzo è obbligatorio per procedere con l'ordine.</p>
+                    </div>
                 </div>
             </div>
 
@@ -156,13 +168,13 @@
                 </div>
             </div>
         </div>
-        <footer class="p-8 bg-white border-t border-gray-50 fixed bottom-0 left-0 right-0 z-50">
+        <footer class="p-8 bg-white border-t border-gray-50 fixed bottom-0 left-0 right-0 z-50 shadow-2xl">
             <div class="flex justify-between items-center mb-6 px-2">
                 <span class="text-xs font-black uppercase text-gray-300">Da pagare</span>
-                <span id="summary-total" class="text-3xl font-black tracking-tighter"></span>
+                <span id="summary-total" class="text-3xl font-black tracking-tighter italic"></span>
             </div>
             <button id="final-confirm-btn" onclick="sendOrder()" class="w-full bg-gray-100 text-gray-400 h-16 rounded-[2.5rem] font-black text-xs uppercase tracking-[0.2em] transition-all cursor-not-allowed">
-                Condividi posizione per ordinare
+                Completa i dati
             </button>
         </footer>
     </div>
@@ -177,7 +189,7 @@
     </div>
 
     <!-- CHECKOUT BAR -->
-    <div id="checkout-bar" class="fixed bottom-0 left-0 right-0 p-8 bg-white border-t border-gray-50 z-[100] translate-y-full transition-transform duration-500 shadow-[0_-15px_50px_rgba(0,0,0,0.08)]">
+    <div id="checkout-bar" class="fixed bottom-0 left-0 right-0 p-8 bg-white border-t border-gray-100 z-[100] translate-y-full transition-transform duration-500 shadow-[0_-15px_50px_rgba(0,0,0,0.08)]">
         <div class="flex items-center justify-between gap-6 max-w-2xl mx-auto">
             <div class="flex flex-col">
                 <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-1">Il tuo totale</span>
@@ -223,7 +235,7 @@
                     imgRoot = (d.urlMiniApp || "").replace('telegram_control/', '');
                     categories = [...new Set(catalog.map(p => p.category))];
                     renderUI(d.brand || {}); hideLoader();
-                } else { tg.showAlert("Dati non validi."); }
+                }
             } catch (e) { tg.showAlert("Connessione fallita."); }
         }
 
@@ -236,8 +248,7 @@
             const select = document.getElementById('category-select');
             select.innerHTML = '<option value="ALL">TUTTI I PRODOTTI</option>';
             categories.forEach(cat => {
-                const opt = document.createElement('option');
-                opt.value = cat;
+                const opt = document.createElement('option'); opt.value = cat;
                 opt.innerText = cat.replace('[PRO] ', '').toUpperCase();
                 select.appendChild(opt);
             });
@@ -275,15 +286,13 @@
         }
 
         function renderCatalog() {
-            const container = document.getElementById('catalog-container');
-            container.innerHTML = '';
+            const container = document.getElementById('catalog-container'); container.innerHTML = '';
             const filteredCategories = currentFilter === 'ALL' ? categories : [currentFilter];
             filteredCategories.forEach(cat => {
                 const products = catalog.filter(p => p.category === cat);
                 if (products.length === 0) return;
                 const section = document.createElement('section');
-                section.id = `section-${cat.replace(/\s/g, '_')}`;
-                section.className = "space-y-6";
+                section.id = `section-${cat.replace(/\s/g, '_')}`; section.className = "space-y-6";
                 section.innerHTML = `
                     <h2 class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 px-1 border-l-2 border-black ml-1 pl-3">${cat.replace('[PRO] ', '')}</h2>
                     <div class="grid grid-cols-2 gap-4">
@@ -298,7 +307,7 @@
                                         <span class="font-black text-sm italic">€ ${parseFloat(p.price).toFixed(2)}</span>
                                         <div class="flex items-center gap-1">
                                             ${cart[p.callback_data] ? `
-                                                <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', -1)" class="w-8 h-8 bg-gray-100 text-black rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-minus text-[8px]"></i></button>
+                                                <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', -1)" class="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center active:scale-75 transition border border-gray-100"><i class="fas fa-minus text-[8px]"></i></button>
                                                 <span class="font-black text-xs min-w-[15px] text-center">${cart[p.callback_data]}</span>
                                             ` : ''}
                                             <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', 1)" class="w-8 h-8 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition shadow-md"><i class="fas fa-plus text-[8px]"></i></button>
@@ -360,7 +369,7 @@
                 const p = catalog.find(x => x.callback_data === sku);
                 const sub = (parseFloat(p.price) || 0) * cart[sku]; total += sub;
                 return `
-                <div class="flex justify-between items-center bg-gray-50 p-6 rounded-4xl border border-gray-100">
+                <div class="flex justify-between items-center bg-gray-50 p-6 rounded-4xl border border-gray-100 shadow-sm">
                     <div class="flex-1"><div class="font-black text-sm uppercase leading-tight">${p.name}</div><div class="text-[9px] text-gray-300 mt-2 uppercase font-bold tracking-widest">${cart[sku]}x € ${parseFloat(p.price).toFixed(2)}</div></div>
                     <div class="font-black text-sm ml-4">€ ${sub.toFixed(2)}</div>
                 </div>`;
@@ -371,28 +380,35 @@
 
         function requestLocation() {
             if (navigator.geolocation) {
-                document.getElementById('location-status').innerText = "Rilevamento in corso...";
+                document.getElementById('location-status').innerText = "Rilevamento hardware...";
+                const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
                 navigator.geolocation.getCurrentPosition((pos) => {
                     userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
                     document.getElementById('location-status').innerText = "Posizione acquisita ✅";
                     document.getElementById('location-status').classList.remove('text-gray-400');
                     document.getElementById('location-status').classList.add('text-green-600');
-                    document.getElementById('location-icon').classList.add('text-green-600', 'animate-bounce');
+                    document.getElementById('location-icon').classList.add('text-green-600');
                     document.getElementById('btn-location').classList.add('hidden');
                     updateConfirmButton();
-                }, (err) => { tg.showAlert("Errore GPS. Attiva la localizzazione per continuare."); });
+                }, (err) => { 
+                    console.error(err);
+                    tg.showAlert("GPS Error: " + err.message + ". Inserisci l'indirizzo manualmente.");
+                    document.getElementById('location-status').innerText = "GPS Fallito. Inserire indirizzo.";
+                }, options);
             }
         }
 
         function updateConfirmButton() {
             const btn = document.getElementById('final-confirm-btn');
-            if (userCoords) {
+            const address = document.getElementById('manual-address').value.trim();
+            // L'ordine è possibile SOLO se c'è l'indirizzo manuale (GPS è opzionale ma consigliato)
+            if (address.length > 5) {
                 btn.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
                 btn.classList.add('bg-black', 'text-white');
                 btn.innerText = "Conferma e Ordina";
             } else {
                 btn.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
-                btn.innerText = "Condividi posizione per ordinare";
+                btn.innerText = "Inserisci indirizzo per ordinare";
             }
         }
 
@@ -404,7 +420,7 @@
 
         function renderHistory() {
             const list = document.getElementById('history-list');
-            if (history.length === 0) { list.innerHTML = `<div class="text-center py-20 opacity-20 font-black text-[10px] uppercase">Storico Vuoto</div>`; return; }
+            if (history.length === 0) { list.innerHTML = `<div class="text-center py-20 opacity-20 font-black text-[9px] uppercase">Vuoto</div>`; return; }
             list.innerHTML = history.map(h => `
                 <div class="bg-gray-50 p-8 rounded-5xl space-y-4 border border-gray-100">
                     <div class="flex justify-between items-start">
@@ -414,12 +430,14 @@
                     <div class="space-y-2 border-t border-gray-100 pt-5">
                         ${h.items?.map(i => `<div class="flex justify-between text-xs font-medium text-gray-500"><span>${i.quantity}x ${i.name}</span><span>€ ${(i.price * i.quantity).toFixed(2)}</span></div>`).join('')}
                     </div>
-                    <div class="flex justify-between items-center pt-4"><span class="text-[9px] font-black uppercase text-gray-300">Totale</span><span class="font-black text-lg">€ ${parseFloat(h.total_amount || 0).toFixed(2)}</span></div>
+                    <div class="flex justify-between items-center pt-4"><span class="text-[9px] font-black uppercase text-gray-300">Pagato</span><span class="font-black text-lg">€ ${parseFloat(h.total_amount || 0).toFixed(2)}</span></div>
                 </div>`).join('');
         }
 
         async function sendOrder() {
-            if (!userCoords) { tg.showAlert("È necessaria la posizione per la consegna."); return; }
+            const address = document.getElementById('manual-address').value.trim();
+            if (address.length <= 5) { tg.showAlert("Fornisci un indirizzo valido per la consegna."); return; }
+            
             const items = Object.keys(cart).map(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
                 return { sku, name: p.name, price: parseFloat(p.price), quantity: cart[sku] };
@@ -429,11 +447,11 @@
                 const res = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_save', order_data: { items, total_amount: total, timestamp: new Date().toISOString(), location: userCoords } })
+                    body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_save', order_data: { items, total_amount: total, timestamp: new Date().toISOString(), location: userCoords, address: address } })
                 });
                 const r = await res.json();
-                if (r.success) { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); tg.showAlert("✅ Ordine confermato! Grazie.", () => tg.close()); }
-            } catch (e) { tg.showAlert("Errore durante l'invio."); }
+                if (r.success) { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); tg.showAlert("✅ Grazie! Ordine inviato.", () => tg.close()); }
+            } catch (e) { tg.showAlert("Errore invio."); }
         }
     </script>
 </body>
