@@ -48,10 +48,9 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .bento-card { transition: all 0.3s ease; border: 1px solid #eeeeee; }
         .bento-card:active { transform: scale(0.97); background-color: #fcfcfc; }
-        .safe-bottom { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+        .safe-bottom { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
         
-        /* Overlays */
-        .overlay { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 400; background-color: #ffffff; }
+        .overlay { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 400; background-color: #ffffff; position: fixed; inset: 0; }
         .overlay-hidden { transform: translateX(100%); }
         .modal-hidden { opacity: 0; pointer-events: none; }
         .modal-hidden .modal-content { transform: translateY(100%); }
@@ -61,16 +60,15 @@
 </head>
 <body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm">
 
-    <!-- HEADER (Monoriga) -->
+    <!-- HEADER -->
     <header class="p-6 bg-white border-b border-gray-100 sticky top-0 z-50 flex justify-between items-center h-[90px]">
         <div class="flex items-center gap-4">
             <div id="brand-logo" class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white overflow-hidden">
                 <i class="fas fa-shopping-bag"></i>
             </div>
             <div class="flex flex-col">
-                <p id="customer-name" class="text-[10px] font-black tracking-widest text-gray-400 leading-none mb-1">BENVENUTO</p>
+                <p id="customer-name" class="text-[10px] font-black tracking-widest text-gray-400 leading-none mb-1 uppercase">Loading...</p>
                 <div class="relative flex items-center">
-                    <!-- DROPDOWN CATEGORIES -->
                     <select id="category-select" onchange="filterCategory(this.value)" class="font-black text-sm uppercase tracking-tight outline-none pr-6 bg-transparent z-10">
                         <option value="ALL">TUTTI I PRODOTTI</option>
                     </select>
@@ -86,18 +84,11 @@
 
     <!-- CONTENT -->
     <main id="main-content" class="flex-1 overflow-y-auto p-5 space-y-12 no-scrollbar safe-bottom">
-        
-        <!-- SUGGESTED -->
         <section id="section-suggested" class="hidden">
             <h2 class="text-[10px] font-black uppercase tracking-widest text-gray-300 mb-5 px-1 border-l-2 border-gray-100 pl-3">I tuoi preferiti</h2>
             <div id="suggested-list" class="flex gap-4 overflow-x-auto no-scrollbar pb-2"></div>
         </section>
-
-        <!-- CATALOG CONTAINER -->
-        <div id="catalog-container" class="space-y-12">
-            <!-- Dinamico: Category Sections + Grids -->
-        </div>
-
+        <div id="catalog-container" class="space-y-12"></div>
     </main>
 
     <!-- PRODUCT DETAIL MODAL -->
@@ -129,18 +120,16 @@
         </div>
     </div>
 
-    <!-- SUMMARY OVERLAY (PAGINA RIEPILOGO) -->
-    <div id="summary-overlay" class="fixed inset-0 overlay overlay-hidden flex flex-col">
+    <!-- SUMMARY OVERLAY -->
+    <div id="summary-overlay" class="overlay overlay-hidden flex flex-col">
         <header class="p-8 flex justify-between items-center border-b border-gray-100">
             <h2 class="text-xl font-black uppercase tracking-tighter">Riepilogo Ordine</h2>
             <button onclick="toggleSummary()" class="text-gray-300 text-2xl"><i class="fas fa-times-circle"></i></button>
         </header>
         <div class="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
-            <div id="summary-list" class="space-y-6">
-                <!-- Dinamico: Riassunto carrello -->
-            </div>
+            <div id="summary-list" class="space-y-6"></div>
             <div class="p-6 bg-gray-50 rounded-4xl space-y-4">
-                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Informazioni di pagamento</h3>
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Pagamento</h3>
                 <div class="flex items-center gap-4">
                     <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm"><i class="fas fa-truck text-xs"></i></div>
                     <span class="font-bold">Pagamento alla consegna</span>
@@ -149,17 +138,15 @@
         </div>
         <footer class="p-8 bg-white border-t border-gray-100">
             <div class="flex justify-between items-center mb-6 px-2">
-                <span class="text-xs font-black uppercase text-gray-400">Totale Finale</span>
+                <span class="text-xs font-black uppercase text-gray-400">Totale</span>
                 <span id="summary-total" class="text-3xl font-black tracking-tighter"></span>
             </div>
-            <button onclick="sendOrder()" class="w-full bg-black text-white h-16 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 transition">
-                Conferma e Ordina
-            </button>
+            <button onclick="sendOrder()" class="w-full bg-black text-white h-16 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl active:scale-95 transition">Conferma e Ordina</button>
         </footer>
     </div>
 
     <!-- HISTORY OVERLAY -->
-    <div id="history-overlay" class="fixed inset-0 overlay overlay-hidden flex flex-col">
+    <div id="history-overlay" class="overlay overlay-hidden flex flex-col">
         <header class="p-8 flex justify-between items-center border-b border-gray-100">
             <h2 class="text-xl font-black uppercase tracking-tighter">I tuoi ordini</h2>
             <button onclick="toggleHistory()" class="text-gray-300 text-2xl"><i class="fas fa-times-circle"></i></button>
@@ -172,11 +159,10 @@
         <div class="flex items-center justify-between gap-6 max-w-2xl mx-auto">
             <div class="flex flex-col">
                 <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Totale</span>
-                <span id="total-price" class="text-2xl font-black tracking-tighter">€ 0,00</span>
+                <span id="total-price-bar" class="text-2xl font-black tracking-tighter">€ 0,00</span>
             </div>
             <button onclick="toggleSummary()" class="flex-1 bg-black text-white h-16 rounded-[2rem] font-black text-xs uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-3">
-                <span>Procedi</span>
-                <i class="fas fa-arrow-right"></i>
+                <span>Procedi</span><i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </div>
@@ -184,7 +170,7 @@
     <!-- LOADER -->
     <div id="global-loader" class="fixed inset-0 bg-white z-[600] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
         <div class="w-12 h-12 border-2 border-gray-100 border-t-black rounded-full animate-spin mb-4"></div>
-        <p class="text-[10px] font-black uppercase tracking-widest text-gray-300 animate-pulse">SiteBoS OS...</p>
+        <p id="loader-msg" class="text-[10px] font-black uppercase tracking-widest text-gray-300 animate-pulse">Sincronizzazione...</p>
     </div>
 
     <script>
@@ -205,39 +191,61 @@
         let currentFilter = 'ALL';
 
         window.onload = async () => {
-            if (!ashToken) { tg.showAlert("ASH Token mancante."); return; }
+            if (!ashToken) {
+                document.getElementById('loader-msg').innerText = "ERRORE SICUREZZA";
+                tg.showAlert("Sessione non valida (ASH mancante).");
+                return;
+            }
             await initApp();
         };
 
         async function initApp() {
             try {
-                const res = await fetch(WH_URL, {
+                const response = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_get' })
                 });
-                const dArray = await res.json();
-                const d = dArray[0] || dArray; 
-                if (d.success) {
-                    catalog = d.catalog || [];
-                    history = d.history || [];
-                    vat = d.vat || vat;
-                    imgRoot = (d.urlMiniApp || "").replace('telegram_control/', '');
+
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                
+                const rawResponse = await response.json();
+                console.log("Raw Response:", rawResponse);
+
+                // Gestione array o oggetto singolo
+                const data = Array.isArray(rawResponse) ? rawResponse[0] : rawResponse;
+
+                if (data && data.success) {
+                    catalog = data.catalog || [];
+                    history = data.history || [];
+                    vat = data.vat || vat;
+                    imgRoot = (data.urlMiniApp || "").replace('telegram_control/', '');
                     categories = [...new Set(catalog.map(p => p.category))];
-                    renderUI(d.brand || {});
+                    
+                    renderUI(data.brand || {});
                     hideLoader();
-                } else { tg.showAlert("Errore caricamento."); }
-            } catch (e) { tg.showAlert("Errore connessione."); }
+                } else {
+                    document.getElementById('loader-msg').innerText = "ERRORE DATI";
+                    tg.showAlert("Errore: Il server ha risposto con dati non validi.");
+                }
+            } catch (error) {
+                console.error("Init error:", error);
+                document.getElementById('loader-msg').innerText = "ERRORE CONNESSIONE";
+                tg.showAlert("Errore di connessione: " + error.message);
+            }
         }
 
-        function hideLoader() { const l = document.getElementById('global-loader'); l.classList.add('opacity-0'); setTimeout(() => l.classList.add('hidden'), 300); }
+        function hideLoader() { 
+            const l = document.getElementById('global-loader');
+            l.classList.add('opacity-0'); setTimeout(() => l.classList.add('hidden'), 300);
+        }
 
         function renderUI(brand) {
-            document.getElementById('brand-name').innerText = brand.name || "BOS Store";
-            document.getElementById('customer-name').innerText = (tg.initDataUnsafe.user?.first_name || "Cliente").toUpperCase();
+            document.getElementById('customer-name').innerText = (tg.initDataUnsafe.user?.first_name || "Cliente");
             if (brand.logo) document.getElementById('brand-logo').innerHTML = `<img src="${brand.logo}" class="w-full h-full object-cover">`;
             
             const select = document.getElementById('category-select');
+            select.innerHTML = '<option value="ALL">TUTTI I PRODOTTI</option>';
             categories.forEach(cat => {
                 const opt = document.createElement('option');
                 opt.value = cat;
@@ -274,7 +282,7 @@
                             ${cart[p.callback_data] ? `<div class="absolute top-2 right-2 bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white">${cart[p.callback_data]}</div>` : ''}
                         </div>
                         <h3 class="font-bold text-[10px] truncate uppercase tracking-tight">${p.short_name || p.name}</h3>
-                        <p class="font-black text-xs">€ ${p.price || '0.00'}</p>
+                        <p class="font-black text-xs">€ ${parseFloat(p.price).toFixed(2)}</p>
                     </div>`).join('');
             }
         }
@@ -300,7 +308,7 @@
                                 <div class="px-1">
                                     <h3 class="font-bold text-[11px] leading-tight mb-2 h-8 overflow-hidden">${p.name}</h3>
                                     <div class="flex justify-between items-center">
-                                        <span class="font-black text-sm">€ ${p.price || '0.00'}</span>
+                                        <span class="font-black text-sm">€ ${parseFloat(p.price).toFixed(2)}</span>
                                         <div class="flex items-center gap-1">
                                             ${cart[p.callback_data] ? `
                                                 <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', -1)" class="w-8 h-8 bg-gray-100 text-black rounded-full flex items-center justify-center active:scale-75 transition shadow-sm"><i class="fas fa-minus text-[8px]"></i></button>
@@ -322,7 +330,7 @@
             document.getElementById('modal-title').innerText = p.name;
             document.getElementById('modal-category').innerText = p.category;
             document.getElementById('modal-desc').innerText = p.long_description || p.description || "Nessuna descrizione.";
-            document.getElementById('modal-price').innerText = `€ ${p.price || '0.00'}`;
+            document.getElementById('modal-price').innerText = `€ ${parseFloat(p.price).toFixed(2)}`;
             document.getElementById('modal-img').src = `${imgRoot}images/${vat}/${p.callback_data}.jpg`;
             updateModalQty(sku);
             document.getElementById('modal-plus').onclick = () => updateQty(sku, 1, true);
@@ -352,7 +360,7 @@
                 const p = catalog.find(x => x.callback_data === sku);
                 if (p) { total += (parseFloat(p.price) || 0) * cart[sku]; count += cart[sku]; }
             });
-            document.getElementById('total-price').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
+            document.getElementById('total-price-bar').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
             document.getElementById('checkout-bar').classList.toggle('translate-y-full', count === 0);
         }
 
@@ -373,8 +381,8 @@
                 return `
                 <div class="flex justify-between items-center bg-gray-50 p-6 rounded-3xl">
                     <div class="flex-1">
-                        <div class="font-black text-sm leading-tight">${p.name}</div>
-                        <div class="text-[10px] text-gray-400 mt-1 uppercase font-bold">${cart[sku]} unità x € ${p.price}</div>
+                        <div class="font-black text-sm leading-tight uppercase">${p.name}</div>
+                        <div class="text-[10px] text-gray-400 mt-1 uppercase font-bold">${cart[sku]} unità x € ${parseFloat(p.price).toFixed(2)}</div>
                     </div>
                     <div class="font-black text-sm ml-4">€ ${sub.toFixed(2)}</div>
                 </div>`;
@@ -396,11 +404,13 @@
                 <div class="bg-gray-50 p-6 rounded-4xl space-y-4 border border-gray-100">
                     <div class="flex justify-between items-start">
                         <div><div class="text-[9px] font-black uppercase text-gray-400 mb-1">${h.status || 'RICHIESTO'}</div><div class="text-sm font-bold">${new Date(h.timestamp).toLocaleDateString()}</div></div>
-                        <div class="text-sm font-black italic">#${h.order_id?.slice(-4) || '----'}</div>
+                    </div>
+                    <div class="space-y-2 border-t border-gray-200 pt-4">
+                        ${h.items?.map(i => `<div class="flex justify-between text-xs text-gray-400"><span>${i.quantity}x ${i.name}</span><span>€ ${(i.price * i.quantity).toFixed(2)}</span></div>`).join('')}
                     </div>
                     <div class="flex justify-between items-center border-t border-gray-200 pt-4">
                         <span class="text-[9px] font-black uppercase text-gray-300">Totale</span>
-                        <span class="font-black">€ ${h.total_amount?.toFixed(2)}</span>
+                        <span class="font-black">€ ${parseFloat(h.total_amount || 0).toFixed(2)}</span>
                     </div>
                 </div>`).join('');
         }
@@ -408,7 +418,7 @@
         async function sendOrder() {
             const items = Object.keys(cart).map(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
-                return { sku, name: p.name, price: p.price, quantity: cart[sku] };
+                return { sku, name: p.name, price: parseFloat(p.price), quantity: cart[sku] };
             });
             const total = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
             try {
