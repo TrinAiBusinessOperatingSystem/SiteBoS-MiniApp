@@ -48,7 +48,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .bento-card { transition: all 0.3s ease; border: 1px solid #eeeeee; }
         .bento-card:active { transform: scale(0.97); background-color: #fcfcfc; }
-        .safe-bottom { padding-bottom: calc(130px + env(safe-area-inset-bottom)); }
+        .safe-bottom { padding-bottom: calc(120px + env(safe-area-inset-bottom)); }
         
         .overlay { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); z-index: 400; background-color: #ffffff; position: fixed; inset: 0; }
         .overlay-hidden { transform: translateX(100%); }
@@ -57,11 +57,13 @@
         
         select { -webkit-appearance: none; background: transparent; border: none; outline: none; width: 100%; }
         input, textarea { outline: none; }
+        .pay-option { border: 2px solid #eeeeee; transition: all 0.2s ease; }
+        .pay-option.active { border-color: #000000; background-color: #000000; color: #ffffff; }
     </style>
 </head>
 <body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm">
 
-    <!-- HEADER (Double Row for better layout) -->
+    <!-- HEADER -->
     <header class="bg-white border-b border-gray-50 sticky top-0 z-50 shadow-sm flex flex-col">
         <div class="px-6 pt-6 pb-4 flex justify-between items-center">
             <div class="flex items-center gap-4">
@@ -78,7 +80,6 @@
                 <button onclick="tg.close()" class="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-black transition"><i class="fas fa-times-circle text-2xl"></i></button>
             </div>
         </div>
-        
         <div class="px-6 pb-4">
             <div class="relative bg-gray-50 rounded-2xl px-4 py-3 border border-gray-100 flex items-center">
                 <i class="fas fa-filter text-[10px] mr-3 opacity-20"></i>
@@ -116,7 +117,7 @@
                     <h3 class="text-xs font-black uppercase tracking-widest">Descrizione</h3>
                     <p id="modal-desc" class="text-gray-500 text-sm leading-relaxed"></p>
                 </div>
-                <div class="flex items-center justify-between pt-6 border-t border-gray-50">
+                <div class="flex items-center justify-between pt-6 border-t border-gray-100">
                     <span id="modal-price" class="text-3xl font-black tracking-tighter italic"></span>
                     <div id="modal-stepper" class="flex items-center gap-4 bg-gray-50 p-2 rounded-2xl border border-gray-100">
                         <button id="modal-minus" class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm active:scale-90 transition"><i class="fas fa-minus"></i></button>
@@ -137,38 +138,35 @@
         <div class="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar pb-40">
             <div id="summary-list" class="space-y-4"></div>
             
-            <div id="location-box" class="p-6 bg-gray-50 rounded-4xl space-y-6 border border-gray-100 relative overflow-hidden">
+            <div id="location-box" class="p-6 bg-gray-50 rounded-4xl space-y-6 border border-gray-100">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Dati Consegna</h3>
-                    <button onclick="requestLocation()" id="btn-location" class="text-[9px] font-black uppercase text-blue-500 px-3 py-1.5 bg-blue-50 rounded-full flex items-center gap-2">
-                        <i class="fas fa-location-arrow"></i>
-                        <span>Usa GPS</span>
-                    </button>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Consegna</h3>
+                    <button onclick="requestLocation()" id="btn-location" class="text-[9px] font-black uppercase text-blue-500 px-3 py-1.5 bg-blue-50 rounded-full">Usa GPS</button>
                 </div>
-                
                 <div class="space-y-4">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-gray-300" id="location-icon"><i class="fas fa-map-marker-alt"></i></div>
-                        <span id="location-status" class="font-bold text-gray-400 text-[11px]">Coordinate GPS richieste</span>
+                        <span id="location-status" class="font-bold text-gray-400 text-[11px]">Posizione richiesta</span>
                     </div>
-                    
-                    <div class="space-y-2">
-                        <label class="text-[9px] font-black uppercase tracking-widest text-gray-400 ml-2">Indirizzo Esatto (Via, N., Città)</label>
-                        <textarea id="manual-address" rows="3" oninput="updateConfirmButton()" class="w-full bg-white border border-gray-100 rounded-2xl p-4 text-xs font-bold focus:border-black transition" placeholder="Es: Via Roma 10, Gela (CL)"></textarea>
-                        <p class="text-[9px] text-gray-400 italic px-2">L'indirizzo è obbligatorio per procedere con l'ordine.</p>
-                    </div>
+                    <textarea id="manual-address" rows="2" oninput="updateConfirmButton()" class="w-full bg-white border border-gray-100 rounded-2xl p-4 text-xs font-bold focus:border-black transition" placeholder="Indirizzo Esatto (Via, N., Città)"></textarea>
                 </div>
             </div>
 
-            <div class="p-6 bg-gray-50 rounded-4xl space-y-4 border border-gray-100">
+            <div class="p-6 bg-gray-50 rounded-4xl space-y-6 border border-gray-100">
                 <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 italic">Metodo di Pagamento</h3>
-                <div class="flex items-center gap-4">
-                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-black"><i class="fas fa-truck text-xs"></i></div>
-                    <span class="font-black text-xs uppercase">Pagamento alla consegna</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="setPayment('DELIVERY')" id="pay-delivery" class="pay-option active p-4 rounded-2xl flex flex-col items-center gap-2">
+                        <i class="fas fa-truck text-lg"></i>
+                        <span class="text-[9px] font-black uppercase">Alla Consegna</span>
+                    </button>
+                    <button onclick="setPayment('CARD')" id="pay-card" class="pay-option p-4 rounded-2xl flex flex-col items-center gap-2 hidden">
+                        <i class="fas fa-credit-card text-lg"></i>
+                        <span class="text-[9px] font-black uppercase">Carta / Apple Pay</span>
+                    </button>
                 </div>
             </div>
         </div>
-        <footer class="p-8 bg-white border-t border-gray-50 fixed bottom-0 left-0 right-0 z-50 shadow-2xl">
+        <footer class="p-8 bg-white border-t border-gray-50 fixed bottom-0 left-0 right-0 z-50">
             <div class="flex justify-between items-center mb-6 px-2">
                 <span class="text-xs font-black uppercase text-gray-300">Da pagare</span>
                 <span id="summary-total" class="text-3xl font-black tracking-tighter italic"></span>
@@ -204,7 +202,7 @@
     <!-- LOADER -->
     <div id="global-loader" class="fixed inset-0 bg-white z-[600] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
         <div class="w-12 h-12 border-2 border-gray-100 border-t-black rounded-full animate-spin mb-4"></div>
-        <p id="loader-msg" class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-300 animate-pulse">Sincronizzazione Operativa...</p>
+        <p id="loader-msg" class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-300 animate-pulse">SiteBoS Operating System...</p>
     </div>
 
     <script>
@@ -217,7 +215,7 @@
         const ashToken = params.get('ash');
 
         let catalog = [], categories = [], history = [], cart = {}; 
-        let imgRoot = "", vat = params.get('vat') || 'default', currentFilter = 'ALL', userCoords = null;
+        let imgRoot = "", vat = params.get('vat') || 'default', currentFilter = 'ALL', userCoords = null, paymentMode = 'DELIVERY';
 
         window.onload = async () => { if (!ashToken) { tg.showAlert("ASH Token mancante."); return; } await initApp(); };
 
@@ -234,6 +232,7 @@
                     catalog = d.catalog || []; history = d.history || []; vat = d.vat || vat;
                     imgRoot = (d.urlMiniApp || "").replace('telegram_control/', '');
                     categories = [...new Set(catalog.map(p => p.category))];
+                    if (d.payment_active) document.getElementById('pay-card').classList.remove('hidden');
                     renderUI(d.brand || {}); hideLoader();
                 }
             } catch (e) { tg.showAlert("Connessione fallita."); }
@@ -244,7 +243,6 @@
         function renderUI(brand) {
             document.getElementById('customer-name').innerText = (tg.initDataUnsafe.user?.first_name || "Cliente");
             if (brand.logo) document.getElementById('brand-logo').innerHTML = `<img src="${brand.logo}" class="w-full h-full object-cover" onerror="this.innerHTML='<i class=\'fas fa-shopping-bag\'></i>'">`;
-            
             const select = document.getElementById('category-select');
             select.innerHTML = '<option value="ALL">TUTTI I PRODOTTI</option>';
             categories.forEach(cat => {
@@ -277,10 +275,8 @@
                             <img src="${imgRoot}images/${vat}/${p.callback_data}.jpg" onerror="this.src='https://via.placeholder.com/400?text=IMG'" class="w-full h-full object-cover">
                             ${cart[p.callback_data] ? `<div class="absolute top-2 right-2 bg-black text-white w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white shadow-lg">${cart[p.callback_data]}</div>` : ''}
                         </div>
-                        <div class="px-1">
-                            <h3 class="font-black text-[10px] truncate uppercase tracking-tight">${p.short_name || p.name}</h3>
-                            <p class="font-black text-sm mt-1">€ ${parseFloat(p.price).toFixed(2)}</p>
-                        </div>
+                        <h3 class="font-black text-[10px] truncate uppercase tracking-tight">${p.short_name || p.name}</h3>
+                        <p class="font-black text-sm mt-1">€ ${parseFloat(p.price).toFixed(2)}</p>
                     </div>`).join('');
             }
         }
@@ -356,6 +352,13 @@
             document.getElementById('checkout-bar').classList.toggle('translate-y-full', count === 0);
         }
 
+        function setPayment(mode) {
+            paymentMode = mode;
+            document.getElementById('pay-delivery').classList.toggle('active', mode === 'DELIVERY');
+            document.getElementById('pay-card').classList.toggle('active', mode === 'CARD');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
         function toggleSummary() {
             const o = document.getElementById('summary-overlay');
             const h = o.classList.contains('overlay-hidden');
@@ -368,11 +371,7 @@
             const items = Object.keys(cart).map(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
                 const sub = (parseFloat(p.price) || 0) * cart[sku]; total += sub;
-                return `
-                <div class="flex justify-between items-center bg-gray-50 p-6 rounded-4xl border border-gray-100 shadow-sm">
-                    <div class="flex-1"><div class="font-black text-sm uppercase leading-tight">${p.name}</div><div class="text-[9px] text-gray-300 mt-2 uppercase font-bold tracking-widest">${cart[sku]}x € ${parseFloat(p.price).toFixed(2)}</div></div>
-                    <div class="font-black text-sm ml-4">€ ${sub.toFixed(2)}</div>
-                </div>`;
+                return `<div class="flex justify-between items-center bg-gray-50 p-6 rounded-4xl border border-gray-100"><div class="flex-1"><div class="font-black text-sm uppercase leading-tight">${p.name}</div><div class="text-[9px] text-gray-300 mt-2 uppercase font-bold tracking-widest">${cart[sku]}x € ${parseFloat(p.price).toFixed(2)}</div></div><div class="font-black text-sm ml-4">€ ${sub.toFixed(2)}</div></div>`;
             });
             list.innerHTML = items.join(''); document.getElementById('summary-total').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
             updateConfirmButton();
@@ -380,8 +379,7 @@
 
         function requestLocation() {
             if (navigator.geolocation) {
-                document.getElementById('location-status').innerText = "Rilevamento hardware...";
-                const options = { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+                document.getElementById('location-status').innerText = "Rilevamento GPS hardware...";
                 navigator.geolocation.getCurrentPosition((pos) => {
                     userCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
                     document.getElementById('location-status').innerText = "Posizione acquisita ✅";
@@ -390,68 +388,70 @@
                     document.getElementById('location-icon').classList.add('text-green-600');
                     document.getElementById('btn-location').classList.add('hidden');
                     updateConfirmButton();
-                }, (err) => { 
-                    console.error(err);
-                    tg.showAlert("GPS Error: " + err.message + ". Inserisci l'indirizzo manualmente.");
-                    document.getElementById('location-status').innerText = "GPS Fallito. Inserire indirizzo.";
-                }, options);
+                }, (err) => { tg.showAlert("Impossibile acquisire posizione GPS. Inserisci l'indirizzo a mano."); }, { enableHighAccuracy: true, timeout: 10000 });
             }
         }
 
         function updateConfirmButton() {
             const btn = document.getElementById('final-confirm-btn');
             const address = document.getElementById('manual-address').value.trim();
-            // L'ordine è possibile SOLO se c'è l'indirizzo manuale (GPS è opzionale ma consigliato)
-            if (address.length > 5) {
+            if (address.length > 5 && userCoords) {
                 btn.classList.remove('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
                 btn.classList.add('bg-black', 'text-white');
-                btn.innerText = "Conferma e Ordina";
+                btn.innerText = paymentMode === 'CARD' ? "Paga e Ordina" : "Invia Ordine";
             } else {
                 btn.classList.add('bg-gray-100', 'text-gray-400', 'cursor-not-allowed');
-                btn.innerText = "Inserisci indirizzo per ordinare";
+                btn.innerText = !userCoords ? "Condividi posizione" : "Inserisci indirizzo";
             }
         }
 
-        function toggleHistory() {
-            const o = document.getElementById('history-overlay');
-            const h = o.classList.contains('overlay-hidden');
-            if (h) o.classList.remove('overlay-hidden'); else o.classList.add('overlay-hidden');
-        }
-
-        function renderHistory() {
-            const list = document.getElementById('history-list');
-            if (history.length === 0) { list.innerHTML = `<div class="text-center py-20 opacity-20 font-black text-[9px] uppercase">Vuoto</div>`; return; }
-            list.innerHTML = history.map(h => `
-                <div class="bg-gray-50 p-8 rounded-5xl space-y-4 border border-gray-100">
-                    <div class="flex justify-between items-start">
-                        <div class="text-[9px] font-black uppercase text-gray-300">${new Date(h.timestamp).toLocaleDateString()}</div>
-                        <div class="text-[10px] font-black italic">ORD-${h.timestamp.slice(-4)}</div>
-                    </div>
-                    <div class="space-y-2 border-t border-gray-100 pt-5">
-                        ${h.items?.map(i => `<div class="flex justify-between text-xs font-medium text-gray-500"><span>${i.quantity}x ${i.name}</span><span>€ ${(i.price * i.quantity).toFixed(2)}</span></div>`).join('')}
-                    </div>
-                    <div class="flex justify-between items-center pt-4"><span class="text-[9px] font-black uppercase text-gray-300">Pagato</span><span class="font-black text-lg">€ ${parseFloat(h.total_amount || 0).toFixed(2)}</span></div>
-                </div>`).join('');
-        }
-
         async function sendOrder() {
-            const address = document.getElementById('manual-address').value.trim();
-            if (address.length <= 5) { tg.showAlert("Fornisci un indirizzo valido per la consegna."); return; }
+            if (!userCoords || document.getElementById('manual-address').value.length <= 5) return;
             
+            const btn = document.getElementById('final-confirm-btn');
+            btn.disabled = true; 
+            btn.innerText = "Invio in corso...";
+            btn.classList.add('animate-pulse');
+
             const items = Object.keys(cart).map(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
                 return { sku, name: p.name, price: parseFloat(p.price), quantity: cart[sku] };
             });
             const total = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+
             try {
                 const res = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_save', order_data: { items, total_amount: total, timestamp: new Date().toISOString(), location: userCoords, address: address } })
+                    body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_save', order_data: { items, total_amount: total, timestamp: new Date().toISOString(), location: userCoords, address: document.getElementById('manual-address').value, payment_mode: paymentMode } })
                 });
                 const r = await res.json();
-                if (r.success) { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); tg.showAlert("✅ Grazie! Ordine inviato.", () => tg.close()); }
-            } catch (e) { tg.showAlert("Errore invio."); }
+                
+                if (r.invoice_link) {
+                    tg.openInvoice(r.invoice_link, (status) => {
+                        if (status === 'paid') { tg.showAlert("✅ Pagamento completato! Ordine inviato.", () => tg.close()); }
+                        else { tg.showAlert("❌ Pagamento annullato o fallito."); btn.disabled = false; btn.innerText = "Riprova"; }
+                    });
+                } else if (r.success) {
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    tg.showAlert("✅ Ordine ricevuto! Grazie.", () => tg.close());
+                }
+            } catch (e) { 
+                tg.showAlert("Errore durante l'invio."); 
+                btn.disabled = false; btn.innerText = "Conferma e Ordina";
+            }
+        }
+
+        function toggleHistory() { const o = document.getElementById('history-overlay'); if (o.classList.contains('overlay-hidden')) o.classList.remove('overlay-hidden'); else o.classList.add('overlay-hidden'); }
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            if (history.length === 0) { list.innerHTML = `<div class="text-center py-20 opacity-20 font-black text-[10px]">Vuoto</div>`; return; }
+            list.innerHTML = history.map(h => `
+                <div class="bg-gray-50 p-6 rounded-4xl border border-gray-100">
+                    <div class="flex justify-between items-start"><div class="text-[9px] font-black uppercase text-gray-400 mb-1">${h.status || 'RICHIESTO'}</div><div class="text-sm font-bold">${new Date(h.timestamp).toLocaleDateString()}</div></div>
+                    <div class="space-y-2 border-t border-gray-50 pt-4">${h.items?.map(i => `<div class="flex justify-between text-xs text-gray-400"><span>${i.quantity}x ${i.name}</span><span>€ ${(i.price * i.quantity).toFixed(2)}</span></div>`).join('')}</div>
+                    <div class="flex justify-between items-center border-t border-gray-50 pt-4"><span class="text-[9px] font-black uppercase text-gray-300">Totale</span><span class="font-black text-lg">€ ${parseFloat(h.total_amount || 0).toFixed(2)}</span></div>
+                </div>`).join('');
         }
     </script>
 </body>
