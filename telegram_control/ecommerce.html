@@ -513,6 +513,11 @@
             if (!userCoords || document.getElementById('manual-address').value.length <= 5) return;
             const btn = document.getElementById('final-confirm-btn');
             btn.disabled = true; btn.innerText = "Invio...";
+            
+            const timestamp = Date.now();
+            const customerId = tg.initDataUnsafe.user?.id || "anon";
+            const orderSessionId = `${customerId}_order_${timestamp}`;
+
             const items = Object.keys(cart).map(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
                 const config = cartConfig[sku] || { extras: [], note: "" };
@@ -529,12 +534,34 @@
                     customer_note: config.note
                 };
             });
+
             const total = items.reduce((acc, i) => acc + (i.final_price * i.quantity), 0);
+            
+            const orderPayload = {
+                sessionId: orderSessionId,
+                items,
+                total_amount: total,
+                timestamp: new Date(timestamp).toISOString(),
+                location: userCoords,
+                address: document.getElementById('manual-address').value,
+                payment_mode: paymentMode,
+                ids: {
+                    customer_id: customerId,
+                    timestamp: timestamp,
+                    webhook: WH_URL.split('/').pop()
+                }
+            };
+
             try {
                 const res = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_save', order_data: { items, total_amount: total, timestamp: new Date().toISOString(), location: userCoords, address: document.getElementById('manual-address').value, payment_mode: paymentMode } })
+                    body: JSON.stringify({ 
+                        _auth: tg.initData, 
+                        ash: ashToken, 
+                        action: 'u_calc_ecom_save', 
+                        order_data: orderPayload 
+                    })
                 });
                 const r = await res.json();
                 if (r.invoice_link) {
