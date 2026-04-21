@@ -271,14 +271,14 @@
             if (items.length > 0) {
                 document.getElementById('section-suggested').classList.remove('hidden');
                 list.innerHTML = items.map(p => `
-                    <div class="flex-shrink-0 w-28 bg-white p-2.5 rounded-2xl bento-card space-y-2" onclick="openProduct('${p.callback_data}')">
+                    <div class="flex-shrink-0 w-24 bg-white p-1 rounded-2xl bento-card" onclick="openProduct('${p.callback_data}')">
                         <div class="w-full aspect-square rounded-xl bg-gray-50 overflow-hidden relative border border-gray-100">
                             <img src="${imgRoot}images/${vat}/${p.callback_data}.jpg" onerror="this.src='https://via.placeholder.com/200?text=IMG'" class="w-full h-full object-cover">
-                            ${cart[p.callback_data] ? `<div class="absolute top-1 right-1 bg-black text-white w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black border border-white">${cart[p.callback_data]}</div>` : ''}
-                        </div>
-                        <div class="px-0.5">
-                            <h3 class="font-black text-[8px] truncate uppercase tracking-tighter leading-none">${p.short_name || p.name}</h3>
-                            <p class="font-black text-[10px] mt-1 text-black/80">€ ${parseFloat(p.price).toFixed(2)}</p>
+                            <div class="absolute inset-0 bg-black/30 flex flex-col items-center justify-center p-2 text-center">
+                                <h3 class="font-black text-[7px] text-white uppercase tracking-tighter leading-none mb-1">${p.short_name || p.name}</h3>
+                                <p class="font-black text-[9px] text-white">€ ${parseFloat(p.price).toFixed(2)}</p>
+                            </div>
+                            ${cart[p.callback_data] ? `<div class="absolute top-1 right-1 bg-black text-white w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black border border-white z-10">${cart[p.callback_data]}</div>` : ''}
                         </div>
                     </div>`).join('');
             }
@@ -303,13 +303,13 @@
                                 <div>
                                     <h3 class="font-bold text-[10px] leading-tight mb-2 h-7 overflow-hidden text-gray-800 uppercase tracking-tighter">${p.name}</h3>
                                     <div class="flex justify-between items-center">
-                                        <span class="font-black text-xs">€ ${parseFloat(p.price).toFixed(2)}</span>
+                                        <span class="font-black text-xs">${p.pricing?.pricing_rules_engine?.is_dynamic_price ? '<span class="text-[7px] uppercase opacity-30 mr-0.5">da</span>' : ''}€ ${parseFloat(p.price).toFixed(2)}</span>
                                         <div class="flex items-center gap-1">
                                             ${cart[p.callback_data] ? `
                                                 <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', -1)" class="w-7 h-7 bg-gray-50 rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-minus text-[7px]"></i></button>
                                                 <span class="font-black text-[10px] min-w-[12px] text-center">${cart[p.callback_data]}</span>
                                             ` : ''}
-                                            <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', 1)" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-plus text-[7px]"></i></button>
+                                            <button onclick="event.stopPropagation(); ${(p.commercial_setup?.extra_options?.length > 0 || p.commercial_setup?.allow_customer_notes) ? `openProduct('${p.callback_data}')` : `updateQty('${p.callback_data}', 1)`}" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-plus text-[7px]"></i></button>
                                         </div>
                                     </div>
                                 </div>
@@ -338,12 +338,12 @@
                 extrasContainer.classList.remove('hidden');
                 const config = cartConfig[sku] || { extras: [], note: "" };
                 extrasList.innerHTML = extraOptions.map((opt, idx) => `
-                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 active:scale-[0.98] transition">
+                    <label class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition shadow-sm">
                         <div class="flex items-center gap-3">
-                            <input type="checkbox" class="extra-checkbox" data-index="${idx}" data-price="${opt.price}" data-name="${opt.name}" 
+                            <input type="checkbox" class="extra-checkbox w-5 h-5 rounded-lg border-2 border-gray-200 text-black focus:ring-0 transition-all checked:bg-black checked:border-black" data-index="${idx}" data-price="${opt.price}" data-name="${opt.name}" 
                                 ${config.extras.some(e => e.name === opt.name) ? 'checked' : ''}
                                 onchange="updateModalPrice()">
-                            <span class="text-[11px] font-bold uppercase">${opt.name}</span>
+                            <span class="text-[12px] font-black uppercase tracking-tight">${opt.name}</span>
                         </div>
                         <span class="text-[10px] font-black text-gray-400">+ € ${parseFloat(opt.price).toFixed(2)}</span>
                     </label>
@@ -461,21 +461,21 @@
                 total += sub;
 
                 const extrasHtml = config.extras.length > 0 
-                    ? `<div class="text-[7px] text-blue-500 font-bold uppercase mt-1">+ ${config.extras.map(e => e.name).join(', ')}</div>` 
+                    ? `<div class="flex flex-wrap gap-1 mt-1.5">${config.extras.map(e => `<span class="bg-black/5 text-black text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter">+ ${e.name}</span>`).join('')}</div>` 
                     : '';
                 const noteHtml = config.note 
-                    ? `<div class="text-[7px] text-gray-400 italic mt-1 font-medium">Note: ${config.note}</div>` 
+                    ? `<div class="bg-amber-50/50 p-2 rounded-lg border border-amber-100/50 mt-2 text-[8px] text-amber-800 italic font-medium">Nota: ${config.note}</div>` 
                     : '';
 
                 return `
-                    <div class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                        <div class="flex-1">
-                            <div class="font-black text-xs uppercase leading-tight">${p.name}</div>
+                    <div class="flex justify-between items-start bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+                        <div class="flex-1 pr-4">
+                            <div class="font-black text-[11px] uppercase leading-tight tracking-tight">${p.name}</div>
                             ${extrasHtml}
                             ${noteHtml}
-                            <div class="text-[8px] text-gray-300 mt-1 uppercase font-bold tracking-widest">${cart[sku]}x € ${itemPrice.toFixed(2)}</div>
+                            <div class="text-[9px] text-gray-300 mt-2 uppercase font-bold tracking-widest">${cart[sku]}x € ${itemPrice.toFixed(2)}</div>
                         </div>
-                        <div class="font-black text-xs ml-4">€ ${sub.toFixed(2)}</div>
+                        <div class="font-black text-xs text-right">€ ${sub.toFixed(2)}</div>
                     </div>`;
             });
             list.innerHTML = items.join(''); document.getElementById('summary-total').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
