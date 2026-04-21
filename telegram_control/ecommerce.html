@@ -38,7 +38,7 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .bento-card { transition: all 0.2s ease; border: 1px solid #eeeeee; }
         .bento-card:active { transform: scale(0.97); background-color: #fcfcfc; }
-        .safe-bottom { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+        .safe-bottom { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
         
         .overlay { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 400; background-color: #ffffff; position: fixed; inset: 0; }
         .overlay-hidden { transform: translateX(100%); }
@@ -79,7 +79,7 @@
     </header>
 
     <!-- CONTENT -->
-    <main id="main-content" class="flex-1 overflow-y-auto p-5 space-y-8 no-scrollbar safe-bottom">
+    <main id="main-content" class="flex-1 overflow-y-scroll p-5 space-y-8 safe-bottom">
         <section id="section-suggested" class="hidden">
             <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-300 mb-4 pl-3 border-l-2 border-black">Top Picks</h2>
             <div id="suggested-list" class="flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>
@@ -104,6 +104,21 @@
                     <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400">Descrizione</h3>
                     <p id="modal-desc" class="text-gray-600 text-sm leading-relaxed"></p>
                 </div>
+
+                <!-- ADD-ONS SECTION -->
+                <div id="modal-extras-container" class="hidden space-y-3 pt-2">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400">Aggiunte</h3>
+                    <div id="modal-extras-list" class="grid grid-cols-1 gap-2">
+                        <!-- Extras checkboxes will be injected here -->
+                    </div>
+                </div>
+
+                <!-- CUSTOMER NOTE SECTION -->
+                <div id="modal-notes-container" class="hidden space-y-2 pt-2">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400">Note / Modifiche</h3>
+                    <textarea id="modal-customer-note" rows="2" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold focus:border-black transition" placeholder="Es: senza zucchero, ben cotto..."></textarea>
+                </div>
+
                 <div class="flex items-center justify-between pt-5 border-t border-gray-50">
                     <span id="modal-price" class="text-2xl font-black tracking-tighter"></span>
                     <div id="modal-stepper" class="flex items-center gap-3 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
@@ -122,7 +137,7 @@
             <h2 class="text-lg font-black uppercase tracking-tight">Riepilogo</h2>
             <button onclick="toggleSummary()" class="text-gray-300 text-xl"><i class="fas fa-times-circle"></i></button>
         </header>
-        <div class="flex-1 overflow-y-auto p-5 space-y-6 no-scrollbar pb-32">
+        <div class="flex-1 overflow-y-scroll p-5 space-y-6 pb-32">
             <div id="summary-list" class="space-y-3"></div>
             
             <div id="location-box" class="p-5 bg-gray-50 rounded-3xl space-y-4 border border-gray-100">
@@ -199,8 +214,9 @@
         const params = new URLSearchParams(window.location.search);
         const ashToken = params.get('ash');
 
-        let catalog = [], categories = [], history = [], cart = {}; 
+        let catalog = [], categories = [], history = [], cart = {}, cartConfig = {}; 
         let imgRoot = "", vat = params.get('vat') || 'default', currentFilter = 'ALL', userCoords = null, paymentMode = 'DELIVERY';
+        let activeSku = null, currentBasePrice = 0;
 
         window.onload = async () => { if (!ashToken) { tg.showAlert("ASH Token mancante."); return; } await initApp(); };
 
@@ -255,13 +271,15 @@
             if (items.length > 0) {
                 document.getElementById('section-suggested').classList.remove('hidden');
                 list.innerHTML = items.map(p => `
-                    <div class="flex-shrink-0 w-36 bg-white p-3 rounded-3xl bento-card space-y-2" onclick="openProduct('${p.callback_data}')">
-                        <div class="w-full aspect-square rounded-2xl bg-gray-50 overflow-hidden relative border border-gray-100">
+                    <div class="flex-shrink-0 w-28 bg-white p-2.5 rounded-2xl bento-card space-y-2" onclick="openProduct('${p.callback_data}')">
+                        <div class="w-full aspect-square rounded-xl bg-gray-50 overflow-hidden relative border border-gray-100">
                             <img src="${imgRoot}images/${vat}/${p.callback_data}.jpg" onerror="this.src='https://via.placeholder.com/200?text=IMG'" class="w-full h-full object-cover">
-                            ${cart[p.callback_data] ? `<div class="absolute top-1.5 right-1.5 bg-black text-white w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black border-2 border-white">${cart[p.callback_data]}</div>` : ''}
+                            ${cart[p.callback_data] ? `<div class="absolute top-1 right-1 bg-black text-white w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black border border-white">${cart[p.callback_data]}</div>` : ''}
                         </div>
-                        <h3 class="font-black text-[9px] truncate uppercase tracking-tighter">${p.short_name || p.name}</h3>
-                        <p class="font-black text-xs">€ ${parseFloat(p.price).toFixed(2)}</p>
+                        <div class="px-0.5">
+                            <h3 class="font-black text-[8px] truncate uppercase tracking-tighter leading-none">${p.short_name || p.name}</h3>
+                            <p class="font-black text-[10px] mt-1 text-black/80">€ ${parseFloat(p.price).toFixed(2)}</p>
+                        </div>
                     </div>`).join('');
             }
         }
@@ -303,23 +321,94 @@
 
         function openProduct(sku) {
             const p = catalog.find(x => x.callback_data === sku); if (!p) return;
+            activeSku = sku;
+            currentBasePrice = parseFloat(p.price);
+            
             document.getElementById('modal-title').innerText = p.name;
             document.getElementById('modal-category').innerText = p.category;
             document.getElementById('modal-desc').innerText = p.long_description || p.description || "Nessuna descrizione.";
-            document.getElementById('modal-price').innerText = `€ ${parseFloat(p.price).toFixed(2)}`;
             document.getElementById('modal-img').src = `${imgRoot}images/${vat}/${p.callback_data}.jpg`;
+            
+            // Handle Extras
+            const extrasContainer = document.getElementById('modal-extras-container');
+            const extrasList = document.getElementById('modal-extras-list');
+            const extraOptions = p.commercial_setup?.extra_options || [];
+            
+            if (extraOptions.length > 0) {
+                extrasContainer.classList.remove('hidden');
+                const config = cartConfig[sku] || { extras: [], note: "" };
+                extrasList.innerHTML = extraOptions.map((opt, idx) => `
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 active:scale-[0.98] transition">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" class="extra-checkbox" data-index="${idx}" data-price="${opt.price}" data-name="${opt.name}" 
+                                ${config.extras.some(e => e.name === opt.name) ? 'checked' : ''}
+                                onchange="updateModalPrice()">
+                            <span class="text-[11px] font-bold uppercase">${opt.name}</span>
+                        </div>
+                        <span class="text-[10px] font-black text-gray-400">+ € ${parseFloat(opt.price).toFixed(2)}</span>
+                    </label>
+                `).join('');
+            } else {
+                extrasContainer.classList.add('hidden');
+            }
+
+            // Handle Notes
+            const notesContainer = document.getElementById('modal-notes-container');
+            const noteInput = document.getElementById('modal-customer-note');
+            if (p.commercial_setup?.allow_customer_notes) {
+                notesContainer.classList.remove('hidden');
+                noteInput.value = cartConfig[sku]?.note || "";
+            } else {
+                notesContainer.classList.add('hidden');
+            }
+
             updateModalQty(sku);
+            updateModalPrice();
+            
             document.getElementById('modal-plus').onclick = () => updateQty(sku, 1, true);
             document.getElementById('modal-minus').onclick = () => updateQty(sku, -1, true);
             document.getElementById('product-modal').classList.remove('modal-hidden');
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
 
-        function closeModal() { document.getElementById('product-modal').classList.add('modal-hidden'); }
+        function updateModalPrice() {
+            let total = currentBasePrice;
+            document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
+                total += parseFloat(cb.getAttribute('data-price'));
+            });
+            document.getElementById('modal-price').innerText = `€ ${total.toFixed(2)}`;
+            
+            // Sync config with current modal state if quantity > 0
+            if (activeSku && cart[activeSku] > 0) {
+                saveCurrentConfig();
+            }
+        }
+
+        function saveCurrentConfig() {
+            if (!activeSku) return;
+            const extras = [];
+            document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
+                extras.push({ name: cb.getAttribute('data-name'), price: parseFloat(cb.getAttribute('data-price')) });
+            });
+            const note = document.getElementById('modal-customer-note').value;
+            cartConfig[activeSku] = { extras, note };
+        }
+
+        function closeModal() { 
+            if (activeSku && cart[activeSku] > 0) saveCurrentConfig();
+            activeSku = null;
+            document.getElementById('product-modal').classList.add('modal-hidden'); 
+        }
 
         function updateQty(sku, delta, isModal = false) {
             const c = cart[sku] || 0, n = c + delta;
-            if (n <= 0) delete cart[sku]; else cart[sku] = n;
+            if (n <= 0) {
+                delete cart[sku];
+                delete cartConfig[sku];
+            } else {
+                cart[sku] = n;
+                if (isModal) saveCurrentConfig();
+            }
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             if (isModal) updateModalQty(sku);
             updateCheckoutBar(); renderCatalog(); renderSuggested();
@@ -331,7 +420,15 @@
             let total = 0, count = 0;
             Object.keys(cart).forEach(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
-                if (p) { total += (parseFloat(p.price) || 0) * cart[sku]; count += cart[sku]; }
+                if (p) { 
+                    let itemPrice = parseFloat(p.price) || 0;
+                    const config = cartConfig[sku];
+                    if (config && config.extras) {
+                        config.extras.forEach(e => itemPrice += parseFloat(e.price) || 0);
+                    }
+                    total += itemPrice * cart[sku]; 
+                    count += cart[sku]; 
+                }
             });
             document.getElementById('total-price-bar').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
             document.getElementById('checkout-bar').classList.toggle('translate-y-full', count === 0);
@@ -356,8 +453,30 @@
             const list = document.getElementById('summary-list'); let total = 0;
             const items = Object.keys(cart).map(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
-                const sub = (parseFloat(p.price) || 0) * cart[sku]; total += sub;
-                return `<div class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100"><div class="flex-1"><div class="font-black text-xs uppercase leading-tight">${p.name}</div><div class="text-[8px] text-gray-300 mt-1 uppercase font-bold tracking-widest">${cart[sku]}x € ${parseFloat(p.price).toFixed(2)}</div></div><div class="font-black text-xs ml-4">€ ${sub.toFixed(2)}</div></div>`;
+                const config = cartConfig[sku] || { extras: [], note: "" };
+                let itemPrice = parseFloat(p.price) || 0;
+                config.extras.forEach(e => itemPrice += parseFloat(e.price) || 0);
+                
+                const sub = itemPrice * cart[sku]; 
+                total += sub;
+
+                const extrasHtml = config.extras.length > 0 
+                    ? `<div class="text-[7px] text-blue-500 font-bold uppercase mt-1">+ ${config.extras.map(e => e.name).join(', ')}</div>` 
+                    : '';
+                const noteHtml = config.note 
+                    ? `<div class="text-[7px] text-gray-400 italic mt-1 font-medium">Note: ${config.note}</div>` 
+                    : '';
+
+                return `
+                    <div class="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <div class="flex-1">
+                            <div class="font-black text-xs uppercase leading-tight">${p.name}</div>
+                            ${extrasHtml}
+                            ${noteHtml}
+                            <div class="text-[8px] text-gray-300 mt-1 uppercase font-bold tracking-widest">${cart[sku]}x € ${itemPrice.toFixed(2)}</div>
+                        </div>
+                        <div class="font-black text-xs ml-4">€ ${sub.toFixed(2)}</div>
+                    </div>`;
             });
             list.innerHTML = items.join(''); document.getElementById('summary-total').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
             updateConfirmButton();
@@ -396,9 +515,21 @@
             btn.disabled = true; btn.innerText = "Invio...";
             const items = Object.keys(cart).map(sku => {
                 const p = catalog.find(x => x.callback_data === sku);
-                return { sku, name: p.name, price: parseFloat(p.price), quantity: cart[sku] };
+                const config = cartConfig[sku] || { extras: [], note: "" };
+                let finalItemPrice = parseFloat(p.price) || 0;
+                config.extras.forEach(e => finalItemPrice += parseFloat(e.price) || 0);
+
+                return { 
+                    sku, 
+                    name: p.name, 
+                    base_price: parseFloat(p.price),
+                    final_price: finalItemPrice,
+                    quantity: cart[sku],
+                    selected_extras: config.extras,
+                    customer_note: config.note
+                };
             });
-            const total = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
+            const total = items.reduce((acc, i) => acc + (i.final_price * i.quantity), 0);
             try {
                 const res = await fetch(WH_URL, {
                     method: 'POST',
