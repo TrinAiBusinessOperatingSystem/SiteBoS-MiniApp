@@ -3,323 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Agenda & Percorsi - TrinAI</title>
-    
-    <!-- SDK Telegram -->
+    <title>Agenda & Percorsi - SiteBoS</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        primary: '#000000',
-                        bg: '#fafafa',
-                        surface: '#ffffff',
-                        border: '#eeeeee'
-                    }
+                    colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem' }
                 }
             }
         }
     </script>
-
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #fafafa; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* Custom Checkbox Black */
-        input[type="checkbox"] {
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #000;
-            border-radius: 6px;
-            position: relative;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+        input[type="checkbox"] { appearance: none; width: 18px; height: 18px; border: 2px solid #000; border-radius: 4px; position: relative; cursor: pointer; }
         input[type="checkbox"]:checked { background-color: #000; }
-        input[type="checkbox"]:checked::after {
-            content: "\f00c";
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            color: white;
-            font-size: 10px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        /* Radio Buttons for Segmented Control */
-        .segmented input:checked + label {
-            background-color: #000;
-            color: #fff;
-        }
-        
+        input[type="checkbox"]:checked::after { content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; color: white; font-size: 9px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .segmented input:checked + label { background-color: #000; color: #fff; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-in { animation: fadeIn 0.3s ease forwards; }
     </style>
-
     <script>
-        (function() {
-            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
-                document.body.innerHTML = `
-                    <div class="p-20 text-center bg-black text-white h-screen flex flex-col justify-center items-center font-sans">
-                        <h2 class="text-4xl mb-4">🚫</h2>
-                        <p class="text-sm font-bold uppercase tracking-widest opacity-50">Accesso Negato</p>
-                    </div>`;
-                window.stop();
-            }
-        })();
+        (function() { if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) { document.body.innerHTML = `<div class="p-10 text-center bg-black text-white h-screen flex items-center justify-center">🚫 ACCESS DENIED</div>`; window.stop(); } })();
     </script>
 </head>
-<body class="bg-bg text-primary pb-20 no-scrollbar overflow-x-hidden">
+<body class="bg-bg text-primary pb-24 no-scrollbar overflow-x-hidden">
 
-    <!-- HEADER -->
-    <header class="bg-white p-6 border-b border-border sticky top-0 z-50 flex items-center gap-4 shadow-sm">
-        <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center text-xl">
-            <i class="fas fa-calendar-check"></i>
-        </div>
+    <header class="bg-white p-5 border-b border-border sticky top-0 z-50 flex items-center gap-3 shadow-sm">
+        <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white"><i class="fas fa-calendar-check text-sm"></i></div>
         <div>
-            <h1 class="text-xl font-black tracking-tighter uppercase leading-none">Ottimizzatore Percorsi</h1>
-            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Business & Pleasure</p>
+            <h1 class="text-base font-black tracking-tighter uppercase leading-none">Percorsi</h1>
+            <p class="text-[8px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Optimizer Engine</p>
         </div>
     </header>
 
-    <div class="p-5 max-w-2xl mx-auto">
-        <form id="travelForm" class="space-y-6">
-            
-            <!-- 1. BASE LOGISTICA -->
-            <div class="bg-white rounded-[2.5rem] p-8 border border-border shadow-sm space-y-6">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">📍 Logistica Base</span>
-                </div>
-
-                <div class="flex items-center justify-between group">
-                    <label for="partenzaDaSede" class="text-sm font-bold cursor-pointer">Partenza da Sede Principale</label>
-                    <input type="checkbox" id="partenzaDaSede" checked>
-                </div>
-                
-                <div id="customPartenzaContainer" class="hidden animate-in">
-                    <input type="text" id="partenza" placeholder="Inserisci indirizzo di partenza..." class="w-full bg-gray-50 p-4 rounded-2xl border border-transparent focus:border-black outline-none transition text-sm">
-                </div>
-
-                <div class="h-[1px] bg-gray-50 w-full"></div>
-
-                <div class="flex items-center justify-between group">
-                    <label for="arrivoInSede" class="text-sm font-bold cursor-pointer">Ritorno in Sede a fine giornata</label>
-                    <input type="checkbox" id="arrivoInSede" checked>
-                </div>
-
-                <div id="customArrivoContainer" class="hidden animate-in">
-                    <input type="text" id="arrivo" placeholder="Inserisci indirizzo di rientro..." class="w-full bg-gray-50 p-4 rounded-2xl border border-transparent focus:border-black outline-none transition text-sm">
-                </div>
+    <div class="p-4 max-w-md mx-auto space-y-5">
+        <form id="travelForm" class="space-y-5">
+            <div class="bg-white rounded-3xl p-5 border border-border shadow-sm space-y-4">
+                <span class="text-[8px] font-black uppercase tracking-widest text-gray-300">📍 Logistica</span>
+                <div class="flex items-center justify-between"><label class="text-xs font-bold">Partenza da Sede</label><input type="checkbox" id="partenzaDaSede" checked></div>
+                <div id="customPartenzaContainer" class="hidden animate-in"><input type="text" id="partenza" placeholder="Indirizzo partenza..." class="w-full bg-gray-50 p-3 rounded-xl border-none text-xs"></div>
+                <div class="h-px bg-gray-50 w-full"></div>
+                <div class="flex items-center justify-between"><label class="text-xs font-bold">Rientro in Sede</label><input type="checkbox" id="arrivoInSede" checked></div>
+                <div id="customArrivoContainer" class="hidden animate-in"><input type="text" id="arrivo" placeholder="Indirizzo rientro..." class="w-full bg-gray-50 p-3 rounded-xl border-none text-xs"></div>
             </div>
 
-            <!-- 2. AGENDA DINAMICA -->
-            <div id="agenda-container" class="space-y-4"></div>
+            <div id="agenda-container" class="space-y-3"></div>
 
-            <!-- AGGIUNGI TAPPA -->
-            <button type="button" class="w-full border-2 border-dashed border-gray-200 py-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-2 group hover:border-black transition active:scale-95" id="btnAddStop">
-                <i class="fas fa-plus-circle text-2xl text-gray-300 group-hover:text-black transition"></i>
-                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-black transition">Aggiungi Tappa</span>
+            <button type="button" class="w-full border-2 border-dashed border-gray-200 py-6 rounded-3xl flex flex-col items-center justify-center gap-1 group active:scale-95 transition" id="btnAddStop">
+                <i class="fas fa-plus text-gray-300"></i>
+                <span class="text-[8px] font-black uppercase text-gray-400">Aggiungi Tappa</span>
             </button>
 
-            <!-- 3. AI CONFIG -->
-            <div class="bg-black text-white rounded-[2.5rem] p-8 shadow-2xl space-y-6">
-                <div class="flex items-center gap-2">
-                    <i class="fas fa-brain text-gray-600"></i>
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500">Ottimizzazione A.I.</span>
-                </div>
-
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold">Percorso Ottimale</span>
-                        <input type="checkbox" id="aiOptimize" checked style="border-color: #333;">
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-bold">Soste & Logistica</span>
-                        <input type="checkbox" id="aiLogistics" checked style="border-color: #333;">
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-[10px] font-black uppercase tracking-widest text-gray-500 ml-1">Direttive Extra</label>
-                    <textarea id="noteAI" rows="3" placeholder="Es. Preferenza auto elettrica, dieta veg, etc..." class="w-full bg-neutral-900 rounded-2xl p-4 text-sm outline-none border border-transparent focus:border-gray-700 transition"></textarea>
-                </div>
+            <div class="bg-black text-white rounded-3xl p-5 shadow-lg space-y-4">
+                <span class="text-[8px] font-black uppercase tracking-widest text-neutral-500">🤖 AI Config</span>
+                <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-tight">Ottimizza Percorso</span><input type="checkbox" id="aiOptimize" checked></div>
+                <textarea id="noteAI" rows="2" placeholder="Preferenze extra..." class="w-full bg-neutral-900 rounded-xl p-3 text-xs outline-none border-none text-white"></textarea>
             </div>
 
-            <button type="submit" id="submitBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black text-lg uppercase tracking-widest shadow-xl active:scale-95 transition">
-                Genera Piano
-            </button>
+            <button type="submit" id="submitBtn" class="w-full h-12 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition">Genera Piano</button>
         </form>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
-
+        const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
         const WH_SOLVER = "https://prod.workflow.trinai.it/webhook/26237ccb-3621-4dc7-b15f-fe8a50be3a6f";
-        const chatId = tg.initDataUnsafe.start_param || tg.initDataUnsafe.user?.id || "DEBUG_USER";
-
-        const dom = {
-            form: document.getElementById('travelForm'),
-            agenda: document.getElementById('agenda-container'),
-            btnAdd: document.getElementById('btnAddStop'),
-            btnSubmit: document.getElementById('submitBtn'),
-            pSede: document.getElementById('partenzaDaSede'),
-            aSede: document.getElementById('arrivoInSede')
-        };
-
+        const chatId = tg.initDataUnsafe.user?.id || "DEBUG";
         let stopCount = 0;
 
         function addStop() {
-            stopCount++;
-            const id = stopCount;
-            const div = document.createElement('div');
-            div.className = 'bg-white rounded-[2.5rem] p-8 border border-border shadow-sm space-y-6 animate-in relative overflow-hidden';
-            div.id = `stop-${id}`;
-            
-            div.innerHTML = `
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">📍 Tappa #${id}</span>
-                    ${id > 1 ? `<button type="button" onclick="document.getElementById('stop-${id}').remove()" class="text-gray-300 hover:text-red-500 transition"><i class="fas fa-trash-alt"></i></button>` : ''}
+            stopCount++; const id = stopCount; const d = document.createElement('div');
+            d.className = 'bg-white rounded-3xl p-5 border border-border shadow-sm space-y-4 animate-in relative'; d.id = `stop-${id}`;
+            d.innerHTML = `
+                <div class="flex justify-between items-center"><span class="text-[8px] font-black uppercase tracking-widest text-gray-300">📍 Tappa #${id}</span>${id>1?`<button onclick="document.getElementById('stop-${id}').remove()" class="text-gray-300"><i class="fas fa-trash-alt text-[10px]"></i></button>`:''}</div>
+                <div class="segmented flex bg-gray-50 p-1 rounded-xl">
+                    <input type="radio" id="bus-${id}" name="type-${id}" value="Lavoro" checked class="hidden"><label for="bus-${id}" class="flex-1 text-center py-2 rounded-lg text-[9px] font-black uppercase tracking-widest cursor-pointer transition">💼 Work</label>
+                    <input type="radio" id="lei-${id}" name="type-${id}" value="Libero" class="hidden"><label for="lei-${id}" class="flex-1 text-center py-2 rounded-lg text-[9px] font-black uppercase tracking-widest cursor-pointer transition">📸 Free</label>
                 </div>
-                
-                <div class="segmented flex bg-gray-50 p-1.5 rounded-2xl">
-                    <input type="radio" id="bus-${id}" name="type-${id}" value="Lavoro" checked class="hidden">
-                    <label for="bus-${id}" class="flex-1 text-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition">💼 Lavoro</label>
-                    <input type="radio" id="lei-${id}" name="type-${id}" value="Libero" class="hidden">
-                    <label for="lei-${id}" class="flex-1 text-center py-3 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition">📸 Libero</label>
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="date" class="s-date w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold" value="${new Date().toISOString().split('T')[0]}" required>
+                    <input type="text" class="s-time w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold" placeholder="10:30" required>
                 </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="space-y-1">
-                        <label class="text-[9px] font-black uppercase tracking-widest text-gray-300 ml-1">Data</label>
-                        <input type="date" class="s-date w-full bg-gray-50 p-4 rounded-2xl text-xs font-bold border border-transparent focus:border-black outline-none transition" value="${new Date().toISOString().split('T')[0]}" required>
-                    </div>
-                    <div class="space-y-1">
-                        <label class="text-[9px] font-black uppercase tracking-widest text-gray-300 ml-1">Orario</label>
-                        <input type="text" class="s-time w-full bg-gray-50 p-4 rounded-2xl text-xs font-bold border border-transparent focus:border-black outline-none transition" placeholder="es. 10:30" required>
-                    </div>
-                </div>
-                
-                <div class="space-y-1">
-                    <label class="text-[9px] font-black uppercase tracking-widest text-gray-300 ml-1">Località</label>
-                    <input type="text" class="s-loc w-full bg-gray-50 p-4 rounded-2xl text-sm font-medium border border-transparent focus:border-black outline-none transition" placeholder="Indirizzo o Azienda" required>
-                </div>
-
-                <div class="flex flex-wrap gap-2" id="tags-${id}">
-                    <div class="smart-tag px-4 py-2 border border-gray-100 rounded-full text-[9px] font-black uppercase tracking-widest cursor-pointer transition hover:bg-gray-50" data-val="Cerca prospect o clienti vicini">🔍 Trova Clienti</div>
-                    <div class="smart-tag px-4 py-2 border border-gray-100 rounded-full text-[9px] font-black uppercase tracking-widest cursor-pointer transition hover:bg-gray-50" data-val="Trova parcheggio comodo">🅿️ Parcheggio</div>
-                    <div class="smart-tag hidden px-4 py-2 border border-gray-100 rounded-full text-[9px] font-black uppercase tracking-widest cursor-pointer transition hover:bg-gray-50" data-val="Consiglia ristorante tipico">🍝 Cibo Locale</div>
-                    <div class="smart-tag hidden px-4 py-2 border border-gray-100 rounded-full text-[9px] font-black uppercase tracking-widest cursor-pointer transition hover:bg-gray-50" data-val="Cosa vedere in zona">🏛️ Arte/Storia</div>
-                </div>
-            `;
-            
-            dom.agenda.appendChild(div);
-
-            const rBus = div.querySelector(`#bus-${id}`);
-            const rLei = div.querySelector(`#lei-${id}`);
-            const tags = div.querySelectorAll('.smart-tag');
-            
-            const updateTags = () => {
-                tags.forEach(t => {
-                    const isBus = t.dataset.val.includes("prospect") || t.dataset.val.includes("parcheggio");
-                    t.classList.toggle('hidden', rBus.checked ? !isBus : isBus);
-                    t.classList.remove('bg-black', 'text-white', 'border-black');
-                });
-            };
-            
-            rBus.onclick = updateTags; 
-            rLei.onclick = updateTags;
-            
-            tags.forEach(t => {
-                t.onclick = () => {
-                    t.classList.toggle('bg-black');
-                    t.classList.toggle('text-white');
-                    t.classList.toggle('border-black');
-                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                };
-            });
-            updateTags();
+                <input type="text" class="s-loc w-full bg-gray-50 p-3 rounded-xl text-xs font-medium" placeholder="Località..." required>`;
+            document.getElementById('agenda-container').appendChild(d);
         }
 
-        dom.pSede.onchange = () => document.getElementById('customPartenzaContainer').classList.toggle('hidden', dom.pSede.checked);
-        dom.aSede.onchange = () => document.getElementById('customArrivoContainer').classList.toggle('hidden', dom.aSede.checked);
-        
-        dom.btnAdd.onclick = () => {
-            addStop();
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-        };
-        
+        document.getElementById('partenzaDaSede').onchange = () => document.getElementById('customPartenzaContainer').classList.toggle('hidden', document.getElementById('partenzaDaSede').checked);
+        document.getElementById('arrivoInSede').onchange = () => document.getElementById('customArrivoContainer').classList.toggle('hidden', document.getElementById('arrivoInSede').checked);
+        document.getElementById('btnAddStop').onclick = () => { addStop(); if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); };
         addStop();
 
-        dom.form.onsubmit = async (e) => {
-            e.preventDefault();
-            dom.btnSubmit.disabled = true;
-            dom.btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Elaborazione...';
-
-            const stops = [];
-            document.querySelectorAll('.animate-in[id^="stop-"]').forEach((card, i) => {
-                const id = card.id.split('-')[1];
-                const activeTags = [];
-                card.querySelectorAll('.smart-tag.bg-black').forEach(t => activeTags.push(t.dataset.val));
-                stops.push({
-                    tappa: i + 1,
-                    tipo: card.querySelector(`input[name="type-${id}"]:checked`).value,
-                    data: card.querySelector('.s-date').value,
-                    ora: card.querySelector('.s-time').value,
-                    luogo: card.querySelector('.s-loc').value,
-                    richieste_extra: activeTags
-                });
-            });
-
-            const payload = {
-                _auth: tg.initData,
-                type: 'AGENDA_MIXED_SUBMISSION',
-                payload: {
-                    Partenza: dom.pSede.checked ? 'Sede Principale' : document.getElementById('partenza').value,
-                    Arrivo: dom.aSede.checked ? 'Sede Principale' : document.getElementById('arrivo').value,
-                    Agenda: stops,
-                    Ottimizza: document.getElementById('aiOptimize').checked,
-                    PianificaLogistica: document.getElementById('aiLogistics').checked,
-                    NoteUtente: document.getElementById('noteAI').value
-                },
-                context: { chatId, user_id: tg.initDataUnsafe.user?.id }
-            };
-
+        document.getElementById('travelForm').onsubmit = async (e) => {
+            e.preventDefault(); const btn = document.getElementById('submitBtn'); btn.disabled = true; btn.innerText = "Processing...";
+            const stops = []; document.querySelectorAll('.animate-in[id^="stop-"]').forEach((card, i) => { const id = card.id.split('-')[1]; stops.push({ tappa: i + 1, tipo: card.querySelector(`input[name="type-${id}"]:checked`).value, data: card.querySelector('.s-date').value, ora: card.querySelector('.s-time').value, luogo: card.querySelector('.s-loc').value }); });
+            const payload = { _auth: tg.initData, type: 'AGENDA_MIXED_SUBMISSION', payload: { Partenza: document.getElementById('partenzaDaSede').checked ? 'Sede' : document.getElementById('partenza').value, Arrivo: document.getElementById('arrivoInSede').checked ? 'Sede' : document.getElementById('arrivo').value, Agenda: stops, Ottimizza: document.getElementById('aiOptimize').checked, NoteUtente: document.getElementById('noteAI').value }, context: { chatId } };
             try {
                 const res = await fetch(WH_SOLVER, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (res.ok) {
-                    dom.btnSubmit.innerHTML = '✅ Richiesta Inviata';
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    
-                    let summary = `🗓️ *AGENDA AGGIORNATA*\n`;
-                    summary += `🏁 Partenza: ${payload.payload.Partenza}\n`;
-                    summary += `🔚 Rientro: ${payload.payload.Arrivo}\n\n`;
-                    stops.forEach(s => {
-                        summary += `${s.tipo === 'Lavoro' ? '💼' : '📸'} *${s.data} (${s.ora})*\n   ${s.luogo}\n`;
-                    });
-
-                    setTimeout(() => {
-                        window.parent.postMessage({ type: 'SOLVER_DATA', payload: summary }, '*');
-                    }, 1200);
-                } else { throw new Error(); }
-            } catch (err) { 
-                tg.showAlert("Errore durante l'invio."); 
-                dom.btnSubmit.disabled = false; 
-                dom.btnSubmit.innerHTML = "Genera Piano";
-            }
+                if (res.ok) { if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); window.parent.postMessage({ type: 'SOLVER_DATA', payload: "Agenda Inviata ✅" }, '*'); }
+            } catch (e) { btn.disabled = false; btn.innerText = "Genera Piano"; }
         };
     </script>
 </body>

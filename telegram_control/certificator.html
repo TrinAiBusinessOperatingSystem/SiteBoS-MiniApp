@@ -3,15 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Certificator | TrinAI Enterprise</title>
+    <title>Certificator | SiteBoS</title>
     
-    <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Fonts & Icons -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -19,342 +14,165 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        primary: '#000000',
-                        bg: '#fafafa',
-                        border: '#eeeeee'
-                    }
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem' }
                 }
             }
         }
     </script>
 
     <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #000; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        /* Spinner Noir */
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-
-        /* Signature Pad */
-        #signature-pad {
-            touch-action: none;
-            background-color: #ffffff;
-            cursor: crosshair;
-        }
-
-        /* Camera Feed */
-        #camera-feed {
-            width: 100%;
-            border-radius: 2rem;
-            background-color: #000;
-            transform: scaleX(1); /* No mirror for back camera */
-        }
-
-        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { border: 2px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        #signature-pad { touch-action: none; background-color: #ffffff; cursor: crosshair; }
+        #camera-feed { width: 100%; border-radius: 1.5rem; background-color: #000; object-fit: cover; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 
     <script>
-        // ── SICUREZZA: IL BUTTAFUORI ──
         (function() {
-            const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "";
-            if (!isTelegram) {
-                document.documentElement.innerHTML = `
-                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
-                        <div>
-                            <h1 class="text-6xl mb-4 text-white">🚫</h1>
-                            <h2 class="text-xl font-bold uppercase tracking-widest text-white">Accesso Negato</h2>
-                            <p class="opacity-40 text-sm mt-4 leading-relaxed">Questo modulo è accessibile solo tramite link certificato SiteBoS.</p>
-                        </div>
-                    </body>`;
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2></div></body>`;
                 window.stop();
-                throw new Error("Unauthorized Access");
             }
         })();
     </script>
 </head>
-<body class="bg-bg text-black min-h-screen flex flex-col items-center p-6 pb-24">
+<body class="p-5 pb-24">
 
-    <div class="w-full max-w-lg flex flex-col items-center space-y-8 fade-in">
-        
+    <div class="max-w-md mx-auto space-y-6 animate-fade-in text-center">
         <!-- HEADER -->
-        <header class="text-center space-y-2 pt-4">
-            <div id="typeBadge" class="inline-block px-3 py-1 bg-black text-white text-[8px] font-black uppercase tracking-[0.2em] rounded-full mb-1">Inizializzazione...</div>
-            <h1 class="text-3xl font-black tracking-tighter uppercase leading-none">CERTIFICATOR</h1>
-            <div id="statusText" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Caricamento configurazione...</div>
+        <header class="space-y-1 py-4">
+            <div id="typeBadge" class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1">Certificator</div>
+            <h1 class="text-xl font-black tracking-tighter uppercase leading-none">Evidence Protocol</h1>
+            <div id="statusText" class="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Caricamento...</div>
         </header>
 
-        <!-- GLOBAL LOADER -->
-        <div id="loader" class="spinner hidden"></div>
+        <div id="loader" class="flex justify-center hidden"><div class="spinner"></div></div>
 
-        <!-- SEZIONE: VISION (FOTO) -->
-        <div id="section-vision" class="hidden w-full flex flex-col items-center space-y-6">
-            <div class="relative w-full shadow-2xl rounded-[2.5rem] overflow-hidden bg-black aspect-[4/3]">
-                <video id="camera-feed" class="hidden h-full w-full object-cover" autoplay playsinline muted></video>
+        <!-- VISION -->
+        <div id="section-vision" class="hidden space-y-4">
+            <div class="relative w-full shadow-lg rounded-3xl overflow-hidden bg-black aspect-[4/3]">
+                <video id="camera-feed" class="hidden h-full w-full" autoplay playsinline muted></video>
                 <canvas id="camera-canvas" class="hidden"></canvas>
-                <div id="camera-placeholder" class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-camera text-neutral-800 text-6xl"></i>
+                <div id="camera-placeholder" class="absolute inset-0 flex items-center justify-center text-neutral-800">
+                    <i class="fas fa-camera text-4xl"></i>
                 </div>
             </div>
-            
-            <button id="startCamBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition" onclick="startCamera()">
-                <i class="fas fa-video mr-3"></i> Attiva Obiettivo
+            <button id="startCamBtn" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-md" onclick="startCamera()">
+                <i class="fas fa-video mr-2"></i> Attiva Fotocamera
             </button>
-            <button id="snapBtn" class="hidden w-full bg-red-600 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition" onclick="takePhoto()">
+            <button id="snapBtn" class="hidden w-full h-12 bg-red-600 text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-md" onclick="takePhoto()">
                 🔴 Cattura Evidenza
             </button>
         </div>
 
-        <!-- SEZIONE: SIGNATURE (FIRMA) -->
-        <div id="section-signature" class="hidden w-full flex flex-col items-center space-y-6">
-            <div class="w-full bg-white border border-gray-100 rounded-[2.5rem] p-3 shadow-sm overflow-hidden">
-                <canvas id="signature-pad" class="w-full h-80 rounded-[1.5rem] border border-gray-50"></canvas>
+        <!-- SIGNATURE -->
+        <div id="section-signature" class="hidden space-y-4">
+            <div class="bg-white border border-gray-100 rounded-3xl p-2 shadow-sm overflow-hidden">
+                <canvas id="signature-pad" class="w-full h-64 rounded-2xl"></canvas>
             </div>
-            <div class="flex w-full gap-4">
-                <button onclick="clearSignature()" class="flex-1 bg-white border border-gray-200 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition">
-                    Cancella
-                </button>
-                <button onclick="saveSignature()" class="flex-[2] bg-black text-white py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest shadow-xl active:scale-95 transition">
-                    Conferma Identità
-                </button>
+            <div class="flex gap-3">
+                <button onclick="clearSignature()" class="flex-1 h-12 bg-white border border-black text-black rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition">Cancella</button>
+                <button onclick="saveSignature()" class="flex-[2] h-12 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition">Conferma Firma</button>
             </div>
         </div>
 
-        <!-- SEZIONE: FILE (DOCUMENTO) -->
-        <div id="section-file" class="hidden w-full flex flex-col items-center space-y-6">
-            <div class="w-full border-2 border-dashed border-gray-200 bg-white rounded-[2.5rem] p-16 flex flex-col items-center justify-center cursor-pointer hover:border-black transition active:scale-95 group" onclick="document.getElementById('fileInput').click()">
-                <i class="fas fa-cloud-upload text-5xl text-gray-200 group-hover:text-black transition mb-6"></i>
-                <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 group-hover:text-black transition">Carica Documentazione</span>
+        <!-- FILE -->
+        <div id="section-file" class="hidden space-y-4">
+            <div class="border-2 border-dashed border-gray-100 bg-white rounded-3xl p-10 flex flex-col items-center justify-center cursor-pointer hover:border-black transition active:scale-95" onclick="document.getElementById('fileInput').click()">
+                <i class="fas fa-cloud-upload text-3xl text-gray-200 mb-3"></i>
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Carica Allegato</span>
             </div>
             <input type="file" id="fileInput" class="hidden" onchange="handleFileSelect(event)">
-            <div id="fileNameDisplay" class="text-[10px] font-black uppercase tracking-widest text-neutral-400">Pronto per l'invio</div>
-            
-            <button id="uploadFileBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition disabled:opacity-10" disabled onclick="processAndSendFile()">
-                Invia Allegato
-            </button>
+            <div id="fileNameDisplay" class="text-[9px] font-black uppercase tracking-widest text-neutral-400">PDF, JPG, PNG (Max 10MB)</div>
+            <button id="uploadFileBtn" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all disabled:opacity-10" disabled onclick="processAndSendFile()">Invia Documento</button>
         </div>
 
-        <!-- SEZIONE: TEXT (NOTA) -->
-        <div id="section-text" class="hidden w-full flex flex-col items-center space-y-6">
-            <textarea id="textInput" placeholder="Inserisci qui il contenuto o la nota richiesta..." class="w-full bg-white border border-gray-100 rounded-[2.5rem] p-8 text-sm font-medium outline-none focus:ring-1 ring-black transition min-h-[250px] shadow-sm leading-relaxed" oninput="validateText()"></textarea>
-            <button id="sendTextBtn" class="w-full bg-black text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-xl active:scale-95 transition disabled:opacity-10" disabled onclick="sendTextData()">
-                Trasmetti Nota
-            </button>
+        <!-- TEXT -->
+        <div id="section-text" class="hidden space-y-4">
+            <textarea id="textInput" placeholder="Inserisci qui la nota..." class="w-full bg-white border border-gray-100 rounded-3xl p-5 text-sm font-medium outline-none focus:border-black transition min-h-[180px] shadow-sm leading-relaxed" oninput="validateText()"></textarea>
+            <button id="sendTextBtn" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all disabled:opacity-10" disabled onclick="sendTextData()">Trasmetti Nota</button>
         </div>
-
     </div>
 
     <script>
         'use strict';
-
         const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-
+        tg.ready(); tg.expand();
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/ef4aece4-9ec0-4026-a7a7-328562bcbdf6";
         const urlParams = new URLSearchParams(window.location.search);
-        
         const sopId = urlParams.get('sop_id');
         const messageId = urlParams.get('message_id');
         const evidenceType = (urlParams.get('evidence_type') || 'VISION').toUpperCase();
+        let videoStream = null, isDrawing = false, canvas, ctx;
 
-        let videoStream = null;
-        let isDrawing = false;
-        let canvas, ctx;
-
-        // ── INITIALIZATION ──
         function initApp() {
-            const badge = document.getElementById('typeBadge');
-            badge.innerText = evidenceType + " PROTOCOL";
-
-            // Mostra sezione corretta
+            document.getElementById('typeBadge').innerText = evidenceType + " PROTOCOL";
             if (evidenceType === 'VISION') document.getElementById('section-vision').classList.remove('hidden');
-            else if (evidenceType === 'SIGNATURE') {
-                document.getElementById('section-signature').classList.remove('hidden');
-                initSignaturePad();
-            }
+            else if (evidenceType === 'SIGNATURE') { document.getElementById('section-signature').classList.remove('hidden'); initSignaturePad(); }
             else if (evidenceType === 'FILE') document.getElementById('section-file').classList.remove('hidden');
             else if (evidenceType === 'TEXT') document.getElementById('section-text').classList.remove('hidden');
-
-            document.getElementById('statusText').innerText = "In attesa di acquisizione...";
+            document.getElementById('statusText').innerText = "In attesa di input...";
         }
 
-        // ── SIGNATURE MODULE ──
         function initSignaturePad() {
-            canvas = document.getElementById('signature-pad');
-            ctx = canvas.getContext('2d');
-            
-            const resize = () => {
-                const ratio = Math.max(window.devicePixelRatio || 1, 1);
-                canvas.width = canvas.offsetWidth * ratio;
-                canvas.height = canvas.offsetHeight * ratio;
-                ctx.scale(ratio, ratio);
-                ctx.strokeStyle = "#000000";
-                ctx.lineWidth = 2.5;
-                ctx.lineCap = "round";
-                ctx.lineJoin = "round";
-            };
-            window.addEventListener('resize', resize);
-            resize();
-
-            const start = (e) => {
-                isDrawing = true;
-                const { x, y } = getCoord(e);
-                ctx.beginPath();
-                ctx.moveTo(x, y);
-            };
-            const move = (e) => {
-                if (!isDrawing) return;
-                const { x, y } = getCoord(e);
-                ctx.lineTo(x, y);
-                ctx.stroke();
-            };
-            const stop = () => isDrawing = false;
-
-            canvas.addEventListener('mousedown', start);
-            canvas.addEventListener('mousemove', move);
-            window.addEventListener('mouseup', stop);
-            
-            canvas.addEventListener('touchstart', (e) => { start(e.touches[0]); e.preventDefault(); }, {passive: false});
-            canvas.addEventListener('touchmove', (e) => { move(e.touches[0]); e.preventDefault(); }, {passive: false});
-            canvas.addEventListener('touchend', stop);
+            canvas = document.getElementById('signature-pad'); ctx = canvas.getContext('2d');
+            const res = () => { const r = Math.max(window.devicePixelRatio||1,1); canvas.width = canvas.offsetWidth*r; canvas.height = canvas.offsetHeight*r; ctx.scale(r,r); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.lineCap = "round"; };
+            window.addEventListener('resize', res); res();
+            const gC = (e) => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX||e.touches[0].clientX) - r.left, y: (e.clientY||e.touches[0].clientY) - r.top }; };
+            const st = (e) => { isDrawing = true; const {x,y} = gC(e); ctx.beginPath(); ctx.moveTo(x,y); };
+            const mv = (e) => { if(!isDrawing) return; const {x,y} = gC(e); ctx.lineTo(x,y); ctx.stroke(); };
+            const sp = () => isDrawing = false;
+            canvas.addEventListener('mousedown', st); canvas.addEventListener('mousemove', mv); window.addEventListener('mouseup', sp);
+            canvas.addEventListener('touchstart', (e) => { st(e); e.preventDefault(); }, {passive: false});
+            canvas.addEventListener('touchmove', (e) => { mv(e); e.preventDefault(); }, {passive: false});
+            canvas.addEventListener('touchend', sp);
         }
 
-        function getCoord(e) {
-            const rect = canvas.getBoundingClientRect();
-            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        function clearSignature() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+        function saveSignature() { 
+            const b = document.createElement('canvas'); b.width = canvas.width; b.height = canvas.height;
+            if (canvas.toDataURL() === b.toDataURL()) { tg.showAlert("Firma richiesta."); return; }
+            sendToServer(canvas.toDataURL('image/png').split(',')[1], "image/png", "signature.png");
         }
 
-        function clearSignature() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-
-        function saveSignature() {
-            // Verifica se il canvas è vuoto (semplice check trasparenza)
-            const blank = document.createElement('canvas');
-            blank.width = canvas.width; blank.height = canvas.height;
-            if (canvas.toDataURL() === blank.toDataURL()) {
-                tg.showAlert("È richiesta la firma per procedere.");
-                return;
-            }
-
-            const base64 = canvas.toDataURL('image/png').split(',')[1];
-            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            sendToServer(base64, "image/png", "digital_signature.png");
-        }
-
-        // ── VISION MODULE ──
         async function startCamera() {
             try {
-                document.getElementById('startCamBtn').classList.add('hidden');
-                document.getElementById('camera-placeholder').classList.add('hidden');
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
-                });
-                
-                videoStream = stream;
-                const video = document.getElementById('camera-feed');
-                video.srcObject = stream;
-                video.classList.remove('hidden');
-                
-                video.onloadedmetadata = () => {
-                    video.play();
-                    document.getElementById('snapBtn').classList.remove('hidden');
-                    document.getElementById('statusText').innerText = "Inquadra l'evidenza richiesta";
-                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-                };
-            } catch (err) {
-                tg.showAlert("Impossibile accedere alla fotocamera. Verifica i permessi.");
-                document.getElementById('startCamBtn').classList.remove('hidden');
-            }
+                const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 1280, height: 720 } });
+                videoStream = s; const v = document.getElementById('camera-feed'); v.srcObject = s;
+                v.classList.remove('hidden'); document.getElementById('camera-placeholder').classList.add('hidden');
+                v.onloadedmetadata = () => { v.play(); document.getElementById('startCamBtn').classList.add('hidden'); document.getElementById('snapBtn').classList.remove('hidden'); };
+            } catch (e) { tg.showAlert("Accesso camera negato."); }
         }
 
         function takePhoto() {
-            const video = document.getElementById('camera-feed');
-            const camCanvas = document.getElementById('camera-canvas');
-            camCanvas.width = video.videoWidth;
-            camCanvas.height = video.videoHeight;
-            camCanvas.getContext('2d').drawImage(video, 0, 0);
-            
-            const base64 = camCanvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-            
-            if (videoStream) videoStream.getTracks().forEach(track => track.stop());
-            
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
-            sendToServer(base64, "image/jpeg", `evidence_${Date.now()}.jpg`);
+            const v = document.getElementById('camera-feed'); const c = document.getElementById('camera-canvas');
+            c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v, 0, 0);
+            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
+            sendToServer(c.toDataURL('image/jpeg', 0.8).split(',')[1], "image/jpeg", `ev_${Date.now()}.jpg`);
         }
 
-        // ── SENDING ENGINE ──
-        function sendToServer(content, mimeType, fileName, isPlainText = false) {
-            document.getElementById('loader').classList.remove('hidden');
-            document.getElementById('statusText').innerText = "TRASMISSIONE CRIPTATA IN CORSO...";
-            
-            const payload = {
-                _auth: tg.initData,
-                chat_id: tg.initDataUnsafe?.user?.id,
-                action: "certificator",
-                evidence_type: evidenceType,
-                mime_type: mimeType,
-                file_name: fileName,
-                sop_id: sopId,
-                message_id: messageId
-            };
-
-            if (isPlainText) payload.text_content = content;
-            else payload.base64_content = content;
-
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => {
-                if (res.ok) {
-                    document.getElementById('statusText').innerText = "✅ EVIDENZA TRASMESSA CON SUCCESSO";
-                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    setTimeout(() => tg.close(), 1500);
-                } else throw new Error();
-            })
-            .catch(() => {
-                document.getElementById('loader').classList.add('hidden');
-                document.getElementById('statusText').innerText = "❌ ERRORE DI TRASMISSIONE";
-                tg.showAlert("Errore durante l'invio al server SiteBoS.");
-            });
+        function sendToServer(content, mime, name, isText = false) {
+            document.getElementById('loader').classList.remove('hidden'); document.getElementById('statusText').innerText = "INVIO IN CORSO...";
+            const p = { _auth: tg.initData, chat_id: tg.initDataUnsafe?.user?.id, action: "certificator", evidence_type: evidenceType, mime_type: mime, file_name: name, sop_id: sopId, message_id: messageId };
+            if (isText) p.text_content = content; else p.base64_content = content;
+            fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) })
+            .then(r => { if(r.ok){ if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); tg.close(); } else throw 0; })
+            .catch(() => { document.getElementById('loader').classList.add('hidden'); document.getElementById('statusText').innerText = "❌ ERRORE"; });
         }
 
-        // ── FILE & TEXT HELPERS ──
-        let selectedFileBase64, selectedFileMime, selectedFileName;
-        function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            if (file.size > 10 * 1024 * 1024) { tg.showAlert("File troppo pesante (Max 10MB)"); return; }
-            
-            selectedFileName = file.name;
-            selectedFileMime = file.type;
-            const reader = new FileReader();
-            reader.onload = (ev) => {
-                selectedFileBase64 = ev.target.result.split(',')[1];
-                document.getElementById('uploadFileBtn').disabled = false;
-                document.getElementById('fileNameDisplay').innerText = file.name.toUpperCase();
-                document.getElementById('fileNameDisplay').classList.replace('text-neutral-400', 'text-black');
-            };
-            reader.readAsDataURL(file);
+        let sF; function handleFileSelect(e) {
+            const f = e.target.files[0]; if(!f) return;
+            const r = new FileReader(); r.onload = (x) => { sF = { b64: x.target.result.split(',')[1], m: f.type, n: f.name }; document.getElementById('uploadFileBtn').disabled = false; document.getElementById('fileNameDisplay').innerText = f.name.toUpperCase(); };
+            r.readAsDataURL(f);
         }
-        function processAndSendFile() { sendToServer(selectedFileBase64, selectedFileMime, selectedFileName); }
-        
-        function validateText() { 
-            const val = document.getElementById('textInput').value.trim();
-            document.getElementById('sendTextBtn').disabled = val.length < 5; 
-        }
-        function sendTextData() { 
-            const val = document.getElementById('textInput').value.trim();
-            sendToServer(val, "text/plain", "validation_note.txt", true); 
-        }
-
-        // AVVIO
+        function processAndSendFile() { sendToServer(sF.b64, sF.m, sF.n); }
+        function validateText() { document.getElementById('sendTextBtn').disabled = document.getElementById('textInput').value.trim().length < 5; }
+        function sendTextData() { sendToServer(document.getElementById('textInput').value.trim(), "text/plain", "note.txt", true); }
         window.onload = initApp;
     </script>
 </body>

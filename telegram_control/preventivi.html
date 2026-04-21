@@ -3,340 +3,167 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SiteBoS | AI Proposal Wizard</title>
-    
-    <!-- SDK Telegram -->
+    <title>Proposal Wizard | SiteBoS</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
         (function () {
             if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
-                document.documentElement.innerHTML = `
-                    <body class="bg-[#0f172a] text-white flex items-center justify-center h-screen text-center p-10 font-sans">
-                        <div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-black uppercase tracking-widest">Accesso Proibito</h2></div>
-                    </body>`;
+                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase">Accesso Proibito</h2></div></body>`;
                 window.stop();
             }
         })();
     </script>
-
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        primary: '#212D67',
-                        accent: '#895FE0',
-                        dark: '#0f172a',
-                        surface: '#1e293b',
-                        border: 'rgba(255,255,255,0.08)'
-                    },
-                    borderRadius: { '4xl': '2rem', '5xl': '2.5rem' }
+                    colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
                 }
             }
         }
     </script>
-
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0f172a; color: #f8fafc; -webkit-tap-highlight-color: transparent; }
-        .glass { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #000; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        .wizard-step { transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        .step-hidden-left { transform: translateX(-100%); opacity: 0; pointer-events: none; position: absolute; }
-        .step-hidden-right { transform: translateX(100%); opacity: 0; pointer-events: none; position: absolute; }
+        .wizard-step { transition: all 0.4s ease; }
+        .step-hidden-left { transform: translateX(-20px); opacity: 0; pointer-events: none; position: absolute; }
+        .step-hidden-right { transform: translateX(20px); opacity: 0; pointer-events: none; position: absolute; }
         .step-active { transform: translateX(0); opacity: 1; position: relative; }
-        
-        .progress-bar { transition: width 0.5s ease; }
-        input:focus, textarea:focus { border-color: #895FE0 !important; box-shadow: 0 0 15px rgba(137, 95, 224, 0.1); }
     </style>
 </head>
 <body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm">
 
-    <!-- HEADER -->
-    <header class="p-6 glass sticky top-0 z-50 flex justify-between items-center border-b border-white/5">
-        <div class="flex items-center gap-4">
-            <div id="brand-logo" class="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-white shadow-xl shadow-accent/20">
-                <i class="fas fa-file-invoice-dollar text-xl"></i>
+    <header class="p-5 bg-white border-b border-gray-100 sticky top-0 z-50 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-md">
+                <i class="fas fa-file-invoice-dollar text-sm"></i>
             </div>
             <div>
-                <h1 id="brand-name" class="text-[10px] font-black uppercase tracking-[0.3em] text-accent leading-none mb-1">AI Proposal</h1>
-                <p id="step-title" class="text-lg font-extrabold tracking-tight">Qualificazione</p>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">AI Proposal</h1>
+                <p id="step-title" class="text-sm font-black tracking-tight">Selezione</p>
             </div>
         </div>
-        <button onclick="tg.close()" class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 text-gray-400">
+        <button onclick="tg.close()" class="w-8 h-8 rounded-full flex items-center justify-center text-gray-300">
             <i class="fas fa-times"></i>
         </button>
     </header>
 
-    <!-- PROGRESS BAR -->
-    <div class="h-1.5 w-full bg-white/5 overflow-hidden">
-        <div id="progress" class="progress-bar h-full bg-accent shadow-[0_0_15px_#895FE0]" style="width: 0%"></div>
+    <div class="h-1 w-full bg-gray-50 overflow-hidden">
+        <div id="progress" class="h-full bg-black transition-all duration-500" style="width: 0%"></div>
     </div>
 
-    <!-- CONTENT -->
-    <main id="wizard-container" class="flex-1 overflow-x-hidden overflow-y-auto p-6 relative no-scrollbar pb-32">
-        
-        <!-- STEP 0: SERVICE SELECTION -->
-        <div id="step-0" class="wizard-step step-active space-y-6">
-            <div class="text-center space-y-2 mb-8">
-                <h2 class="text-2xl font-black tracking-tighter">Cosa desideri realizzare?</h2>
-                <p class="text-gray-400 font-medium">Seleziona il servizio per iniziare la configurazione.</p>
+    <main id="wizard-container" class="flex-1 overflow-x-hidden overflow-y-auto p-5 relative no-scrollbar pb-32">
+        <div id="step-0" class="wizard-step step-active space-y-5">
+            <div class="text-center py-4">
+                <h2 class="text-xl font-black tracking-tight uppercase">Cosa vuoi realizzare?</h2>
+                <p class="text-gray-400 text-xs font-medium mt-1">Scegli un servizio per la proposta AI.</p>
             </div>
-            <div id="service-grid" class="grid grid-cols-1 gap-4">
-                <!-- Dinamico: Service Cards -->
-            </div>
+            <div id="service-grid" class="grid gap-3"></div>
         </div>
 
-        <!-- GPCTBA STEPS (Dynamicly populated) -->
-        <div id="step-1" class="wizard-step step-hidden-right space-y-6">
-            <div class="space-y-2 mb-8">
-                <span class="text-accent font-black uppercase tracking-widest text-[10px]">Step 1: Goals</span>
-                <h2 class="text-3xl font-black tracking-tighter">Quali sono i tuoi obiettivi principali?</h2>
-                <p class="text-gray-400 font-medium">Cosa speri di ottenere con questo servizio? Sii il più specifico possibile.</p>
-            </div>
-            <textarea id="input-goals" rows="6" class="w-full bg-surface border border-border rounded-4xl p-6 text-white outline-none transition" placeholder="Es: Voglio automatizzare il 50% delle risposte ai clienti..."></textarea>
+        <!-- GPCTBA STEPS -->
+        <div id="step-1" class="wizard-step step-hidden-right space-y-5">
+            <div class="space-y-1"><span class="text-black font-black uppercase text-[9px] tracking-widest">Goals</span><h2 class="text-xl font-black tracking-tight">Obiettivi</h2></div>
+            <textarea id="input-goals" rows="5" class="w-full bg-white border border-gray-100 rounded-3xl p-5 text-sm outline-none focus:border-black shadow-sm" placeholder="Cosa vuoi ottenere?"></textarea>
         </div>
-
-        <div id="step-2" class="wizard-step step-hidden-right space-y-6">
-            <div class="space-y-2 mb-8">
-                <span class="text-accent font-black uppercase tracking-widest text-[10px]">Step 2: Plans</span>
-                <h2 class="text-3xl font-black tracking-tighter">Hai già un piano d'azione?</h2>
-                <p class="text-gray-400 font-medium">Descrivi come stai cercando di risolvere il problema attualmente.</p>
-            </div>
-            <textarea id="input-plans" rows="6" class="w-full bg-surface border border-border rounded-4xl p-6 text-white outline-none transition" placeholder="Es: Sto usando dei template manuali ma richiedono troppo tempo..."></textarea>
+        <div id="step-2" class="wizard-step step-hidden-right space-y-5">
+            <div class="space-y-1"><span class="text-black font-black uppercase text-[9px] tracking-widest">Plans</span><h2 class="text-xl font-black tracking-tight">Piani</h2></div>
+            <textarea id="input-plans" rows="5" class="w-full bg-white border border-gray-100 rounded-3xl p-5 text-sm outline-none focus:border-black shadow-sm" placeholder="Qual è il tuo piano attuale?"></textarea>
         </div>
-
-        <div id="step-3" class="wizard-step step-hidden-right space-y-6">
-            <div class="space-y-2 mb-8">
-                <span class="text-accent font-black uppercase tracking-widest text-[10px]">Step 3: Challenges</span>
-                <h2 class="text-3xl font-black tracking-tighter">Quali sono i principali ostacoli?</h2>
-                <p class="text-gray-400 font-medium">Cosa ti impedisce di raggiungere i tuoi obiettivi in autonomia?</p>
-            </div>
-            <textarea id="input-challenges" rows="6" class="w-full bg-surface border border-border rounded-4xl p-6 text-white outline-none transition" placeholder="Es: Mancanza di competenze tecniche interne..."></textarea>
+        <div id="step-3" class="wizard-step step-hidden-right space-y-5">
+            <div class="space-y-1"><span class="text-black font-black uppercase text-[9px] tracking-widest">Challenges</span><h2 class="text-xl font-black tracking-tight">Sfide</h2></div>
+            <textarea id="input-challenges" rows="5" class="w-full bg-white border border-gray-100 rounded-3xl p-5 text-sm outline-none focus:border-black shadow-sm" placeholder="Quali ostacoli incontri?"></textarea>
         </div>
-
-        <div id="step-4" class="wizard-step step-hidden-right space-y-6">
-            <div class="space-y-2 mb-8">
-                <span class="text-accent font-black uppercase tracking-widest text-[10px]">Step 4: Timeline</span>
-                <h2 class="text-3xl font-black tracking-tighter">Quando vorresti iniziare?</h2>
-                <p class="text-gray-400 font-medium">Indica l'urgenza del progetto.</p>
-            </div>
-            <select id="input-timeline" class="w-full bg-surface border border-border rounded-4xl p-6 text-white outline-none transition appearance-none">
-                <option value="IMMEDIATE">Immediatamente (entro 7 giorni)</option>
-                <option value="1_MONTH">Entro un mese</option>
-                <option value="3_MONTHS">Nei prossimi 3 mesi</option>
-                <option value="EXPLORATORY">Solo esplorativo / Futuro</option>
+        <div id="step-4" class="wizard-step step-hidden-right space-y-5">
+            <div class="space-y-1"><span class="text-black font-black uppercase text-[9px] tracking-widest">Timeline</span><h2 class="text-xl font-black tracking-tight">Tempistiche</h2></div>
+            <select id="input-timeline" class="w-full bg-white border border-gray-100 rounded-3xl p-5 text-sm font-bold outline-none appearance-none">
+                <option value="IMMEDIATE">Subito (7 giorni)</option>
+                <option value="1_MONTH">Un mese</option>
+                <option value="3_MONTHS">3 mesi</option>
             </select>
         </div>
-
-        <div id="step-5" class="wizard-step step-hidden-right space-y-6">
-            <div class="space-y-2 mb-8">
-                <span class="text-accent font-black uppercase tracking-widest text-[10px]">Step 5: Budget</span>
-                <h2 class="text-3xl font-black tracking-tighter">Qual è il tuo range di investimento?</h2>
-                <p class="text-gray-400 font-medium">Questo ci aiuta a calibrare la proposta tecnologica.</p>
-            </div>
-            <div class="grid grid-cols-1 gap-3">
-                <label class="flex items-center gap-4 bg-surface p-6 rounded-4xl border border-border cursor-pointer active:scale-95 transition">
-                    <input type="radio" name="budget" value="LOW" class="w-5 h-5 accent-accent">
-                    <span class="font-bold italic">Base (Mantenimento)</span>
+        <div id="step-5" class="wizard-step step-hidden-right space-y-5">
+            <div class="space-y-1"><span class="text-black font-black uppercase text-[9px] tracking-widest">Budget</span><h2 class="text-xl font-black tracking-tight">Investimento</h2></div>
+            <div class="grid gap-2">
+                <label class="flex items-center gap-3 bg-white p-4 rounded-3xl border border-gray-100 active:scale-95 transition">
+                    <input type="radio" name="budget" value="LOW" class="accent-black"><span class="font-bold text-xs uppercase tracking-tight">Base</span>
                 </label>
-                <label class="flex items-center gap-4 bg-surface p-6 rounded-4xl border border-border cursor-pointer active:scale-95 transition">
-                    <input type="radio" name="budget" value="MEDIUM" class="w-5 h-5 accent-accent">
-                    <span class="font-bold italic">Growth (Sviluppo Modulare)</span>
-                </label>
-                <label class="flex items-center gap-4 bg-surface p-6 rounded-4xl border border-border cursor-pointer active:scale-95 transition">
-                    <input type="radio" name="budget" value="HIGH" class="w-5 h-5 accent-accent">
-                    <span class="font-bold italic">Enterprise (Full Integration)</span>
+                <label class="flex items-center gap-3 bg-white p-4 rounded-3xl border border-gray-100 active:scale-95 transition">
+                    <input type="radio" name="budget" value="MEDIUM" class="accent-black"><span class="font-bold text-xs uppercase tracking-tight">Growth</span>
                 </label>
             </div>
         </div>
-
-        <div id="step-6" class="wizard-step step-hidden-right space-y-6">
-            <div class="space-y-2 mb-8">
-                <span class="text-accent font-black uppercase tracking-widest text-[10px]">Step 6: Authority</span>
-                <h2 class="text-3xl font-black tracking-tighter">Chi prenderà la decisione finale?</h2>
-                <p class="text-gray-400 font-medium">Sei tu il decision-maker o dobbiamo coinvolgere altri stakeholder?</p>
-            </div>
-            <input type="text" id="input-authority" class="w-full bg-surface border border-border rounded-4xl p-6 text-white outline-none transition" placeholder="Es: Io personalmente / Il consiglio direttivo">
+        <div id="step-6" class="wizard-step step-hidden-right space-y-5">
+            <div class="space-y-1"><span class="text-black font-black uppercase text-[9px] tracking-widest">Authority</span><h2 class="text-xl font-black tracking-tight">Decision Maker</h2></div>
+            <input type="text" id="input-authority" class="w-full bg-white border border-gray-100 rounded-3xl p-5 text-sm font-bold outline-none focus:border-black shadow-sm" placeholder="Chi decide?">
         </div>
-
     </main>
 
-    <!-- FOOTER NAV -->
-    <footer id="footer-nav" class="fixed bottom-0 left-0 right-0 p-8 glass border-t border-white/5 z-[100] hidden">
-        <div class="flex gap-4">
-            <button id="btn-back" onclick="prevStep()" class="w-16 h-16 bg-white/5 text-white rounded-4xl flex items-center justify-center active:scale-90 transition">
+    <footer id="footer-nav" class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-[100] hidden">
+        <div class="flex gap-3 max-w-md mx-auto">
+            <button onclick="prevStep()" class="w-10 h-10 bg-gray-50 text-black rounded-xl flex items-center justify-center active:scale-90 transition border border-gray-100">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <button id="btn-next" onclick="nextStep()" class="flex-1 bg-white text-dark h-16 rounded-4xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition flex items-center justify-center gap-3">
-                <span id="next-label">Continua</span>
-                <i class="fas fa-arrow-right"></i>
+            <button onclick="nextStep()" class="flex-1 bg-black text-white h-10 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition flex items-center justify-center gap-2">
+                <span id="next-label">Continua</span><i class="fas fa-arrow-right"></i>
             </button>
         </div>
     </footer>
 
-    <!-- GLOBAL LOADER -->
-    <div id="global-loader" class="fixed inset-0 bg-dark z-[500] flex flex-col items-center justify-center p-10 text-center">
-        <div class="w-16 h-16 border-4 border-surface border-t-accent rounded-full animate-spin mb-8"></div>
-        <p class="text-[10px] font-black uppercase tracking-[0.3em] text-accent animate-pulse">Inizializzazione Motore AI...</p>
+    <div id="global-loader" class="fixed inset-0 bg-white z-[500] flex flex-col items-center justify-center p-10 text-center">
+        <div class="w-10 h-10 border-2 border-gray-100 border-t-black rounded-full animate-spin mb-4"></div>
+        <p class="text-[8px] font-black uppercase tracking-widest text-gray-300">SiteBoS AI Engine...</p>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-
+        const tg = window.Telegram.WebApp; tg.expand(); tg.ready();
         const WH_URL = "https://prod.workflow.trinai.it/webhook/8eb69e84-d20d-486e-a70e-9acf31c3da9e";
         const params = new URLSearchParams(window.location.search);
         const ashToken = params.get('ash');
+        let catalog = [], selectedService = null, currentStep = 0, totalSteps = 6;
 
-        let catalog = [];
-        let selectedService = null;
-        let currentStep = 0;
-        const totalSteps = 6;
-
-        window.onload = async () => {
-            if (!ashToken) {
-                tg.showAlert("Accesso Negato: ASH Token non trovato.");
-                return;
-            }
-            await initApp();
-        };
-
+        window.onload = async () => { if (!ashToken) return; await initApp(); };
         async function initApp() {
             try {
-                const response = await fetch(WH_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        _auth: tg.initData,
-                        ash: ashToken,
-                        action: 'u_calc_prev_get' // Root per preventivi
-                    })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    catalog = data.catalog || [];
-                    renderServices();
-                    hideLoader();
-                }
-            } catch (e) { tg.showAlert("Errore di connessione."); }
+                const r = await fetch(WH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_prev_get' }) });
+                const d = await r.json(); if (d.success) { catalog = d.catalog || []; renderServices(); document.getElementById('global-loader').classList.add('hidden'); }
+            } catch (e) {}
         }
-
-        function hideLoader() { document.getElementById('global-loader').classList.add('hidden'); }
-
         function renderServices() {
-            const grid = document.getElementById('service-grid');
-            grid.innerHTML = catalog.map(s => `
-                <div class="glass p-6 rounded-4xl flex items-center justify-between active:scale-95 transition group" onclick="selectService('${s.callback_data}', '${s.name}')">
-                    <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 bg-white/5 rounded-2xl flex items-center justify-center text-accent group-hover:bg-accent group-hover:text-white transition-colors">
-                            <i class="fas fa-concierge-bell text-xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-bold text-sm text-white/90 leading-tight">${s.name}</h3>
-                            <p class="text-[10px] text-gray-500 uppercase font-black tracking-widest mt-1">Servizio AI Ready</p>
-                        </div>
-                    </div>
-                    <i class="fas fa-chevron-right text-white/10"></i>
-                </div>
-            `).join('');
+            const g = document.getElementById('service-grid');
+            g.innerHTML = catalog.map(s => `<div class="bg-white p-4 rounded-3xl border border-gray-100 flex items-center justify-between active:scale-95 transition" onclick="selectService('${s.callback_data}', '${s.name}')"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center text-black"><i class="fas fa-concierge-bell text-sm"></i></div><h3 class="font-bold text-xs uppercase tracking-tight">${s.name}</h3></div><i class="fas fa-chevron-right text-gray-200 text-xs"></i></div>`).join('');
         }
-
-        function selectService(sku, name) {
-            selectedService = { sku, name };
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            document.getElementById('footer-nav').classList.remove('hidden');
-            nextStep();
-        }
-
+        function selectService(sku, name) { selectedService = { sku, name }; document.getElementById('footer-nav').classList.remove('hidden'); nextStep(); }
         function nextStep() {
-            if (currentStep === totalSteps) {
-                submitProposal();
-                return;
-            }
-
-            const currentEl = document.getElementById(`step-${currentStep}`);
+            if (currentStep === totalSteps) { submitProposal(); return; }
+            document.getElementById(`step-${currentStep}`).className = "wizard-step step-hidden-left";
             currentStep++;
-            const nextEl = document.getElementById(`step-${currentStep}`);
-
-            currentEl.className = "wizard-step step-hidden-left";
-            nextEl.className = "wizard-step step-active";
-
+            document.getElementById(`step-${currentStep}`).className = "wizard-step step-active";
             updateUI();
         }
-
         function prevStep() {
             if (currentStep === 0) return;
-            
-            const currentEl = document.getElementById(`step-${currentStep}`);
+            document.getElementById(`step-${currentStep}`).className = "wizard-step step-hidden-right";
             currentStep--;
-            const prevEl = document.getElementById(`step-${currentStep}`);
-
-            currentEl.className = "wizard-step step-hidden-right";
-            prevEl.className = "wizard-step step-active";
-
+            document.getElementById(`step-${currentStep}`).className = "wizard-step step-active";
             if (currentStep === 0) document.getElementById('footer-nav').classList.add('hidden');
             updateUI();
         }
-
         function updateUI() {
-            const progress = (currentStep / totalSteps) * 100;
-            document.getElementById('progress').style.width = `${progress}%`;
-            
+            document.getElementById('progress').style.width = `${(currentStep / totalSteps) * 100}%`;
             const titles = ["Selezione", "Obiettivi", "Piani", "Sfide", "Timeline", "Budget", "Autorità"];
             document.getElementById('step-title').innerText = titles[currentStep];
-
-            if (currentStep === totalSteps) {
-                document.getElementById('next-label').innerText = "Genera Proposta";
-            } else {
-                document.getElementById('next-label').innerText = "Continua";
-            }
+            document.getElementById('next-label').innerText = currentStep === totalSteps ? "Genera Proposta" : "Continua";
         }
-
         async function submitProposal() {
-            const data = {
-                service: selectedService,
-                gpctba: {
-                    goals: document.getElementById('input-goals').value,
-                    plans: document.getElementById('input-plans').value,
-                    challenges: document.getElementById('input-challenges').value,
-                    timeline: document.getElementById('input-timeline').value,
-                    budget: document.querySelector('input[name="budget"]:checked')?.value,
-                    authority: document.getElementById('input-authority').value
-                }
-            };
-
-            if (!data.gpctba.goals || !data.gpctba.budget) {
-                tg.showAlert("Per favore, completa tutti i campi fondamentali per permettere all'AI di generare una proposta accurata.");
-                return;
-            }
-
-            tg.showConfirm("Sei pronto a inviare i dati? L'IA di SiteBoS elaborerà una proposta personalizzata e te la invierà su Telegram.", async (ok) => {
+            const d = { service: selectedService, gpctba: { goals: document.getElementById('input-goals').value, plans: document.getElementById('input-plans').value, challenges: document.getElementById('input-challenges').value, timeline: document.getElementById('input-timeline').value, budget: document.querySelector('input[name="budget"]:checked')?.value, authority: document.getElementById('input-authority').value } };
+            tg.showConfirm("Inviare la richiesta?", async ok => {
                 if (ok) {
-                    try {
-                        const response = await fetch(WH_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                _auth: tg.initData,
-                                ash: ashToken,
-                                action: 'u_calc_prev_save',
-                                proposal_data: data
-                            })
-                        });
-                        const result = await response.json();
-                        if (result.success) {
-                            tg.showAlert("✅ Dati inviati! L'analisi è in corso. Riceverai il preventivo a breve.", () => tg.close());
-                        }
-                    } catch (e) { tg.showAlert("Errore durante l'invio della richiesta."); }
+                    try { await fetch(WH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_prev_save', proposal_data: d }) }); tg.showAlert("Inviato!", () => tg.close()); } catch (e) {}
                 }
             });
         }

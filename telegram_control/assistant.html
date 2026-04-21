@@ -4,489 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>TrinAI OS</title>
-    
-    <!-- SDK Telegram -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
     <script>
         tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#000000',
-                        bg: '#fafafa',
-                        border: '#eeeeee'
-                    }
-                }
-            }
+            theme: { extend: { colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' }, borderRadius: { '3xl': '1.5rem' } } }
         }
     </script>
-
     <style>
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
-        /* Animazione per i messaggi */
         @keyframes messageIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .msg-anim { animation: messageIn 0.3s ease forwards; }
-
-        /* Stile Toggle */
-        .active-agent-glow { box-shadow: 0 0 15px rgba(0,0,0,0.1); border-color: black !important; }
     </style>
-
-    <script>
-        (function() {
-            const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== "";
-            if (!isTelegram) {
-                document.documentElement.innerHTML = `
-                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
-                        <div><h1 class="text-6xl mb-4 text-white">🚫</h1><h2 class="text-xl font-black uppercase tracking-widest">Accesso Proibito</h2></div>
-                    </body>`;
-                window.stop();
-            }
-        })();
-    </script>
 </head>
 <body class="bg-bg text-black overflow-hidden h-screen">
 
-    <!-- OVERLAY DRAWER -->
     <div id="drawer-overlay" class="fixed inset-0 bg-black/40 z-[999] hidden transition-opacity" onclick="toggleDrawer()"></div>
     
-    <!-- NAVIGATION DRAWER (Menu Agenti Principali) -->
-    <nav id="agent-drawer" class="fixed top-0 left-0 w-72 h-full bg-white shadow-2xl -translate-x-full transition-transform duration-300 z-[1000] flex flex-col">
-        <div class="p-8 border-b border-gray-100">
-            <div class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-1">TrinAI OS</div>
-            <div class="text-xl font-black tracking-tighter uppercase">Direzione</div>
+    <nav id="agent-drawer" class="fixed top-0 left-0 w-64 h-full bg-white shadow-2xl -translate-x-full transition-transform duration-300 z-[1000] flex flex-col p-6 space-y-4">
+        <div class="border-b border-gray-50 pb-4">
+            <p class="text-[8px] font-black uppercase tracking-widest text-gray-400 mb-1">TrinAI OS</p>
+            <h2 class="text-lg font-black tracking-tighter uppercase">Direzione</h2>
         </div>
-        <div class="flex-1 overflow-y-auto py-4">
-            <div class="drawer-item px-8 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('pm')"><i class="fas fa-tasks w-6 text-center"></i> Gestione Lavori</div>
-            <div class="drawer-item px-8 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('mkt')"><i class="fas fa-bullhorn w-6 text-center"></i> Vendite & Promo</div>
-            <div class="drawer-item px-8 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('hr')"><i class="fas fa-shield-alt w-6 text-center"></i> Team & Sicurezza</div>
-            <div class="drawer-item px-8 py-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer transition font-bold" onclick="switchAgent('acc')"><i class="fas fa-wallet w-6 text-center"></i> Cassa & Conti</div>
+        <div class="flex-1 space-y-2 overflow-y-auto no-scrollbar pt-4">
+            <div class="p-3 flex items-center gap-3 rounded-xl active:bg-gray-50 font-bold text-xs uppercase tracking-tight" onclick="switchAgent('pm')"><i class="fas fa-tasks w-5"></i> Lavori</div>
+            <div class="p-3 flex items-center gap-3 rounded-xl active:bg-gray-50 font-bold text-xs uppercase tracking-tight" onclick="switchAgent('mkt')"><i class="fas fa-bullhorn w-5"></i> Vendite</div>
+            <div class="p-3 flex items-center gap-3 rounded-xl active:bg-gray-50 font-bold text-xs uppercase tracking-tight" onclick="switchAgent('hr')"><i class="fas fa-shield-alt w-5"></i> Team</div>
         </div>
-        <div class="p-6 border-t border-gray-100">
-            <button class="w-full bg-black text-white py-5 rounded-3xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 active:scale-95 transition" onclick="openSolver()">
-                <i class="fas fa-route text-white"></i> Gestione Percorsi
-            </button>
-        </div>
+        <button class="w-full bg-black text-white h-12 rounded-xl text-[10px] font-black uppercase tracking-widest" onclick="openSolver()">Agenda</button>
     </nav>
 
-    <!-- SOLVER IFRAME OVERLAY -->
-    <div id="solver-overlay" class="fixed inset-0 bg-bg z-[2000] hidden flex flex-col translate-y-full transition-transform duration-500">
-        <div class="p-4 bg-white border-b border-gray-100 flex items-center justify-between">
-            <button onclick="closeSolver()" class="p-2 text-2xl"><i class="fas fa-times text-black"></i></button>
-            <span class="font-black text-sm uppercase tracking-widest">Pianifica Itinerario</span>
-            <div class="w-10"></div>
+    <div id="insight-drawer" class="fixed bottom-0 left-0 right-0 h-[75vh] bg-white rounded-t-[2.5rem] shadow-2xl z-[500] translate-y-full transition-transform duration-500 flex flex-col overflow-hidden">
+        <div class="w-10 h-1 bg-gray-100 rounded-full mx-auto my-3"></div>
+        <div class="px-6 flex justify-between items-center mb-2">
+            <span class="text-sm font-black uppercase tracking-tight">Analisi Insight</span>
+            <button onclick="closeInsightDrawer()" class="text-gray-300"><i class="fas fa-times-circle text-lg"></i></button>
         </div>
-        <iframe id="solver-frame" class="flex-1 w-full border-none h-full"></iframe>
+        <div class="flex border-b border-gray-50">
+            <button class="insight-tab flex-1 py-3 text-[9px] font-black uppercase border-b-2 border-black">Traccia</button>
+            <button class="insight-tab flex-1 py-3 text-[9px] font-black uppercase text-gray-300">Summary</button>
+        </div>
+        <div id="panel-trace" class="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar"></div>
     </div>
 
-    <!-- INSIGHT DRAWER -->
-    <div id="insight-backdrop" class="fixed inset-0 bg-black/20 z-[499] hidden" onclick="closeInsightDrawer()"></div>
-    <div id="insight-drawer" class="fixed bottom-0 left-0 right-0 h-[75vh] bg-white rounded-t-[3rem] shadow-2xl z-[500] translate-y-full transition-transform duration-500 flex flex-col overflow-hidden">
-        <div class="w-12 h-1 bg-gray-200 rounded-full mx-auto my-4"></div>
-        <div class="px-8 flex justify-between items-center mb-2">
-            <span class="text-xl font-black tracking-tighter uppercase">Insight Analisi</span>
-            <button onclick="closeInsightDrawer()" class="text-gray-300 text-2xl"><i class="fas fa-times-circle"></i></button>
-        </div>
-        <div class="flex border-b border-gray-100 px-4">
-            <button id="tab-trace" class="insight-tab flex-1 py-4 text-[10px] font-black uppercase tracking-widest border-b-2 border-black" onclick="switchInsightTab('trace', this)">Tracciabilità</button>
-            <button id="tab-summary" class="insight-tab flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-300" onclick="switchInsightTab('summary', this)">Riassunto</button>
-            <button id="tab-rationale" class="insight-tab flex-1 py-4 text-[10px] font-black uppercase tracking-widest text-gray-300" onclick="switchInsightTab('rationale', this)">Razionale</button>
-        </div>
-        <div class="flex-1 overflow-y-auto p-8 no-scrollbar">
-            <div id="panel-trace" class="insight-panel space-y-6"></div>
-            <div id="panel-summary" class="insight-panel hidden space-y-4"></div>
-            <div id="panel-rationale" class="insight-panel hidden italic text-gray-500 leading-relaxed"></div>
-        </div>
-    </div>
-
-    <div id="swipe-handle" class="fixed bottom-0 left-0 right-0 h-4 z-[150] flex items-center justify-center" onclick="openInsightDrawer()">
-        <div class="w-12 h-1 bg-gray-200 rounded-full opacity-40"></div>
-    </div>
-
-    <!-- VIEWPORT DI NAVIGAZIONE -->
     <div id="viewport" class="flex w-[300vw] h-screen transition-transform duration-500 ease-out" style="transform: translateX(-100vw);">
         
-        <!-- SCHERMO 0: STORICO -->
         <section class="w-screen h-full flex flex-col bg-white">
-            <header class="p-6 border-b border-gray-50 flex justify-between items-center">
-                <button onclick="toggleDrawer()" class="text-2xl"><i class="fas fa-bars text-black"></i></button>
-                <span class="font-black uppercase tracking-tighter text-lg">Archivio Chat</span>
-                <div class="w-8"></div>
+            <header class="p-4 border-b border-gray-50 flex justify-between items-center">
+                <button onclick="toggleDrawer()"><i class="fas fa-bars"></i></button>
+                <span class="font-black uppercase tracking-tighter text-base">Archivio</span>
+                <div class="w-6"></div>
             </header>
-            <div id="thread-list" class="flex-1 overflow-y-auto p-6 space-y-3 no-scrollbar"></div>
-            <div class="p-6">
-                <button onclick="createNewThread()" class="w-full border-2 border-black py-5 rounded-[2rem] font-black uppercase tracking-widest text-xs active:scale-95 transition">+ Nuova Discussione</button>
-            </div>
+            <div id="thread-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
         </section>
 
-        <!-- SCHERMO 1: CHAT PRINCIPALE -->
         <section class="w-screen h-full flex flex-col bg-bg">
-            <header class="p-4 bg-white border-b border-gray-100 flex justify-between items-center z-50 shadow-sm">
-                <button onclick="goToScreen(0)" class="w-10 h-10 flex items-center justify-center text-xl"><i class="fas fa-history"></i></button>
-                <div class="text-center flex-1 cursor-pointer" onclick="renameCurrentThread()">
-                    <h1 id="ui-agent-name" class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-300 leading-none mb-1">PM AGENT</h1>
-                    <p id="ui-thread-name" class="text-sm font-black tracking-tight">Discussione Attiva</p>
+            <header class="p-4 bg-white border-b border-gray-50 flex justify-between items-center z-50 shadow-sm">
+                <button onclick="goToScreen(0)" class="text-gray-300"><i class="fas fa-history"></i></button>
+                <div class="text-center flex-1">
+                    <h1 id="ui-agent-name" class="text-[8px] font-black uppercase tracking-widest text-gray-300">PM AGENT</h1>
+                    <p id="ui-thread-name" class="text-xs font-black uppercase tracking-tight">Discussione</p>
                 </div>
-                <button onclick="goToScreen(2)" class="w-10 h-10 flex items-center justify-center text-xl text-gray-200"><i class="fas fa-microphone"></i></button>
+                <button onclick="goToScreen(2)" class="text-gray-200"><i class="fas fa-microphone"></i></button>
             </header>
 
-            <!-- CHIP BAR DEGLI AGENTI ATTIVI -->
-            <div id="active-agents-bar" class="bg-white border-b border-gray-100 px-4 flex items-center gap-2 overflow-x-auto no-scrollbar transition-all duration-300 h-0 opacity-0 [&.has-agents]:h-12 [&.has-agents]:opacity-100 overflow-hidden">
-                <!-- Dinamico: Agent Chips -->
-            </div>
+            <main id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar"></main>
 
-            <main id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar"></main>
-
-            <footer class="p-4 bg-white border-t border-gray-100 flex items-center gap-3 pb-10 relative">
-                <!-- FAB MENU PER AGGIUNGERE AGENTI -->
-                <button id="fab-menu" onclick="toggleFabMenu()" class="w-12 h-12 bg-black text-white rounded-full flex items-center justify-center text-xl shadow-xl active:scale-90 transition z-[301]">
-                    <i class="fas fa-plus transition-transform duration-300" id="fab-icon"></i>
-                </button>
-                
-                <div class="flex-1 relative">
-                    <input type="text" id="chat-input" placeholder="Chiedi a TrinAI..." class="w-full bg-gray-100 py-4 px-6 rounded-[2rem] outline-none text-sm font-medium border-2 border-transparent focus:border-gray-200 transition-all" onkeydown="if(event.key==='Enter') sendText()">
-                </div>
-                
-                <button onclick="sendText()" class="w-10 h-10 flex items-center justify-center active:scale-90 transition">
-                    <i class="fas fa-paper-plane text-xl text-black"></i>
-                </button>
-
-                <!-- AGENT SELECTOR POPUP -->
-                <div id="fab-overlay" class="fixed inset-0 z-[300] hidden" onclick="closeFabMenu()"></div>
-                <div id="agent-popup" class="absolute bottom-24 left-4 w-64 bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 p-2 scale-75 opacity-0 pointer-events-none transition-all duration-300 z-[301] origin-bottom-left [&.open]:scale-100 [&.open]:opacity-100 [&.open]:pointer-events-auto">
-                    <div id="popup-list" class="space-y-1">
-                        <!-- Dinamico: Popup Items -->
-                    </div>
-                </div>
+            <footer class="p-3 bg-white border-t border-gray-50 flex items-center gap-3 pb-8 relative">
+                <button onclick="toggleFabMenu()" class="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-lg"><i class="fas fa-plus"></i></button>
+                <input type="text" id="chat-input" placeholder="Chiedi a TrinAI..." class="flex-1 bg-gray-50 py-3 px-4 rounded-2xl outline-none text-sm font-medium border-none">
+                <button onclick="sendText()" class="w-8 h-8 flex items-center justify-center"><i class="fas fa-paper-plane text-black"></i></button>
             </footer>
         </section>
 
-        <!-- SCHERMO 2: VOICE -->
         <section class="w-screen h-full flex flex-col bg-black text-white items-center justify-center px-10 relative">
-            <header class="absolute top-0 w-full p-6 flex justify-between items-center">
-                <button onclick="goToScreen(1)" class="text-2xl"><i class="fas fa-chevron-left"></i></button>
-                <span class="font-black text-[10px] tracking-[0.3em] uppercase opacity-40">Voice OS</span>
-                <div class="w-8"></div>
-            </header>
-            
-            <div class="text-center space-y-12">
-                <div id="voice-status" class="text-gray-600 font-bold uppercase tracking-widest text-[10px] animate-pulse uppercase">In attesa</div>
-                
-                <div id="mic-btn" class="w-40 h-40 bg-white rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.1)] active:scale-95 transition transform duration-500 [&.recording]:scale-110">
-                    <i class="fas fa-microphone text-black text-5xl"></i>
-                </div>
-                
-                <!-- SELETTORE AGENTI IN MODALITÀ VOCALE -->
-                <div class="voice-agents-selector flex flex-wrap justify-center gap-3">
-                    <button class="v-agent-btn px-5 py-2 border border-white/20 rounded-full text-[10px] font-black tracking-widest uppercase transition [&.active]:bg-white [&.active]:text-black" id="v-btn-pm" onclick="addAgentToChat('pm')">PM</button>
-                    <button class="v-agent-btn px-5 py-2 border border-white/20 rounded-full text-[10px] font-black tracking-widest uppercase transition [&.active]:bg-white [&.active]:text-black" id="v-btn-mkt" onclick="addAgentToChat('mkt')">MKT</button>
-                    <button class="v-agent-btn px-5 py-2 border border-white/20 rounded-full text-[10px] font-black tracking-widest uppercase transition [&.active]:bg-white [&.active]:text-black" id="v-btn-hr" onclick="addAgentToChat('hr')">HR</button>
-                    <button class="v-agent-btn px-5 py-2 border border-white/20 rounded-full text-[10px] font-black tracking-widest uppercase transition [&.active]:bg-white [&.active]:text-black" id="v-btn-acc" onclick="addAgentToChat('acc')">ACC</button>
-                </div>
+            <button onclick="goToScreen(1)" class="absolute top-6 left-6 text-xl"><i class="fas fa-chevron-left"></i></button>
+            <div class="text-center space-y-8">
+                <div id="voice-status" class="text-[8px] font-black uppercase tracking-[0.3em] text-neutral-600 animate-pulse">In attesa</div>
+                <div id="mic-btn" class="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition transform duration-300"><i class="fas fa-microphone text-black text-4xl"></i></div>
             </div>
         </section>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-        tg.ready();
-
+        const tg = window.Telegram.WebApp; tg.expand(); tg.ready();
         const WH_CHAT = "https://prod.workflow.trinai.it/webhook/81ab5292-43c3-4f93-afaf-7411b95fc010";
+        let activeAgents = ['pm'], primaryAgent = 'pm', currentScreen = 1, chatLog = [];
 
-        const chatId = tg.initDataUnsafe.start_param || tg.initDataUnsafe.user?.id || "TEST_USER";
-        const lang = tg.initDataUnsafe.user?.language_code || "it";
+        function goToScreen(i) { currentScreen = i; document.getElementById('viewport').style.transform = `translateX(-${i * 100}vw)`; }
+        function toggleDrawer() { document.getElementById('agent-drawer').classList.toggle('-translate-x-full'); document.getElementById('drawer-overlay').classList.toggle('hidden'); }
+        function openInsightDrawer() { document.getElementById('insight-drawer').classList.remove('translate-y-full'); }
+        function closeInsightDrawer() { document.getElementById('insight-drawer').classList.add('translate-y-full'); }
 
-        let primaryAgent = 'pm';
-        let activeAgents = ['pm'];
-        let currentThreadId = 'thread_001';
-        let currentScreen = 1;
-        let chatLog = [];
-        let threads = [{ id: 'thread_001', name: 'Discussione Attiva', agent: 'pm', date: new Date().toLocaleDateString() }];
-        let lastRationale = null;
-
-        const AGENT_META = {
-            pm:  { label: 'Gestione Lavori', short: 'PM', icon: 'fas fa-tasks' },
-            mkt: { label: 'Vendite & Promo', short: 'MKT', icon: 'fas fa-bullhorn' },
-            hr:  { label: 'Team & Sicurezza', short: 'HR', icon: 'fas fa-shield-alt' },
-            acc: { label: 'Cassa & Conti', short: 'ACC', icon: 'fas fa-wallet' }
-        };
-
-        // ── NAVIGAZIONE & SWIPE ──
-        function goToScreen(i) {
-            currentScreen = i;
-            document.getElementById('viewport').style.transform = `translateX(-${i * 100}vw)`;
-            document.getElementById('swipe-handle').classList.toggle('hidden', i !== 1);
+        function addMessage(sender, text) {
+            const c = document.getElementById('chat-container'); const d = document.createElement('div');
+            d.className = `msg-anim flex flex-col ${sender === 'user' ? 'items-end' : 'items-start'}`;
+            d.innerHTML = `<div class="${sender==='user'?'bg-black text-white':'bg-white text-black border border-gray-100'} px-4 py-2.5 rounded-2xl text-[13px] max-w-[85%] shadow-sm">${text}</div>`;
+            c.appendChild(d); c.scrollTop = c.scrollHeight;
         }
 
-        let startX, startY, startTime;
-        document.addEventListener('touchstart', e => { startX = e.touches[0].clientX; startY = e.touches[0].clientY; startTime = Date.now(); }, { passive: true });
-        document.addEventListener('touchend', e => {
-            if (document.body.classList.contains('drawer-open') || document.getElementById('solver-overlay').classList.contains('active') || document.getElementById('insight-drawer').classList.contains('open')) return;
-            const endX = e.changedTouches[0].clientX, endY = e.changedTouches[0].clientY;
-            const diffX = startX - endX, diffY = startY - endY, elapsed = Date.now() - startTime;
-            if (diffY > 80 && Math.abs(diffY) > Math.abs(diffX) && elapsed < 500 && currentScreen === 1) { openInsightDrawer(); return; }
-            if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 100) {
-                if (diffX > 0 && currentScreen < 2) goToScreen(currentScreen + 1);
-                else if (diffX < 0 && currentScreen > 0) goToScreen(currentScreen - 1);
-            }
-        }, { passive: true });
-
-        // ── LOGICA MULTI-AGENTE ──
-        function toggleFabMenu() {
-            const popup = document.getElementById('agent-popup');
-            const icon = document.getElementById('fab-icon');
-            const isOpen = popup.classList.contains('open');
-            if (isOpen) closeFabMenu();
-            else {
-                popup.classList.add('open');
-                icon.classList.add('rotate-45');
-                document.getElementById('fab-overlay').classList.remove('hidden');
-                updatePopupActiveState();
-            }
-        }
-
-        function closeFabMenu() {
-            document.getElementById('agent-popup').classList.remove('open');
-            document.getElementById('fab-icon').classList.remove('rotate-45');
-            document.getElementById('fab-overlay').classList.add('hidden');
-        }
-
-        function updatePopupActiveState() {
-            const list = document.getElementById('popup-list');
-            list.innerHTML = Object.keys(AGENT_META).map(id => {
-                const isActive = activeAgents.includes(id);
-                return `
-                    <div class="flex items-center justify-between p-4 rounded-3xl transition active:bg-gray-50 ${isActive ? 'bg-gray-50' : ''}" onclick="addAgentToChat('${id}')">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-xs"><i class="${AGENT_META[id].icon}"></i></div>
-                            <span class="text-sm font-black tracking-tight">${AGENT_META[id].label}</span>
-                        </div>
-                        ${isActive ? '<i class="fas fa-check-circle text-black text-lg"></i>' : '<div class="w-5 h-5 border-2 border-gray-100 rounded-full"></div>'}
-                    </div>
-                `;
-            }).join('');
-            
-            // Sync Voice Buttons
-            Object.keys(AGENT_META).forEach(id => {
-                const vBtn = document.getElementById('v-btn-' + id);
-                if (vBtn) vBtn.classList.toggle('active', activeAgents.includes(id));
-            });
-            
-            renderAgentBar();
-        }
-
-        function addAgentToChat(id) {
-            if (activeAgents.includes(id)) {
-                if (id !== primaryAgent) {
-                    activeAgents = activeAgents.filter(a => a !== id);
-                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                }
-            } else {
-                activeAgents.push(id);
-                addMessage('ai', `👋 Agente ${AGENT_META[id].label} attivato.`, false, id);
-                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            }
-            updatePopupActiveState();
-        }
-
-        function renderAgentBar() {
-            const bar = document.getElementById('active-agents-bar');
-            bar.innerHTML = '';
-            if (activeAgents.length <= 1) { bar.classList.remove('has-agents'); return; }
-            bar.classList.add('has-agents');
-            activeAgents.forEach(id => {
-                const isPri = id === primaryAgent;
-                const chip = document.createElement('div');
-                chip.className = `flex-shrink-0 flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest transition border ${isPri ? 'bg-black text-white border-black shadow-lg' : 'bg-white text-black border-gray-100'}`;
-                chip.innerHTML = `<span>${AGENT_META[id].short}</span>${isPri ? '' : `<i class="fas fa-times-circle opacity-30 text-[12px]" onclick="event.stopPropagation();addAgentToChat('${id}')"></i>`}`;
-                bar.appendChild(chip);
-            });
-        }
-
-        function switchAgent(id) {
-            primaryAgent = id;
-            if(!activeAgents.includes(id)) activeAgents.push(id);
-            document.getElementById('ui-agent-name').innerText = AGENT_META[id].short + " AGENT";
-            toggleDrawer();
-            updatePopupActiveState();
-            const thread = threads.find(t => t.agent === id);
-            if (thread) selectThread(thread.id); else createNewThread();
-        }
-
-        // ── CHAT LOGIC ──
-        async function callApi(url, payload, showReply = true, targetAgentId = null) {
-            const fullPayload = {
-                ...payload,
-                _auth: tg.initData,
-                chat_id: chatId,
-                user_id: tg.initDataUnsafe.user?.id,
-                agent_id: targetAgentId || primaryAgent,
-                active_agents: activeAgents,
-                thread_id: currentThreadId,
-                lang: lang
-            };
-            let loadingEl = null;
-            if (showReply) loadingEl = addMessage('ai', '...', true, targetAgentId || primaryAgent);
+        async function sendText() {
+            const i = document.getElementById('chat-input'); const t = i.value.trim(); if(!t) return;
+            addMessage('user', t); i.value = '';
             try {
-                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(fullPayload) });
-                const data = await res.json();
-                if (loadingEl) loadingEl.remove();
-                if (data.reply && showReply) {
-                    addMessage('ai', data.reply, false, data.agent_id || targetAgentId || primaryAgent);
-                    if (data.rationale) lastRationale = data.rationale;
-                }
-                if (data.threads) { threads = data.threads; renderThreadList(); }
-            } catch(e) { if (loadingEl) loadingEl.remove(); addMessage('ai', '⚠️ Sistema offline.'); }
+                const r = await fetch(WH_CHAT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'npl_chat', message: t, _auth: tg.initData }) });
+                const d = await r.json(); if(d.reply) addMessage('ai', d.reply);
+            } catch(e) { addMessage('ai', '⚠️ Offline'); }
         }
-
-        function addMessage(sender, text, isLoading = false, agentId = null) {
-            if (!isLoading) {
-                const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                chatLog.push({ sender, text, agentId: agentId || primaryAgent, time: now });
-            }
-            const container = document.getElementById('chat-container');
-            const div = document.createElement('div');
-            div.className = `msg-anim flex flex-col ${sender === 'user' ? 'items-end' : 'items-start'} space-y-1`;
-            
-            let html = '';
-            if (sender === 'user') {
-                html = `<div class="bg-black text-white px-5 py-3.5 rounded-[2rem] rounded-tr-none text-sm font-medium max-w-[85%] shadow-xl">${text}</div>`;
-            } else {
-                const meta = AGENT_META[agentId] || AGENT_META[primaryAgent];
-                html = `
-                    ${activeAgents.length > 1 ? `<span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 ml-4 mb-1">${meta.short}</span>` : ''}
-                    <div class="bg-white text-black border border-gray-100 px-5 py-3.5 rounded-[2rem] rounded-tl-none text-sm font-medium max-w-[85%] shadow-sm ${isLoading ? 'animate-pulse' : ''}">${text}</div>
-                `;
-            }
-            div.innerHTML = html;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-            return div;
-        }
-
-        function sendText(customText = null) {
-            const input = document.getElementById('chat-input');
-            const text = customText || input.value.trim();
-            if (!text) return;
-            addMessage('user', text);
-            if (!customText) input.value = '';
-            activeAgents.forEach(id => callApi(WH_CHAT, { action: 'npl_chat', message: text }, true, id));
-        }
-
-        // ── UI HELPERS ──
-        function toggleDrawer() {
-            const drawer = document.getElementById('agent-drawer');
-            const overlay = document.getElementById('drawer-overlay');
-            const isOpen = !drawer.classList.contains('-translate-x-full');
-            if (isOpen) {
-                drawer.classList.add('-translate-x-full');
-                overlay.classList.add('hidden');
-            } else {
-                drawer.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-            }
-        }
-
-        function openSolver() { toggleDrawer(); document.getElementById('solver-overlay').classList.remove('hidden'); setTimeout(() => document.getElementById('solver-overlay').classList.remove('translate-y-full'), 10); document.getElementById('solver-frame').src = "solver.html"; }
-        function closeSolver() { document.getElementById('solver-overlay').classList.add('translate-y-full'); setTimeout(() => { document.getElementById('solver-overlay').classList.add('hidden'); document.getElementById('solver-frame').src = ""; }, 500); }
-
-        function openInsightDrawer() { buildTrace(); buildSummary(); buildRationale(); document.getElementById('insight-drawer').classList.remove('translate-y-full'); document.getElementById('insight-backdrop').classList.remove('hidden'); }
-        function closeInsightDrawer() { document.getElementById('insight-drawer').classList.add('translate-y-full'); document.getElementById('insight-backdrop').classList.add('hidden'); }
-        
-        function switchInsightTab(tab, btn) {
-            document.querySelectorAll('.insight-tab').forEach(t => t.classList.remove('border-black', 'text-black', 'active'));
-            document.querySelectorAll('.insight-tab').forEach(t => t.classList.add('text-gray-300'));
-            btn.classList.add('border-black', 'text-black', 'active'); btn.classList.remove('text-gray-300');
-            document.querySelectorAll('.insight-panel').forEach(p => p.classList.add('hidden'));
-            document.getElementById('panel-' + tab).classList.remove('hidden');
-        }
-
-        function buildTrace() {
-            const c = document.getElementById('panel-trace');
-            c.innerHTML = chatLog.map(e => `
-                <div class="flex gap-4 items-start">
-                    <div class="w-10 h-10 rounded-full bg-black text-white flex-shrink-0 flex items-center justify-center text-[10px] font-black">${e.sender==='user'?'TU':AGENT_META[e.agentId].short}</div>
-                    <div class="flex-1 border-b border-gray-50 pb-4">
-                        <div class="flex justify-between items-center mb-1"><span class="text-[10px] font-black uppercase text-gray-400">${e.sender==='user'?'Tu':AGENT_META[e.agentId].label}</span><span class="text-[9px] text-gray-200">${e.time}</span></div>
-                        <p class="text-sm text-gray-600">${e.text}</p>
-                    </div>
-                </div>`).join('') || "Archivio vuoto.";
-        }
-
-        function buildSummary() {
-            const panel = document.getElementById('panel-summary');
-            const summaryData = {};
-            chatLog.forEach(e => { if(e.sender==='ai') summaryData[e.agentId] = e.text; });
-            panel.innerHTML = Object.keys(summaryData).length ? Object.keys(summaryData).map(id => `
-                <div class="p-6 bg-gray-50 rounded-[2rem] space-y-2">
-                    <span class="text-[10px] font-black uppercase text-black block">${AGENT_META[id].label}</span>
-                    <p class="text-sm text-gray-500">${summaryData[id]}</p>
-                </div>`).join('') : "Nessun dato.";
-        }
-
-        function buildRationale() { document.getElementById('panel-rationale').innerText = lastRationale || "Analisi non disponibile per questa sessione."; }
-
-        // ── VOCALE ──
-        const micBtn = document.getElementById('mic-btn');
-        let mediaRecorder, audioChunks = [];
-        micBtn.addEventListener('mousedown', startRec); micBtn.addEventListener('mouseup', stopRec);
-        micBtn.addEventListener('touchstart', e => { e.preventDefault(); startRec(); }); micBtn.addEventListener('touchend', e => { e.preventDefault(); stopRec(); });
-
-        async function startRec() {
-            try {
-                micBtn.classList.add('recording', 'bg-white');
-                document.getElementById('voice-status').textContent = "Ascolto attivo...";
-                audioChunks = [];
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                mediaRecorder.onstop = async () => {
-                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                    const reader = new FileReader(); reader.readAsDataURL(blob);
-                    reader.onloadend = () => {
-                        const base64 = reader.result.split(',')[1];
-                        activeAgents.forEach(id => callApi(WH_CHAT, { action: 'npl_voice', audio_base64: base64, mime_type: 'audio/webm' }, true, id));
-                    };
-                };
-                mediaRecorder.start();
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            } catch(e) { tg.showAlert("Permesso microfono negato."); }
-        }
-        function stopRec() { if(mediaRecorder && mediaRecorder.state !== 'inactive') { micBtn.classList.remove('recording'); mediaRecorder.stop(); document.getElementById('voice-status').textContent = "Analisi voce..."; } }
-
-        // ── THREADS ──
-        function renderThreadList() {
-            const list = document.getElementById('thread-list');
-            const filtered = threads.filter(t => t.agent === primaryAgent);
-            list.innerHTML = filtered.map(t => `
-                <div class="p-5 rounded-[2rem] border border-gray-100 flex justify-between items-center transition active:bg-gray-50 ${t.id===currentThreadId ? 'bg-black text-white border-black' : 'bg-white'}" onclick="selectThread('${t.id}')">
-                    <div><div class="text-sm font-black tracking-tight">${t.name}</div><div class="text-[9px] uppercase tracking-widest opacity-40">${t.date}</div></div>
-                    <i class="fas fa-chevron-right opacity-20"></i>
-                </div>`).join('') || "<div class='text-center py-20 opacity-20 font-black uppercase text-[10px] tracking-widest'>Nessun Archivio</div>";
-        }
-
-        function selectThread(id) { currentThreadId = id; chatLog = []; document.getElementById('chat-container').innerHTML = ''; renderThreadList(); goToScreen(1); const thread = threads.find(t => t.id === id); if(thread) { document.getElementById('ui-thread-name').innerText = thread.name; primaryAgent = thread.agent || 'pm'; document.getElementById('ui-agent-name').innerText = AGENT_META[primaryAgent].short + " AGENT"; } callApi(WH_CHAT, { action: 'load_thread' }, false); }
-        function createNewThread() { const id = 't_' + Date.now(); const newThread = { id, name: 'Discussione Attiva', agent: primaryAgent, date: new Date().toLocaleDateString() }; threads.unshift(newThread); selectThread(id); callApi(WH_CHAT, { action: 'create_thread', thread_id: id }, false); }
-        function renameCurrentThread() { const n = prompt("Rinomina Chat:", document.getElementById('ui-thread-name').innerText); if(n && n.trim()) { const t = threads.find(x => x.id === currentThreadId); if(t) { t.name = n.trim(); document.getElementById('ui-thread-name').innerText = n.trim(); renderThreadList(); callApi(WH_CHAT, { action: 'rename_thread', new_name: n.trim() }, false); } } }
-
-        window.addEventListener('message', e => { if(e.data.type === 'SOLVER_DATA'){ closeSolver(); sendText(e.data.payload); }});
-
-        window.onload = () => {
-            renderThreadList();
-            updatePopupActiveState();
-            callApi(WH_CHAT, { action: 'init_app' }, false);
-        };
     </script>
 </body>
 </html>
