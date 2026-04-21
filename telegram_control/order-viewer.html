@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Receipt Viewer</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#ffffff', border: '#eeeeee' },
+                    fontFamily: { mono: ['JetBrains Mono', 'monospace'], sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f5f5f5; color: #000000; -webkit-tap-highlight-color: transparent; }
+        .receipt-paper { background: white; width: 100%; max-width: 400px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.05); min-height: 100vh; position: relative; }
+        .dotted-line { border-top: 2px dotted #000; width: 100%; height: 1px; margin: 15px 0; }
+        
+        @media print {
+            body { background: white; margin: 0; padding: 0; }
+            .receipt-paper { box-shadow: none; max-width: 100%; margin: 0; padding: 10mm; }
+            .no-print { display: none !important; }
+            .safe-area-inset { padding: 0 !important; }
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.3s ease forwards; }
+    </style>
+</head>
+<body class="safe-area-inset min-h-screen">
+
+    <div id="loader" class="fixed inset-0 bg-white z-[100] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
+        <div class="w-10 h-10 border-2 border-gray-100 border-t-black rounded-full animate-spin mb-4"></div>
+        <p class="text-[8px] font-black uppercase tracking-[0.3em] text-gray-300">Recupero Ordine...</p>
+    </div>
+
+    <!-- UI CONTROLS (Floating) -->
+    <div class="no-print fixed top-5 left-5 right-5 flex justify-between items-center z-50">
+        <button onclick="tg.close()" class="w-10 h-10 bg-black text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition">
+            <i class="fas fa-times"></i>
+        </button>
+        <button onclick="window.print()" id="btn-print" class="hidden h-10 px-5 bg-black text-white rounded-full flex items-center justify-center gap-2 shadow-lg active:scale-90 transition font-black text-[10px] uppercase tracking-widest">
+            <i class="fas fa-print"></i> Stampa
+        </button>
+    </div>
+
+    <main class="receipt-paper p-8 flex flex-col items-center animate-in overflow-hidden" id="receipt-content">
+        <!-- HEADER -->
+        <div class="text-center space-y-2 mb-6">
+            <div id="brand-logo" class="w-16 h-16 bg-black rounded-2xl mx-auto flex items-center justify-center text-white mb-2 overflow-hidden">
+                <i class="fas fa-shopping-bag text-2xl"></i>
+            </div>
+            <h1 id="brand-name" class="font-black text-xl uppercase tracking-tighter leading-none">SiteBoS Store</h1>
+            <p id="order-id" class="font-mono text-[10px] text-gray-400 uppercase font-bold"></p>
+            <p id="order-date" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest"></p>
+        </div>
+
+        <div class="dotted-line"></div>
+
+        <!-- CUSTOMER SECTION -->
+        <div class="w-full space-y-4 mb-6 text-left">
+            <div class="space-y-1">
+                <span class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300">Destinatario</span>
+                <p id="customer-info" class="font-black text-sm uppercase"></p>
+            </div>
+            <div class="space-y-1">
+                <span class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300">Indirizzo Consegna</span>
+                <p id="customer-address" class="text-xs font-bold leading-tight"></p>
+                <div id="gps-link" class="mt-2 hidden">
+                    <a href="" target="_blank" class="text-[9px] font-black uppercase text-blue-600 flex items-center gap-1">
+                        <i class="fas fa-map-marker-alt"></i> Apri su Maps
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="dotted-line"></div>
+
+        <!-- ITEMS SECTION -->
+        <div class="w-full space-y-5 mb-8">
+            <span class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300 block mb-2">Dettaglio Ordine</span>
+            <div id="items-list" class="space-y-6">
+                <!-- Items injected here -->
+            </div>
+        </div>
+
+        <div class="dotted-line border-gray-100"></div>
+
+        <!-- TOTAL SECTION -->
+        <div class="w-full space-y-4 py-4">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] font-black uppercase text-gray-400">Metodo Pagamento</span>
+                <span id="payment-mode" class="text-[10px] font-black uppercase tracking-tight"></span>
+            </div>
+            <div class="flex justify-between items-end border-t-2 border-black pt-4">
+                <span class="text-xs font-black uppercase tracking-widest">Totale Finale</span>
+                <span id="order-total" class="text-3xl font-black tracking-tighter"></span>
+            </div>
+        </div>
+
+        <div class="dotted-line"></div>
+
+        <!-- FOOTER -->
+        <div class="text-center mt-4">
+            <p class="text-[8px] font-black uppercase text-gray-300 tracking-[0.3em]">SiteBoS Intelligence Engine</p>
+        </div>
+    </main>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+        tg.ready();
+
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/8eb69e84-d20d-486e-a70e-9acf31c3da9e";
+        const params = new URLSearchParams(window.location.search);
+        const orderSessionId = params.get('session_id');
+        const ashToken = params.get('ash');
+
+        window.onload = async () => {
+            if (!orderSessionId) {
+                renderError("ID Ordine mancante.");
+                return;
+            }
+            await fetchOrder();
+        };
+
+        async function fetchOrder() {
+            try {
+                const res = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        _auth: tg.initData, 
+                        ash: ashToken, 
+                        action: 'u_calc_get_order', 
+                        session_id: orderSessionId 
+                    })
+                });
+                const r = await res.json();
+                if (r.success && r.order_data) {
+                    renderUI(r.order_data, r.brand || {});
+                    hideLoader();
+                } else {
+                    renderError("Ordine non trovato.");
+                }
+            } catch (e) {
+                renderError("Connessione fallita.");
+            }
+        }
+
+        function hideLoader() { 
+            const l = document.getElementById('loader');
+            l.classList.add('opacity-0');
+            setTimeout(() => {
+                l.classList.add('hidden');
+                document.getElementById('btn-print').classList.remove('hidden');
+            }, 300);
+        }
+
+        function renderError(msg) {
+            document.getElementById('loader').innerHTML = `
+                <div class="text-center p-10">
+                    <h1 class="text-4xl mb-4">❌</h1>
+                    <h2 class="text-sm font-black uppercase tracking-widest text-red-500">${msg}</h2>
+                    <button onclick="tg.close()" class="mt-6 px-6 py-2 bg-black text-white rounded-full text-xs font-black uppercase">Chiudi</button>
+                </div>`;
+        }
+
+        function renderUI(order, brand) {
+            const info = order.order_info || order; // Gestione flessibile schema
+            const customer = order.customer || {};
+            const items = order.items || [];
+
+            if (brand.logo) {
+                document.getElementById('brand-logo').innerHTML = `<img src="${brand.logo}" class="w-full h-full object-cover">`;
+            }
+            document.getElementById('brand-name').innerText = brand.name || "SiteBoS Store";
+            document.getElementById('order-id').innerText = `ID: ${info.order_id || orderSessionId.split('_').pop()}`;
+            document.getElementById('order-date').innerText = new Date(info.timestamp || Date.now()).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' });
+            
+            document.getElementById('customer-info').innerText = customer.name || "Cliente Anonimo";
+            document.getElementById('customer-address').innerText = order.address || "Ritiro in sede";
+            
+            if (order.location && order.location.lat) {
+                const mapsUrl = `https://www.google.com/maps?q=${order.location.lat},${order.location.lon}`;
+                document.getElementById('gps-link').classList.remove('hidden');
+                document.getElementById('gps-link').querySelector('a').href = mapsUrl;
+            }
+
+            document.getElementById('payment-mode').innerText = order.payment_mode === 'CARD' ? 'Carta di Credito' : 'Pagamento alla Consegna';
+            document.getElementById('order-total').innerText = `€ ${parseFloat(order.total_amount || 0).toFixed(2)}`;
+
+            const list = document.getElementById('items-list');
+            list.innerHTML = items.map(i => {
+                const extras = i.selected_extras || [];
+                const extrasHtml = extras.length > 0 
+                    ? `<div class="mt-1 pl-2 border-l-2 border-gray-100 space-y-0.5">${extras.map(e => `<p class="text-[9px] font-bold text-gray-400 uppercase">+ ${e.name} (€${parseFloat(e.price).toFixed(2)})</p>`).join('')}</div>`
+                    : '';
+                const noteHtml = i.customer_note 
+                    ? `<div class="mt-2 p-2 bg-gray-50 rounded text-[9px] font-medium italic text-gray-500">Nota: ${i.customer_note}</div>`
+                    : '';
+
+                return `
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-start gap-4">
+                            <div class="flex-1">
+                                <h3 class="font-black text-[12px] uppercase leading-tight">${i.quantity}x ${i.name}</h3>
+                                ${extrasHtml}
+                                ${noteHtml}
+                            </div>
+                            <span class="font-mono text-[11px] font-bold">€${parseFloat(i.final_price || i.price).toFixed(2)}</span>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
