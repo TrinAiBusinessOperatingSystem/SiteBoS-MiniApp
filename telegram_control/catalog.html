@@ -28,25 +28,26 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .spinner { border: 3px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .prod-status-ghost { border-left: 3px solid #e5e7eb; background: #ffffff; }
+    
+    .prod-status-ghost { border-left: 3px solid #f3f4f6; background: #ffffff; }
     .prod-status-active { border-left: 3px solid #000000; background: #fcfcfc; }
-    .fas { font-weight: 900 !important; }
+    
+    .macro-btn.active { background-color: #000 !important; color: #fff !important; }
+    .macro-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+
     .fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .macro-btn.active { background-color: #000; color: #fff; }
-    .macro-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
   </style>
 </head>
-<body class="bg-bg text-black pb-10 overflow-x-hidden">
+<body class="bg-bg text-black pb-20 overflow-x-hidden">
 
   <!-- LOADER -->
-  <div id="loader" class="fixed inset-0 bg-white/90 z-[9999] flex flex-col items-center justify-center space-y-4">
+  <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4">
     <div class="spinner"></div>
     <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Architect Engine...</p>
   </div>
 
-  <div id="app-content" class="max-w-md mx-auto p-5 space-y-6 hidden opacity-0 transition-opacity duration-500">
+  <div id="app-content" class="max-w-md mx-auto p-5 space-y-6 hidden">
     
     <!-- HEADER -->
     <header class="flex justify-between items-start pt-2 fade-in-up">
@@ -60,7 +61,7 @@
     </header>
 
     <!-- MACRO SELECTOR -->
-    <nav class="flex bg-gray-100 p-1 rounded-2xl gap-1 fade-in-up shadow-inner">
+    <nav class="flex bg-gray-100 p-1 rounded-2xl gap-1 fade-in-up">
         <button onclick="setMacro('SOP')" id="btn-SOP" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest active">Procedure</button>
         <button onclick="setMacro('SER')" id="btn-SER" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400">Servizi</button>
         <button onclick="setMacro('PRO')" id="btn-PRO" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400">Prodotti</button>
@@ -109,22 +110,21 @@
 
   <script>
     'use strict';
-    const WEBHOOK_URL = "https://trinai.api.workflow.dcmake.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
+    const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
     const tg = window.Telegram.WebApp;
     tg.ready(); tg.expand();
     
     const urlParams = new URLSearchParams(window.location.search);
     const ash = urlParams.get('ash');
 
-    if (!ash) {
-        document.body.innerHTML = `<div class="bg-black text-white h-screen flex items-center justify-center font-black uppercase tracking-widest">ASH Missing</div>`;
-        throw new Error("ASH Missing");
-    }
-
     let fullCatalog = [], currentMacro = 'SOP', currentEditingCatId = null;
 
     async function loadCatalog(force = false) {
-        if(force) document.getElementById('loader').classList.remove('hidden');
+        const loader = document.getElementById('loader');
+        const content = document.getElementById('app-content');
+        
+        if(force || fullCatalog.length === 0) loader.classList.remove('hidden');
+        
         try {
             const res = await fetch(WEBHOOK_URL, { 
                 method: "POST", 
@@ -133,14 +133,14 @@
             });
             const raw = await res.json();
             const data = Array.isArray(raw) ? raw[0] : (raw.catalog || raw);
-            fullCatalog = data.categories || [];
+            fullCatalog = data.categories || data.catalog?.categories || [];
             renderCatalog();
-        } catch (e) { tg.HapticFeedback.notificationOccurred("error"); }
-        finally { 
-            document.getElementById("loader").classList.add('hidden'); 
-            const content = document.getElementById("app-content");
-            content.classList.remove("hidden", "opacity-0");
-            content.classList.add("opacity-100");
+        } catch (e) { 
+            console.error("Load Error:", e);
+            tg.HapticFeedback.notificationOccurred("error"); 
+        } finally { 
+            loader.classList.add('hidden'); 
+            content.classList.remove('hidden');
         }
     }
 
@@ -160,14 +160,20 @@
     function renderCatalog() {
         const container = document.getElementById("catalog-list");
         container.innerHTML = "";
-        const filteredCategories = fullCatalog.filter(c => c.macrocategories === currentMacro);
         
-        if (filteredCategories.length === 0) { document.getElementById("empty-state").classList.remove("hidden"); return; }
-        document.getElementById("empty-state").classList.add("hidden");
+        const filtered = fullCatalog.filter(c => c.macrocategories === currentMacro);
+        
+        if (filtered.length === 0) {
+            document.getElementById("empty-state").classList.remove('hidden');
+            document.getElementById('count-active').innerText = "0";
+            document.getElementById('count-ghost').innerText = "0";
+            return;
+        }
+        document.getElementById("empty-state").classList.add('hidden');
 
-        let activeCount = 0, ghostCount = 0;
+        let activeTotal = 0, ghostTotal = 0;
 
-        filteredCategories.forEach(cat => {
+        filtered.forEach(cat => {
             const subcats = cat.subcategories || [];
             const catEl = document.createElement("div");
             catEl.className = "card-noir overflow-hidden transition-all fade-in-up";
@@ -178,7 +184,7 @@
                         <div class="w-7 h-7 bg-black text-white rounded-lg flex items-center justify-center font-black text-[10px]">${subcats.length}</div>
                         <span class="font-black text-xs uppercase tracking-tight">${cat.short_name || cat.name}</span>
                     </div>
-                    <div class="flex items-center gap-5"> <!-- Gap aumentato a 5 per più respiro -->
+                    <div class="flex items-center gap-5">
                         <button class="text-gray-300 hover:text-black transition" onclick="event.stopPropagation(); openEditModal('${cat.name}', '${cat.short_name || ''}', '${cat.callback_data}')">
                             <i class="fas fa-pen text-[10px]"></i>
                         </button>
@@ -190,14 +196,14 @@
                 </div>
                 <div class="cat-body border-t border-gray-50 hidden">
                     <div class="p-3 bg-gray-50/50 flex justify-center border-b border-gray-50">
-                        <button class="text-[8px] font-black uppercase tracking-widest text-black/40 hover:text-black transition" onclick="goToAddProduct('${cat.callback_data}')">+ Aggiungi Prodotto</button>
+                        <button class="text-[8px] font-black uppercase tracking-widest text-black/40 hover:text-black transition" onclick="goToAddProduct('${cat.callback_data}')">+ Aggiungi Voce</button>
                     </div>
                     <div class="prod-list"></div>
                 </div>`;
 
             const prodList = catEl.querySelector(".prod-list");
             subcats.forEach(prod => {
-                if(prod.blueprint_ready) activeCount++; else ghostCount++;
+                if(prod.blueprint_ready) activeTotal++; else ghostTotal++;
                 const pEl = document.createElement("div");
                 pEl.className = `flex justify-between items-center p-4 border-b border-gray-50 last:border-b-0 ${prod.blueprint_ready ? 'prod-status-active' : 'prod-status-ghost'}`;
                 pEl.innerHTML = `
@@ -205,7 +211,7 @@
                         <p class="font-bold text-[11px] uppercase tracking-tight">${prod.short_name || prod.name}</p>
                         <p class="text-[7px] font-medium text-gray-400 uppercase tracking-widest mt-0.5">${prod.blueprint_ready ? 'Attivo' : 'Suggerito'}</p>
                     </div>
-                    <div class="flex gap-4"> <!-- Respiro tra trash e pulsante -->
+                    <div class="flex gap-4">
                         <button class="w-8 h-8 bg-white border border-border text-red-400 rounded-lg flex items-center justify-center active:scale-90 transition" onclick="deleteProduct('${prod.callback_data}', '${prod.name}')">
                             <i class="fas fa-trash text-[9px]"></i>
                         </button>
@@ -218,8 +224,8 @@
             container.appendChild(catEl);
         });
 
-        document.getElementById('count-active').innerText = activeCount;
-        document.getElementById('count-ghost').innerText = ghostCount;
+        document.getElementById('count-active').innerText = activeTotal;
+        document.getElementById('count-ghost').innerText = ghostTotal;
     }
 
     function toggleCat(el) {
@@ -241,11 +247,15 @@
     window.openEditModal = (n, s, id) => { currentEditingCatId = id; document.getElementById('edit-cat-long').value = n; document.getElementById('edit-cat-short').value = s; document.getElementById('edit-cat-modal').classList.remove('hidden'); };
     window.closeEditModal = () => { document.getElementById('edit-cat-modal').classList.add('hidden'); };
     
-    window.deleteCategory = (id, name) => { tg.showConfirm(`Eliminare categoria ${name}?`, async ok => { if(ok) { loadCatalog(true); } }); };
-    window.deleteProduct = (id, name) => { tg.showConfirm(`Eliminare prodotto ${name}?`, async ok => { if(ok) { loadCatalog(true); } }); };
-    window.goBack = () => { window.location.href = `../dashboard.html?ash=${ash}`; };
+    window.deleteCategory = (id, name) => { tg.showConfirm(`Eliminare categoria ${name}?`, ok => { if(ok) loadCatalog(true); }); };
+    window.deleteProduct = (id, name) => { tg.showConfirm(`Eliminare prodotto ${name}?`, ok => { if(ok) loadCatalog(true); }); };
+    window.goBack = () => { tg.close(); };
 
-    document.addEventListener("DOMContentLoaded", () => loadCatalog());
+    if (!ash) {
+        document.getElementById('loader').innerHTML = `<div class="font-black text-red-500">ASH MISSING</div>`;
+    } else {
+        document.addEventListener("DOMContentLoaded", () => loadCatalog());
+    }
   </script>
 </body>
 </html>
