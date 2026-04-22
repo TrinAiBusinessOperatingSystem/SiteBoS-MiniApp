@@ -187,6 +187,18 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     <label data-i18n="outTarget" class="block text-sm font-medium text-gray-500 mb-2">Target Audience</label>
                     <input type="text" id="outTarget" placeholder="PMI, Hotel..." class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-0 focus:border-black text-black">
                 </div>
+
+                <!-- HORECA & ADD-ONS -->
+                <div class="section-title" data-i18n="secHoreca">HORECA & Add-ons</div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-500 mb-2" data-i18n="lblAddons">Aggiunte Programmate</label>
+                    <button type="button" onclick="addAddon()" class="text-sm font-medium text-blue-600 mb-2" data-i18n="btnAddAddon">Aggiungi Opzione</button>
+                    <div id="addonsContainer" class="space-y-2"></div>
+                </div>
+                <div class="checkbox-group mb-4">
+                    <input type="checkbox" id="allowCustomerNotes">
+                    <label for="allowCustomerNotes" class="text-sm font-medium"><span data-i18n="chkAllowNotes">Abilita Note Cliente</span></label>
+                </div>
             </div>
 
             <div style="height: 80px;"></div>
@@ -230,15 +242,16 @@ const langParam = urlParams.get('lang') || 'it';
 // 3. STATO GLOBALE
 let draftData = null;
 let fileData = null;
+let extraOptions = [];
 
 // 4. TRADUZIONI (6 LINGUE)
 const i18n = {
-    it: { title: "Nuovo Prodotto", btnEnrich: "Genera Bozza AI", btnSave: "Salva Definitivo", status_ai: "Analisi AI in corso...", status_save: "Salvataggio...", err_name: "Nome mancante!", ok_saved: "Salvato!", err_generic: "Errore. Riprova." },
-    en: { title: "New Product", btnEnrich: "Generate Draft", btnSave: "Save Final", status_ai: "AI Analyzing...", status_save: "Saving...", err_name: "Name missing!", ok_saved: "Saved!", err_generic: "Error. Retry." },
-    fr: { title: "Nouveau Produit", btnEnrich: "Générer Ébauche", btnSave: "Enregistrer", status_ai: "Analyse IA...", status_save: "Enregistrement...", err_name: "Nom requis !", ok_saved: "Enregistré !", err_generic: "Erreur. Réessayer." },
-    de: { title: "Neues Produkt", btnEnrich: "Entwurf Generieren", btnSave: "Speichern", status_ai: "KI Analysiert...", status_save: "Speichern...", err_name: "Name fehlt!", ok_saved: "Gespeichert!", err_generic: "Fehler. Wiederholen." },
-    es: { title: "Nuevo Producto", btnEnrich: "Generar Borrador", btnSave: "Guardar", status_ai: "Analizando...", status_save: "Guardando...", err_name: "¡Nombre obligatorio!", ok_saved: "¡Guardado!", err_generic: "Error. Reintentar." },
-    pt: { title: "Novo Produto", btnEnrich: "Gerar Rascunho", btnSave: "Salvar", status_ai: "Analisando...", status_save: "Salvando...", err_name: "Nome obrigatório!", ok_saved: "Salvo!", err_generic: "Erro. Tente novamente." }
+    it: { title: "Nuovo Prodotto", btnEnrich: "Genera Bozza AI", btnSave: "Salva Definitivo", status_ai: "Analisi AI in corso...", status_save: "Salvataggio...", err_name: "Nome mancante!", ok_saved: "Salvato!", err_generic: "Errore. Riprova.", lblAddons: "Aggiunte Programmate", lblAddonName: "Nome Add-on", lblAddonPrice: "Prezzo", btnAddAddon: "Aggiungi Opzione", chkAllowNotes: "Abilita Note Cliente" },
+    en: { title: "New Product", btnEnrich: "Generate Draft", btnSave: "Save Final", status_ai: "AI Analyzing...", status_save: "Saving...", err_name: "Name missing!", ok_saved: "Saved!", err_generic: "Error. Retry.", lblAddons: "Scheduled Add-ons", lblAddonName: "Add-on Name", lblAddonPrice: "Price", btnAddAddon: "Add Option", chkAllowNotes: "Allow Customer Notes" },
+    fr: { title: "Nouveau Produit", btnEnrich: "Générer Ébauche", btnSave: "Enregistrer", status_ai: "Analyse IA...", status_save: "Enregistrement...", err_name: "Nom requis !", ok_saved: "Enregistré !", err_generic: "Erreur. Réessayer.", lblAddons: "Add-ons", lblAddonName: "Nom Add-on", lblAddonPrice: "Prix", btnAddAddon: "Ajouter", chkAllowNotes: "Autoriser Notes" },
+    de: { title: "Neues Produkt", btnEnrich: "Entwurf Generieren", btnSave: "Speichern", status_ai: "KI Analysiert...", status_save: "Speichern...", err_name: "Name fehlt!", ok_saved: "Gespeichert!", err_generic: "Fehler. Wiederholen.", lblAddons: "Add-ons", lblAddonName: "Name", lblAddonPrice: "Preis", btnAddAddon: "Hinzufügen", chkAllowNotes: "Notizen erlauben" },
+    es: { title: "Nuevo Producto", btnEnrich: "Generar Borrador", btnSave: "Guardar", status_ai: "Analizando...", status_save: "Guardando...", err_name: "¡Nombre obligatorio!", ok_saved: "¡Guardado!", err_generic: "Error. Reintentar.", lblAddons: "Add-ons", lblAddonName: "Nombre", lblAddonPrice: "Precio", btnAddAddon: "Añadir", chkAllowNotes: "Permitir notas" },
+    pt: { title: "Novo Produto", btnEnrich: "Gerar Rascunho", btnSave: "Salvar", status_ai: "Analisando...", status_save: "Salvando...", err_name: "Nome obrigatório!", ok_saved: "Salvo!", err_generic: "Erro. Tente novamente.", lblAddons: "Add-ons", lblAddonName: "Nome", lblAddonPrice: "Preço", btnAddAddon: "Adicionar", chkAllowNotes: "Permitir notas" }
 };
 const t = i18n[langParam.slice(0,2)] || i18n.it;
 
@@ -396,8 +409,43 @@ function populateForm(data) {
     const fabSave = document.getElementById('fab-save-product');
     if(fabSave) fabSave.classList.remove('hidden');
     
+    // Addons
+    extraOptions = data.commercial_setup?.extra_options || [];
+    renderAddons();
+    chk('allowCustomerNotes', data.commercial_setup?.allow_customer_notes);
+    
     hideLoader();
     window.scrollTo(0,0);
+}
+
+function renderAddons() {
+    const container = document.getElementById('addonsContainer');
+    container.innerHTML = '';
+    extraOptions.forEach((opt, index) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center gap-2 bg-[#333] p-2 rounded-lg';
+        row.innerHTML = `
+            <input type="text" placeholder="${t.lblAddonName}" value="${opt.name}" oninput="updateAddon(${index}, 'name', this.value)" class="flex-1 bg-transparent border-none text-sm text-black">
+            <input type="number" step="0.01" placeholder="${t.lblAddonPrice}" value="${opt.price}" oninput="updateAddon(${index}, 'price', this.value)" class="w-20 bg-transparent border-none text-sm text-black text-right">
+            <button type="button" onclick="removeAddon(${index})" class="text-red-500"><i class="fas fa-trash"></i></button>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function addAddon() {
+    extraOptions.push({ name: '', price: 0 });
+    renderAddons();
+}
+
+function updateAddon(index, field, value) {
+    if (field === 'price') value = parseFloat(value) || 0;
+    extraOptions[index][field] = value;
+}
+
+function removeAddon(index) {
+    extraOptions.splice(index, 1);
+    renderAddons();
 }
 
 async function handleSave(e) {
@@ -434,6 +482,11 @@ async function handleSave(e) {
     if(!draftData.relations) draftData.relations = {};
     if(!draftData.relations.marketing_info) draftData.relations.marketing_info = {};
     draftData.relations.marketing_info.target_audience_tags = get('outTarget').split(',').map(s=>s.trim()).filter(Boolean);
+
+    // ADDED ADDONS
+    if (!draftData.commercial_setup) draftData.commercial_setup = {};
+    draftData.commercial_setup.extra_options = extraOptions;
+    draftData.commercial_setup.allow_customer_notes = getChk('allowCustomerNotes');
 
     // --- PARTE 2: PAYLOAD PER N8N ---
     const n8nPayload = {
