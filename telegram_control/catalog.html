@@ -119,16 +119,6 @@
     </div>
   </div>
 
-  <!-- ONBOARDING MODAL -->
-  <div id="onboarding-modal" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center p-4 z-50 hidden">
-    <div class="dark-card rounded-2xl p-8 w-full max-w-sm text-center">
-        <div class="text-blue-500 text-5xl mb-6"><i class="fas fa-rocket"></i></div>
-        <h3 class="text-2xl font-bold mb-4">Benvenuto nel Catalogo!</h3>
-        <p class="text-gray-400 mb-8">Inizia a strutturare le tue procedure AI creando la prima categoria di servizi.</p>
-        <button class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700" onclick="closeOnboarding()">Ho capito, iniziamo!</button>
-    </div>
-  </div>
-
   <!-- FAB CONTAINER -->
   <div class="fixed bottom-6 right-6 z-40">
     <button class="fab-btn" onclick="goBack()" title="Torna a Dashboard">
@@ -155,8 +145,10 @@ const tg = window.Telegram.WebApp;
 tg.ready(); 
 tg.expand();
 
-// Verifichiamo che ash sia presente nel contesto globale
-const ash = window.ash;
+const urlParams = new URLSearchParams(window.location.search);
+
+// Verifichiamo che ash sia presente nel contesto globale o URL
+const ash = window.ash || urlParams.get("ash");
 if (!ash) {
     console.error("ASH non trovato nel contesto globale.");
     // Opzionale: visualizzare un messaggio di errore all'utente
@@ -310,7 +302,7 @@ function applyTranslations() {
 }
 
 function escapeHtml(str) {
-    return (str || "").replace(/"/g, "&quot;");
+    return (str || "").replace(/"/g, '&quot;');
 }
 
 function parseN8nResponse(json) {
@@ -388,13 +380,6 @@ function renderCatalog() {
     
     if (categories.length === 0) {
         document.getElementById("empty-state").classList.remove("hidden");
-        // Show Onboarding only once
-        if (!localStorage.getItem('onboarding_shown')) {
-            setTimeout(() => {
-                document.getElementById("onboarding-modal").classList.remove("hidden");
-                localStorage.setItem('onboarding_shown', 'true');
-            }, 500);
-        }
         return;
     }
     
