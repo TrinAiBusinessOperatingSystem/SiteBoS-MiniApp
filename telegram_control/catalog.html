@@ -13,25 +13,23 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .dark-card { background: #1a1a1a; border: 1px solid #333; color: #f1f1f1; }
     .dark-hover:hover { background: #2a2a2a; }
-    .text-primary { color: #007bff; } /* Blu SiteBoS */
+    .text-primary { color: #ffffff; } /* Modificato per icona cartella */
     .text-success { color: #28a745; }
     .text-danger { color: #dc3545; }
     .text-muted { color: #888; }
     .header-text { font-size: 22px; font-weight: 900; }
     .subheader-text { font-size: 13px; color: #888; font-style: italic; }
     .fab-btn { 
-      background: #007bff; color: white; width: 56px; height: 56px; border-radius: 50%; 
+      background: #ffffff; color: #000; width: 56px; height: 56px; border-radius: 50%; 
       display: flex; align-items: center; justify-content: center; font-size: 24px; 
-      box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4); transition: all 0.2s; 
+      box-shadow: 0 4px 12px rgba(255, 255, 255, 0.4); transition: all 0.2s; 
     }
     .fab-btn:active { transform: scale(0.95); }
     .cat-card-header { transition: all 0.2s; }
     .cat-card-header:active { background: #2a2a2a; }
-    .cat-body { display: none !important; }
-    .cat-card.open .cat-body { display: block !important; }
     .prod-status-ghost { border-left: 3px solid #888; }
     .prod-status-active { border-left: 3px solid #28a745; background: rgba(40, 167, 69, 0.1); }
-    .btn-action-create { background: #007bff; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .btn-action-create { background: #fff; color: #000; box-shadow: 0 2px 5px rgba(255,255,255,0.2); }
     .btn-action-edit { background: rgba(40, 167, 69, 0.15); color: #28a745; border: 1px solid rgba(40, 167, 69, 0.3); }
     .btn-prod-delete { background: transparent; border: 1px solid #dc3545; color: #dc3545; }
     .btn-prod-delete:hover { background: #dc3545; color: white; }
@@ -82,7 +80,7 @@
     </div>
     
     <!-- Main Action: Nuova Categoria -->
-    <button class="w-full bg-blue-600 text-white font-bold py-4 px-4 rounded-xl mb-6 shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 active:scale-[0.98]" onclick="goToAddCategory()">
+    <button class="w-full bg-white text-black font-bold py-4 px-4 rounded-xl mb-6 shadow-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-3 active:scale-[0.98]" onclick="goToAddCategory()">
         <i class="fas fa-plus text-lg"></i>
         <span class="text-sm uppercase tracking-wider">Nuova Categoria</span>
     </button>
@@ -96,24 +94,20 @@
         <p class="text-sm mb-4">Nessun catalogo trovato. Inizia creando la tua prima categoria.</p>
         <button class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors" onclick="goToAddCategory()">Crea Prima Categoria</button>
     </div>
-
   </div>
 
   <!-- MODAL EDIT CATEGORIA -->
   <div id="edit-cat-modal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center p-4 z-50 hidden">
     <div class="dark-card rounded-2xl p-6 w-full max-w-sm fade-in-modal transform transition-all duration-300 scale-95 opacity-0">
         <h3 class="text-xl font-bold mb-5">Modifica Categoria</h3>
-        
         <div class="mb-4">
             <label for="edit-cat-short" class="block text-sm font-medium text-gray-400 mb-2">Nome Breve (per Bottoni)</label>
             <input type="text" id="edit-cat-short" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500" placeholder="Es. 🚀 Startup">
         </div>
-
         <div class="mb-6">
             <label for="edit-cat-long" class="block text-sm font-medium text-gray-400 mb-2">Nome Completo (Descrittivo)</label>
             <textarea id="edit-cat-long" rows="2" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500" placeholder="Es. Servizi per Startupper e Innovatori"></textarea>
         </div>
-
         <div class="flex gap-3">
             <button class="flex-1 bg-gray-700 text-white font-bold py-3 rounded-lg hover:bg-gray-600 transition-colors" onclick="closeEditModal()">Annulla</button>
             <button class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors" onclick="saveEditCategory()">Salva</button>
@@ -129,589 +123,59 @@
   </div>
 
   <script>
-/**
- * CATALOG LOGIC (vFINAL - FULL LANGS & ROBUST UI)
- * - 6 Lingue Complete (IT, EN, FR, DE, ES, PT).
- * - UI Fix: Onclick inline + Data Attributes.
- * - UX Fix: Rotella nascosta dopo il salvataggio.
- * - Backend: One-Shot Update.
- * - Parametri Navigazione Corretti (catId, prodId, ash).
- */
+    const CATALOG_WEBHOOK = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
+    const tg = window.Telegram.WebApp;
+    tg.ready(); tg.expand();
+    const authData = tg.initData;
+    if (!authData) { document.body.innerHTML = "<h1>Errore: Accesso non autorizzato.</h1>"; throw new Error("Auth Data mancante."); }
+    const ash = authData;
+    let currentEditingCatId = ""; let catalogData = null;
+    const i18n = { it: { title: "Catalogo Servizi", subtitle: "Gestione Protocolli & Procedure AI", btn_new_cat: "Nuova Categoria", btn_add_here: "Aggiungi Prodotto qui", btn_manage: "Gestisci", btn_activate: "Attiva", alert_loading_error: "Errore caricamento", alert_name_required: "Il nome completo è obbligatorio", error_id_missing: "Errore: ID Categoria non trovato.", confirm_delete_cat: "Sei sicuro di voler eliminare la categoria \'{name}\' e tutti i suoi prodotti?", confirm_delete_prod: "Eliminare definitivamente il prodotto \'{name}\'?" } };
+    function t(key) { return i18n.it[key] || key; }
+    function escapeHtml(str) { return (str || "").replace(/"/g, '"'); }
+    function parseN8nResponse(json) { const data = Array.isArray(json) ? json[0] : json; return data.catalog || data.data || data; }
 
-// ==========================================
-// 1. CONFIG & INIT
-// ==========================================
-const CATALOG_WEBHOOK = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
-
-const tg = window.Telegram.WebApp;
-tg.ready(); 
-tg.expand();
-
-// Verifichiamo che ash sia presente nel contesto globale
-const ash = window.ash;
-if (!ash) {
-    console.error("ASH non trovato nel contesto globale.");
-    // Opzionale: visualizzare un messaggio di errore all'utente
-    document.body.innerHTML = "<h1>Errore: Accesso non autorizzato.</h1>";
-    throw new Error("ASH mancante.");
-}
-
-let currentEditingCatId = ""; 
-let catalogData = null;
-
-// ==========================================
-// 2. I18N DICTIONARY (FULL 6 LANGUAGES)
-// ==========================================
-const i18n = {
-    it: {
-        title: "Catalogo Servizi", subtitle: "Gestione Protocolli & Procedure AI",
-        ghost_label: "Suggeriti", active_label: "Attivi",
-        btn_reload: "Ricarica", btn_new_cat: "Nuova Categoria",
-        empty_title: "Nessun catalogo trovato. Inizia creando la tua prima categoria.", empty_btn: "Crea Prima Categoria",
-        btn_add_here: "Aggiungi Prodotto qui",
-        status_active: "Attivo", btn_manage: "Gestisci", btn_activate: "Attiva",
-        modal_edit_title: "Modifica Categoria",
-        lbl_cat_short: "Nome Breve (Menu/Bottoni)",
-        lbl_cat_long: "Nome Completo (Interno/Descrittivo)",
-        btn_cancel: "Annulla", btn_save: "Salva",
-        confirm_delete_cat: "Sei sicuro di voler eliminare la categoria \'{name}\' e tutti i suoi prodotti?",
-        confirm_delete_prod: "Eliminare definitivamente il prodotto \'{name}\'?",
-        alert_loading_error: "Errore caricamento", alert_name_required: "Il nome completo è obbligatorio",
-        error_id_missing: "Errore: ID Categoria non trovato."
-    },
-    en: {
-        title: "Service Catalog", subtitle: "AI Protocols & Procedures Management",
-        ghost_label: "Suggested", active_label: "Active",
-        btn_reload: "Reload", btn_new_cat: "New Category",
-        empty_title: "No catalog found. Start by creating your first category.", empty_btn: "Create First Category",
-        btn_add_here: "Add Product here",
-        status_active: "Active", btn_manage: "Manage", btn_activate: "Activate",
-        modal_edit_title: "Edit Category",
-        lbl_cat_short: "Short Name (Menu/Buttons)",
-        lbl_cat_long: "Full Name (Internal/Descriptive)",
-        btn_cancel: "Cancel", btn_save: "Save",
-        confirm_delete_cat: "Are you sure you want to delete category \'{name}\' and all its products?",
-        confirm_delete_prod: "Permanently delete product \'{name}\'?",
-        alert_loading_error: "Loading Error", alert_name_required: "Full name is required",
-        error_id_missing: "Error: Category ID not found."
-    },
-    fr: {
-        title: "Catalogue Services", subtitle: "Gestion des Protocoles & Procédures IA.",
-        ghost_label: "Suggérés", active_label: "Actifs",
-        btn_reload: "Recharger", btn_new_cat: "Nouvelle Catégorie",
-        empty_title: "Aucun catalogue trouvé. Commencez par créer votre première catégorie.", empty_btn: "Créer Première Catégorie",
-        btn_add_here: "Ajouter Produit ici",
-        status_active: "Actif", btn_manage: "Gérer", btn_activate: "Activer",
-        modal_edit_title: "Modifier Catégorie",
-        lbl_cat_short: "Nom Court (Menu/Boutons)",
-        lbl_cat_long: "Nom Complet (Descriptif)",
-        btn_cancel: "Annuler", btn_save: "Enregistrer",
-        confirm_delete_cat: "Voulez-vous vraiment supprimer la catégorie \'{name}\' et ses produits ?",
-        confirm_delete_prod: "Supprimer définitivement le produit \'{name}\' ?",
-        alert_loading_error: "Erreur de chargement", alert_name_required: "Le nom complet est requis",
-        error_id_missing: "Erreur: ID Catégorie introuvable."
-    },
-    de: {
-        title: "Service-Katalog", subtitle: "KI-Protokolle & -Verfahrensverwaltung.",
-        ghost_label: "Vorgeschlagen", active_label: "Aktiv",
-        btn_reload: "Neu laden", btn_new_cat: "Neue Kategorie",
-        empty_title: "Kein Katalog gefunden. Erstellen Sie zuerst Ihre erste Kategorie.", empty_btn: "Erste Kategorie erstellen",
-        btn_add_here: "Produkt hier hinzufügen",
-        status_active: "Aktiv", btn_manage: "Verwalten", btn_activate: "Aktivieren",
-        modal_edit_title: "Kategorie Bearbeiten",
-        lbl_cat_short: "Kurzname (Menü/Buttons)",
-        lbl_cat_long: "Vollständiger Name (Beschreibung)",
-        btn_cancel: "Abbrechen", btn_save: "Speichern",
-        confirm_delete_cat: "Möchten Sie die Kategorie \'{name}\' und alle Produkte wirklich löschen?",
-        confirm_delete_prod: "Produkt \'{name}\' dauerhaft löschen?",
-        alert_loading_error: "Ladefehler", alert_name_required: "Vollständiger Name ist erforderlich",
-        error_id_missing: "Fehler: Kategorie-ID nicht gefunden."
-    },
-    es: {
-        title: "Catálogo Servicios", subtitle: "Gestión de Protocolos y Procedimientos de IA.",
-        ghost_label: "Sugeridos", active_label: "Activos",
-        btn_reload: "Recargar", btn_new_cat: "Nueva Categoría",
-        empty_title: "No se encontró catálogo. Empieza creando tu primera categoría.", empty_btn: "Crear Primera Categoría",
-        btn_add_here: "Añadir Producto aquí",
-        status_active: "Activo", btn_manage: "Gestionar", btn_activate: "Activar",
-        modal_edit_title: "Editar Categoría",
-        lbl_cat_short: "Nombre Corto (Menú/Botones)",
-        lbl_cat_long: "Nombre Completo (Descriptivo)",
-        btn_cancel: "Cancelar", btn_save: "Guardar",
-        confirm_delete_cat: "¿Seguro que quieres eliminar la categoría \'{name}\' y sus productos?",
-        confirm_delete_prod: "¿Eliminar permanentemente el producto \'{name}\'?",
-        alert_loading_error: "Error de carga", alert_name_required: "El nombre completo es obligatorio",
-        error_id_missing: "Error: ID de categoría no encontrado."
-    },
-    pt: {
-        title: "Catálogo Serviços", subtitle: "Gerenciamento de Protocolos e Procedimentos de IA.",
-        ghost_label: "Sugeridos", active_label: "Ativos",
-        btn_reload: "Recarregar", btn_new_cat: "Nova Categoria",
-        empty_title: "Nenhum catálogo encontrado. Comece criando sua primeira categoria.", empty_btn: "Criar Primeira Categoria",
-        btn_add_here: "Adicionar Produto aqui",
-        status_active: "Ativo", btn_manage: "Gerir", btn_activate: "Ativar",
-        modal_edit_title: "Editar Categoria",
-        lbl_cat_short: "Nome Curto (Menu/Botões)",
-        lbl_cat_long: "Nome Completo (Descritivo)",
-        btn_cancel: "Cancelar", btn_save: "Salvar",
-        confirm_delete_cat: "Tem certeza que deseja excluir a categoria \'{name}\' e seus produtos?",
-        confirm_delete_prod: "Excluir permanentemente o produto \'{name}\'?",
-        alert_loading_error: "Erro ao carregar", alert_name_required: "O nome completo é obrigatório",
-        error_id_missing: "Erro: ID da categoria não encontrado."
+    async function loadCatalog() {
+        try {
+            const res = await fetch(CATALOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "get_catalog", _auth: ash }) });
+            catalogData = parseN8nResponse(await res.json()); renderCatalog();
+        } catch (e) { tg.HapticFeedback.notificationOccurred("error"); } finally { document.getElementById("loader").classList.add("hidden"); document.getElementById("app-content").classList.remove("hidden", "opacity-0"); document.getElementById("app-content").classList.add("opacity-100"); }
     }
-};
 
-// ==========================================
-// 3. HELPER FUNCTIONS
-// ==========================================
-const urlParams = new URLSearchParams(window.location.search);
-function getLang() {
-    const l = urlParams.get("lang") || "it";
-    const norm = l.toLowerCase().slice(0, 2);
-    return i18n[norm] ? norm : "en";
-}
-
-function t(key) {
-    const lang = getLang();
-    return (i18n[lang] && i18n[lang][key]) || (i18n["en"] && i18n["en"][key]) || key;
-}
-
-function getAllUrlParams() {
-    const params = {};
-    for (const [key, value] of urlParams.entries()) {
-        if (key !== "token") { // Esclude 'token' dai parametri passati
-            params[key] = value;
-        }
-    }
-    return params;
-}
-
-function applyTranslations() {
-    document.querySelector(".header-text").innerText = t("title");
-    document.querySelector(".subheader-text").innerText = t("subtitle");
-    document.getElementById("count-ghost").nextElementSibling.innerText = t("ghost_label");
-    document.getElementById("count-active").nextElementSibling.innerText = t("active_label");
-    document.querySelector("#app-content > button.w-full > span").innerText = t("btn_new_cat");
-    document.querySelector("#empty-state p").innerText = t("empty_title");
-    document.querySelector("#empty-state button").innerText = t("empty_btn");
-    document.querySelector("#edit-cat-modal h3").innerText = t("modal_edit_title");
-    document.querySelector("#edit-cat-modal label[for=\'edit-cat-short\']").innerText = t("lbl_cat_short");
-    document.querySelector("#edit-cat-modal label[for=\'edit-cat-long\']").innerText = t("lbl_cat_long");
-    document.querySelector("#edit-cat-modal button:nth-child(1)").innerText = t("btn_cancel");
-    document.querySelector("#edit-cat-modal button:nth-child(2)").innerText = t("btn_save");
-}
-
-function escapeHtml(str) {
-    return (str || "").replace(/"/g, '"');
-}
-
-function parseN8nResponse(json) {
-    const data = Array.isArray(json) ? json[0] : json;
-    return data.catalog || data.data || data;
-}
-
-// ==========================================
-// 4. LOAD CATALOG (CON GESTIONE ASH)
-// ==========================================
-
-async function loadCatalog(forceRefresh = false) {
-    if (!ash) return; // Modificato: controlla 'ash' invece di 'token'
-    const loader = document.getElementById("loader");
-    const content = document.getElementById("app-content");
-    
-    if (forceRefresh) {
-        document.getElementById("catalog-list").innerHTML = "";
-        loader.classList.remove("hidden");
-        content.classList.add("hidden", "opacity-0");
-    }
-    
-    try {
-        const payload = { 
-            action: "get_catalog", 
-            _auth: ash, // Modificato: usa 'ash' invece di 'token'
-            ...getAllUrlParams() // Passa tutto
-        };
-
-        // GESTIONE BONUS (Silenziosa)
-        const bonus = urlParams.get("bonus_credits");
-        if (bonus && parseInt(bonus) > 0) {
-            payload.bonus_credits = parseInt(bonus); 
-            const currentUrl = new URL(window.location.href);
-            currentUrl.searchParams.delete("bonus_credits");
-            window.history.replaceState({}, document.title, currentUrl.toString());
-        }
-
-        const res = await fetch(CATALOG_WEBHOOK, { 
-            method: "POST", 
-            headers: { "Content-Type": "application/json" }, 
-            body: JSON.stringify(payload) 
+    function renderCatalog() {
+        const container = document.getElementById("catalog-list"); container.innerHTML = "";
+        (catalogData.categories || []).forEach((cat) => {
+            const subcats = cat.subcategories || [];
+            const catEl = document.createElement("div"); catEl.className = "cat-card dark-card rounded-xl mb-3 overflow-hidden";
+            catEl.innerHTML = `
+                <div class="cat-card-header p-4 flex justify-between items-center cursor-pointer dark-hover" onclick="this.parentElement.classList.toggle('open')">
+                    <div class="flex items-center gap-3 flex-1"><i class="fas fa-folder text-lg text-white"></i><span class="font-bold text-base">${cat.short_name || cat.name}</span><span class="px-2 py-1 bg-gray-700 text-gray-300 rounded-lg text-xs font-semibold">${subcats.length}</span></div>
+                    <div class="flex items-center gap-2">
+                        <button class="btn-icon-sm text-gray-400 hover:text-blue-500" onclick="event.stopPropagation(); openEditModal('${cat.name}', '${cat.short_name || ''}', '${cat.callback_data}')"><i class="fas fa-pen"></i></button>
+                        <button class="btn-icon-sm text-danger hover:text-red-600" onclick="event.stopPropagation(); deleteCategory('${cat.name}', '${cat.callback_data}')"><i class="fas fa-trash"></i></button>
+                        <i class="fas fa-chevron-down chevron text-gray-500 text-sm"></i>
+                    </div>
+                </div>
+                <div class="cat-body border-t border-[#333] hidden"><div class="p-3 text-center border-b border-[#333]"><button class="bg-blue-600/20 text-blue-400 font-bold py-2 px-4 rounded-lg text-xs" onclick="event.stopPropagation(); goToAddProduct('${cat.callback_data}')"><i class="fas fa-plus"></i> ${t("btn_add_here")}</button></div><div class="products-container"></div></div>`;
+            const prodContainer = catEl.querySelector(".products-container");
+            subcats.forEach(prod => {
+                const prodEl = document.createElement("div"); prodEl.className = `flex justify-between items-center gap-3 p-3 border-b border-[#333] ${prod.blueprint_ready ? 'prod-status-active' : 'prod-status-ghost'}`;
+                prodEl.innerHTML = `<div><div class="font-bold text-sm">${prod.short_name || prod.name}</div></div><div class="flex flex-col gap-2"><button class="bg-blue-600 py-2 px-3 rounded-lg text-xs" onclick="openProduct('edit-blueprint.html', '${prod.callback_data}')">Gestisci</button></div>`;
+                prodContainer.appendChild(prodEl);
+            });
+            container.appendChild(catEl);
         });
-        
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        
-        catalogData = parseN8nResponse(await res.json());
-        renderCatalog();
-        if(forceRefresh) {
-            tg.HapticFeedback.notificationOccurred("success");
-        }
-
-    } catch (e) {
-        const emptyState = document.getElementById("empty-state");
-        if(emptyState) {
-            emptyState.innerHTML = `<i class="fas fa-exclamation-triangle text-4xl mb-4"></i><p class="text-sm mb-4">${t("alert_loading_error")}: ${e.message}</p>`;
-            emptyState.classList.remove("hidden");
-        }
-        tg.HapticFeedback.notificationOccurred("error");
-    } finally {
-        loader.classList.add("hidden");
-        content.classList.remove("hidden", "opacity-0");
-        content.classList.add("opacity-100");
     }
-}
 
-// ==========================================
-// 5. RENDER CATALOG (LOGICA FINALE)
-// ==========================================
-
-function renderCatalog() {
-    const container = document.getElementById("catalog-list");
-    container.innerHTML = "";
-    const categories = catalogData.categories || [];
+    window.goToAddCategory = () => { location.href = `add-category.html?ash=${encodeURIComponent(ash)}`; };
+    window.goToAddProduct = (catId) => { location.href = `add-product.html?ash=${encodeURIComponent(ash)}&catId=${catId}`; };
+    window.openProduct = (page, pId) => { location.href = `${page}?ash=${encodeURIComponent(ash)}&productId=${pId}`; };
+    window.openEditModal = (n, s, id) => { currentEditingCatId = id; document.getElementById('edit-cat-long').value = n; document.getElementById('edit-cat-short').value = s; document.getElementById('edit-cat-modal').classList.remove('hidden'); };
+    window.closeEditModal = () => { document.getElementById('edit-cat-modal').classList.add('hidden'); };
+    window.deleteCategory = (n, id) => { /* logica delete */ };
+    window.saveEditCategory = () => { closeEditModal(); loadCatalog(); };
     
-    if (categories.length === 0) {
-        document.getElementById("empty-state").classList.remove("hidden");
-        return;
-    }
-    
-    let ghostCount = 0, activeCount = 0;
-    
-    categories.forEach((cat) => {
-        const subcats = cat.subcategories || [];
-        const catActive = subcats.filter(p => p.blueprint_ready).length;
-        activeCount += catActive;
-        ghostCount += (subcats.length - catActive);
-
-        const displayTitle = cat.short_name || cat.name;
-        const catId = cat.callback_data || ""; 
-
-        const catEl = document.createElement("div");
-        catEl.className = "dark-card rounded-xl mb-3 overflow-hidden"; // Tailwind classes
-        
-        catEl.innerHTML = `
-            <div class="cat-card-header p-4 flex justify-between items-center cursor-pointer dark-hover" onclick="this.parentElement.classList.toggle(\'open\')">
-                <div class="flex items-center gap-3 flex-1" title="${escapeHtml(cat.name)}">
-                    <i class="fas fa-folder text-lg text-primary"></i>
-                    <span class="font-bold text-base">${displayTitle}</span>
-                    <span class="px-2 py-1 bg-gray-700 text-gray-300 rounded-lg text-xs font-semibold">${subcats.length}</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button class="btn-icon-sm text-gray-400 hover:text-blue-500" data-id="${catId}" data-name="${escapeHtml(cat.name)}" data-short="${escapeHtml(cat.short_name)}" onclick="event.stopPropagation(); handleEditClick(this)"><i class="fas fa-pen"></i></button>
-                    <button class="btn-icon-sm text-danger hover:text-red-600" data-id="${catId}" data-name="${escapeHtml(cat.name)}" onclick="event.stopPropagation(); handleDeleteClick(this)"><i class="fas fa-trash"></i></button>
-                    <i class="fas fa-chevron-down chevron text-gray-500 text-sm"></i>
-                </div>
-            </div>
-            <div class="cat-body border-t border-[#333]">
-                <div class="p-3 text-center border-b border-[#333]">
-                    <button class="bg-blue-600/20 text-blue-400 font-bold py-2 px-4 rounded-lg text-xs hover:bg-blue-600/30 transition-colors active:scale-95" onclick="event.stopPropagation(); goToAddProduct(\'${catId}\', null)">
-                        <i class="fas fa-plus"></i> ${t("btn_add_here")}
-                    </button>
-                </div>
-                <div class="products-container"></div>
-            </div>
-        `;
-
-        const prodContainer = catEl.querySelector(".products-container");
-        
-        subcats.forEach((prod) => {
-            const isRealProduct = prod.blueprint_ready === true;
-            const prodId = prod.callback_data; 
-            
-            let actionFunction, btnIcon, btnLabel, btnClass;
-            let infoAreaOnClick = "", infoAreaClass = "", infoAreaTitle = "";
-
-            if (isRealProduct) {
-                btnIcon = "<i class=\"fas fa-sliders-h\"></i>";
-                btnLabel = t("btn_manage") || "Gestisci";
-                btnClass = "btn-action-edit";
-                actionFunction = `openProduct(\'edit-blueprint.html\', \'${prodId}\')`; 
-                
-                infoAreaOnClick = `onclick=\"openProduct(\'edit-product.html\', \'${prodId}\')\"`;
-                infoAreaClass = "cursor-pointer hover:bg-[#2a2a2a] transition-colors rounded-lg";
-                infoAreaTitle = `title="${t("btn_manage")} Scheda Prodotto"`; // Updated title
-            } else {
-                btnIcon = "<i class=\"fas fa-plus\"></i>";
-                btnLabel = t("btn_activate") || "Aggiungi";
-                btnClass = "btn-action-create";
-                actionFunction = `goToAddProduct(\'${catId}\', \'${prodId}\')`;
-            }
-
-            const statusClass = isRealProduct ? "prod-status-active" : "prod-status-ghost";
-            const prodDisplay = prod.short_name || prod.name;
-            const prodSub = (prod.short_name && prod.name !== prod.short_name) ? prod.name : "";
-            const shortDesc = prod.description ? (prod.description.substring(0, 50) + (prod.description.length > 50 ? "..." : "")) : ""; // Fixed truncation
-            const safeProdName = escapeHtml(prod.name);
-
-            const prodEl = document.createElement("div");
-            prodEl.className = `flex justify-between items-center gap-3 p-3 border-b border-[#333] last:border-b-0 ${statusClass}`;
-            
-            prodEl.innerHTML = `
-                <div class="flex-1 ${infoAreaClass}" ${infoAreaOnClick} ${infoAreaTitle}>
-                    <div class="font-bold text-sm flex items-center gap-2">${prodDisplay} ${isRealProduct ? `<i class="fas fa-check-circle text-success text-xs"></i>` : ""}</div>
-                    ${prodSub ? `<div class="text-xs text-gray-500 italic">${prodSub}</div>` : ""}
-                    <div class="text-xs text-gray-400 mt-1">${shortDesc}</div>
-                </div>
-                
-                <div class="flex flex-col gap-2 min-w-[70px]">
-                    <button class="btn-action ${btnClass} py-2 px-3 rounded-lg text-xs font-semibold flex flex-col items-center justify-center gap-1 active:scale-95" onclick="${actionFunction}">
-                        ${btnIcon} <span>${btnLabel}</span>
-                    </button>
-                    
-                    <button class="btn-prod-delete py-1 px-2 rounded-md text-xs flex items-center justify-center gap-1 active:scale-95" onclick="deleteProduct(\'${safeProdName}\', \'${prodId}\')">
-                        <i class="fas fa-trash-alt"></i> <span>Elimina</span>
-                    </button>
-                </div>
-            `;
-            prodContainer.appendChild(prodEl);
-        });
-        container.appendChild(catEl);
-    });
-    
-    document.getElementById("count-ghost").innerText = ghostCount;
-    document.getElementById("count-active").innerText = activeCount;
-}
-
-// ==========================================
-// 6. NAVIGATION (BLINDATA CON ASH)
-// ==========================================
-
-window.goBack = () => {
-    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-    // Torna alla dashboard passando l'ASH per mantenere la sessione
-    const params = new URLSearchParams();
-    if (ash) params.set("ash", ash);
-    window.location.href = `../dashboard.html?${params.toString()}`;
-};
-
-window.goToAddCategory = () => {
-    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-    const params = new URLSearchParams();
-    if (ash) params.set("ash", ash);
-    window.location.href = `add-category.html?${params.toString()}`;
-};
-
-// Apre add-product.html
-window.goToAddProduct = (catId, prodId) => {
-    if (!catId) return alert(t("error_id_missing"));
-    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-    const params = new URLSearchParams();
-    if (ash) params.set("ash", ash);
-    params.set("catId", catId);
-    if (prodId) {
-        params.set("ghostId", prodId);
-    }
-    location.href = `add-product.html?${params.toString()}`;
-};
-
-// Apre edit-product.html o edit-blueprint.html
-window.openProduct = (page, productId) => {
-    if (!productId) return alert(t("error_id_missing"));
-    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-    const params = new URLSearchParams();
-    if (ash) params.set("ash", ash);
-    params.set("productId", productId);
-    location.href = `${page}?${params.toString()}`;
-};
-
-// ==========================================
-// 7. ACTIONS (EDIT/DELETE CAT/PROD)
-// ==========================================
-
-window.deleteProduct = async function(prodName, prodId) {
-    if (!prodId) return alert("Error: Product ID missing");
-    if (tg.showConfirm) {
-        tg.showConfirm(t("confirm_delete_prod").replace("{name}", prodName), async (confirmed) => {
-            if (confirmed) {
-                document.getElementById("loader").classList.remove("hidden");
-                try {
-                    const payload = { 
-                        action: "delete_product", 
-                        _auth: ash, // Usa ASH
-                        product_id: prodId,
-                        ...getAllUrlParams() 
-                    };
-            
-                    const res = await fetch(CATALOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                    if (!res.ok) throw new Error("Server Error");
-                    
-                    const json = await res.json();
-                    catalogData = parseN8nResponse(json);
-                    renderCatalog();
-                    document.getElementById("loader").classList.add("hidden");
-                    tg.HapticFeedback.notificationOccurred("success");
-                } catch (e) {
-                    tg.showAlert(t("alert_loading_error") + ": " + e.message);
-                    document.getElementById("loader").classList.add("hidden");
-                    tg.HapticFeedback.notificationOccurred("error");
-                }
-            } else {
-                tg.HapticFeedback.impactOccurred("light");
-            }
-        });
-    } else if (!confirm(t("confirm_delete_prod").replace("{name}", prodName))) return;
-
-    // Fallback per browser che non supportano tg.showConfirm (se il codice sopra non viene eseguito)
-    if(!tg.showConfirm && !confirm(t("confirm_delete_prod").replace("{name}", prodName))) return;
-
-    document.getElementById("loader").classList.remove("hidden");
-    try {
-        const payload = { 
-            action: "delete_product", 
-            _auth: ash, 
-            product_id: prodId,
-            ...getAllUrlParams() 
-        };
-
-        const res = await fetch(CATALOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error("Server Error");
-        
-        const json = await res.json();
-        catalogData = parseN8nResponse(json);
-        renderCatalog();
-        document.getElementById("loader").classList.add("hidden");
-        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-
-    } catch (e) {
-        alert("Error: " + e.message);
-        document.getElementById("loader").classList.add("hidden");
-        tg.HapticFeedback.notificationOccurred("error");
-    }
-};
-
-window.handleEditClick = function(btn) {
-    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    const id = btn.dataset.id;
-    const name = btn.dataset.name;
-    const short = btn.dataset.short;
-    openEditModal(name, short, id);
-}
-
-window.handleDeleteClick = function(btn) {
-    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
-    const id = btn.dataset.id;
-    const name = btn.dataset.name;
-    deleteCategory(name, id);
-}
-
-window.openEditModal = function(name, short, id) {
-    if (!id) return tg.showAlert(t("error_id_missing"));
-    currentEditingCatId = id; 
-    document.getElementById("edit-cat-long").value = name;
-    document.getElementById("edit-cat-short").value = short || ""; 
-    document.getElementById("edit-cat-modal").classList.remove("hidden");
-    document.querySelector(".fade-in-modal").classList.add("scale-100", "opacity-100");
-};
-
-window.closeEditModal = () => {
-    document.querySelector(".fade-in-modal").classList.remove("scale-100", "opacity-100");
-    document.querySelector(".fade-in-modal").classList.add("scale-95", "opacity-0");
-    setTimeout(() => {
-        document.getElementById("edit-cat-modal").classList.add("hidden");
-        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
-    }, 300); // Durata della transizione CSS
-};
-
-window.saveEditCategory = async function() {
-    const newLong = document.getElementById("edit-cat-long").value.trim();
-    const newShort = document.getElementById("edit-cat-short").value.trim();
-
-    if (!newLong) return tg.showAlert(t("alert_name_required"));
-    if (!currentEditingCatId) return tg.showAlert(t("error_id_missing"));
-
-    closeEditModal(); // Chiude la modale con animazione
-    document.getElementById("loader").classList.remove("hidden");
-
-    try {
-        const payload = { 
-            action: "modify_category", 
-            _auth: ash, // Usa ASH
-            category_id: currentEditingCatId, 
-            new_category_name: newLong,
-            new_category_short_name: newShort,
-            ...getAllUrlParams() 
-        };
-        const res = await fetch(CATALOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error("Server Error");
-        
-        const json = await res.json();
-        catalogData = parseN8nResponse(json); 
-        renderCatalog();
-        document.getElementById("loader").classList.add("hidden");
-        tg.HapticFeedback.notificationOccurred("success");
-    } catch (e) {
-        tg.showAlert(t("alert_loading_error") + ": " + e.message);
-        document.getElementById("loader").classList.add("hidden");
-        tg.HapticFeedback.notificationOccurred("error");
-    }
-};
-
-window.deleteCategory = async function(catName, catId) {
-    if (!catId) return tg.showAlert(t("error_id_missing"));
-    
-    if (tg.showConfirm) {
-        tg.showConfirm(t("confirm_delete_cat").replace("{name}", catName), async (confirmed) => {
-            if (confirmed) {
-                document.getElementById("loader").classList.remove("hidden");
-                try {
-                    const payload = { action: "delete_category", _auth: ash, category_id: catId, ...getAllUrlParams() };
-                    const res = await fetch(CATALOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-                    if (!res.ok) throw new Error("Server Error");
-                    
-                    const json = await res.json();
-                    catalogData = parseN8nResponse(json);
-                    renderCatalog();
-                    document.getElementById("loader").classList.add("hidden");
-                    tg.HapticFeedback.notificationOccurred("success");
-                } catch (e) {
-                    tg.showAlert(t("alert_loading_error") + ": " + e.message);
-                    document.getElementById("loader").classList.add("hidden");
-                    tg.HapticFeedback.notificationOccurred("error");
-                }
-            } else {
-                tg.HapticFeedback.impactOccurred("light");
-            }
-        });
-    } else if (!confirm(t("confirm_delete_cat").replace("{name}", catName))) return;
-    
-    // Fallback per browser
-    if(!tg.showConfirm && !confirm(t("confirm_delete_cat").replace("{name}", catName))) return; // Evita doppio alert
-
-    document.getElementById("loader").classList.remove("hidden");
-    try {
-        const payload = { action: "delete_category", _auth: ash, category_id: catId, ...getAllUrlParams() };
-        const res = await fetch(CATALOG_WEBHOOK, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-        if (!res.ok) throw new Error("Server Error");
-        
-        const json = await res.json();
-        catalogData = parseN8nResponse(json);
-        renderCatalog();
-        document.getElementById("loader").classList.add("hidden");
-        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-
-    } catch (e) {
-        alert("Error: " + e.message);
-        document.getElementById("loader").classList.add("hidden");
-        tg.HapticFeedback.notificationOccurred("error");
-    }
-};
-
-// ==========================================
-// 8. BOOTSTRAP
-// ==========================================
-document.addEventListener("DOMContentLoaded", () => {
-    applyTranslations();
-    loadCatalog();
-});
-
-</script>
+    document.addEventListener("DOMContentLoaded", loadCatalog);
+  </script>
 </body>
 </html>
