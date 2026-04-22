@@ -273,8 +273,34 @@
         }
     };
     
-    window.deleteCategory = (id, name) => { tg.showConfirm(`Eliminare categoria ${name}?`, ok => { if(ok) loadCatalog(true); }); };
-    window.deleteProduct = (id, name) => { tg.showConfirm(`Eliminare prodotto ${name}?`, ok => { if(ok) loadCatalog(true); }); };
+    window.deleteCategory = (id, name) => { 
+        tg.showConfirm(`Eliminare categoria ${name}?`, async ok => { 
+            if(ok) {
+                try {
+                    await fetch(WEBHOOK_URL, { 
+                        method: "POST", 
+                        headers: { "Content-Type": "application/json" }, 
+                        body: JSON.stringify({ action: "delete_category", _auth: tg.initData, ash: ash, category_id: id }) 
+                    });
+                    loadCatalog(true);
+                } catch(e) { console.error("Delete Error", e); }
+            } 
+        }); 
+    };
+    window.deleteProduct = (id, name) => { 
+        tg.showConfirm(`Eliminare prodotto ${name}?`, async ok => { 
+            if(ok) {
+                try {
+                    await fetch(WEBHOOK_URL, { 
+                        method: "POST", 
+                        headers: { "Content-Type": "application/json" }, 
+                        body: JSON.stringify({ action: "delete_product", _auth: tg.initData, ash: ash, product_id: id }) 
+                    });
+                    loadCatalog(true);
+                } catch(e) { console.error("Delete Error", e); }
+            }
+        }); 
+    };
     window.goBack = () => { tg.close(); };
 
     if (!ash) {
