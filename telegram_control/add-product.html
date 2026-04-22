@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title data-i18n="page_title">Nuovo Prodotto</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .dark-card { background: #1a1a1a; border: 1px solid #333; color: #f1f1f1; }
+        .dark-hover:hover { background: #2a2a2a; }
+        .text-primary { color: #007bff; }
+        .text-success { color: #28a745; }
+        .text-danger { color: #dc3545; }
+        .text-muted { color: #888; }
+        .header-text { font-size: 22px; font-weight: 900; }
+        .subheader-text { font-size: 13px; color: #888; font-style: italic; }
+        .fab-btn { 
+            background: #007bff; color: white; width: 56px; height: 56px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; font-size: 24px; 
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4); transition: all 0.2s; 
+        }
+        .fab-btn.fab-secondary { background: #333; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+        .fab-btn:active { transform: scale(0.95); }
+        
+        .upload-box {
+            border: 2px dashed #444; border-radius: 0.75rem; padding: 1.5rem; text-align: center;
+            background: #222; transition: all 0.3s; position: relative; overflow: hidden;
+        }
+        .upload-box.enabled { border-color: #28a745; background: rgba(40, 167, 69, 0.1); }
+        .upload-box input[type="file"] {
+            position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+        }
+
+        .checkbox-group { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; }
+        .checkbox-group input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: #007bff; }
+        .section-title { font-size: 1.125rem; font-weight: 700; border-bottom: 1px solid #333; padding-bottom: 0.5rem; margin-bottom: 1rem; margin-top: 1.5rem; }
+    </style>
+</head>
+<body class="bg-[#111111] text-white p-6 pb-24">
+    
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 flex flex-col items-center justify-center bg-black z-50 transition-opacity duration-300 hidden">
+        <div class="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-blue-500" role="status">
+            <span class="visually-hidden"></span>
+        </div>
+        <div id="loader-text" class="mt-4 text-sm opacity-70">Analisi in corso...</div>
+    </div>
+
+    <div class="max-w-md mx-auto fade-in" id="app-content">
+        
+        <!-- SECTION 1: INPUT INIZIALE -->
+        <div id="inputSection">
+            <div class="mb-6">
+                <h1 class="header-text" data-i18n="title">Nuovo Prodotto</h1>
+                <p class="subheader-text"><span data-i18n="sub">Categoria:</span> <b id="displayCatName">...</b></p>
+            </div>
+            
+            <div class="dark-card rounded-xl p-5 mb-6">
+                <div class="mb-4">
+                    <label data-i18n="lName" class="block text-sm font-medium text-gray-400 mb-2 required">Nome Richiesta</label>
+                    <input type="text" id="inName" required autocomplete="off" placeholder="..." class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                </div>
+                
+                <div class="mb-4">
+                    <label data-i18n="lDesc" class="block text-sm font-medium text-gray-400 mb-2">Istruzioni Base</label>
+                    <textarea id="inDesc" rows="3" placeholder="..." class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label data-i18n="lFile" class="block text-sm font-medium text-gray-400 mb-2">Allegato</label>
+                    <div class="upload-box" id="uploadBox">
+                        <input type="file" id="inFile" accept="image/*,application/pdf">
+                        <div class="upload-icon text-3xl mb-2 text-gray-500"><i class="fas fa-cloud-upload-alt"></i></div>
+                        <span id="lblFileBtn" class="upload-text text-sm font-medium text-gray-400" data-i18n="lFileBtn">Carica Foto/PDF</span>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btnEnrich" class="w-full bg-blue-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 active:scale-[0.98]">
+                <i class="fas fa-magic"></i> <span data-i18n="btnEnrich">Genera Bozza AI</span>
+            </button>
+        </div>
+
+        <!-- SECTION 2: EDIT FORM -->
+        <form id="editForm" class="hidden fade-in">
+            
+            <div id="duplicateBanner" class="bg-yellow-900 border border-yellow-700 text-yellow-300 p-3 rounded-lg mb-4 hidden font-medium">
+                <span>⚠️</span> <span data-i18n="dup">Possibile Duplicato!</span>
+            </div>
+
+            <div class="dark-card rounded-xl p-5 mb-6">
+                <!-- IDENTITÀ -->
+                <div class="section-title" data-i18n="secId">Identità Prodotto</div>
+                <div class="mb-4">
+                    <label data-i18n="outName" class="block text-sm font-medium text-gray-400 mb-2 required">Nome Ufficiale</label>
+                    <input type="text" id="outName" required class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label data-i18n="outSku" class="block text-sm font-medium text-gray-400 mb-2">SKU</label>
+                        <input type="text" id="outSku" required class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                    </div>
+                    <div>
+                        <label data-i18n="outType" class="block text-sm font-medium text-gray-400 mb-2">Tipo</label>
+                        <select id="outType" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white appearance-none">
+                            <option value="SERVICE">SERVICE</option>
+                            <option value="PRODUCT">PRODUCT</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label data-i18n="outShort" class="block text-sm font-medium text-gray-400 mb-2">Descrizione Breve</label>
+                    <input type="text" id="outShortDesc" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                </div>
+                
+                <div class="mb-4">
+                    <label data-i18n="outLong" class="block text-sm font-medium text-gray-400 mb-2">Descrizione Estesa</label>
+                    <textarea id="outLongDesc" rows="4" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label data-i18n="outInt" class="block text-sm font-medium text-gray-400 mb-2">Note Interne</label>
+                    <textarea id="outInternal" rows="2" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white font-mono text-sm"></textarea>
+                </div>
+
+                <!-- PRICING & OPS -->
+                <div class="section-title" data-i18n="secPrice">Prezzi & Operazioni</div>
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label data-i18n="outPrice" class="block text-sm font-medium text-gray-400 mb-2">Prezzo (€)</label>
+                        <input type="number" id="outPrice" step="0.01" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                    </div>
+                    <div>
+                        <label data-i18n="outUnit" class="block text-sm font-medium text-gray-400 mb-2">Unità</label>
+                        <input type="text" id="outUnit" placeholder="es. hour, item" class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                    </div>
+                </div>
+                
+                <div class="checkbox-group mb-2">
+                    <input type="checkbox" id="outDynamicPrice">
+                    <label for="outDynamicPrice" class="text-sm font-medium"><span data-i18n="outDyn">Prezzo Dinamico?</span></label>
+                </div>
+                
+                <div class="checkbox-group mb-4">
+                    <input type="checkbox" id="outBooking">
+                    <label for="outBooking" class="text-sm font-medium"><span data-i18n="outBook">Richiede Prenotazione?</span></label>
+                </div>
+
+                <!-- MARKETING -->
+                <div class="section-title" data-i18n="secMark">Marketing & Target</div>
+                <div class="mb-4">
+                    <label data-i18n="outTags" class="block text-sm font-medium text-gray-400 mb-2">Tags (SEO)</label>
+                    <input type="text" id="outTags" placeholder="Tag1, Tag2..." class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                </div>
+                <div class="mb-4">
+                    <label data-i18n="outTarget" class="block text-sm font-medium text-gray-400 mb-2">Target Audience</label>
+                    <input type="text" id="outTarget" placeholder="PMI, Hotel..." class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-blue-500 focus:border-blue-500 text-white">
+                </div>
+            </div>
+
+            <div style="height: 80px;"></div>
+        </form>
+
+    </div>
+
+    <!-- 👉 FAB CONTAINER -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        <button class="fab-btn hidden" id="fab-save-product" title="Salva Prodotto">
+            <i class="fas fa-save"></i>
+        </button>
+        <button class="fab-btn fab-secondary" onclick="history.back()" title="Torna Indietro">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+    </div>
+
+    <script>
+/**
+ * ADD PRODUCT LOGIC (v7.0 - BROWSER SAFE FINAL)
+ * - Niente tg.showPopup/tg.showAlert -> Solo alert() nativi.
+ * - Redirect sicuri.
+ * - Payload piatto.
+ * - 6 Lingue.
+ */
+
+'use strict';
+
+// 1. CONFIGURAZIONE
+const ENRICH_WEBHOOK = "https://prod.workflow.trinai.it/webhook/31f89350-4d7f-44b7-9aaf-e7d9e3655b6c";
+const SAVE_WEBHOOK = "https://prod.workflow.trinai.it/webhook/20fd95c0-4218-400e-ae2a-cd881a757b80";
+
+// Init Telegram (Solo per espansione view e aptico, non per UI critica)
+const tg = window.Telegram.WebApp; 
+try { tg.ready(); tg.expand(); } catch(e){}
+
+// 2. PARAMETRI URL
+const urlParams = new URLSearchParams(window.location.search);
+const ash = urlParams.get('ash');
+const catId = urlParams.get('catId');
+const ghostId = urlParams.get('ghostId');
+const langParam = urlParams.get('lang') || 'it';
+
+// 3. STATO GLOBALE
+let draftData = null;
+let fileData = null;
+
+// 4. TRADUZIONI (6 LINGUE)
+const i18n = {
+    it: { title: "Nuovo Prodotto", btnEnrich: "Genera Bozza AI", btnSave: "Salva Definitivo", status_ai: "Analisi AI in corso...", status_save: "Salvataggio...", err_name: "Nome mancante!", ok_saved: "Salvato!", err_generic: "Errore. Riprova." },
+    en: { title: "New Product", btnEnrich: "Generate Draft", btnSave: "Save Final", status_ai: "AI Analyzing...", status_save: "Saving...", err_name: "Name missing!", ok_saved: "Saved!", err_generic: "Error. Retry." },
+    fr: { title: "Nouveau Produit", btnEnrich: "Générer Ébauche", btnSave: "Enregistrer", status_ai: "Analyse IA...", status_save: "Enregistrement...", err_name: "Nom requis !", ok_saved: "Enregistré !", err_generic: "Erreur. Réessayer." },
+    de: { title: "Neues Produkt", btnEnrich: "Entwurf Generieren", btnSave: "Speichern", status_ai: "KI Analysiert...", status_save: "Speichern...", err_name: "Name fehlt!", ok_saved: "Gespeichert!", err_generic: "Fehler. Wiederholen." },
+    es: { title: "Nuevo Producto", btnEnrich: "Generar Borrador", btnSave: "Guardar", status_ai: "Analizando...", status_save: "Guardando...", err_name: "¡Nombre obligatorio!", ok_saved: "¡Guardado!", err_generic: "Error. Reintentar." },
+    pt: { title: "Novo Produto", btnEnrich: "Gerar Rascunho", btnSave: "Salvar", status_ai: "Analisando...", status_save: "Salvando...", err_name: "Nome obrigatório!", ok_saved: "Salvo!", err_generic: "Erro. Tente novamente." }
+};
+const t = i18n[langParam.slice(0,2)] || i18n.it;
+
+// 5. DOM CACHE
+const dom = {
+    loader: document.getElementById('loader'),
+    loaderText: document.getElementById('loader-text'),
+    inputSection: document.getElementById('inputSection'),
+    editForm: document.getElementById('editForm'),
+    fileInput: document.getElementById('inFile'),
+    fileBox: document.getElementById('uploadBox'),
+    fileBtnText: document.getElementById('lblFileBtn')
+};
+
+// 6. INIT
+function init() {
+    // Setup Testi
+    document.title = t.title;
+    document.querySelector('h1').innerText = t.title;
+    document.getElementById('btnEnrich').innerHTML = `<i class="fas fa-magic"></i> ${t.btnEnrich}`;
+    document.getElementById('displayCatName').innerText = catId || "...";
+
+    // Eventi
+    document.getElementById('btnEnrich').addEventListener('click', manualEnrich);
+    document.getElementById('editForm').addEventListener('submit', handleSave);
+    dom.fileInput.addEventListener('change', handleFileSelect);
+    
+    // 👉 Collega FAB Salva (usa ID diverso per evitare conflitti con form submit)
+    const fabSave = document.getElementById('fab-save-product');
+    if(fabSave) {
+        fabSave.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleSave(e);
+        });
+    }
+
+    // GHOST MODE AUTO-START
+    if (ghostId) {
+        dom.inputSection.classList.add('hidden');
+        callEnrichWebhook({ ghost_id: ghostId });
+    }
+}
+
+// 7. FILE HANDLE
+function handleFileSelect(e) {
+    const f = e.target.files[0];
+    if(!f) return;
+    const r = new FileReader();
+    r.onload = (ev) => {
+        fileData = { 
+            base64: ev.target.result.split(',')[1], 
+            mime: f.type 
+        };
+        dom.fileBox.classList.add('enabled');
+        dom.fileBtnText.innerText = f.name;
+    };
+    r.readAsDataURL(f);
+}
+
+// 8. TRIGGER MANUALE
+function manualEnrich() {
+    const name = document.getElementById('inName').value;
+    if(!name) return alert(t.err_name);
+
+    const payloadData = {
+        product_name: name,
+        product_description: document.getElementById('inDesc').value
+    };
+
+    if (fileData) {
+        payloadData.file_data = fileData.base64;
+        payloadData.mime_type = fileData.mime;
+    }
+
+    callEnrichWebhook(payloadData);
+}
+
+// 9. WEBHOOK CALL
+async function callEnrichWebhook(customData) {
+    showLoader(t.status_ai);
+
+    const payload = {
+        _auth: ash,
+        category_id: catId,
+        language: langParam,
+        ...customData
+    };
+
+    try {
+        const res = await fetch(ENRICH_WEBHOOK, {
+            method: 'POST', 
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        const json = await res.json();
+        const data = Array.isArray(json) ? json[0] : json;
+
+        if (!data) throw new Error("Empty Data");
+
+        populateForm(data);
+
+    } catch(e) {
+        console.error(e);
+        alert(t.err_generic + "\n" + e.message);
+        hideLoader();
+        if (customData.ghost_id) dom.inputSection.classList.remove('hidden');
+    }
+}
+
+// 10. POPULATE UI
+function populateForm(data) {
+    draftData = data;
+
+    const val = (id, v) => { 
+        const el = document.getElementById(id);
+        if(el) el.value = v || ''; 
+    };
+    const chk = (id, v) => {
+        const el = document.getElementById(id);
+        if(el) el.checked = !!v;
+    };
+
+    // Mapping Sicuro
+    const identity = data.identity || {};
+    const pricing = data.pricing || {};
+    const desc = identity.description || {};
+    const ops = data.operations || {};
+    const mkt = data.relations?.marketing_info || {};
+
+    val('outName', identity.item_name);
+    val('outSku', identity.item_sku);
+    val('outType', identity.item_type || 'SERVICE');
+    val('outShortDesc', desc.short);
+    val('outLongDesc', desc.long);
+    val('outInternal', desc.internal_notes);
+    val('outPrice', pricing.base_price);
+    val('outUnit', pricing.unit_of_measure);
+    chk('outDynamicPrice', pricing.pricing_rules_engine?.is_dynamic_price);
+    chk('outBooking', ops.requires_booking);
+    val('outTags', (identity.tags || []).join(', '));
+    val('outTarget', (mkt.target_audience_tags || []).join(', '));
+
+    const dupBanner = document.getElementById('duplicateBanner');
+    if (data.is_duplicate) dupBanner.classList.remove('hidden');
+    else dupBanner.classList.add('hidden');
+
+    dom.inputSection.classList.add('hidden');
+    dom.editForm.classList.remove('hidden');
+    
+    // 👉 MOSTRA FAB SALVA
+    const fabSave = document.getElementById('fab-save-product');
+    if(fabSave) fabSave.classList.remove('hidden');
+    
+    hideLoader();
+    window.scrollTo(0,0);
+}
+
+async function handleSave(e) {
+    e.preventDefault();
+    
+    // --- PARTE 1: RACCOLTA DATI (INVARIATA) ---
+    const get = (id) => document.getElementById(id).value;
+    const getChk = (id) => document.getElementById(id).checked;
+
+    if(!draftData) return alert("Errore: Bozza mancante.");
+
+    if(!draftData.identity) draftData.identity = {};
+    draftData.identity.item_name = get('outName');
+    draftData.identity.item_sku = get('outSku');
+    draftData.identity.item_type = get('outType');
+    
+    if(!draftData.identity.description) draftData.identity.description = {};
+    draftData.identity.description.short = get('outShortDesc');
+    draftData.identity.description.long = get('outLongDesc');
+    draftData.identity.description.internal_notes = get('outInternal');
+
+    if(!draftData.pricing) draftData.pricing = {};
+    draftData.pricing.base_price = parseFloat(get('outPrice')) || 0;
+    draftData.pricing.unit_of_measure = get('outUnit');
+    
+    if(!draftData.pricing.pricing_rules_engine) draftData.pricing.pricing_rules_engine = {};
+    draftData.pricing.pricing_rules_engine.is_dynamic_price = getChk('outDynamicPrice');
+
+    if(!draftData.operations) draftData.operations = {};
+    draftData.operations.requires_booking = getChk('outBooking');
+
+    draftData.identity.tags = get('outTags').split(',').map(s=>s.trim()).filter(Boolean);
+    
+    if(!draftData.relations) draftData.relations = {};
+    if(!draftData.relations.marketing_info) draftData.relations.marketing_info = {};
+    draftData.relations.marketing_info.target_audience_tags = get('outTarget').split(',').map(s=>s.trim()).filter(Boolean);
+
+    // --- PARTE 2: PAYLOAD PER N8N ---
+    const n8nPayload = {
+        _auth: ash,
+        category_id: catId,
+        new_product_block: draftData
+    };
+
+    // --- PARTE 3: HANDOVER CORRETTO ---
+    const sessionKey = `pending_payload_${ash}`;
+    
+    try {
+        sessionStorage.setItem(sessionKey, JSON.stringify(n8nPayload));
+        
+        // 1. Clona i parametri attuali
+        const returnParams = new URLSearchParams(window.location.search);
+        
+        // 2. Pulisce i parametri inutili per il ritorno
+        returnParams.delete('ghostId'); // Non serve più
+        
+        // 3. TARGET: IL CATALOGO
+        // Il path è relativo alla posizione di processor.html (root)
+        // Quindi è semplicemente "catalog/catalog.html"
+        const returnPath = "catalog/catalog.html";
+        const returnUrl = encodeURIComponent(`${returnPath}?${returnParams.toString()}`);
+        
+        // 4. VAI AL PROCESSOR (che sta un livello sopra da qui: ../)
+        window.location.href = `../processor.html?call=save_product&owner_key=${ash}&return_url=${returnUrl}`;
+        
+    } catch (err) {
+        console.error(err);
+        alert("Errore salvataggio locale.");
+    }
+}
+
+// 12. UTILS
+function showLoader(text) {
+    if(dom.loaderText) dom.loaderText.innerText = text;
+    dom.loader.classList.remove('hidden');
+}
+
+function hideLoader() {
+    dom.loader.classList.add('hidden');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Carica Acquisto - Magazzino</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .dark-card { background: #1a1a1a; border: 1px solid #333; color: #f1f1f1; }
+        .dark-hover:hover { background: #2a2a2a; }
+        .text-primary { color: #007bff; }
+        .text-success { color: #28a745; }
+        .text-danger { color: #dc3545; }
+        .text-muted { color: #888; }
+        .header-text { font-size: 22px; font-weight: 900; }
+        .subheader-text { font-size: 13px; color: #888; font-style: italic; }
+        
+        .fab-btn { 
+            background: #007bff; color: white; width: 56px; height: 56px; border-radius: 50%; 
+            display: flex; align-items: center; justify-content: center; font-size: 24px; 
+            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4); transition: all 0.2s; 
+        }
+        .fab-btn.fab-secondary { background: #333; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+        .fab-btn:active { transform: scale(0.95); }
+        
+        .upload-area.dragover { border-color: #007bff; background: rgba(0, 123, 255, 0.1); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+    </style>
+</head>
+<body class="bg-[#111111] text-white p-6 pb-24">
+
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 flex flex-col items-center justify-center bg-black z-50 transition-opacity duration-300 hidden">
+        <div class="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-blue-500" role="status">
+            <span class="visually-hidden"></span>
+        </div>
+        <div id="loader-text" class="mt-4 text-sm opacity-70">Elaborazione in corso...</div>
+    </div>
+
+    <div class="max-w-md mx-auto fade-in" id="app-content">
+        
+        <!-- HEADER -->
+        <div class="mb-6">
+            <h1 class="header-text"><i class="fas fa-file-upload text-primary"></i> Carica Acquisto</h1>
+            <p class="subheader-text">Importa fatture o ricevute nel magazzino tramite AI.</p>
+        </div>
+
+        <!-- TABS -->
+        <div class="flex gap-2 mb-6 border-b-2 border-[#333] overflow-x-auto no-scrollbar">
+            <button class="tab-btn px-4 py-3 text-sm font-medium text-blue-500 border-b-2 border-blue-500 transition-colors whitespace-nowrap active" onclick="switchTab('xml')">
+                <i class="fas fa-file-code"></i> Fattura XML
+            </button>
+            <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-400 hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap" onclick="switchTab('pdf')">
+                <i class="fas fa-file-pdf"></i> Fattura PDF
+            </button>
+            <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-400 hover:text-white border-b-2 border-transparent transition-colors whitespace-nowrap" onclick="switchTab('photo')">
+                <i class="fas fa-camera"></i> Foto Ricevuta
+            </button>
+        </div>
+
+        <!-- TAB CONTENT: XML -->
+        <div id="tab-xml" class="tab-content active dark-card rounded-xl p-5 mb-6">
+            <div class="bg-blue-900/20 border-l-4 border-blue-500 rounded-lg p-4 mb-5">
+                <div class="font-bold text-blue-400 flex items-center gap-2 mb-2">
+                    <i class="fas fa-info-circle"></i> Fattura Elettronica XML
+                </div>
+                <div class="text-sm text-gray-400">
+                    Carica il file XML della fattura elettronica. Il sistema estrarrà automaticamente tutti gli articoli con IVA, codici e quantità.
+                </div>
+            </div>
+
+            <div class="upload-area border-2 border-dashed border-[#444] rounded-xl p-8 text-center bg-[#222] hover:border-blue-500 transition-all cursor-pointer mb-5" id="upload-xml" onclick="document.getElementById('file-xml').click()">
+                <div class="text-4xl text-blue-500 mb-3"><i class="fas fa-file-code"></i></div>
+                <div class="font-medium mb-2">Clicca per caricare il file XML</div>
+                <div class="text-xs text-gray-500">oppure trascina il file qui</div>
+                <input type="file" id="file-xml" accept=".xml" class="hidden">
+            </div>
+
+            <div class="bg-blue-900/20 border border-blue-500 rounded-xl p-4 mb-5 hidden items-center gap-3" id="info-xml">
+                <div class="text-3xl text-blue-500"><i class="fas fa-file-code"></i></div>
+                <div class="flex-1 overflow-hidden">
+                    <div class="font-bold text-sm truncate" id="filename-xml"></div>
+                    <div class="text-xs text-gray-400" id="filesize-xml"></div>
+                </div>
+                <button class="text-red-500 hover:text-red-400 bg-red-500/10 p-2 rounded-lg" onclick="removeFile('xml')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <button id="submit-xml" disabled onclick="submitXML()" class="w-full bg-blue-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-cloud-upload-alt"></i> Carica e Analizza XML
+            </button>
+        </div>
+
+        <!-- TAB CONTENT: PDF -->
+        <div id="tab-pdf" class="tab-content dark-card rounded-xl p-5 mb-6">
+            <div class="bg-blue-900/20 border-l-4 border-blue-500 rounded-lg p-4 mb-5">
+                <div class="font-bold text-blue-400 flex items-center gap-2 mb-2">
+                    <i class="fas fa-info-circle"></i> Fattura PDF
+                </div>
+                <div class="text-sm text-gray-400">
+                    Carica la fattura in formato PDF. L'AI estrarrà automaticamente gli articoli tramite OCR avanzato.
+                </div>
+            </div>
+
+            <div class="upload-area border-2 border-dashed border-[#444] rounded-xl p-8 text-center bg-[#222] hover:border-blue-500 transition-all cursor-pointer mb-5" id="upload-pdf" onclick="document.getElementById('file-pdf').click()">
+                <div class="text-4xl text-blue-500 mb-3"><i class="fas fa-file-pdf"></i></div>
+                <div class="font-medium mb-2">Clicca per caricare il PDF</div>
+                <div class="text-xs text-gray-500">oppure trascina il file qui</div>
+                <input type="file" id="file-pdf" accept=".pdf" class="hidden">
+            </div>
+
+            <div class="bg-blue-900/20 border border-blue-500 rounded-xl p-4 mb-5 hidden items-center gap-3" id="info-pdf">
+                <div class="text-3xl text-blue-500"><i class="fas fa-file-pdf"></i></div>
+                <div class="flex-1 overflow-hidden">
+                    <div class="font-bold text-sm truncate" id="filename-pdf"></div>
+                    <div class="text-xs text-gray-400" id="filesize-pdf"></div>
+                </div>
+                <button class="text-red-500 hover:text-red-400 bg-red-500/10 p-2 rounded-lg" onclick="removeFile('pdf')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <button id="submit-pdf" disabled onclick="submitPDF()" class="w-full bg-blue-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-cloud-upload-alt"></i> Carica e Analizza PDF
+            </button>
+        </div>
+
+        <!-- TAB CONTENT: PHOTO -->
+        <div id="tab-photo" class="tab-content dark-card rounded-xl p-5 mb-6">
+            <div class="bg-blue-900/20 border-l-4 border-blue-500 rounded-lg p-4 mb-5">
+                <div class="font-bold text-blue-400 flex items-center gap-2 mb-2">
+                    <i class="fas fa-info-circle"></i> Foto Ricevuta Fiscale
+                </div>
+                <div class="text-sm text-gray-400">
+                    Scatta o carica una foto della ricevuta. L'AI riconoscerà automaticamente gli articoli, prezzi e dati fiscali.
+                    <br><strong class="text-gray-300">Suggerimento:</strong> Foto chiara, ben illuminata, senza riflessi.
+                </div>
+            </div>
+
+            <div class="upload-area border-2 border-dashed border-[#444] rounded-xl p-8 text-center bg-[#222] hover:border-blue-500 transition-all cursor-pointer mb-5" id="upload-photo" onclick="document.getElementById('file-photo').click()">
+                <div class="text-4xl text-blue-500 mb-3"><i class="fas fa-camera"></i></div>
+                <div class="font-medium mb-2">Scatta o carica una foto</div>
+                <div class="text-xs text-gray-500">JPG, PNG - Max 10 MB</div>
+                <input type="file" id="file-photo" accept="image/*" capture="environment" class="hidden">
+            </div>
+
+            <div class="bg-blue-900/20 border border-blue-500 rounded-xl p-4 mb-5 hidden items-center gap-3" id="info-photo">
+                <div class="text-3xl text-blue-500"><i class="fas fa-image"></i></div>
+                <div class="flex-1 overflow-hidden">
+                    <div class="font-bold text-sm truncate" id="filename-photo"></div>
+                    <div class="text-xs text-gray-400" id="filesize-photo"></div>
+                </div>
+                <button class="text-red-500 hover:text-red-400 bg-red-500/10 p-2 rounded-lg" onclick="removeFile('photo')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <img id="preview-photo" class="w-full rounded-xl mt-4 mb-5 hidden" alt="Preview">
+
+            <button id="submit-photo" disabled onclick="submitPhoto()" class="w-full bg-blue-600 text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
+                <i class="fas fa-cloud-upload-alt"></i> Carica e Analizza Foto
+            </button>
+        </div>
+
+    </div>
+
+    <!-- 👉 FAB CONTAINER -->
+    <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3">
+        <button class="fab-btn fab-secondary" onclick="goBack()" title="Torna Indietro">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+    </div>
+
+    <script>
+    const tg = window.Telegram.WebApp;
+    try { tg.ready(); tg.expand(); } catch(e){}
+
+    const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/19efc8b9-5579-4d01-8856-54deb0f3d294';
+
+    let uploadedFiles = { xml: null, pdf: null, photo: null };
+
+    // Passiamo ESCLUSIVAMENTE ad ash, ignoriamo vat e session_id manuali.
+    const urlParams = new URLSearchParams(window.location.search);
+    const ash = urlParams.get('ash');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setupFileInputs();
+        setupDragAndDrop();
+    });
+
+    function setupFileInputs() {
+        document.getElementById('file-xml').addEventListener('change', (e) => handleFileSelect(e, 'xml'));
+        document.getElementById('file-pdf').addEventListener('change', (e) => handleFileSelect(e, 'pdf'));
+        document.getElementById('file-photo').addEventListener('change', (e) => handleFileSelect(e, 'photo'));
+    }
+
+    function setupDragAndDrop() {
+        ['xml', 'pdf', 'photo'].forEach(type => {
+            const uploadArea = document.getElementById(`upload-${type}`);
+            if(!uploadArea) return;
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const input = document.getElementById(`file-${type}`);
+                    input.files = files;
+                    handleFileSelect({ target: input }, type);
+                }
+            });
+        });
+    }
+
+    function handleFileSelect(event, type) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const validation = validateFile(file, type);
+        if (!validation.valid) {
+            alert(validation.error);
+            return;
+        }
+
+        uploadedFiles[type] = file;
+        displayFileInfo(file, type);
+        enableSubmitButton(type);
+
+        if (type === 'photo') showImagePreview(file);
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+    }
+
+    function validateFile(file, type) {
+        const maxSize = type === 'photo' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
+        if (file.size > maxSize) return { valid: false, error: `File troppo grande. Max ${maxSize / 1024 / 1024} MB` };
+        if (type === 'xml' && !file.name.toLowerCase().endsWith('.xml')) return { valid: false, error: 'Il file deve essere in formato XML' };
+        if (type === 'pdf' && !file.type.includes('pdf')) return { valid: false, error: 'Il file deve essere in formato PDF' };
+        if (type === 'photo' && !file.type.startsWith('image/')) return { valid: false, error: 'Il file deve essere un\\'immagine' };
+        return { valid: true };
+    }
+
+    function displayFileInfo(file, type) {
+        document.getElementById(`filename-${type}`).textContent = file.name;
+        document.getElementById(`filesize-${type}`).textContent = formatFileSize(file.size);
+        document.getElementById(`info-${type}`).classList.remove('hidden');
+        document.getElementById(`info-${type}`).classList.add('flex');
+        document.getElementById(`upload-${type}`).classList.add('hidden');
+    }
+
+    function removeFile(type) {
+        uploadedFiles[type] = null;
+        document.getElementById(`file-${type}`).value = '';
+        document.getElementById(`info-${type}`).classList.add('hidden');
+        document.getElementById(`info-${type}`).classList.remove('flex');
+        document.getElementById(`upload-${type}`).classList.remove('hidden');
+        document.getElementById(`submit-${type}`).disabled = true;
+        if (type === 'photo') document.getElementById('preview-photo').classList.add('hidden');
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    }
+
+    function showImagePreview(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const preview = document.getElementById('preview-photo');
+            preview.src = e.target.result;
+            preview.classList.remove('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function enableSubmitButton(type) {
+        document.getElementById(`submit-${type}`).disabled = false;
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active', 'text-blue-500', 'border-blue-500');
+            btn.classList.add('text-gray-400', 'border-transparent');
+        });
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        const activeBtn = document.querySelector(`.tab-btn[onclick="switchTab('${tabName}')"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active', 'text-blue-500', 'border-blue-500');
+            activeBtn.classList.remove('text-gray-400', 'border-transparent');
+        }
+
+        const tabContent = document.getElementById(`tab-${tabName}`);
+        if (tabContent) tabContent.classList.add('active');
+
+        if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+    }
+
+    function showLoader(text) {
+        const loaderText = document.getElementById('loader-text');
+        if(loaderText) loaderText.innerText = text;
+        document.getElementById('loader').classList.remove('hidden');
+    }
+
+    function hideLoader() {
+        document.getElementById('loader').classList.add('hidden');
+    }
+
+    async function submitXML() {
+        const file = uploadedFiles.xml;
+        if (!file) return alert('Nessun file XML selezionato');
+
+        showLoader('Analisi XML in corso...');
+        try {
+            const xmlText = await readFileAsText(file);
+            const payload = { action: 'upload_xml', _auth: ash, filename: file.name, xml_content: xmlText };
+            await sendPayload(payload, 'xml');
+        } catch (error) {
+            handleError(error);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    async function submitPDF() {
+        const file = uploadedFiles.pdf;
+        if (!file) return alert('Nessun file PDF selezionato');
+
+        showLoader('Analisi OCR PDF in corso...');
+        try {
+            const base64Data = await readFileAsBase64(file);
+            const payload = { action: 'upload_pdf', _auth: ash, filename: file.name, mimetype: file.type, file_base64: base64Data };
+            await sendPayload(payload, 'pdf');
+        } catch (error) {
+            handleError(error);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    async function submitPhoto() {
+        const file = uploadedFiles.photo;
+        if (!file) return alert('Nessuna foto selezionata');
+
+        showLoader('Analisi Foto AI in corso...');
+        try {
+            const base64Data = await readFileAsBase64(file);
+            const payload = { action: 'upload_photo', _auth: ash, filename: file.name, mimetype: file.type, file_base64: base64Data };
+            await sendPayload(payload, 'photo');
+        } catch (error) {
+            handleError(error);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    async function sendPayload(payload, type) {
+        const response = await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`Errore Server: ${response.status}`);
+        
+        // Risposta JSON non necessaria per notifica base se n8n restituisce ok
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        
+        const typeLabels = { xml: 'Fattura XML', pdf: 'Fattura PDF', photo: 'Foto Ricevuta' };
+        alert(`✅ ${typeLabels[type]} caricata con successo!\n\nL'AI sta elaborando gli articoli.`);
+        goBack();
+    }
+
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file);
+        });
+    }
+
+    function readFileAsBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = (e) => reject(e);
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function handleError(error) {
+        console.error(error);
+        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+        alert(`❌ Errore durante il caricamento:\n${error.message || 'Errore sconosciuto'}`);
+    }
+
+    function goBack() {
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        const params = new URLSearchParams(window.location.search);
+        // Clean return path using ash
+        window.location.href = `./warehouse.html?ash=${ash || ''}`;
+    }
+    </script>
+</body>
+</html>
