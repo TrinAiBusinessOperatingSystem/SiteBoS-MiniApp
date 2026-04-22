@@ -247,6 +247,31 @@
     };
     window.openEditModal = (n, s, id) => { currentEditingCatId = id; document.getElementById('edit-cat-long').value = n; document.getElementById('edit-cat-short').value = s; document.getElementById('edit-cat-modal').classList.remove('hidden'); };
     window.closeEditModal = () => { document.getElementById('edit-cat-modal').classList.add('hidden'); };
+    window.saveEditCategory = async () => {
+        const id = currentEditingCatId;
+        const name = document.getElementById('edit-cat-long').value;
+        const short_name = document.getElementById('edit-cat-short').value;
+        
+        if (!name) { alert("Nome richiesto"); return; }
+        
+        try {
+            const res = await fetch(WEBHOOK_URL, { 
+                method: "POST", 
+                headers: { "Content-Type": "application/json" }, 
+                body: JSON.stringify({ action: "update_category", _auth: tg.initData, ash: ash, category_id: id, name, short_name }) 
+            });
+            if (res.ok) {
+                closeEditModal();
+                loadCatalog(true);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+            } else {
+                throw new Error("Failed to save");
+            }
+        } catch (e) {
+            console.error("Save Error:", e);
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error");
+        }
+    };
     
     window.deleteCategory = (id, name) => { tg.showConfirm(`Eliminare categoria ${name}?`, ok => { if(ok) loadCatalog(true); }); };
     window.deleteProduct = (id, name) => { tg.showConfirm(`Eliminare prodotto ${name}?`, ok => { if(ok) loadCatalog(true); }); };
