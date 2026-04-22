@@ -237,6 +237,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const ash = urlParams.get('ash');
 const catId = urlParams.get('catId');
 const ghostId = urlParams.get('ghostId');
+const msgId = urlParams.get('msg_id'); // NEW
 const langParam = urlParams.get('lang') || 'it';
 
 // 3. STATO GLOBALE
@@ -451,13 +452,13 @@ function removeAddon(index) {
 async function handleSave(e) {
     e.preventDefault();
     
-    // --- PARTE 1: RACCOLTA DATI (INVARIATA) ---
+    // --- PARTE 1: RACCOLTA DATI ---
     const get = (id) => document.getElementById(id).value;
     const getChk = (id) => document.getElementById(id).checked;
 
     if(!draftData) return alert("Errore: Bozza mancante.");
 
-    if(!draftData.identity) draftData.identity = {};
+    // (Raggruppamento dati...)
     draftData.identity.item_name = get('outName');
     draftData.identity.item_sku = get('outSku');
     draftData.identity.item_type = get('outType');
@@ -488,38 +489,36 @@ async function handleSave(e) {
     draftData.commercial_setup.extra_options = extraOptions;
     draftData.commercial_setup.allow_customer_notes = getChk('allowCustomerNotes');
 
-    // --- PARTE 2: PAYLOAD PER N8N ---
+    // --- PARTE 2: INVIO A WEBHOOK (NO SESSION STORAGE) ---
+    showLoader(t.status_save);
+
     const n8nPayload = {
         _auth: ash,
         category_id: catId,
+        msg_id: msgId,
         new_product_block: draftData
     };
-    console.log("DEBUG: Payload to be saved:", n8nPayload);
+    console.log("DEBUG: Sending payload to webhook:", n8nPayload);
 
-    // --- PARTE 3: HANDOVER CORRETTO ---
-    const sessionKey = `pending_payload_${ash}`;
-    
     try {
-        sessionStorage.setItem(sessionKey, JSON.stringify(n8nPayload));
+        const res = await fetch(SAVE_WEBHOOK, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(n8nPayload)
+        });
         
-        // 1. Clona i parametri attuali
-        const returnParams = new URLSearchParams(window.location.search);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         
-        // 2. Pulisce i parametri inutili per il ritorno
-        returnParams.delete('ghostId'); // Non serve più
+        alert(t.ok_saved);
         
-        // 3. TARGET: IL CATALOGO
-        // Il path è relativo alla posizione di processor.html (root)
-        // Quindi è semplicemente "catalog/catalog.html"
-        const returnPath = "catalog/catalog.html";
-        const returnUrl = encodeURIComponent(`${returnPath}?${returnParams.toString()}`);
-        
-        // 4. VAI AL PROCESSOR (che sta un livello sopra da qui: ../)
-        window.location.href = `../processor.html?call=save_product&owner_key=${ash}&return_url=${returnUrl}`;
+        // Chiudi MiniApp
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        tg.close();
         
     } catch (err) {
         console.error(err);
-        alert("Errore salvataggio locale.");
+        alert(t.err_generic + "\n" + err.message);
+        hideLoader();
     }
 }
 
