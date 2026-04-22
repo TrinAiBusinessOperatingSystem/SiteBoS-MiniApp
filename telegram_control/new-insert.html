@@ -2,281 +2,265 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Carica Acquisto - Magazzino</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Carica Acquisto | SiteBoS</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Aggiunto Tesseract.js per OCR locale -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .dark-card { background: #1a1a1a; border: 1px solid #333; color: #f1f1f1; }
-        .dark-hover:hover { background: #2a2a2a; }
-        .text-primary { color: #007bff; }
-        .bg-primary { background-color: #007bff; }
-        .border-primary { border-color: #007bff; }
-        .text-success { color: #28a745; }
-        .text-danger { color: #dc3545; }
-        .text-muted { color: #888; }
-        .header-text { font-size: 22px; font-weight: 900; }
-        .subheader-text { font-size: 13px; color: #888; font-style: italic; }
-        
-        .fab-btn { 
-            background: #007bff; color: white; width: 56px; height: 56px; border-radius: 50%; 
-            display: flex; align-items: center; justify-content: center; font-size: 24px; 
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4); transition: all 0.2s; 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem' }
+                }
+            }
         }
-        .fab-btn.fab-secondary { background: #333; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
-        .fab-btn:active { transform: scale(0.95); }
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #000; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .spinner { border: 2px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .upload-area {
-            border: 2px dashed #444; border-radius: 0.75rem; padding: 1.5rem; text-align: center;
-            background: #222; transition: all 0.3s; position: relative; overflow: hidden; cursor: pointer;
+            border: 2px dashed #eeeeee; border-radius: 1.5rem; padding: 2.5rem; text-align: center;
+            background: #ffffff; transition: all 0.2s; position: relative; overflow: hidden; cursor: pointer;
         }
-        .upload-area.dragover { border-color: #007bff; background: rgba(0, 123, 255, 0.1); }
-        
-        .mode-content { display: none; animation: fadeIn 0.3s ease; }
-        .mode-content.active { display: block; }
-        
-        @keyframes fadeIn { 
-            from { opacity: 0; transform: translateY(10px); } 
-            to { opacity: 1; transform: translateY(0); } 
-        }
+        .upload-area:active { transform: scale(0.98); }
+        .upload-area.dragover { border-color: #000; background: #fafafa; }
     </style>
-</head>
-<body class="bg-[#111111] text-white p-6 pb-24">
 
-    <!-- LOADER -->
-    <div id="loader" class="fixed inset-0 flex flex-col items-center justify-center bg-black z-50 transition-opacity duration-300 hidden z-[100]">
-        <div class="spinner-border animate-spin inline-block w-8 h-8 border-4 rounded-full text-blue-500" role="status">
-            <span class="visually-hidden"></span>
-        </div>
-        <div id="loader-text" class="mt-4 text-sm opacity-70">Elaborazione in corso...</div>
+    <script>
+        // Blocco di Sicurezza: controlla tg.initData
+        (function() {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2></div></body>`;
+                window.stop();
+            }
+        })();
+    </script>
+</head>
+<body class="p-5 pb-24">
+
+    <!-- LOADER (Globale) -->
+    <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4 hidden">
+        <div class="spinner"></div>
+        <div id="loader-text" class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-400">Elaborazione in corso...</div>
     </div>
 
-    <div class="max-w-md mx-auto" id="app-content">
+    <div class="max-w-md mx-auto space-y-6 animate-fade-in" id="app-content">
         
         <!-- HEADER -->
-        <div class="mb-6">
-            <h1 class="header-text"><i class="fas fa-file-upload text-primary"></i> Carica Acquisto</h1>
-            <p class="subheader-text">Importa documenti o acquisisci etichette.</p>
-        </div>
+        <header class="space-y-1 py-2 text-center">
+            <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1">Magazzino</div>
+            <h1 class="text-xl font-black tracking-tighter uppercase leading-none">Carica Acquisto</h1>
+            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Importa documenti o lotti</p>
+        </header>
 
         <!-- MAIN MENU (Grid Mobile-First) -->
-        <div id="main-menu" class="grid grid-cols-2 gap-4 fade-in">
-            <div class="dark-card rounded-xl p-5 text-center cursor-pointer hover:bg-[#222] transition-colors border-[#333] hover:border-[#007bff]" onclick="openMode('xml')">
-                <div class="text-4xl text-primary mb-3"><i class="fas fa-file-code"></i></div>
-                <div class="font-bold text-sm">Fattura XML</div>
-                <div class="text-[10px] text-gray-500 mt-1">File strutturato</div>
+        <div id="main-menu" class="grid grid-cols-2 gap-4 animate-fade-in">
+            <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('xml')">
+                <i class="fas fa-file-code text-3xl mb-3 text-black"></i>
+                <div class="font-black text-[10px] uppercase tracking-widest">Fattura XML</div>
+                <div class="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-1">File Strutturato</div>
             </div>
-            <div class="dark-card rounded-xl p-5 text-center cursor-pointer hover:bg-[#222] transition-colors border-[#333] hover:border-[#007bff]" onclick="openMode('pdf')">
-                <div class="text-4xl text-primary mb-3"><i class="fas fa-file-pdf"></i></div>
-                <div class="font-bold text-sm">Fattura PDF</div>
-                <div class="text-[10px] text-gray-500 mt-1">Estrazione AI</div>
+            
+            <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('pdf')">
+                <i class="fas fa-file-pdf text-3xl mb-3 text-black"></i>
+                <div class="font-black text-[10px] uppercase tracking-widest">Fattura PDF</div>
+                <div class="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-1">Estrazione AI</div>
             </div>
-            <div class="dark-card rounded-xl p-5 text-center cursor-pointer hover:bg-[#222] transition-colors border-[#333] hover:border-[#007bff]" onclick="openMode('photo')">
-                <div class="text-4xl text-primary mb-3"><i class="fas fa-camera"></i></div>
-                <div class="font-bold text-sm">Foto Scontrino</div>
-                <div class="text-[10px] text-gray-500 mt-1">Foto o Galleria</div>
+            
+            <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('photo')">
+                <i class="fas fa-camera text-3xl mb-3 text-black"></i>
+                <div class="font-black text-[10px] uppercase tracking-widest">Foto Scontrino</div>
+                <div class="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-1">Foto o Galleria</div>
             </div>
-            <div class="dark-card rounded-xl p-5 text-center cursor-pointer hover:bg-[#222] transition-colors border-[#333] hover:border-[#007bff]" onclick="openMode('batch')">
-                <div class="text-4xl text-primary mb-3"><i class="fas fa-layer-group"></i></div>
-                <div class="font-bold text-sm">Lotti / OCR</div>
-                <div class="text-[10px] text-gray-500 mt-1">Più etichette</div>
+            
+            <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('batch')">
+                <i class="fas fa-layer-group text-3xl mb-3 text-black"></i>
+                <div class="font-black text-[10px] uppercase tracking-widest">OCR Lotti</div>
+                <div class="text-[8px] text-gray-400 font-bold uppercase tracking-widest mt-1">Più Etichette</div>
             </div>
         </div>
 
         <!-- MODES CONTAINER -->
         <div id="modes-container" class="hidden">
             
-            <button onclick="backToMenu()" class="mb-4 text-sm text-gray-400 hover:text-white flex items-center gap-2">
-                <i class="fas fa-chevron-left"></i> Torna al Menu
+            <!-- Torna Indietro -->
+            <button onclick="backToMenu()" class="mb-4 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black flex items-center gap-2 active:scale-95 transition">
+                <i class="fas fa-arrow-left"></i> Torna al Menu
             </button>
 
             <!-- MODE CONTENT: XML -->
-            <div id="mode-xml" class="mode-content dark-card rounded-xl p-5 mb-6">
-                <div class="bg-[#007bff]/20 border-l-4 border-[#007bff] rounded-lg p-4 mb-5">
-                    <div class="font-bold text-[#007bff] flex items-center gap-2 mb-2">
-                        <i class="fas fa-file-code"></i> Fattura Elettronica XML
-                    </div>
-                    <div class="text-sm text-gray-300">
-                        Carica l'XML. n8n estrarrà gli articoli e ti chiederà conferma prima di salvare in magazzino.
-                    </div>
+            <div id="mode-xml" class="hidden animate-fade-in space-y-4">
+                <div class="bg-white rounded-3xl p-5 border border-border shadow-sm text-center">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 block mb-2">Fattura Elettronica XML</span>
+                    <p class="text-xs font-medium text-gray-500 leading-tight">Carica il file XML. L'AI estrarrà gli articoli strutturati per la tua supervisione.</p>
                 </div>
 
-                <div class="upload-area mb-5" id="upload-xml" onclick="document.getElementById('file-xml').click()">
-                    <div class="text-4xl text-[#007bff] mb-3"><i class="fas fa-cloud-upload-alt"></i></div>
-                    <div class="font-medium mb-2">Tocca per caricare il file XML</div>
+                <div class="upload-area" id="upload-xml" onclick="document.getElementById('file-xml').click()">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-200 mb-3"></i>
+                    <div class="font-black text-[10px] uppercase tracking-widest text-gray-400">Carica File XML</div>
                     <input type="file" id="file-xml" accept=".xml" class="hidden">
                 </div>
 
-                <div class="bg-[#222] border border-[#444] rounded-xl p-4 mb-5 hidden items-center gap-3" id="info-xml">
-                    <div class="text-3xl text-[#007bff]"><i class="fas fa-file-code"></i></div>
+                <div class="bg-white border border-border rounded-2xl p-4 hidden items-center gap-3 shadow-sm" id="info-xml">
+                    <i class="fas fa-file-code text-2xl text-black"></i>
                     <div class="flex-1 overflow-hidden">
-                        <div class="font-bold text-sm truncate" id="filename-xml"></div>
-                        <div class="text-xs text-gray-400" id="filesize-xml"></div>
+                        <div class="font-bold text-xs truncate" id="filename-xml"></div>
+                        <div class="text-[9px] font-black uppercase tracking-widest text-gray-400" id="filesize-xml"></div>
                     </div>
-                    <button class="text-red-500 hover:text-red-400 bg-red-500/10 p-2 rounded-lg" onclick="removeFile('xml')">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button class="text-red-500 p-2" onclick="removeFile('xml')"><i class="fas fa-times"></i></button>
                 </div>
 
-                <button id="submit-xml" disabled onclick="submitXML()" class="w-full bg-[#007bff] text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-robot"></i> Estrai Dati da XML
+                <button id="submit-xml" disabled onclick="submitXML()" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all disabled:opacity-20 shadow-md">
+                    Estrai Dati da XML
                 </button>
             </div>
 
             <!-- MODE CONTENT: PDF -->
-            <div id="mode-pdf" class="mode-content dark-card rounded-xl p-5 mb-6">
-                <div class="bg-[#007bff]/20 border-l-4 border-[#007bff] rounded-lg p-4 mb-5">
-                    <div class="font-bold text-[#007bff] flex items-center gap-2 mb-2">
-                        <i class="fas fa-file-pdf"></i> Fattura PDF
-                    </div>
-                    <div class="text-sm text-gray-300">
-                        Carica il PDF. L'AI estrarrà gli articoli strutturati, dopodiché potrai supervisionarli e approvarli.
-                    </div>
+            <div id="mode-pdf" class="hidden animate-fade-in space-y-4">
+                <div class="bg-white rounded-3xl p-5 border border-border shadow-sm text-center">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 block mb-2">Fattura PDF</span>
+                    <p class="text-xs font-medium text-gray-500 leading-tight">L'intelligenza artificiale analizzerà il PDF per estrarre la lista degli articoli.</p>
                 </div>
 
-                <div class="upload-area mb-5" id="upload-pdf" onclick="document.getElementById('file-pdf').click()">
-                    <div class="text-4xl text-[#007bff] mb-3"><i class="fas fa-cloud-upload-alt"></i></div>
-                    <div class="font-medium mb-2">Tocca per caricare il PDF</div>
+                <div class="upload-area" id="upload-pdf" onclick="document.getElementById('file-pdf').click()">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-gray-200 mb-3"></i>
+                    <div class="font-black text-[10px] uppercase tracking-widest text-gray-400">Carica PDF</div>
                     <input type="file" id="file-pdf" accept=".pdf" class="hidden">
                 </div>
 
-                <div class="bg-[#222] border border-[#444] rounded-xl p-4 mb-5 hidden items-center gap-3" id="info-pdf">
-                    <div class="text-3xl text-[#007bff]"><i class="fas fa-file-pdf"></i></div>
+                <div class="bg-white border border-border rounded-2xl p-4 hidden items-center gap-3 shadow-sm" id="info-pdf">
+                    <i class="fas fa-file-pdf text-2xl text-black"></i>
                     <div class="flex-1 overflow-hidden">
-                        <div class="font-bold text-sm truncate" id="filename-pdf"></div>
-                        <div class="text-xs text-gray-400" id="filesize-pdf"></div>
+                        <div class="font-bold text-xs truncate" id="filename-pdf"></div>
+                        <div class="text-[9px] font-black uppercase tracking-widest text-gray-400" id="filesize-pdf"></div>
                     </div>
-                    <button class="text-red-500 hover:text-red-400 bg-red-500/10 p-2 rounded-lg" onclick="removeFile('pdf')">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button class="text-red-500 p-2" onclick="removeFile('pdf')"><i class="fas fa-times"></i></button>
                 </div>
 
-                <button id="submit-pdf" disabled onclick="submitPDF()" class="w-full bg-[#007bff] text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-robot"></i> Estrai Dati da PDF
+                <button id="submit-pdf" disabled onclick="submitPDF()" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all disabled:opacity-20 shadow-md">
+                    Estrai Dati da PDF
                 </button>
             </div>
 
             <!-- MODE CONTENT: PHOTO -->
-            <div id="mode-photo" class="mode-content dark-card rounded-xl p-5 mb-6">
-                <div class="bg-[#007bff]/20 border-l-4 border-[#007bff] rounded-lg p-4 mb-5">
-                    <div class="font-bold text-[#007bff] flex items-center gap-2 mb-2">
-                        <i class="fas fa-camera"></i> Foto Scontrino/Fattura
-                    </div>
-                    <div class="text-sm text-gray-300">
-                        Eseguiremo l'OCR locale e invieremo all'AI sia l'immagine HD che il testo estratto per la massima precisione.
-                    </div>
+            <div id="mode-photo" class="hidden animate-fade-in space-y-4">
+                <div class="bg-white rounded-3xl p-5 border border-border shadow-sm text-center">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 block mb-2">Foto Scontrino</span>
+                    <p class="text-xs font-medium text-gray-500 leading-tight">Il telefono pre-elaborerà il testo (OCR Locale), poi l'AI capirà gli articoli.</p>
                 </div>
 
-                <div class="upload-area mb-5" id="upload-photo" onclick="document.getElementById('file-photo').click()">
-                    <div class="text-4xl text-[#007bff] mb-3"><i class="fas fa-camera"></i></div>
-                    <div class="font-medium mb-2">Scatta o carica una foto</div>
-                    <div class="text-xs text-gray-500">JPG, PNG - Max 10 MB</div>
+                <div class="upload-area" id="upload-photo" onclick="document.getElementById('file-photo').click()">
+                    <i class="fas fa-camera text-3xl text-gray-200 mb-3"></i>
+                    <div class="font-black text-[10px] uppercase tracking-widest text-gray-400">Scatta Foto</div>
                     <input type="file" id="file-photo" accept="image/*" capture="environment" class="hidden">
                 </div>
 
-                <div class="bg-[#222] border border-[#444] rounded-xl p-4 mb-5 hidden items-center gap-3" id="info-photo">
-                    <div class="text-3xl text-[#007bff]"><i class="fas fa-image"></i></div>
+                <div class="bg-white border border-border rounded-2xl p-4 hidden items-center gap-3 shadow-sm" id="info-photo">
+                    <i class="fas fa-image text-2xl text-black"></i>
                     <div class="flex-1 overflow-hidden">
-                        <div class="font-bold text-sm truncate" id="filename-photo"></div>
-                        <div class="text-xs text-gray-400" id="filesize-photo"></div>
+                        <div class="font-bold text-xs truncate" id="filename-photo"></div>
+                        <div class="text-[9px] font-black uppercase tracking-widest text-gray-400" id="filesize-photo"></div>
                     </div>
-                    <button class="text-red-500 hover:text-red-400 bg-red-500/10 p-2 rounded-lg" onclick="removeFile('photo')">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <button class="text-red-500 p-2" onclick="removeFile('photo')"><i class="fas fa-times"></i></button>
                 </div>
 
-                <img id="preview-photo" class="w-full rounded-xl mt-4 mb-5 hidden" alt="Preview">
+                <img id="preview-photo" class="w-full rounded-2xl hidden" alt="Preview">
 
-                <button id="submit-photo" disabled onclick="submitPhoto()" class="w-full bg-[#007bff] text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-robot"></i> Estrai Dati da Foto
+                <button id="submit-photo" disabled onclick="submitPhoto()" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all disabled:opacity-20 shadow-md">
+                    Analizza Scontrino
                 </button>
             </div>
 
             <!-- MODE CONTENT: BATCH / ETICHETTE -->
-            <div id="mode-batch" class="mode-content dark-card rounded-xl p-5 mb-6">
-                <div class="bg-[#007bff]/20 border-l-4 border-[#007bff] rounded-lg p-4 mb-5">
-                    <div class="font-bold text-[#007bff] flex items-center gap-2 mb-2">
-                        <i class="fas fa-layer-group"></i> OCR Diretto Multiplo
-                    </div>
-                    <div class="text-sm text-gray-300">
-                        Acquisisci etichette in sequenza con l'OCR locale. Controlla e invia tutto insieme.
-                    </div>
+            <div id="mode-batch" class="hidden animate-fade-in space-y-4">
+                <div class="bg-white rounded-3xl p-5 border border-border shadow-sm text-center">
+                    <span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 block mb-2">OCR Diretto Multiplo</span>
+                    <p class="text-xs font-medium text-gray-500 leading-tight">Acquisisci etichette. L'OCR le legge all'istante, puoi correggerle prima di inviare la lista.</p>
                 </div>
 
-                <div class="upload-area mb-5" id="upload-batch" onclick="document.getElementById('file-batch').click()">
-                    <div class="text-4xl text-[#007bff] mb-3"><i class="fas fa-camera"></i></div>
-                    <div class="font-medium mb-2">Tocca per fotografare etichette</div>
-                    <div class="text-xs text-gray-500">Puoi scattarne o selezionarne più di una</div>
+                <div class="upload-area" id="upload-batch" onclick="document.getElementById('file-batch').click()">
+                    <i class="fas fa-layer-group text-3xl text-gray-200 mb-3"></i>
+                    <div class="font-black text-[10px] uppercase tracking-widest text-gray-400">Aggiungi Etichette</div>
                     <input type="file" id="file-batch" accept="image/*" multiple class="hidden">
                 </div>
                 
-                <div id="ocr-progress-container" class="hidden mb-4 p-3 bg-[#222] rounded-lg text-sm text-center text-[#007bff] font-bold animate-pulse">
-                    <i class="fas fa-brain"></i> Motore OCR in esecuzione... <span id="ocr-progress">0%</span>
+                <div id="ocr-progress-container" class="hidden p-3 bg-white border border-border rounded-2xl text-[9px] text-center text-black font-black uppercase tracking-widest animate-pulse">
+                    <i class="fas fa-brain mr-2"></i> Motore OCR in esecuzione... <span id="ocr-progress">0%</span>
                 </div>
 
-                <div id="batch-list" class="flex flex-col gap-3 mb-5">
-                    <!-- Batch items appended here -->
+                <div id="batch-list" class="flex flex-col gap-3">
+                    <!-- Batch items -->
                 </div>
 
-                <button id="submit-batch" disabled onclick="submitBatch()" class="w-full bg-[#007bff] text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="fas fa-paper-plane"></i> Invia <span id="batch-count">0</span> Record al Magazzino
+                <button id="submit-batch" disabled onclick="submitBatch()" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all disabled:opacity-20 shadow-md mt-4">
+                    Invia <span id="batch-count">0</span> Record
                 </button>
             </div>
         </div>
 
-        <!-- VISTA REVIEW (Tabella Approvazione Human-in-the-loop) -->
-        <div id="review-view" class="hidden fade-in">
-            <div class="mb-6">
-                <h1 class="header-text text-[#28a745]"><i class="fas fa-user-check"></i> Approva Dati</h1>
-                <p class="subheader-text">Controlla gli articoli estratti dall'AI prima del salvataggio nel magazzino.</p>
+        <!-- VISTA REVIEW (Human-in-the-loop) -->
+        <div id="review-view" class="hidden animate-fade-in space-y-6">
+            <header class="text-center py-2">
+                <div class="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-[7px] font-black uppercase tracking-widest rounded-full mb-1">Successo</div>
+                <h1 class="text-xl font-black tracking-tighter uppercase leading-none">Approva Dati</h1>
+                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1 italic">Controlla e correggi l'estrazione AI</p>
+            </header>
+
+            <div id="review-items-container" class="space-y-4">
+                <!-- Editable Items -->
             </div>
 
-            <div id="review-items-container" class="flex flex-col gap-4 mb-6">
-                <!-- Editable Items dynamically added here -->
-            </div>
-
-            <button onclick="addReviewItem()" class="w-full bg-[#222] text-[#007bff] font-medium py-3 px-4 rounded-xl mb-6 hover:bg-[#333] transition-colors border border-[#007bff]/50 border-dashed flex items-center justify-center gap-2">
-                <i class="fas fa-plus"></i> Aggiungi Riga Manualmente
+            <button onclick="addReviewItem()" class="w-full h-12 bg-white border-2 border-dashed border-gray-300 text-gray-500 rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all">
+                <i class="fas fa-plus mr-1"></i> Aggiungi Riga
             </button>
 
-            <button id="btn-confirm-review" onclick="submitApprovedItems()" class="w-full bg-[#28a745] text-white font-bold py-4 px-4 rounded-xl shadow-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-3 active:scale-[0.98]">
-                <i class="fas fa-save"></i> Conferma e Salva Tutto
+            <button id="btn-confirm-review" onclick="submitApprovedItems()" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-md">
+                <i class="fas fa-save mr-2"></i> Conferma e Salva in Magazzino
             </button>
             
-            <button onclick="cancelReview()" class="w-full mt-3 bg-transparent text-gray-500 font-medium py-3 px-4 rounded-xl hover:text-white transition-colors">
-                Scarta Dati ed Esci
+            <button onclick="cancelReview()" class="w-full text-[9px] font-black uppercase tracking-widest text-red-500 hover:text-red-700 mt-2">
+                Scarta e Torna Indietro
             </button>
         </div>
 
     </div>
 
-    <!-- 👉 FAB CONTAINER -->
-    <div class="fixed bottom-6 right-6 z-40 flex flex-col gap-3" id="fab-container">
-        <button class="fab-btn fab-secondary" onclick="goBack()" title="Torna Indietro">
-            <i class="fas fa-arrow-left"></i>
-        </button>
-    </div>
-
     <script>
+    'use strict';
     const tg = window.Telegram.WebApp;
     try { tg.ready(); tg.expand(); } catch(e){}
 
     const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/19efc8b9-5579-4d01-8856-54deb0f3d294';
 
     let uploadedFiles = { xml: null, pdf: null, photo: null };
-    let batchRecords = []; // Testi OCR locali
-    let currentExtractedItems = []; // Array JSON per Human-in-the-loop
+    let batchRecords = [];
+    let currentExtractedItems = [];
 
     const urlParams = new URLSearchParams(window.location.search);
     const ash = urlParams.get('ash');
+
+    // AUTH & ASH Helper function for payloads
+    function buildPayload(action, additionalData = {}) {
+        return {
+            _auth: tg.initData, // Telegram initData per sicurezza
+            ash: ash,           // Auth Session Hash dal server
+            action: action,
+            ...additionalData
+        };
+    }
 
     document.addEventListener('DOMContentLoaded', () => {
         setupFileInputs();
@@ -288,8 +272,11 @@
         document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('modes-container').classList.remove('hidden');
         
-        document.querySelectorAll('.mode-content').forEach(el => el.classList.remove('active'));
-        document.getElementById(`mode-${mode}`).classList.add('active');
+        ['xml', 'pdf', 'photo', 'batch'].forEach(m => {
+            const el = document.getElementById(`mode-${m}`);
+            if (el) el.classList.add('hidden');
+        });
+        document.getElementById(`mode-${mode}`).classList.remove('hidden');
         
         if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
     }
@@ -298,7 +285,6 @@
         document.getElementById('modes-container').classList.add('hidden');
         document.getElementById('main-menu').classList.remove('hidden');
         
-        // Optionally clear current selections
         ['xml', 'pdf', 'photo'].forEach(removeFile);
         if (batchRecords.length > 0) {
             batchRecords = [];
@@ -309,7 +295,6 @@
     }
 
     // --- UPLOAD LOGIC ---
-
     function setupFileInputs() {
         document.getElementById('file-xml').addEventListener('change', (e) => handleFileSelect(e, 'xml'));
         document.getElementById('file-pdf').addEventListener('change', (e) => handleFileSelect(e, 'pdf'));
@@ -319,18 +304,12 @@
 
     function setupDragAndDrop() {
         ['xml', 'pdf', 'photo', 'batch'].forEach(type => {
-            const uploadArea = document.getElementById(`upload-${type}`);
-            if(!uploadArea) return;
-            uploadArea.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                uploadArea.classList.add('dragover');
-            });
-            uploadArea.addEventListener('dragleave', () => {
-                uploadArea.classList.remove('dragover');
-            });
-            uploadArea.addEventListener('drop', (e) => {
-                e.preventDefault();
-                uploadArea.classList.remove('dragover');
+            const area = document.getElementById(`upload-${type}`);
+            if(!area) return;
+            area.addEventListener('dragover', (e) => { e.preventDefault(); area.classList.add('dragover'); });
+            area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+            area.addEventListener('drop', (e) => {
+                e.preventDefault(); area.classList.remove('dragover');
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     const input = document.getElementById(`file-${type}`);
@@ -346,11 +325,8 @@
         const file = event.target.files[0];
         if (!file) return;
 
-        const validation = validateFile(file, type);
-        if (!validation.valid) {
-            alert(validation.error);
-            return;
-        }
+        const val = validateFile(file, type);
+        if (!val.valid) { alert(val.error); return; }
 
         uploadedFiles[type] = file;
         displayFileInfo(file, type);
@@ -360,8 +336,7 @@
         if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     }
 
-    // --- LOCAL OCR BATCH LOGIC ---
-
+    // --- BATCH OCR ---
     async function handleBatchSelect(event) {
         const files = Array.from(event.target.files);
         if (!files.length) return;
@@ -370,21 +345,14 @@
         document.getElementById('ocr-progress-container').classList.remove('hidden');
 
         for (const file of files) {
-            const validation = validateFile(file, 'photo');
-            if (!validation.valid) {
-                alert(`Errore file ${file.name}: ${validation.error}`);
-                continue;
-            }
+            const val = validateFile(file, 'photo');
+            if (!val.valid) continue;
 
             try {
                 const text = await performLocalOCR(file, true);
-                batchRecords.unshift({
-                    originalName: file.name,
-                    text: text.trim().substring(0, 150) || "Testo non rilevato, scrivi manualmente"
-                });
+                batchRecords.unshift({ text: text.trim().substring(0, 150) || "Scrivi manualmente" });
             } catch (err) {
-                console.error("OCR Error:", err);
-                batchRecords.unshift({ originalName: file.name, text: "Errore Lettura OCR." });
+                batchRecords.unshift({ text: "Errore Lettura OCR." });
             }
         }
         
@@ -396,17 +364,11 @@
 
     async function performLocalOCR(file, updateProgress = false) {
         return new Promise((resolve, reject) => {
-            Tesseract.recognize(
-                file,
-                'ita+eng',
-                { logger: m => {
-                    if (updateProgress && m.status === 'recognizing text') {
-                        document.getElementById('ocr-progress').innerText = Math.round(m.progress * 100) + '%';
-                    }
-                }}
-            ).then(({ data: { text } }) => {
-                resolve(text);
-            }).catch(reject);
+            Tesseract.recognize(file, 'ita+eng', { logger: m => {
+                if (updateProgress && m.status === 'recognizing text') {
+                    document.getElementById('ocr-progress').innerText = Math.round(m.progress * 100) + '%';
+                }
+            }}).then(({ data: { text } }) => resolve(text)).catch(reject);
         });
     }
 
@@ -416,9 +378,7 @@
         enableSubmitButton('batch', batchRecords.length > 0);
     }
 
-    function updateBatchText(index, newText) {
-        batchRecords[index].text = newText;
-    }
+    function updateBatchText(index, newText) { batchRecords[index].text = newText; }
 
     function renderBatchList() {
         const list = document.getElementById('batch-list');
@@ -427,15 +387,13 @@
 
         batchRecords.forEach((record, idx) => {
             const el = document.createElement('div');
-            el.className = 'bg-[#222] border border-[#333] rounded-lg p-3 fade-in relative';
+            el.className = 'bg-white border border-border rounded-2xl p-3 shadow-sm flex items-start gap-3 animate-fade-in';
             el.innerHTML = `
-                <div class="flex items-start gap-3">
-                    <div class="text-xl text-[#007bff] mt-1"><i class="fas fa-tag"></i></div>
-                    <div class="flex-1">
-                        <textarea class="w-full bg-[#111] text-white p-2 border border-[#444] rounded-md text-sm focus:border-[#007bff] focus:outline-none" rows="2" onchange="updateBatchText(${idx}, this.value)">${record.text}</textarea>
-                    </div>
-                    <button class="text-red-500 hover:text-red-400 bg-red-500/10 p-2 rounded-lg" onclick="removeBatchItem(${idx})"><i class="fas fa-times"></i></button>
+                <div class="text-xl text-black mt-1"><i class="fas fa-tag"></i></div>
+                <div class="flex-1">
+                    <textarea class="w-full bg-gray-50 text-black p-2 border border-transparent rounded-xl text-xs font-bold focus:border-black outline-none transition" rows="2" onchange="updateBatchText(${idx}, this.value)">${record.text}</textarea>
                 </div>
+                <button class="text-red-500 bg-red-50 p-2 rounded-xl" onclick="removeBatchItem(${idx})"><i class="fas fa-trash-alt"></i></button>
             `;
             list.appendChild(el);
         });
@@ -445,102 +403,65 @@
         if (!batchRecords.length) return;
         showLoader('Invio record...');
         try {
-            const payload = { action: 'upload_batch_records', _auth: ash, records: batchRecords.map(r => r.text) };
-            const response = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (!response.ok) throw new Error(`Errore Server: ${response.status}`);
+            const payload = buildPayload('upload_batch_records', { records: batchRecords.map(r => r.text) });
+            const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) throw new Error(`Errore Server`);
             
             if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            alert(`✅ ${batchRecords.length} record inviati con successo!`);
+            alert(`✅ Record salvati!`);
             
             batchRecords = [];
             renderBatchList();
             enableSubmitButton('batch', false);
             backToMenu();
-        } catch (error) {
-            handleError(error);
-        } finally {
-            hideLoader();
-        }
+        } catch (error) { handleError(error); } finally { hideLoader(); }
     }
 
-    // --- MAIN EXTRACTION LOGIC (Human in the loop) ---
-
+    // --- MAIN EXTRACTION (Human in the loop) ---
     async function submitXML() {
-        const file = uploadedFiles.xml;
-        if (!file) return;
-        showLoader('Estrazione dati XML in corso...');
+        const file = uploadedFiles.xml; if (!file) return;
+        showLoader('Estrazione dati XML...');
         try {
             const xmlText = await readFileAsText(file);
-            const payload = { action: 'extract_xml', _auth: ash, filename: file.name, xml_content: xmlText };
+            const payload = buildPayload('extract_xml', { filename: file.name, xml_content: xmlText });
             await sendPayloadForExtraction(payload, 'xml');
-        } catch (error) {
-            handleError(error);
-        } finally {
-            hideLoader();
-        }
+        } catch (error) { handleError(error); } finally { hideLoader(); }
     }
 
     async function submitPDF() {
-        const file = uploadedFiles.pdf;
-        if (!file) return;
-        showLoader('Estrazione AI da PDF in corso...');
+        const file = uploadedFiles.pdf; if (!file) return;
+        showLoader('Analisi PDF con AI...');
         try {
             const base64Data = await readFileAsBase64(file);
-            const payload = { action: 'extract_pdf', _auth: ash, filename: file.name, mimetype: file.type, file_base64: base64Data };
+            const payload = buildPayload('extract_pdf', { filename: file.name, mimetype: file.type, file_base64: base64Data });
             await sendPayloadForExtraction(payload, 'pdf');
-        } catch (error) {
-            handleError(error);
-        } finally {
-            hideLoader();
-        }
+        } catch (error) { handleError(error); } finally { hideLoader(); }
     }
 
     async function submitPhoto() {
-        const file = uploadedFiles.photo;
-        if (!file) return;
-        showLoader('Lettura OCR locale + Estrazione AI in corso...');
+        const file = uploadedFiles.photo; if (!file) return;
+        showLoader('Analisi Scontrino...');
         try {
             const base64Data = await readFileAsBase64(file);
-            
             let localOcrText = "";
             try {
                 const loaderText = document.getElementById('loader-text');
-                if(loaderText) loaderText.innerText = "Esecuzione OCR sul dispositivo...";
+                if(loaderText) loaderText.innerText = "OCR IN CORSO...";
                 localOcrText = await performLocalOCR(file, false);
-                if(loaderText) loaderText.innerText = "Invio dati e analisi AI in corso...";
-            } catch(e) { console.warn("Local OCR failed", e); }
+                if(loaderText) loaderText.innerText = "ANALISI AI...";
+            } catch(e) {}
 
-            const payload = { 
-                action: 'extract_photo', 
-                _auth: ash, 
-                filename: file.name, 
-                mimetype: file.type, 
-                file_base64: base64Data,
-                ocr_text: localOcrText 
-            };
+            const payload = buildPayload('extract_photo', { filename: file.name, mimetype: file.type, file_base64: base64Data, ocr_text: localOcrText });
             await sendPayloadForExtraction(payload, 'photo');
-        } catch (error) {
-            handleError(error);
-        } finally {
-            hideLoader();
-        }
+        } catch (error) { handleError(error); } finally { hideLoader(); }
     }
 
     async function sendPayloadForExtraction(payload, type) {
-        const response = await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) throw new Error(`Errore Server: ${response.status}`);
+        const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!response.ok) throw new Error(`Errore Server`);
         
         let result = {};
-        try { result = await response.json(); } catch(e) { console.warn("No JSON returned"); }
+        try { result = await response.json(); } catch(e) {}
 
         if (result && result.items && Array.isArray(result.items) && result.items.length > 0) {
             if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
@@ -548,27 +469,23 @@
             showReviewView();
         } else {
             if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
-            alert(`⚠️ Documento inviato, ma n8n non ha restituito articoli da revisionare. Configura n8n per restituire { items: [...] }.`);
-            goBack();
+            alert(`Documento inviato (Nessun articolo estratto dall'AI).`);
+            tg.close();
         }
     }
 
     // --- REVIEW UI LOGIC ---
-
     function showReviewView() {
-        document.getElementById('main-menu').classList.add('hidden');
         document.getElementById('modes-container').classList.add('hidden');
-        document.getElementById('fab-container').classList.add('hidden');
         document.getElementById('review-view').classList.remove('hidden');
         renderReviewItems();
     }
 
     function cancelReview() {
-        if(!confirm("Vuoi scartare i dati estratti e tornare indietro?")) return;
+        if(!confirm("Scartare i dati estratti?")) return;
         currentExtractedItems = [];
         document.getElementById('review-view').classList.add('hidden');
         document.getElementById('main-menu').classList.remove('hidden');
-        document.getElementById('fab-container').classList.remove('hidden');
     }
 
     function renderReviewItems() {
@@ -576,25 +493,25 @@
         container.innerHTML = '';
         currentExtractedItems.forEach((item, index) => {
             const el = document.createElement('div');
-            el.className = 'dark-card rounded-xl p-4 relative fade-in';
+            el.className = 'bg-white border border-border shadow-sm rounded-3xl p-5 relative animate-fade-in';
             el.innerHTML = `
-                <button onclick="removeReviewItem(${index})" class="absolute top-2 right-2 text-red-500 bg-red-500/10 w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-500/20 transition-colors"><i class="fas fa-trash"></i></button>
-                <div class="mb-3 pr-10">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Nome Prodotto / Descrizione</label>
-                    <input type="text" value="${item.name || ''}" onchange="updateReviewItem(${index}, 'name', this.value)" class="w-full bg-[#222] text-white p-2.5 rounded-lg border border-[#444] focus:border-[#007bff] focus:outline-none">
+                <button onclick="removeReviewItem(${index})" class="absolute top-4 right-4 text-red-400 bg-red-50 w-8 h-8 rounded-full flex items-center justify-center hover:bg-red-100 transition"><i class="fas fa-trash-alt text-[10px]"></i></button>
+                <div class="mb-3 pr-10 space-y-1">
+                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1">Nome Articolo</label>
+                    <input type="text" value="${item.name || ''}" onchange="updateReviewItem(${index}, 'name', this.value)" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition">
                 </div>
-                <div class="flex gap-3">
-                    <div class="flex-1">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Qtà</label>
-                        <input type="number" step="any" value="${item.qty || 1}" onchange="updateReviewItem(${index}, 'qty', parseFloat(this.value))" class="w-full bg-[#222] text-white p-2.5 rounded-lg border border-[#444] focus:border-[#007bff] focus:outline-none text-center">
+                <div class="flex gap-2">
+                    <div class="flex-1 space-y-1">
+                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1">Qtà</label>
+                        <input type="number" step="any" value="${item.qty || 1}" onchange="updateReviewItem(${index}, 'qty', parseFloat(this.value))" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition text-center">
                     </div>
-                    <div class="flex-1">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">Prezzo U. (€)</label>
-                        <input type="number" step="any" value="${item.price || 0}" onchange="updateReviewItem(${index}, 'price', parseFloat(this.value))" class="w-full bg-[#222] text-white p-2.5 rounded-lg border border-[#444] focus:border-[#007bff] focus:outline-none text-right">
+                    <div class="flex-1 space-y-1">
+                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1">Prezzo (€)</label>
+                        <input type="number" step="any" value="${item.price || 0}" onchange="updateReviewItem(${index}, 'price', parseFloat(this.value))" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-black border border-transparent focus:border-black outline-none transition text-right">
                     </div>
-                    <div class="w-16">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1 block">IVA %</label>
-                        <input type="number" step="any" value="${item.tax !== undefined ? item.tax : 22}" onchange="updateReviewItem(${index}, 'tax', parseFloat(this.value))" class="w-full bg-[#222] text-white p-2.5 rounded-lg border border-[#444] focus:border-[#007bff] focus:outline-none text-center">
+                    <div class="w-16 space-y-1">
+                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-400 ml-1">IVA %</label>
+                        <input type="number" step="any" value="${item.tax !== undefined ? item.tax : 22}" onchange="updateReviewItem(${index}, 'tax', parseFloat(this.value))" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition text-center">
                     </div>
                 </div>
             `;
@@ -613,52 +530,41 @@
         renderReviewItems();
     }
 
-    function updateReviewItem(index, key, value) {
-        currentExtractedItems[index][key] = value;
-    }
+    function updateReviewItem(index, key, value) { currentExtractedItems[index][key] = value; }
 
     async function submitApprovedItems() {
-        if (currentExtractedItems.length === 0) return alert('Aggiungi almeno un articolo.');
+        if (currentExtractedItems.length === 0) return alert('Aggiungi un articolo.');
+        for(let i=0; i<currentExtractedItems.length; i++) if(!currentExtractedItems[i].name) return alert(`Riga ${i+1}: Nome mancante`);
         
-        for(let i=0; i<currentExtractedItems.length; i++) {
-            if(!currentExtractedItems[i].name) return alert(`Inserisci il nome per l'articolo alla riga ${i+1}`);
-        }
-        
-        showLoader('Salvataggio finale in Magazzino...');
+        showLoader('SALVATAGGIO...');
         try {
-            const payload = { action: 'save_approved_items', _auth: ash, items: currentExtractedItems };
-            const response = await fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            const payload = buildPayload('save_approved_items', { items: currentExtractedItems });
+            const response = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
 
-            if (!response.ok) throw new Error(`Errore Server: ${response.status}`);
-            
+            if (!response.ok) throw new Error(`Errore Server`);
             if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            alert(`✅ ${currentExtractedItems.length} articoli salvati con successo in magazzino!`);
-            goBack();
-        } catch (error) {
-            handleError(error);
-        } finally {
-            hideLoader();
-        }
+            
+            // Animazione Successo visiva
+            const btn = document.getElementById('btn-confirm-review');
+            btn.classList.replace('bg-black', 'bg-green-600');
+            btn.innerHTML = `<i class="fas fa-check"></i> Salvato!`;
+            setTimeout(() => tg.close(), 1200);
+        } catch (error) { handleError(error); } finally { hideLoader(); }
     }
 
     // --- UTILS ---
-
     function validateFile(file, type) {
         const maxSize = type === 'photo' ? 10 * 1024 * 1024 : 5 * 1024 * 1024;
-        if (file.size > maxSize) return { valid: false, error: `File troppo grande. Max ${maxSize / 1024 / 1024} MB` };
-        if (type === 'xml' && !file.name.toLowerCase().endsWith('.xml')) return { valid: false, error: 'Il file deve essere in formato XML' };
-        if (type === 'pdf' && !file.type.includes('pdf')) return { valid: false, error: 'Il file deve essere in formato PDF' };
-        if (type === 'photo' && !file.type.startsWith('image/')) return { valid: false, error: "Il file deve essere un'immagine" };
+        if (file.size > maxSize) return { valid: false, error: `Max ${maxSize/1024/1024}MB` };
+        if (type === 'xml' && !file.name.toLowerCase().endsWith('.xml')) return { valid: false, error: 'Serve file XML' };
+        if (type === 'pdf' && !file.type.includes('pdf')) return { valid: false, error: 'Serve file PDF' };
+        if (type === 'photo' && !file.type.startsWith('image/')) return { valid: false, error: "Serve un'immagine" };
         return { valid: true };
     }
 
     function displayFileInfo(file, type) {
         document.getElementById(`filename-${type}`).textContent = file.name;
-        document.getElementById(`filesize-${type}`).textContent = formatFileSize(file.size);
+        document.getElementById(`filesize-${type}`).textContent = (file.size/1024).toFixed(1) + ' KB';
         document.getElementById(`info-${type}`).classList.remove('hidden');
         document.getElementById(`info-${type}`).classList.add('flex');
         document.getElementById(`upload-${type}`).classList.add('hidden');
@@ -666,79 +572,30 @@
 
     function removeFile(type) {
         uploadedFiles[type] = null;
-        document.getElementById(`file-${type}`).value = '';
+        const el = document.getElementById(`file-${type}`);
+        if(el) el.value = '';
         document.getElementById(`info-${type}`).classList.add('hidden');
         document.getElementById(`info-${type}`).classList.remove('flex');
         document.getElementById(`upload-${type}`).classList.remove('hidden');
         enableSubmitButton(type, false);
         if (type === 'photo') document.getElementById('preview-photo').classList.add('hidden');
-        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
     }
 
     function showImagePreview(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const preview = document.getElementById('preview-photo');
-            preview.src = e.target.result;
-            preview.classList.remove('hidden');
+        const r = new FileReader();
+        r.onload = (e) => {
+            const p = document.getElementById('preview-photo');
+            p.src = e.target.result; p.classList.remove('hidden');
         };
-        reader.readAsDataURL(file);
+        r.readAsDataURL(file);
     }
 
-    function enableSubmitButton(type, enable) {
-        document.getElementById(`submit-${type}`).disabled = !enable;
-    }
-
-    function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-    }
-
-    function showLoader(text) {
-        const loaderText = document.getElementById('loader-text');
-        if(loaderText) loaderText.innerText = text;
-        document.getElementById('loader').classList.remove('hidden');
-    }
-
-    function hideLoader() {
-        document.getElementById('loader').classList.add('hidden');
-    }
-
-    function readFileAsText(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.onerror = (e) => reject(e);
-            reader.readAsText(file);
-        });
-    }
-
-    function readFileAsBase64(file) {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const base64 = e.target.result.split(',')[1];
-                resolve(base64);
-            };
-            reader.onerror = (e) => reject(e);
-            reader.readAsDataURL(file);
-        });
-    }
-
-    function handleError(error) {
-        console.error(error);
-        if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
-        alert(`❌ Errore: ${error.message || 'Errore sconosciuto'}`);
-    }
-
-    function goBack() {
-        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-        const params = new URLSearchParams(window.location.search);
-        window.location.href = `./warehouse.html?ash=${ash || ''}`;
-    }
+    function enableSubmitButton(type, enable) { document.getElementById(`submit-${type}`).disabled = !enable; }
+    function showLoader(text) { document.getElementById('loader-text').innerText = text; document.getElementById('loader').classList.remove('hidden'); }
+    function hideLoader() { document.getElementById('loader').classList.add('hidden'); }
+    function readFileAsText(f) { return new Promise((r, j) => { const rd = new FileReader(); rd.onload = e => r(e.target.result); rd.onerror = j; rd.readAsText(f); }); }
+    function readFileAsBase64(f) { return new Promise((r, j) => { const rd = new FileReader(); rd.onload = e => r(e.target.result.split(',')[1]); rd.onerror = j; rd.readAsDataURL(f); }); }
+    function handleError(error) { if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error'); alert(`❌ Errore di Rete`); }
     </script>
 </body>
 </html>
