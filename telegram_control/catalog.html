@@ -34,12 +34,11 @@
     .fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Macro Selector Styling */
     .macro-btn.active { background-color: #000; color: #fff; }
     .macro-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
   </style>
 </head>
-<body class="bg-bg text-black pb-32 overflow-x-hidden">
+<body class="bg-bg text-black pb-10 overflow-x-hidden">
 
   <!-- LOADER -->
   <div id="loader" class="fixed inset-0 bg-white/90 z-[9999] flex flex-col items-center justify-center space-y-4">
@@ -60,14 +59,14 @@
         </button>
     </header>
 
-    <!-- MACRO SELECTOR (Segmented Control) -->
+    <!-- MACRO SELECTOR -->
     <nav class="flex bg-gray-100 p-1 rounded-2xl gap-1 fade-in-up shadow-inner">
         <button onclick="setMacro('SOP')" id="btn-SOP" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest active">Procedure</button>
         <button onclick="setMacro('SER')" id="btn-SER" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400">Servizi</button>
         <button onclick="setMacro('PRO')" id="btn-PRO" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400">Prodotti</button>
     </nav>
 
-    <!-- STATS (Dinamiche) -->
+    <!-- STATS -->
     <div class="grid grid-cols-2 gap-3 fade-in-up">
         <div class="card-noir p-4 flex items-center gap-3">
             <div id="count-ghost" class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center font-black text-xs text-gray-400">0</div>
@@ -83,7 +82,7 @@
         <i class="fas fa-plus"></i> Nuova Categoria
     </button>
 
-    <!-- LISTA CATEGORIE FILTRATA -->
+    <!-- LISTA CATEGORIE -->
     <div id="catalog-list" class="space-y-4 fade-in-up"></div>
 
     <!-- Empty State -->
@@ -92,19 +91,6 @@
         <p class="text-[10px] font-black uppercase text-gray-300 tracking-widest">Nessun protocollo trovato</p>
     </div>
   </div>
-
-  <!-- ACTION BAR INFERIORE -->
-  <footer class="fixed bottom-0 left-0 w-full p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-[100]">
-      <div class="max-w-md mx-auto flex gap-3">
-          <button onclick="goBack()" class="w-12 h-12 bg-white border border-border text-black rounded-xl shadow-sm flex items-center justify-center active:scale-90 transition">
-              <i class="fas fa-arrow-left"></i>
-          </button>
-          <div class="flex-1 bg-gray-50 rounded-xl px-4 flex flex-col justify-center">
-              <p class="text-[7px] font-black text-gray-300 uppercase tracking-widest leading-none mb-1">Sessione Attiva</p>
-              <p id="session-info" class="text-[9px] font-bold text-black truncate uppercase">In attesa...</p>
-          </div>
-      </div>
-  </footer>
 
   <!-- MODAL EDIT -->
   <div id="edit-cat-modal" class="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-6 z-[1000] hidden">
@@ -123,12 +109,17 @@
 
   <script>
     'use strict';
-    const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
+    const WEBHOOK_URL = "https://trinai.api.workflow.dcmake.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
     const tg = window.Telegram.WebApp;
     tg.ready(); tg.expand();
     
     const urlParams = new URLSearchParams(window.location.search);
     const ash = urlParams.get('ash');
+
+    if (!ash) {
+        document.body.innerHTML = `<div class="bg-black text-white h-screen flex items-center justify-center font-black uppercase tracking-widest">ASH Missing</div>`;
+        throw new Error("ASH Missing");
+    }
 
     let fullCatalog = [], currentMacro = 'SOP', currentEditingCatId = null;
 
@@ -144,7 +135,6 @@
             const data = Array.isArray(raw) ? raw[0] : (raw.catalog || raw);
             fullCatalog = data.categories || [];
             renderCatalog();
-            document.getElementById('session-info').innerText = "Auth: " + ash.substring(0,8) + "...";
         } catch (e) { tg.HapticFeedback.notificationOccurred("error"); }
         finally { 
             document.getElementById("loader").classList.add('hidden'); 
@@ -170,8 +160,6 @@
     function renderCatalog() {
         const container = document.getElementById("catalog-list");
         container.innerHTML = "";
-        
-        // FILTRO PER MACROCATEGORIA
         const filteredCategories = fullCatalog.filter(c => c.macrocategories === currentMacro);
         
         if (filteredCategories.length === 0) { document.getElementById("empty-state").classList.remove("hidden"); return; }
@@ -190,10 +178,14 @@
                         <div class="w-7 h-7 bg-black text-white rounded-lg flex items-center justify-center font-black text-[10px]">${subcats.length}</div>
                         <span class="font-black text-xs uppercase tracking-tight">${cat.short_name || cat.name}</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button class="text-gray-300 hover:text-black transition" onclick="event.stopPropagation(); openEditModal('${cat.name}', '${cat.short_name || ''}', '${cat.callback_data}')"><i class="fas fa-pen text-[10px]"></i></button>
-                        <button class="text-gray-300 hover:text-red-500 transition" onclick="event.stopPropagation(); deleteCategory('${cat.callback_data}', '${cat.name}')"><i class="fas fa-trash text-[10px]"></i></button>
-                        <i class="fas fa-chevron-down text-[8px] text-gray-200 transition-transform"></i>
+                    <div class="flex items-center gap-5"> <!-- Gap aumentato a 5 per più respiro -->
+                        <button class="text-gray-300 hover:text-black transition" onclick="event.stopPropagation(); openEditModal('${cat.name}', '${cat.short_name || ''}', '${cat.callback_data}')">
+                            <i class="fas fa-pen text-[10px]"></i>
+                        </button>
+                        <button class="text-gray-300 hover:text-red-500 transition" onclick="event.stopPropagation(); deleteCategory('${cat.callback_data}', '${cat.name}')">
+                            <i class="fas fa-trash text-[10px]"></i>
+                        </button>
+                        <i class="fas fa-chevron-down text-[8px] text-gray-200 transition-transform ml-1"></i>
                     </div>
                 </div>
                 <div class="cat-body border-t border-gray-50 hidden">
@@ -213,8 +205,10 @@
                         <p class="font-bold text-[11px] uppercase tracking-tight">${prod.short_name || prod.name}</p>
                         <p class="text-[7px] font-medium text-gray-400 uppercase tracking-widest mt-0.5">${prod.blueprint_ready ? 'Attivo' : 'Suggerito'}</p>
                     </div>
-                    <div class="flex gap-2">
-                        <button class="w-8 h-8 bg-white border border-border text-red-400 rounded-lg flex items-center justify-center active:scale-90 transition" onclick="deleteProduct('${prod.callback_data}', '${prod.name}')"><i class="fas fa-trash text-[9px]"></i></button>
+                    <div class="flex gap-4"> <!-- Respiro tra trash e pulsante -->
+                        <button class="w-8 h-8 bg-white border border-border text-red-400 rounded-lg flex items-center justify-center active:scale-90 transition" onclick="deleteProduct('${prod.callback_data}', '${prod.name}')">
+                            <i class="fas fa-trash text-[9px]"></i>
+                        </button>
                         <button class="px-4 h-8 ${prod.blueprint_ready ? 'bg-black text-white' : 'bg-gray-100 text-black'} rounded-lg text-[8px] font-black uppercase tracking-widest active:scale-90 transition" onclick="openProduct('${prod.blueprint_ready ? 'edit-blueprint.html' : 'add-product.html'}', '${prod.callback_data}', '${cat.callback_data}')">
                             ${prod.blueprint_ready ? 'Gestisci' : 'Attiva'}
                         </button>
@@ -224,7 +218,6 @@
             container.appendChild(catEl);
         });
 
-        // Aggiorna contatori in base alla macro attuale
         document.getElementById('count-active').innerText = activeCount;
         document.getElementById('count-ghost').innerText = ghostCount;
     }
