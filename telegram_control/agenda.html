@@ -51,11 +51,11 @@
     <header class="flex justify-between items-center pt-2">
         <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">⏳ Agenda</h1>
         <div class="flex gap-2">
+            <button onclick="openView('settings')" class="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center text-black shadow-sm active:scale-90 transition">
+                <i class="fas fa-cog text-xs"></i>
+            </button>
             <button onclick="loadInitialData()" class="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center text-black shadow-sm active:scale-90 transition">
                 <i class="fas fa-sync-alt text-xs"></i>
-            </button>
-            <button onclick="tg.close()" class="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center text-black shadow-sm active:scale-90 transition">
-                <i class="fas fa-times text-xs"></i>
             </button>
         </div>
     </header>
@@ -211,6 +211,49 @@
     <div id="week-events-list" class="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
         <!-- Eventi raggruppati per giorno -->
     </div>
+  </div>
+
+  <!-- SCREEN F: SETTINGS -->
+  <div id="screen-settings" class="view-overlay flex flex-col p-6">
+    <header class="flex justify-between items-center mb-8">
+        <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-sm font-black uppercase tracking-widest">Configurazione</h2>
+        <div class="w-10"></div>
+    </header>
+
+    <div class="flex-1 space-y-8">
+        <!-- ICAL SYNC -->
+        <div class="space-y-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-link text-gray-400"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-black">Link Agenda Esterna</h3>
+            </div>
+            <p class="text-[9px] text-gray-400 leading-relaxed">Inserisci l'URL pubblico della tua agenda (iCal/ICS) per visualizzare automaticamente i tuoi impegni esistenti.</p>
+            <input type="url" id="config-ical-url" class="w-full bg-white border border-border rounded-xl p-4 text-xs font-medium outline-none focus:border-black transition-colors" placeholder="https://calendar.google.com/.../basic.ics">
+        </div>
+
+        <!-- CLOUD INTEGRATIONS -->
+        <div class="space-y-4">
+            <div class="flex items-center gap-3">
+                <i class="fas fa-cloud text-gray-400"></i>
+                <h3 class="text-[10px] font-black uppercase tracking-widest text-black">Integrazioni Cloud</h3>
+            </div>
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="tg.showAlert('In arrivo: connessione OAuth Google')" class="w-full py-4 bg-white border border-border rounded-2xl flex items-center px-6 gap-4 active:scale-95 transition shadow-sm">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-4 h-4">
+                    <span class="text-[10px] font-black uppercase tracking-widest">Connetti Google Calendar</span>
+                </button>
+                <button onclick="tg.showAlert('In arrivo: connessione OAuth Microsoft')" class="w-full py-4 bg-white border border-border rounded-2xl flex items-center px-6 gap-4 active:scale-95 transition shadow-sm">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" class="w-4 h-4">
+                    <span class="text-[10px] font-black uppercase tracking-widest">Connetti Outlook</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="saveConfig()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 mb-6 shadow-xl">
+        <i class="fas fa-save"></i> Salva Configurazione
+    </button>
   </div>
 
   <!-- TEMPLATE CARD REVISIONE -->
@@ -694,6 +737,17 @@
             source: 'MANUAL'
         }];
         openRevision();
+    }
+
+    async function saveConfig() {
+        const icalUrl = document.getElementById('config-ical-url').value;
+        const result = await apiCall('agenda_config_save', { ical_url: icalUrl });
+        if (result && result.success) {
+            tg.HapticFeedback.notificationOccurred('success');
+            tg.showPopup({ message: "Configurazione salvata. L'agenda verrà sincronizzata." });
+            closeView();
+            loadInitialData();
+        }
     }
 
     document.addEventListener('DOMContentLoaded', init);

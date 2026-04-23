@@ -21,7 +21,7 @@ async function loadQuestions() {
     } catch (error) {
         console.error('❌ Errore nel caricamento:', error);
         document.getElementById('scenario').innerHTML = 
-            `<p style="color: red;">⚠️ Errore: ${error.message}</p>
+            `<p style="color: var(--danger, #ef4444); font-weight: 900;">Errore: ${error.message}</p>
              <p>Assicurati di aver copiato tutti i file .ts nella cartella questions/</p>`;
     }
 }
@@ -52,13 +52,13 @@ function displayQuestion() {
             card.classList.add('selected');
         }
 
-        const imgPath = `../images/softskill/question${question.num}/${index + 1}.png`;
+        const imgPath = `../../images/softskill/question${question.num}/${index + 1}.png`;
         
         card.innerHTML = `
             <img src="${imgPath}" 
                  alt="${question.captions[index]}" 
                  class="option-image"
-                 onerror="this.src='../images/softskill/${index + 1}.png'">
+                 onerror="this.src='../../images/softskill/${index + 1}.png'">
             <div class="option-caption">${question.captions[index]}</div>
         `;
 
@@ -133,7 +133,7 @@ function showResults() {
     resultsContent.innerHTML = sortedSkills.map(([skill, count]) => `
         <div class="skill-result">
             <strong>${skill}</strong>: ${count} occorrenze
-            <div style="background: linear-gradient(90deg, #667eea ${(count / questions.length) * 100}%, #e0e0e0 0%); height: 10px; border-radius: 5px; margin-top: 5px;"></div>
+            <div style="background: linear-gradient(90deg, #000 ${(count / questions.length) * 100}%, #f1f5f9 0%); height: 10px; border-radius: 999px; margin-top: 8px; border: 1px solid var(--border, #eeeeee);"></div>
         </div>
     `).join('');
 
