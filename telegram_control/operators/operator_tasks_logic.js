@@ -3,9 +3,9 @@
 // URL-as-source-of-truth: chat_id and vat must persist!
 // ============================================
 
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
+const ash = window.TwaGuard?.requireAsh?.();
+window.TwaGuard?.cleanupUrl?.(['ash']);
 
 const WEBHOOK_URL = 'https://trinai.api.workflow.dcmake.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639';
 
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     if (!operatorSession) {
         console.error('No operator session found in URL!');
-        tg.showAlert('Sessione non valida. Parametri URL mancanti (chat_id, vat).');
+        tg.showAlert('Sessione non valida. Parametro URL mancante (ash).');
         // Continue anyway for demo purposes
     } else {
         console.log('✅ Operator session loaded:', operatorSession);
@@ -78,7 +78,8 @@ async function loadTasks() {
             body: JSON.stringify({
                 action: 'get_tasks',
                 operator_id: userId,
-                vat: operatorSession?.vat || null
+                ash: operatorSession?.ash || ash || null,
+                _auth: tg.initData
             })
         });
 

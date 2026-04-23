@@ -8,9 +8,9 @@
 // ✅ FAB BACK TO DASHBOARD (NOT TASKS)
 // ============================================
 
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
+const ash = window.TwaGuard?.requireAsh?.();
+window.TwaGuard?.cleanupUrl?.(['ash']);
 
 const WEBHOOK_URL = 'https://trinai.api.workflow.dcmake.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639';
 const BASE_URL = 'https://simonaiit.github.io/SiteBoS-MiniApp';
@@ -33,10 +33,12 @@ let quotePhotos = []; // Array of base64 photos (max 5, compressed)
 let quoteDocuments = []; // Array of PDF documents (max 2, base64)
 
 const urlParams = new URLSearchParams(window.location.search);
-const URL_CHAT_ID = urlParams.get('chat_id');
-const URL_VAT = urlParams.get('vat');
+const URL_ASH = urlParams.get('ash') || ash;
+// Compat: alcuni punti del file usavano URL_CHAT_ID / URL_VAT; ora l'unico contesto è ASH
+const URL_CHAT_ID = null;
+const URL_VAT = null;
 
-console.log('✅ Operator session:', { chat_id: URL_CHAT_ID, vat: URL_VAT });
+console.log('✅ Operator session:', { ash: URL_ASH });
 
 // ============================================
 // CUSTOM ALERT SYSTEM (Browser Compatible)

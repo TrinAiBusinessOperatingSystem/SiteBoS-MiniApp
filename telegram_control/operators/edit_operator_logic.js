@@ -1,16 +1,13 @@
 // edit_operator_logic.js
 
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
+const ash = window.TwaGuard?.requireAsh?.();
+window.TwaGuard?.cleanupUrl?.(['ash']);
 
 // Config
 const API_ENDPOINT = 'https://trinai.api.workflow.dcmake.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
 
-// URL Params
-const urlParams = new URLSearchParams(window.location.search);
-const chatId = urlParams.get('chat_id');
-const ownerVat = urlParams.get('vat');
+// ash is the only URL context
 
 // State
 let originalData = {};
@@ -21,11 +18,7 @@ let hasChanges = false;
 // ============================================
 
 async function init() {
-  if (!chatId) {
-    alert('❌ Parametri mancanti');
-    tg.close();
-    return;
-  }
+  if (!ash) { try { tg.close(); } catch (_) {} return; }
 
   showLoader();
   
@@ -51,8 +44,8 @@ async function loadData() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'get_operator_dashboard',
-        chat_id: chatId,
-        owner_vat: ownerVat
+        ash: ash,
+        _auth: tg.initData
       })
     });
 

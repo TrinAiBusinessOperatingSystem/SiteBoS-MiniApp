@@ -1,6 +1,6 @@
 // ============================================
-// OPERATOR SESSION MANAGEMENT UTILITIES
-// URL as Source of Truth + SessionStorage Persistence
+// OPERATOR SESSION MANAGEMENT UTILITIES (ASH-based)
+// URL as Source of Truth (ash) + SessionStorage Persistence
 // ============================================
 
 /**
@@ -9,15 +9,12 @@
  */
 function extractOperatorSessionFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    const chatId = urlParams.get('chat_id');
-    const vat = urlParams.get('vat');
-    
-    if (!chatId || !vat) return null;
-    
+    const ash = urlParams.get('ash');
+    if (!ash) return null;
+
     return {
-        chat_id: chatId,
-        vat: vat,
-        // Additional context from URL
+        ash,
+        // Additional context from URL (kept minimal; ash is the primary context)
         task_id: urlParams.get('task_id') || null,
         customer_id: urlParams.get('customer_id') || null,
         context: urlParams.get('context') || 'general'
@@ -118,10 +115,9 @@ function buildOperatorContextualUrl(basePath, additionalParams = {}) {
         return basePath;
     }
     
-    // Always include chat_id and vat (source of truth)
+    // Always include ash (source of truth)
     const params = new URLSearchParams({
-        chat_id: session.chat_id,
-        vat: session.vat,
+        ash: session.ash,
         ...additionalParams
     });
     
@@ -162,7 +158,7 @@ function isOperatorSessionValid() {
     if (!session) return false;
     
     // Check if required fields are present
-    if (!session.chat_id || !session.vat) return false;
+    if (!session.ash) return false;
     
     return true;
 }

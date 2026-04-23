@@ -3,9 +3,9 @@
 // ✅ COMPLETE VERSION WITH FULL RENDERING
 // ============================================
 
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
+const ash = window.TwaGuard?.requireAsh?.();
+window.TwaGuard?.cleanupUrl?.(['ash']);
 
 const WEBHOOK_URL = 'https://trinai.api.workflow.dcmake.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639';
 
@@ -30,15 +30,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     console.log('📋 URL Params:', currentParams);
     
-    if (!currentParams.vat || !currentParams.operatorId || !currentParams.inviteToken) {
-        showAlert('Parametri mancanti. Impossibile caricare il progetto.', 'error');
-        setTimeout(() => {
-            navigateOperatorWithContext('operator_tasks.html');
-        }, 2000);
-        return;
-    }
-    
-    await loadProject(currentParams.vat, currentParams.operatorId, currentParams.inviteToken);
+    // Nuovo schema: il backend può ricavare contesto da ASH (owner/user/time/wh).
+    // Se i vecchi parametri esistono li passiamo, altrimenti procediamo con ash + _auth.
+    await loadProject(currentParams.vat || null, currentParams.operatorId || null, currentParams.inviteToken || null);
 });
 
 // ============================================
@@ -56,7 +50,9 @@ async function loadProject(vat, operatorId, inviteToken) {
                 action: 'get_project',
                 vat: vat,
                 operator_id: operatorId,
-                invite_token: inviteToken
+                invite_token: inviteToken,
+                ash: ash,
+                _auth: tg.initData
             })
         });
         

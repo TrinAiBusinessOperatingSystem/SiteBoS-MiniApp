@@ -4,15 +4,14 @@
 // CONFIG
 const ONBOARDING_API = "https://trinai.api.workflow.dcmake.it/webhook/771638a1-7a79-4cb0-a36e-29b03901cc4a";
 
-// INIT TELEGRAM
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+// INIT TELEGRAM + ASH
+const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
+const ash = window.TwaGuard?.getAsh?.();
+window.TwaGuard?.cleanupUrl?.(['ash']);
 
-// URL PARAMS
+// URL PARAMS (keep only strict minimum; ash is passed through)
 const urlParams = new URLSearchParams(window.location.search);
 const invitationCode = urlParams.get('invitation_code');
-const chatId = urlParams.get('chat_id');
 const langParam = urlParams.get('lang') || 'it';
 
 // STATE

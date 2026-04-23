@@ -1,21 +1,15 @@
 // operator_dashboard_logic.js
 
-const tg = window.Telegram.WebApp;
-tg.ready();
-tg.expand();
+const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
+const ash = window.TwaGuard?.requireAsh?.();
+window.TwaGuard?.cleanupUrl?.(['ash']);
 
 // Config
 const API_ENDPOINT = 'https://trinai.api.workflow.dcmake.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
 
-// URL Params
-const urlParams = new URLSearchParams(window.location.search);
-const chatId = urlParams.get('chat_id');
-const ownerVat = urlParams.get('vat');
-
-// Check params
-if (!chatId) {
-  alert('❌ Parametri mancanti: chat_id');
-  tg.close();
+// Soft-required: ash is the only URL context
+if (!ash) {
+  try { tg.close(); } catch (_) {}
 }
 
 // State
@@ -54,8 +48,8 @@ async function loadOperatorData() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'get_operator_dashboard',
-        chat_id: chatId,
-        owner_vat: ownerVat
+        ash: ash,
+        _auth: tg.initData
       })
     });
     
@@ -70,8 +64,7 @@ async function loadOperatorData() {
       // Store in sessionStorage
       sessionStorage.setItem('operator_data', JSON.stringify(operatorData));
       sessionStorage.setItem('stakeholder_raw', JSON.stringify(data.stakeholder));
-      sessionStorage.setItem('operator_chat_id', chatId);
-      sessionStorage.setItem('owner_vat', ownerVat);
+      sessionStorage.setItem('operator_ash', ash);
       
     } else {
       throw new Error(data.message || 'Failed to load data');
@@ -532,7 +525,7 @@ function navTo(section) {
   const page = routes[section];
   
   if (page) {
-    window.location.href = `${page}?chat_id=${chatId}&vat=${ownerVat}`;
+    window.location.href = `${page}?ash=${encodeURIComponent(ash)}`;
   } else {
     alert(`⚠️ Sezione "${section}" in sviluppo`);
   }
@@ -545,8 +538,8 @@ function navToSkills() {
 
 function goToSoftSkills() {
   tg.HapticFeedback.impactOccurred('light');
-  // Passa vat (owner) e user_id (operator chat_id) al sistema soft skills
-  window.location.href = `../softskill/dashboard.html?vat=${ownerVat}&user_id=${chatId}&role=operator`;
+  // Passa solo ash (tu lo scompatti lato server)
+  window.location.href = `../softskill/index.html?ash=${encodeURIComponent(ash)}`;
 }
 
 function openModule(title) {
@@ -556,7 +549,7 @@ function openModule(title) {
 
 function openSettings() {
   tg.HapticFeedback.impactOccurred('light');
-  window.location.href = `edit_operator.html?chat_id=${chatId}&vat=${ownerVat}`;
+  window.location.href = `edit_operator.html?ash=${encodeURIComponent(ash)}`;
 }
 
 // ============================================
