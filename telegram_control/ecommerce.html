@@ -245,7 +245,16 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         let imgRoot = "", vat = params.get('vat') || 'default', currentFilter = 'ALL', userCoords = null, paymentMode = 'DELIVERY';
         let activeSku = null, currentBasePrice = 0, modalLocalQty = 1, modalEditingKey = null;
 
-        window.onload = async () => { if (!ashToken) { tg.showAlert("ASH Token mancante."); return; } await initApp(); };
+        window.onload = async () => { 
+            console.log("Window Loaded. Script pronto.");
+            if (!ashToken) { 
+                console.error("Errore: ashToken mancante nell'URL");
+                tg.showAlert("ASH Token mancante."); 
+                hideLoader();
+                return; 
+            } 
+            await initApp(); 
+        };
 
         async function initApp() {
             try {
@@ -255,30 +264,33 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_get' })
                 });
+                
+                if (!res.ok) throw new Error("Risposta server non valida: " + res.status);
+                
                 const r = await res.json();
                 console.log("Risposta Webhook u_calc_ecom_get:", r);
                 const d = Array.isArray(r) ? r[0] : r; 
+                
                 if (d && d.success) {
-                    console.log("Catalogo grezzo ricevuto:", d.catalog?.length, "elementi");
-                    // Filtra prodotti con inventory_enabled: true
+                    console.log("Dati caricati con successo");
                     catalog = (d.catalog || []).filter(p => {
                         const hide = p.inventory_enabled === true || p.inventory_enabled === "true";
-                        if (hide) console.log("Prodotto escluso (inventory_enabled):", p.name, p.callback_data);
                         return !hide;
                     });
                     history = d.history || []; vat = d.vat || vat;
                     imgRoot = (d.urlMiniApp || "").replace('telegram_control/', '');
-                    console.log("Catalogo caricato e filtrato:", catalog.length, "elementi");
-                    console.log("Root Immagini:", imgRoot);
                     categories = [...new Set(catalog.map(p => p.category))];
                     if (d.payment_active) document.getElementById('pay-card').classList.remove('hidden');
-                    renderUI(d.brand || {}); hideLoader();
+                    renderUI(d.brand || {}); 
                 } else {
-                    console.error("Errore nel caricamento dati:", d);
+                    console.error("Success false o dati mancanti:", d);
+                    tg.showAlert("Errore durante il caricamento del catalogo.");
                 }
             } catch (e) { 
                 console.error("Eccezione durante initApp:", e);
                 tg.showAlert("Connessione fallita."); 
+            } finally {
+                hideLoader();
             }
         }
 
@@ -487,7 +499,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
 
-        function updateModalPrice() {
         function changeModalLocalQty(delta) {
             if (modalLocalQty + delta < 1) return;
             modalLocalQty += delta;
