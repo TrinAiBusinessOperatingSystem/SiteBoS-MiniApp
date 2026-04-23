@@ -141,13 +141,18 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     <textarea id="modal-customer-note" rows="2" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold focus:border-black transition" placeholder="Es: senza zucchero, ben cotto..." oninput="updateModalPrice()"></textarea>
                 </div>
 
-                <div class="flex items-center justify-between pt-5 border-t border-gray-50">
-                    <span id="modal-price" class="text-2xl font-black tracking-tighter"></span>
-                    <div id="modal-stepper" class="flex items-center gap-3 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
-                        <button id="modal-minus" class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm active:scale-90"><i class="fas fa-minus text-xs"></i></button>
-                        <span id="modal-qty" class="font-black text-lg min-w-[20px] text-center">0</span>
-                        <button id="modal-plus" class="w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center shadow-md active:scale-90"><i class="fas fa-plus text-xs"></i></button>
+                <div class="flex flex-col gap-4 pt-5 border-t border-gray-50">
+                    <div class="flex items-center justify-between">
+                        <div id="modal-stepper" class="flex items-center gap-3 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+                            <button onclick="changeModalLocalQty(-1)" class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm active:scale-90"><i class="fas fa-minus text-xs"></i></button>
+                            <span id="modal-qty" class="font-black text-lg min-w-[20px] text-center">1</span>
+                            <button onclick="changeModalLocalQty(1)" class="w-10 h-10 bg-black text-white rounded-lg flex items-center justify-center shadow-md active:scale-90"><i class="fas fa-plus text-xs"></i></button>
+                        </div>
+                        <span id="modal-price" class="text-2xl font-black tracking-tighter"></span>
                     </div>
+                    <button id="modal-confirm-btn" onclick="confirmModalItem()" class="w-full bg-black text-white py-4 rounded-xl font-black text-[12px] uppercase tracking-widest active:scale-95 transition-all shadow-md">
+                        Aggiungi all'ordine
+                    </button>
                 </div>
             </div>
         </div>
@@ -238,7 +243,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         let catalog = [], categories = [], history = [], cart = {}, cartConfig = {}; 
         let imgRoot = "", vat = params.get('vat') || 'default', currentFilter = 'ALL', userCoords = null, paymentMode = 'DELIVERY';
-        let activeSku = null, currentBasePrice = 0;
+        let activeSku = null, currentBasePrice = 0, modalLocalQty = 1, modalEditingKey = null;
 
         window.onload = async () => { if (!ashToken) { tg.showAlert("ASH Token mancante."); return; } await initApp(); };
 
@@ -379,17 +384,15 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             const p = catalog.find(x => x.callback_data === sku); if (!p) return;
             activeSku = sku;
             currentBasePrice = parseFloat(p.price);
+            modalEditingKey = null;
+            modalLocalQty = 1;
             
             document.getElementById('modal-title').innerText = p.name;
             document.getElementById('modal-category').innerText = p.category;
             document.getElementById('modal-desc').innerText = p.long_description || p.description || "Nessuna descrizione.";
             document.getElementById('modal-img').src = `${imgRoot}images/${vat}/${p.callback_data}.jpg`;
             
-            const existingKeys = Object.keys(cart).filter(k => k === sku || k.startsWith(sku + '|'));
             let config = { extras: [], note: "" };
-            if (existingKeys.length > 0) {
-                config = cartConfig[existingKeys[0]] || config;
-            }
 
             // Handle Extras
             const extrasContainer = document.getElementById('modal-extras-container');
@@ -423,44 +426,133 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 notesContainer.classList.add('hidden');
             }
 
-            updateModalQty(sku);
+            document.getElementById('modal-confirm-btn').innerText = "Aggiungi all'ordine";
             updateModalPrice();
             
-            document.getElementById('modal-plus').onclick = () => updateQty(sku, 1, true);
-            document.getElementById('modal-minus').onclick = () => updateQty(sku, -1, true);
+            document.getElementById('product-modal').classList.remove('modal-hidden');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function editCartItem(key) {
+            const sku = key.split('|')[0];
+            const p = catalog.find(x => x.callback_data === sku); if (!p) return;
+            
+            activeSku = sku;
+            currentBasePrice = parseFloat(p.price);
+            modalEditingKey = key;
+            modalLocalQty = cart[key];
+            
+            document.getElementById('modal-title').innerText = p.name;
+            document.getElementById('modal-category').innerText = p.category;
+            document.getElementById('modal-desc').innerText = p.long_description || p.description || "Nessuna descrizione.";
+            document.getElementById('modal-img').src = `${imgRoot}images/${vat}/${p.callback_data}.jpg`;
+            
+            let config = cartConfig[key] || { extras: [], note: "" };
+
+            const extrasContainer = document.getElementById('modal-extras-container');
+            const extrasList = document.getElementById('modal-extras-list');
+            const extraOptions = p.commercial_setup?.extra_options || [];
+            
+            if (extraOptions.length > 0) {
+                extrasContainer.classList.remove('hidden');
+                extrasList.innerHTML = extraOptions.map((opt, idx) => `
+                    <label class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition shadow-sm">
+                        <div class="flex items-center gap-3">
+                            <input type="checkbox" class="extra-checkbox w-5 h-5 rounded-lg border-2 border-gray-200 text-black focus:ring-0 transition-all checked:bg-black checked:border-black" data-index="${idx}" data-price="${opt.price}" data-name="${opt.name}" 
+                                ${config.extras.some(e => e.name === opt.name) ? 'checked' : ''}
+                                onchange="updateModalPrice()">
+                            <span class="text-[12px] font-black uppercase tracking-tight">${opt.name}</span>
+                        </div>
+                        <span class="text-[10px] font-black text-gray-500">+ € ${parseFloat(opt.price).toFixed(2)}</span>
+                    </label>
+                `).join('');
+            } else {
+                extrasContainer.classList.add('hidden');
+            }
+
+            const notesContainer = document.getElementById('modal-notes-container');
+            const noteInput = document.getElementById('modal-customer-note');
+            if (p.commercial_setup?.allow_customer_notes) {
+                notesContainer.classList.remove('hidden');
+                noteInput.value = config.note || "";
+            } else {
+                notesContainer.classList.add('hidden');
+            }
+
+            document.getElementById('modal-confirm-btn').innerText = "Aggiorna ordine";
+            updateModalPrice();
+            
+            document.getElementById('summary-overlay').classList.add('overlay-hidden');
             document.getElementById('product-modal').classList.remove('modal-hidden');
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
         }
 
         function updateModalPrice() {
-            let total = currentBasePrice;
+        function changeModalLocalQty(delta) {
+            if (modalLocalQty + delta < 1) return;
+            modalLocalQty += delta;
+            updateModalPrice();
+        }
+
+        function updateModalPrice() {
+            let singlePrice = currentBasePrice;
             document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
-                total += parseFloat(cb.getAttribute('data-price'));
+                singlePrice += parseFloat(cb.getAttribute('data-price'));
             });
+            const total = singlePrice * modalLocalQty;
             document.getElementById('modal-price').innerText = `€ ${total.toFixed(2)}`;
+            document.getElementById('modal-qty').innerText = modalLocalQty;
+        }
+
+        function confirmModalItem() {
+            const newKey = getCartKey(activeSku, getCurrentConfigString());
             
-            if (activeSku) {
-                const key = getCartKey(activeSku, getCurrentConfigString());
-                document.getElementById('modal-qty').innerText = cart[key] || 0;
+            if (modalEditingKey) {
+                if (modalEditingKey !== newKey) {
+                    delete cart[modalEditingKey];
+                    delete cartConfig[modalEditingKey];
+                }
+                cart[newKey] = modalLocalQty;
+            } else {
+                cart[newKey] = (cart[newKey] || 0) + modalLocalQty;
+            }
+            
+            const extras = [];
+            document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
+                extras.push({ name: cb.getAttribute('data-name'), price: parseFloat(cb.getAttribute('data-price')) });
+            });
+            const note = document.getElementById('modal-customer-note') ? document.getElementById('modal-customer-note').value : "";
+            cartConfig[newKey] = { extras, note };
+            
+            const wasEditing = !!modalEditingKey;
+            closeModal();
+            updateCheckoutBar(); renderCatalog(); renderSuggested();
+            
+            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            if (wasEditing) {
+                renderSummary();
+                document.getElementById('summary-overlay').classList.remove('overlay-hidden');
             }
         }
 
         function closeModal() { 
+            const wasEditing = !!modalEditingKey;
             activeSku = null;
+            modalEditingKey = null;
             document.getElementById('product-modal').classList.add('modal-hidden'); 
+            if (wasEditing) {
+                document.getElementById('summary-overlay').classList.remove('overlay-hidden');
+            }
         }
 
-        function updateQty(sku, delta, isModal = false) {
+        function updateQty(sku, delta) {
             let key = sku;
-            if (isModal) {
-                key = getCartKey(sku, getCurrentConfigString());
-            } else {
-                if (delta < 0) {
-                    const existingKeys = Object.keys(cart).filter(k => k === sku || k.startsWith(sku + '|'));
-                    if (existingKeys.length > 0) {
-                        key = existingKeys[existingKeys.length - 1];
-                    } else return;
-                }
+            if (delta < 0) {
+                const existingKeys = Object.keys(cart).filter(k => k === sku || k.startsWith(sku + '|'));
+                if (existingKeys.length > 0) {
+                    key = existingKeys[existingKeys.length - 1];
+                } else return;
             }
 
             const c = cart[key] || 0, n = c + delta;
@@ -469,27 +561,9 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 delete cartConfig[key];
             } else {
                 cart[key] = n;
-                if (isModal || key !== sku) {
-                    const extras = [];
-                    if (isModal) {
-                        document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
-                            extras.push({ name: cb.getAttribute('data-name'), price: parseFloat(cb.getAttribute('data-price')) });
-                        });
-                    } else if (cartConfig[key]) {
-                        extras.push(...cartConfig[key].extras);
-                    }
-                    const note = isModal ? document.getElementById('modal-customer-note').value : (cartConfig[key]?.note || "");
-                    cartConfig[key] = { extras, note };
-                }
             }
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            if (isModal) updateModalQty(sku);
             updateCheckoutBar(); renderCatalog(); renderSuggested();
-        }
-
-        function updateModalQty(sku) { 
-            const key = getCartKey(sku, getCurrentConfigString());
-            document.getElementById('modal-qty').innerText = cart[key] || 0; 
         }
 
         function updateCheckoutBar() {
@@ -525,10 +599,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             renderCatalog(); 
             renderSuggested();
             renderSummary(); 
-            
-            if (activeSku) {
-                updateModalQty(activeSku);
-            }
         }
 
         function setPayment(mode) {
@@ -566,12 +636,12 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     : '';
 
                 return `
-                    <div class="flex justify-between items-start bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden">
+                    <div class="flex justify-between items-start bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden cursor-pointer" onclick="editCartItem('${key.replace(/'/g, "\\'")}')">
                         <div class="flex-1 pr-4">
-                            <div class="font-black text-[11px] uppercase leading-tight tracking-tight">${p.name}</div>
+                            <div class="font-black text-[11px] uppercase leading-tight tracking-tight">${p.name} <i class="fas fa-edit ml-1 text-gray-300"></i></div>
                             ${extrasHtml}
                             ${noteHtml}
-                            <div class="flex items-center gap-3 mt-3">
+                            <div class="flex items-center gap-3 mt-3" onclick="event.stopPropagation()">
                                 <button onclick="updateQtyByKey('${key}', -1)" class="w-7 h-7 bg-white rounded-full flex items-center justify-center active:scale-75 transition border border-gray-200 shadow-sm"><i class="fas fa-minus text-[8px] text-black"></i></button>
                                 <span class="font-black text-sm min-w-[16px] text-center">${cart[key]}</span>
                                 <button onclick="updateQtyByKey('${key}', 1)" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition shadow-sm"><i class="fas fa-plus text-[8px]"></i></button>

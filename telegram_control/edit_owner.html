@@ -376,13 +376,21 @@
                     body: JSON.stringify(buildEnvelope({ action: 'analyze', gemini_key: key }))
                 });
                 const result = await response.json();
-                if (result.status === 'success') {
-                    tg.showAlert("Chiave Validata! Fatturazione attiva confermata.");
+                console.log("VALIDATE: Risultato", result);
+                
+                const tier = result["gemini key"];
+                if (tier === "Paid Tier") {
+                    tg.showConfirm("Fatturazione attiva confermata! (Paid Tier). Procedere con l'aggiornamento?");
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                } else if (tier === "Free Tier") {
+                    tg.showAlert("Attenzione: La chiave è in Free Tier (senza fatturazione). Alcune funzioni IA potrebbero essere limitate.");
                 } else {
-                    tg.showAlert("Errore Validazione: " + (result.message || "Chiave non valida o senza fatturazione."));
+                    tg.showAlert("Impossibile determinare il Tier della chiave.");
                 }
-            } catch (e) { tg.showAlert("Errore connessione validazione."); }
+            } catch (e) { 
+                console.error("VALIDATE: Errore", e);
+                tg.showAlert("Errore connessione validazione."); 
+            }
             finally { hideLoader(); }
         }
 
