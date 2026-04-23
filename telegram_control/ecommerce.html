@@ -516,10 +516,23 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         }
 
         function confirmModalItem() {
-            const newKey = getCartKey(activeSku, getCurrentConfigString());
+            const sku = activeSku;
+            if (!sku) {
+                console.error("confirmModalItem: activeSku è null. Tentativo di recupero da modalEditingKey.");
+            }
+            const currentSku = sku || (modalEditingKey ? modalEditingKey.split('|')[0] : null);
+            
+            if (!currentSku) {
+                console.error("Errore critico: impossibile determinare lo SKU per l'ordine.");
+                return;
+            }
+
+            const newKey = getCartKey(currentSku, getCurrentConfigString());
+            console.log("ConfirmModalItem - Sku:", currentSku, "NewKey:", newKey, "EditingKey:", modalEditingKey);
             
             if (modalEditingKey) {
                 if (modalEditingKey !== newKey) {
+                    console.log("Chiave cambiata, elimino vecchia chiave:", modalEditingKey);
                     delete cart[modalEditingKey];
                     delete cartConfig[modalEditingKey];
                 }
@@ -628,10 +641,17 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         }
 
         function renderSummary() {
+            console.log("Rendering Summary. Cart:", cart);
             const list = document.getElementById('summary-list'); let total = 0;
             const items = Object.keys(cart).map(key => {
                 const sku = key.split('|')[0];
                 const p = catalog.find(x => x.callback_data === sku);
+                
+                if (!p) {
+                    console.error("Prodotto non trovato nel catalogo per SKU:", sku, "Key:", key);
+                    return "";
+                }
+
                 const config = cartConfig[key] || { extras: [], note: "" };
                 let itemPrice = parseFloat(p.price) || 0;
                 config.extras.forEach(e => itemPrice += parseFloat(e.price) || 0);
@@ -646,16 +666,17 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     ? `<div class="bg-amber-50/50 p-2 rounded-lg border border-amber-100/50 mt-2 text-[8px] text-amber-800 italic font-medium">Nota: ${config.note}</div>` 
                     : '';
 
+                // Usiamo un attributo data per la chiave per evitare problemi di escape nell'onclick
                 return `
-                    <div class="flex justify-between items-start bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden cursor-pointer" onclick="editCartItem('${key.replace(/'/g, "\\'")}')">
+                    <div class="flex justify-between items-start bg-white p-5 rounded-3xl border border-gray-100 shadow-sm relative overflow-hidden cursor-pointer summary-item" data-key="${key.replace(/"/g, '&quot;')}">
                         <div class="flex-1 pr-4">
                             <div class="font-black text-[11px] uppercase leading-tight tracking-tight">${p.name} <i class="fas fa-edit ml-1 text-gray-300"></i></div>
                             ${extrasHtml}
                             ${noteHtml}
                             <div class="flex items-center gap-3 mt-3" onclick="event.stopPropagation()">
-                                <button onclick="updateQtyByKey('${key}', -1)" class="w-7 h-7 bg-white rounded-full flex items-center justify-center active:scale-75 transition border border-gray-200 shadow-sm"><i class="fas fa-minus text-[8px] text-black"></i></button>
+                                <button onclick="updateQtyByKey('${key.replace(/'/g, "\\'")}', -1)" class="w-7 h-7 bg-white rounded-full flex items-center justify-center active:scale-75 transition border border-gray-200 shadow-sm"><i class="fas fa-minus text-[8px] text-black"></i></button>
                                 <span class="font-black text-sm min-w-[16px] text-center">${cart[key]}</span>
-                                <button onclick="updateQtyByKey('${key}', 1)" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition shadow-sm"><i class="fas fa-plus text-[8px]"></i></button>
+                                <button onclick="updateQtyByKey('${key.replace(/'/g, "\\'")}', 1)" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition shadow-sm"><i class="fas fa-plus text-[8px]"></i></button>
                             </div>
                         </div>
                         <div class="font-black text-xs text-right flex flex-col items-end gap-1 mt-1">
@@ -663,8 +684,16 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                             <span class="text-[8px] text-gray-400 uppercase font-bold tracking-widest">€ ${itemPrice.toFixed(2)} cad.</span>
                         </div>
                     </div>`;
+            }).filter(html => html !== "");
+
+            list.innerHTML = items.join(''); 
+            
+            // Aggiungiamo i listener per l'edit tramite data-key
+            document.querySelectorAll('.summary-item').forEach(el => {
+                el.onclick = () => editCartItem(el.getAttribute('data-key'));
             });
-            list.innerHTML = items.join(''); document.getElementById('summary-total').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
+
+            document.getElementById('summary-total').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
             updateConfirmButton();
         }
 
