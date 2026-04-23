@@ -519,7 +519,8 @@ function navTo(section) {
     'tasks': 'operator_tasks.html',
     'badges': 'operator_badges.html',
     'training': 'operator_training.html',
-    'calendar': 'operator_calendar.html'
+    'calendar': 'operator_calendar.html',
+    'job-create': '../job-create.html'
   };
   
   const page = routes[section];
