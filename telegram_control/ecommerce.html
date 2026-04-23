@@ -138,7 +138,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 <!-- CUSTOMER NOTE SECTION -->
                 <div id="modal-notes-container" class="hidden space-y-2 pt-2">
                     <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">Note / Modifiche</h3>
-                    <textarea id="modal-customer-note" rows="2" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold focus:border-black transition" placeholder="Es: senza zucchero, ben cotto..."></textarea>
+                    <textarea id="modal-customer-note" rows="2" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-bold focus:border-black transition" placeholder="Es: senza zucchero, ben cotto..." oninput="updateModalPrice()"></textarea>
                 </div>
 
                 <div class="flex items-center justify-between pt-5 border-t border-gray-50">
@@ -316,7 +316,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                                 <h3 class="font-black text-[7px] text-black uppercase tracking-tighter leading-none mb-1">${p.short_name || p.name}</h3>
                                 <p class="font-black text-[9px] text-black">€ ${parseFloat(p.price).toFixed(2)}</p>
                             </div>
-                            ${cart[p.callback_data] ? `<div class="absolute top-1 right-1 bg-black text-white w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black border border-white z-10">${cart[p.callback_data]}</div>` : ''}
+                            ${getProductQty(p.callback_data) > 0 ? `<div class="absolute top-1 right-1 bg-black text-white w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black border border-white z-10">${getProductQty(p.callback_data)}</div>` : ''}
                         </div>
                     </div>`).join('');
             }
@@ -343,9 +343,9 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                                     <div class="flex justify-between items-center">
                                         <span class="font-black text-xs">${p.pricing?.pricing_rules_engine?.is_dynamic_price ? '<span class="text-[7px] uppercase opacity-30 mr-0.5">da</span>' : ''}€ ${parseFloat(p.price).toFixed(2)}</span>
                                         <div class="flex items-center gap-1">
-                                            ${cart[p.callback_data] ? `
+                                            ${getProductQty(p.callback_data) > 0 ? `
                                                 <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', -1)" class="w-7 h-7 bg-gray-50 rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-minus text-[7px]"></i></button>
-                                                <span class="font-black text-[10px] min-w-[12px] text-center">${cart[p.callback_data]}</span>
+                                                <span class="font-black text-[10px] min-w-[12px] text-center">${getProductQty(p.callback_data)}</span>
                                             ` : ''}
                                             <button onclick="event.stopPropagation(); ${(p.commercial_setup?.extra_options?.length > 0 || p.commercial_setup?.allow_customer_notes) ? `openProduct('${p.callback_data}')` : `updateQty('${p.callback_data}', 1)`}" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-plus text-[7px]"></i></button>
                                         </div>
@@ -355,6 +355,24 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     </div>`;
                 container.appendChild(section);
             });
+        }
+
+        function getProductQty(sku) {
+            return Object.keys(cart).filter(k => k === sku || k.startsWith(sku + '|')).reduce((sum, k) => sum + cart[k], 0);
+        }
+
+        function getCurrentConfigString() {
+            const extras = [];
+            document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
+                extras.push({ name: cb.getAttribute('data-name'), price: parseFloat(cb.getAttribute('data-price')) });
+            });
+            const note = document.getElementById('modal-customer-note') ? document.getElementById('modal-customer-note').value : "";
+            if (extras.length === 0 && !note) return "";
+            return btoa(encodeURIComponent(JSON.stringify(extras) + note));
+        }
+
+        function getCartKey(sku, configString = "") {
+            return configString ? `${sku}|${configString}` : sku;
         }
 
         function openProduct(sku) {
@@ -367,6 +385,12 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             document.getElementById('modal-desc').innerText = p.long_description || p.description || "Nessuna descrizione.";
             document.getElementById('modal-img').src = `${imgRoot}images/${vat}/${p.callback_data}.jpg`;
             
+            const existingKeys = Object.keys(cart).filter(k => k === sku || k.startsWith(sku + '|'));
+            let config = { extras: [], note: "" };
+            if (existingKeys.length > 0) {
+                config = cartConfig[existingKeys[0]] || config;
+            }
+
             // Handle Extras
             const extrasContainer = document.getElementById('modal-extras-container');
             const extrasList = document.getElementById('modal-extras-list');
@@ -374,7 +398,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             
             if (extraOptions.length > 0) {
                 extrasContainer.classList.remove('hidden');
-                const config = cartConfig[sku] || { extras: [], note: "" };
                 extrasList.innerHTML = extraOptions.map((opt, idx) => `
                     <label class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition shadow-sm">
                         <div class="flex items-center gap-3">
@@ -395,7 +418,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             const noteInput = document.getElementById('modal-customer-note');
             if (p.commercial_setup?.allow_customer_notes) {
                 notesContainer.classList.remove('hidden');
-                noteInput.value = cartConfig[sku]?.note || "";
+                noteInput.value = config.note || "";
             } else {
                 notesContainer.classList.add('hidden');
             }
@@ -416,60 +439,96 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             });
             document.getElementById('modal-price').innerText = `€ ${total.toFixed(2)}`;
             
-            // Sync config with current modal state if quantity > 0
-            if (activeSku && cart[activeSku] > 0) {
-                saveCurrentConfig();
+            if (activeSku) {
+                const key = getCartKey(activeSku, getCurrentConfigString());
+                document.getElementById('modal-qty').innerText = cart[key] || 0;
             }
         }
 
-        function saveCurrentConfig() {
-            if (!activeSku) return;
-            const extras = [];
-            document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
-                extras.push({ name: cb.getAttribute('data-name'), price: parseFloat(cb.getAttribute('data-price')) });
-            });
-            const note = document.getElementById('modal-customer-note').value;
-            cartConfig[activeSku] = { extras, note };
-        }
-
         function closeModal() { 
-            if (activeSku && cart[activeSku] > 0) saveCurrentConfig();
             activeSku = null;
             document.getElementById('product-modal').classList.add('modal-hidden'); 
         }
 
         function updateQty(sku, delta, isModal = false) {
-            const c = cart[sku] || 0, n = c + delta;
-            if (n <= 0) {
-                delete cart[sku];
-                delete cartConfig[sku];
+            let key = sku;
+            if (isModal) {
+                key = getCartKey(sku, getCurrentConfigString());
             } else {
-                cart[sku] = n;
-                if (isModal) saveCurrentConfig();
+                if (delta < 0) {
+                    const existingKeys = Object.keys(cart).filter(k => k === sku || k.startsWith(sku + '|'));
+                    if (existingKeys.length > 0) {
+                        key = existingKeys[existingKeys.length - 1];
+                    } else return;
+                }
+            }
+
+            const c = cart[key] || 0, n = c + delta;
+            if (n <= 0) {
+                delete cart[key];
+                delete cartConfig[key];
+            } else {
+                cart[key] = n;
+                if (isModal || key !== sku) {
+                    const extras = [];
+                    if (isModal) {
+                        document.querySelectorAll('.extra-checkbox:checked').forEach(cb => {
+                            extras.push({ name: cb.getAttribute('data-name'), price: parseFloat(cb.getAttribute('data-price')) });
+                        });
+                    } else if (cartConfig[key]) {
+                        extras.push(...cartConfig[key].extras);
+                    }
+                    const note = isModal ? document.getElementById('modal-customer-note').value : (cartConfig[key]?.note || "");
+                    cartConfig[key] = { extras, note };
+                }
             }
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             if (isModal) updateModalQty(sku);
             updateCheckoutBar(); renderCatalog(); renderSuggested();
         }
 
-        function updateModalQty(sku) { document.getElementById('modal-qty').innerText = cart[sku] || 0; }
+        function updateModalQty(sku) { 
+            const key = getCartKey(sku, getCurrentConfigString());
+            document.getElementById('modal-qty').innerText = cart[key] || 0; 
+        }
 
         function updateCheckoutBar() {
             let total = 0, count = 0;
-            Object.keys(cart).forEach(sku => {
+            Object.keys(cart).forEach(key => {
+                const sku = key.split('|')[0];
                 const p = catalog.find(x => x.callback_data === sku);
                 if (p) { 
                     let itemPrice = parseFloat(p.price) || 0;
-                    const config = cartConfig[sku];
+                    const config = cartConfig[key];
                     if (config && config.extras) {
                         config.extras.forEach(e => itemPrice += parseFloat(e.price) || 0);
                     }
-                    total += itemPrice * cart[sku]; 
-                    count += cart[sku]; 
+                    total += itemPrice * cart[key]; 
+                    count += cart[key]; 
                 }
             });
             document.getElementById('total-price-bar').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
             document.getElementById('checkout-bar').classList.toggle('translate-y-full', count === 0);
+        }
+
+        function updateQtyByKey(key, delta) {
+            const c = cart[key] || 0, n = c + delta;
+            if (n <= 0) {
+                delete cart[key];
+                delete cartConfig[key];
+            } else {
+                cart[key] = n;
+            }
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            
+            updateCheckoutBar(); 
+            renderCatalog(); 
+            renderSuggested();
+            renderSummary(); 
+            
+            if (activeSku) {
+                updateModalQty(activeSku);
+            }
         }
 
         function setPayment(mode) {
@@ -489,13 +548,14 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function renderSummary() {
             const list = document.getElementById('summary-list'); let total = 0;
-            const items = Object.keys(cart).map(sku => {
+            const items = Object.keys(cart).map(key => {
+                const sku = key.split('|')[0];
                 const p = catalog.find(x => x.callback_data === sku);
-                const config = cartConfig[sku] || { extras: [], note: "" };
+                const config = cartConfig[key] || { extras: [], note: "" };
                 let itemPrice = parseFloat(p.price) || 0;
                 config.extras.forEach(e => itemPrice += parseFloat(e.price) || 0);
                 
-                const sub = itemPrice * cart[sku]; 
+                const sub = itemPrice * cart[key]; 
                 total += sub;
 
                 const extrasHtml = config.extras.length > 0 
@@ -511,9 +571,16 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                             <div class="font-black text-[11px] uppercase leading-tight tracking-tight">${p.name}</div>
                             ${extrasHtml}
                             ${noteHtml}
-                            <div class="text-[9px] text-gray-300 mt-2 uppercase font-bold tracking-widest">${cart[sku]}x € ${itemPrice.toFixed(2)}</div>
+                            <div class="flex items-center gap-3 mt-3">
+                                <button onclick="updateQtyByKey('${key}', -1)" class="w-7 h-7 bg-white rounded-full flex items-center justify-center active:scale-75 transition border border-gray-200 shadow-sm"><i class="fas fa-minus text-[8px] text-black"></i></button>
+                                <span class="font-black text-sm min-w-[16px] text-center">${cart[key]}</span>
+                                <button onclick="updateQtyByKey('${key}', 1)" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition shadow-sm"><i class="fas fa-plus text-[8px]"></i></button>
+                            </div>
                         </div>
-                        <div class="font-black text-xs text-right">€ ${sub.toFixed(2)}</div>
+                        <div class="font-black text-xs text-right flex flex-col items-end gap-1 mt-1">
+                            <span>€ ${sub.toFixed(2)}</span>
+                            <span class="text-[8px] text-gray-400 uppercase font-bold tracking-widest">€ ${itemPrice.toFixed(2)} cad.</span>
+                        </div>
                     </div>`;
             });
             list.innerHTML = items.join(''); document.getElementById('summary-total').innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
@@ -556,9 +623,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             const customerId = tg.initDataUnsafe.user?.id || "anon";
             const orderSessionId = `${customerId}_order_${timestamp}`;
 
-            const items = Object.keys(cart).map(sku => {
+            const items = Object.keys(cart).map(key => {
+                const sku = key.split('|')[0];
                 const p = catalog.find(x => x.callback_data === sku);
-                const config = cartConfig[sku] || { extras: [], note: "" };
+                const config = cartConfig[key] || { extras: [], note: "" };
                 let finalItemPrice = parseFloat(p.price) || 0;
                 config.extras.forEach(e => finalItemPrice += parseFloat(e.price) || 0);
 
@@ -567,7 +635,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     name: p.name, 
                     base_price: parseFloat(p.price),
                     final_price: finalItemPrice,
-                    quantity: cart[sku],
+                    quantity: cart[key],
                     selected_extras: config.extras,
                     customer_note: config.note
                 };
