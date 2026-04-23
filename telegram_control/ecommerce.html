@@ -244,21 +244,37 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         async function initApp() {
             try {
+                console.log("Inizializzazione App con ASH:", ashToken);
                 const res = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_get' })
                 });
                 const r = await res.json();
+                console.log("Risposta Webhook u_calc_ecom_get:", r);
                 const d = Array.isArray(r) ? r[0] : r; 
                 if (d && d.success) {
-                    catalog = d.catalog || []; history = d.history || []; vat = d.vat || vat;
+                    console.log("Catalogo grezzo ricevuto:", d.catalog?.length, "elementi");
+                    // Filtra prodotti con inventory_enabled: true
+                    catalog = (d.catalog || []).filter(p => {
+                        const hide = p.inventory_enabled === true || p.inventory_enabled === "true";
+                        if (hide) console.log("Prodotto escluso (inventory_enabled):", p.name, p.callback_data);
+                        return !hide;
+                    });
+                    history = d.history || []; vat = d.vat || vat;
                     imgRoot = (d.urlMiniApp || "").replace('telegram_control/', '');
+                    console.log("Catalogo caricato e filtrato:", catalog.length, "elementi");
+                    console.log("Root Immagini:", imgRoot);
                     categories = [...new Set(catalog.map(p => p.category))];
                     if (d.payment_active) document.getElementById('pay-card').classList.remove('hidden');
                     renderUI(d.brand || {}); hideLoader();
+                } else {
+                    console.error("Errore nel caricamento dati:", d);
                 }
-            } catch (e) { tg.showAlert("Connessione fallita."); }
+            } catch (e) { 
+                console.error("Eccezione durante initApp:", e);
+                tg.showAlert("Connessione fallita."); 
+            }
         }
 
         function hideLoader() { const l = document.getElementById('global-loader'); l.classList.add('opacity-0'); setTimeout(() => l.classList.add('hidden'), 300); }
