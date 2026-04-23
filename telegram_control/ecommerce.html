@@ -103,7 +103,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     <!-- CONTENT -->
     <main id="main-content" class="flex-1 overflow-y-scroll p-5 space-y-8 safe-bottom">
         <section id="section-suggested" class="hidden">
-            <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-300 mb-4 pl-3 border-l-2 border-black">Top Picks</h2>
+            <h2 class="text-[9px] font-black uppercase tracking-widest text-black mb-4 pl-3 border-l-2 border-black">Top Picks</h2>
             <div id="suggested-list" class="flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>
         </section>
         <div id="catalog-container" class="space-y-8"></div>
@@ -329,9 +329,9 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     <div class="flex-shrink-0 w-24 bg-white p-1 rounded-2xl bento-card" onclick="openProduct('${p.callback_data}')">
                         <div class="w-full aspect-square rounded-xl bg-gray-50 overflow-hidden relative border border-gray-100">
                             <img src="${imgRoot}images/${vat}/${p.callback_data}.jpg" onerror="this.src='https://via.placeholder.com/200?text=IMG'" class="w-full h-full object-cover">
-                            <div class="absolute inset-0 bg-black/30 flex flex-col items-center justify-center p-2 text-center">
-                                <h3 class="font-black text-[7px] text-black uppercase tracking-tighter leading-none mb-1">${p.short_name || p.name}</h3>
-                                <p class="font-black text-[9px] text-black">€ ${parseFloat(p.price).toFixed(2)}</p>
+                            <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-2 text-center">
+                                <h3 class="font-black text-[7px] text-white uppercase tracking-tighter leading-none mb-1" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">${p.short_name || p.name}</h3>
+                                <p class="font-black text-[9px] text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">€ ${parseFloat(p.price).toFixed(2)}</p>
                             </div>
                             ${getProductQty(p.callback_data) > 0 ? `<div class="absolute top-1 right-1 bg-black text-white w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black border border-white z-10">${getProductQty(p.callback_data)}</div>` : ''}
                         </div>
@@ -348,7 +348,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 const section = document.createElement('section');
                 section.id = `section-${cat.replace(/\s/g, '_')}`; section.className = "space-y-4";
                 section.innerHTML = `
-                    <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-300 px-1 border-l-2 border-black ml-1 pl-3">${cat.replace('[PRO] ', '').replace('[SER] ', '')}</h2>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-black px-1 border-l-2 border-black ml-1 pl-3">${cat.replace('[PRO] ', '').replace('[SER] ', '')}</h2>
                     <div class="grid grid-cols-2 gap-3">
                         ${products.map(p => `
                             <div class="bg-white p-3 rounded-3xl bento-card space-y-3 relative overflow-hidden group border border-gray-50" onclick="openProduct('${p.callback_data}')">
@@ -532,12 +532,22 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             
             if (modalEditingKey) {
                 if (modalEditingKey !== newKey) {
-                    console.log("Chiave cambiata, elimino vecchia chiave:", modalEditingKey);
+                    console.log("Chiave cambiata durante edit. Vecchia:", modalEditingKey, "Nuova:", newKey);
+                    // Se la nuova chiave esiste già, sommiamo le quantità
+                    if (cart[newKey]) {
+                        cart[newKey] += modalLocalQty;
+                        console.log("Nuova chiave esistente, sommo quantità. Totale:", cart[newKey]);
+                    } else {
+                        cart[newKey] = modalLocalQty;
+                    }
                     delete cart[modalEditingKey];
                     delete cartConfig[modalEditingKey];
+                } else {
+                    // Stessa chiave, aggiorniamo solo la quantità (caso in cui si cambia solo la qty nella modale)
+                    cart[newKey] = modalLocalQty;
                 }
-                cart[newKey] = modalLocalQty;
             } else {
+                // Nuovo inserimento
                 cart[newKey] = (cart[newKey] || 0) + modalLocalQty;
             }
             
