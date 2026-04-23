@@ -404,14 +404,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(buildEnvelope({ action: 'associate_bot', bot_key: key }))
                 });
-                const result = await response.json();
-                if (result.status === 'success') {
-                    tg.showAlert("Bot Associato con successo!");
+                const rawResult = await response.json();
+                console.log("ASSOCIATE: Risultato", rawResult);
+                
+                // La risposta è un array [ { success: true, result: true, description: "..." } ]
+                const result = Array.isArray(rawResult) ? rawResult[0] : rawResult;
+
+                if (result.success && result.result) {
+                    tg.showAlert("Bot Associato: " + (result.description || "Successo!"));
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 } else {
-                    tg.showAlert("Errore Associazione: " + (result.message || "Chiave Bot non valida."));
+                    tg.showAlert("Errore Associazione: " + (result.description || "Controlla la chiave del bot."));
                 }
-            } catch (e) { tg.showAlert("Errore connessione associazione."); }
+            } catch (e) { 
+                console.error("ASSOCIATE: Errore", e);
+                tg.showAlert("Errore connessione associazione."); 
+            }
             finally { hideLoader(); }
         }
 
