@@ -88,7 +88,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             </div>
             <p class="text-[11px] text-gray-500 leading-relaxed italic">Analisi IA del documento di identità.</p>
             
-            <div id="dropzone" class="border-2 border-dashed border-gray-100 rounded-2xl p-6 text-center cursor-pointer hover:border-black transition relative overflow-hidden bg-gray-50">
+            <div id="dropzone" class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center cursor-pointer hover:border-black transition relative overflow-hidden bg-white">
                 <input type="file" id="kyc-upload" class="hidden" accept="image/*" onchange="handleKycUpload(this)">
                 <div id="upload-placeholder" class="space-y-2">
                     <i class="fas fa-camera text-xl text-gray-300"></i>
@@ -116,27 +116,27 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
                         <label class="text-[9px] font-black uppercase text-gray-500 ml-1">Nome</label>
-                        <input type="text" name="name" class="w-full bg-gray-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                        <input type="text" name="name" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[9px] font-black uppercase text-gray-500 ml-1">Cognome</label>
-                        <input type="text" name="surname" class="w-full bg-gray-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                        <input type="text" name="surname" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
                 </div>
 
                 <div class="space-y-1">
                     <label class="text-[9px] font-black uppercase text-gray-500 ml-1">Ragione Sociale</label>
-                    <input type="text" name="ragione_sociale" class="w-full bg-gray-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                    <input type="text" name="ragione_sociale" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
                         <label class="text-[9px] font-black uppercase text-gray-500 ml-1">P.IVA</label>
-                        <input type="text" name="vat_number" class="w-full bg-gray-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                        <input type="text" name="vat_number" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
                     <div class="space-y-1">
                         <label class="text-[9px] font-black uppercase text-gray-500 ml-1">Settore</label>
-                        <select name="sector" class="w-full bg-gray-50 border border-transparent rounded-xl px-3 py-2.5 text-[10px] font-bold outline-none appearance-none">
+                        <select name="sector" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-[10px] font-bold outline-none appearance-none">
                             <option value="Servizi">Servizi</option>
                             <option value="Tech">Tech</option>
                             <option value="Retail">Retail</option>
@@ -147,12 +147,12 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
                 <div class="space-y-1">
                     <label class="text-[9px] font-black uppercase text-gray-500 ml-1">Mission Aziendale</label>
-                    <textarea name="what_we_do" rows="3" class="w-full bg-gray-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-medium focus:border-black outline-none transition resize-none"></textarea>
+                    <textarea name="what_we_do" rows="3" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-medium focus:border-black outline-none transition resize-none"></textarea>
                 </div>
 
                 <div class="space-y-1">
                     <label class="text-[9px] font-black uppercase text-gray-500 ml-1">Gemini API Key</label>
-                    <input type="password" name="gemini_key" class="w-full bg-gray-50 border border-transparent rounded-xl px-3 py-2.5 text-xs font-mono focus:border-black outline-none transition">
+                    <input type="password" name="gemini_key" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-mono focus:border-black outline-none transition">
                 </div>
             </form>
         </section>
@@ -182,19 +182,32 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         tg.expand(); tg.ready();
 
         const WH_URL = "https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4";
-        const params = new URLSearchParams(window.location.search);
-        let currentToken = params.get('token');
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash');
         let ownerData = {};
         const tgUserId = tg.initDataUnsafe?.user?.id || null;
+        
+        console.log("TG: UserID", tgUserId);
+        console.log("TG: ASH Session", ash);
 
-        function buildEnvelope(payload) { return { _auth: tg.initData, user_id: tgUserId, ...payload }; }
+        function buildEnvelope(payload) { 
+            // Implementazione logica ash e _auth obbligatori per la sicurezza
+            const env = { _auth: tg.initData, ash: ash, user_id: tgUserId, ...payload };
+            console.log("DEBUG: Outgoing Envelope", env);
+            return env;
+        }
 
         window.onload = async () => {
-            if (currentToken) {
-                showLoader("Recupero Dati", "Caricamento profilo...");
-                await fetchOwnerData();
-                hideLoader();
-            } else { tg.showAlert("Token mancante."); }
+            if (!ash) {
+                document.body.innerHTML = `
+                    <div class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div><h1 class="text-6xl mb-4">⚠️</h1><h2 class="text-xl font-black uppercase tracking-widest">ASH MISSING</h2><p class="text-xs text-gray-500 mt-2">Accesso non autorizzato.</p></div>
+                    </div>`;
+                return;
+            }
+            showLoader("Recupero Dati", "Caricamento profilo...");
+            await fetchOwnerData();
+            hideLoader();
         };
 
         function showLoader(title, msg) {
@@ -205,18 +218,23 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         function hideLoader() { document.getElementById('global-loader').classList.add('hidden'); }
 
         async function fetchOwnerData() {
+            console.log("OWNER: Recupero dati...");
             try {
                 const response = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(buildEnvelope({ user_request: { action: 'get_owner_data_by_token', token: currentToken } }))
+                    body: JSON.stringify(buildEnvelope({ action: 'get_owner_data' }))
                 });
                 const result = await response.json();
+                console.log("OWNER: Dati ricevuti", result);
                 if (result.status === 'success' && result.owner_data) {
                     ownerData = result.owner_data;
                     populateForm(ownerData);
                 }
-            } catch (error) { tg.showAlert("Errore recupero dati."); }
+            } catch (error) { 
+                console.error("OWNER: Errore fetch", error);
+                tg.showAlert("Errore recupero dati."); 
+            }
         }
 
         function populateForm(data) {
@@ -235,17 +253,23 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         async function saveData() {
             showLoader("Salvataggio", "Aggiornamento in corso...");
             const dataUpdate = getFormData();
+            console.log("SAVE: Invio aggiornamento", dataUpdate);
             try {
                 const response = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(buildEnvelope({ user_request: { action: 'save_owner_data_by_token', token: currentToken, data_update: dataUpdate } }))
+                    body: JSON.stringify(buildEnvelope({ action: 'save_owner_data', data_update: dataUpdate }))
                 });
+                const res = await response.json();
+                console.log("SAVE: Risultato", res);
                 if (response.ok) {
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                     tg.showScanQrPopup({ text: "Salvato ✅" }); setTimeout(() => tg.closeScanQrPopup(), 1000);
                 }
-            } catch (error) { tg.showAlert("Errore salvataggio."); }
+            } catch (error) { 
+                console.error("SAVE: Errore", error);
+                tg.showAlert("Errore salvataggio."); 
+            }
             finally { hideLoader(); }
         }
 
@@ -255,28 +279,55 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             if (!input.files || !input.files[0]) return;
             const file = input.files[0];
             const preview = document.getElementById('upload-preview');
+            const placeholder = document.getElementById('upload-placeholder');
+            
+            console.log("KYC: Avvio caricamento", file.name);
+
             const reader = new FileReader();
-            reader.onload = (e) => { preview.style.backgroundImage = `url(${e.target.result})`; preview.classList.remove('hidden'); };
+            reader.onload = (e) => { 
+                preview.style.backgroundImage = `url(${e.target.result})`; 
+                preview.classList.remove('hidden'); 
+                placeholder.classList.add('hidden');
+            };
             reader.readAsDataURL(file);
 
             const base64 = await toBase64(file);
-            const geminiKey = document.querySelector('[name="gemini_key"]').value;
-            if (!geminiKey) { tg.showAlert("Inserisci la API Key prima."); preview.classList.add('hidden'); return; }
+            const geminiKey = document.querySelector('[name="gemini_key"]').value || ownerData.gemini_key;
+            
+            if (!geminiKey) { 
+                tg.showAlert("Inserisci la API Key prima."); 
+                preview.classList.add('hidden'); 
+                placeholder.classList.remove('hidden');
+                return; 
+            }
 
             try {
+                console.log("KYC: Analisi IA in corso...");
                 const response = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(buildEnvelope({ user_request: { action: 'analyze_id', file_data: base64.split(',')[1], mime_type: file.type, gemini_key: geminiKey, user_id: currentToken } }))
+                    body: JSON.stringify(buildEnvelope({ 
+                        action: 'analyze_id', 
+                        file_data: base64.split(',')[1], 
+                        mime_type: file.type, 
+                        gemini_key: geminiKey
+                    }))
                 });
                 const result = await response.json();
+                console.log("KYC: Risultato IA", result);
+                
                 if (result.status === 'success' && result.data) {
                     document.querySelector('[name="name"]').value = result.data.name || '';
                     document.querySelector('[name="surname"]').value = result.data.surname || '';
+                    preview.innerHTML = ''; 
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                } else {
+                    tg.showAlert("IA non ha riconosciuto il documento.");
                 }
-            } catch (error) { tg.showAlert("Errore analisi."); }
-            finally { preview.classList.add('hidden'); }
+            } catch (error) { 
+                console.error("KYC: Errore analisi", error);
+                tg.showAlert("Errore analisi."); 
+            }
         }
 
         const toBase64 = file => new Promise((resolve, reject) => {
@@ -287,17 +338,26 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         async function finalizeProvisioning() {
             showLoader("Attivazione", "Inizializzazione...");
             const data = getFormData();
+            console.log("FINALIZE: Invio dati per provisioning", data);
             try {
                 const response = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(buildEnvelope({ owner_data: { ...ownerData, ...data }, user_request: { action: 'payment_checkout', chat_id: ownerData.chat_id || tgUserId } }))
+                    body: JSON.stringify(buildEnvelope({ 
+                        action: 'payment_checkout',
+                        owner_data: { ...ownerData, ...data }, 
+                        chat_id: ownerData.chat_id || tgUserId 
+                    }))
                 });
                 const result = await response.json();
+                console.log("FINALIZE: Risultato", result);
                 if (result.status === 'success' || result.telegramPayload) {
                     tg.showConfirm("Attivazione Completata!", () => tg.close());
                 }
-            } catch (error) { tg.showAlert("Errore attivazione."); }
+            } catch (error) { 
+                console.error("FINALIZE: Errore", error);
+                tg.showAlert("Errore attivazione."); 
+            }
             finally { hideLoader(); }
         }
     </script>
