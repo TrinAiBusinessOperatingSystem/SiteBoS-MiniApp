@@ -7,11 +7,11 @@ const ONBOARDING_API = "https://trinai.api.workflow.dcmake.it/webhook/771638a1-7
 // INIT TELEGRAM + ASH
 const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
 const ash = window.TwaGuard?.getAsh?.();
+const chatId = tg.initDataUnsafe?.user?.id;
 window.TwaGuard?.cleanupUrl?.(['ash']);
 
 // URL PARAMS (keep only strict minimum; ash is passed through)
 const urlParams = new URLSearchParams(window.location.search);
-const invitationCode = urlParams.get('invitation_code');
 const langParam = urlParams.get('lang') || 'it';
 
 // STATE
@@ -165,7 +165,7 @@ window.updateCertification = function(index, value) {
 
 // VALIDATE INVITATION
 async function validateInvitation() {
-    if (!invitationCode || !chatId) {
+    if (!chatId) {
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('access-denied').classList.remove('hidden');
         return false;
@@ -177,8 +177,8 @@ async function validateInvitation() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 action: 'validate_invitation',
-                invitation_code: invitationCode,
-                chat_id: chatId
+                chat_id: chatId,
+                ash: ash
             })
         });
         
@@ -537,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Sistema
                 operator_chat_id: chatId,
-                invitation_code: invitationCode
+                ash: ash
             };
             
             try {
