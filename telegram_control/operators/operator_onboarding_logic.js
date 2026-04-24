@@ -7,8 +7,11 @@ const ONBOARDING_API = "https://trinai.api.workflow.dcmake.it/webhook/771638a1-7
 // INIT TELEGRAM + ASH
 const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
 const ash = window.TwaGuard?.getAsh?.();
-const chatId = tg.initDataUnsafe?.user?.id;
+let chatId = tg.initDataUnsafe?.user?.id;
 window.TwaGuard?.cleanupUrl?.(['ash']);
+
+// PATCH FETCH TO INCLUDE _auth AND ash AUTOMATICALLY
+window.TwaGuard?.patchFetchJson?.();
 
 // URL PARAMS (keep only strict minimum; ash is passed through)
 const urlParams = new URLSearchParams(window.location.search);
@@ -163,22 +166,50 @@ window.updateCertification = function(index, value) {
     certifications[index] = value;
 }
 
-// VALIDATE INVITATION
+// VALIDATE INVITATION / GET INITIAL DATA
 async function validateInvitation() {
+    // Se abbiamo ash, l'utente è già stato controllato, entriamo subito
+    if (ash) {
+        document.getElementById('loader').classList.add('hidden');
+        document.getElementById('app-content').classList.remove('hidden');
+        
+        // Carichiamo comunque i dati dell'azienda in background
+        try {
+            const res = await fetch(ONBOARDING_API, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    action: 'get',
+                    chat_id: chatId
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.company_name) {
+                ownerCompanyName = data.company_name;
+                document.getElementById('company-name-display').innerText = ownerCompanyName;
+                if (data.chat_id) chatId = data.chat_id;
+            }
+        } catch (e) {
+            console.warn("Background data fetch failed", e);
+        }
+        return true;
+    }
+
+    // Se non abbiamo ash, controlliamo almeno se abbiamo chatId (fallback)
     if (!chatId) {
         document.getElementById('loader').classList.add('hidden');
         document.getElementById('access-denied').classList.remove('hidden');
         return false;
     }
     
+    // Fallback per casi senza ash ma con chatId
     try {
         const res = await fetch(ONBOARDING_API, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                action: 'validate_invitation',
-                chat_id: chatId,
-                ash: ash
+                action: 'get',
+                chat_id: chatId
             })
         });
         
@@ -536,8 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 other_skills: document.getElementById('other_skills').value,
                 
                 // Sistema
-                operator_chat_id: chatId,
-                ash: ash
+                operator_chat_id: chatId
             };
             
             try {
