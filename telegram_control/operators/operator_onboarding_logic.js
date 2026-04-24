@@ -22,14 +22,16 @@ let currentStep = 1;
 let ownerCompanyName = "";
 let selectedSkills = []; // Array di skill names
 let certifications = [];
+let humanVerificationPerformed = false;
 
 // I18N
 const i18n = {
     it: {
         step_identity: "Identità", step_profile: "Profilo",
-        h_identity: "Setup & Sicurezza", sub_identity: "Consensi, Chiave API e Verifica Identità.",
+        h_identity: "Informativa & Sicurezza", sub_identity: "Consensi, Sicurezza e Informativa Sistemi AI.",
         h_profile: "Profilo Professionale", sub_profile: "Competenze e esperienza lavorativa.",
-        legal_privacy: "Accetto Privacy Policy", legal_terms: "Accetto Termini di Servizio", legal_ai: "Accetto uso AI (Gemini)",
+        legal_privacy: "Informativa Trattamento Dati e Sistemi AI", legal_terms: "Accetto Termini di Servizio", 
+        legal_ai: "Accetto l'analisi delle competenze tramite AI (AI Act Reg. UE 2024/1689)",
         btn_get_key: "Ottieni Gratis", byok_note: "La tua chiave personale, nessuno la vedrà.",
         lbl_id_card: "Documento Identità", upload_lock: "Carica documento per procedere",
         lbl_name: "Nome", lbl_surname: "Cognome", lbl_fiscal: "Codice Fiscale", lbl_email: "Email", lbl_phone: "Telefono",
@@ -40,7 +42,7 @@ const i18n = {
         lbl_works_owner: "Lavoro già per questa azienda", lbl_years_with_owner: "Da quanti anni lavori qui?", lbl_collaboration: "Tipo di collaborazione",
         lbl_certifications: "Certificazioni / Patentini", btn_add_cert: "Aggiungi Certificazione",
         lbl_work_desc: "Descrivi la tua esperienza lavorativa", btn_analyze: "Analizza Competenze con AI",
-        hint_skills_ai: "✅ Competenze estratte! Rimuovi quelle non pertinenti.",
+        hint_skills_ai: "✅ Competenze estratte con AI. Verifica, modifica o rimuovi per confermare (Human-in-the-loop).",
         lbl_other_skills: "Altre competenze (manuale)",
         btn_next: "Avanti", btn_back: "Indietro", btn_complete: "Completa Attivazione",
         access_denied_title: "Accesso Riservato", access_denied_desc: "Attivazione disponibile solo tramite invito.",
@@ -50,9 +52,10 @@ const i18n = {
     },
     en: {
         step_identity: "Identity", step_profile: "Profile",
-        h_identity: "Setup & Security", sub_identity: "Consents, API Key and Identity Verification.",
+        h_identity: "Disclosure & Security", sub_identity: "Consents, Security and AI Systems Disclosure.",
         h_profile: "Professional Profile", sub_profile: "Skills and work experience.",
-        legal_privacy: "I accept Privacy Policy", legal_terms: "I accept Terms of Service", legal_ai: "I accept AI usage (Gemini)",
+        legal_privacy: "Personal Data & AI Systems Disclosure", legal_terms: "I accept Terms of Service", 
+        legal_ai: "I accept skills analysis via AI (AI Act Reg. UE 2024/1689)",
         btn_get_key: "Get Free", byok_note: "Your personal key, nobody will see it.",
         lbl_id_card: "ID Document", upload_lock: "Upload document to proceed",
         lbl_name: "Name", lbl_surname: "Surname", lbl_fiscal: "Fiscal Code", lbl_email: "Email", lbl_phone: "Phone",
@@ -63,7 +66,7 @@ const i18n = {
         lbl_works_owner: "I already work for this company", lbl_years_with_owner: "How many years?", lbl_collaboration: "Collaboration type",
         lbl_certifications: "Certifications", btn_add_cert: "Add Certification",
         lbl_work_desc: "Describe your work experience", btn_analyze: "Analyze Skills with AI",
-        hint_skills_ai: "✅ Skills extracted! Remove non-relevant ones.",
+        hint_skills_ai: "✅ Skills extracted via AI. Verify, edit or remove to confirm (Human-in-the-loop).",
         lbl_other_skills: "Other skills (manual)",
         btn_next: "Next", btn_back: "Back", btn_complete: "Complete Activation",
         access_denied_title: "Access Restricted", access_denied_desc: "Activation available only via invitation.",
@@ -116,6 +119,7 @@ function renderSkillsGrid() {
             const skillName = skillCard.dataset.skillName;
             
             selectedSkills = selectedSkills.filter(s => s !== skillName);
+            humanVerificationPerformed = true; // Intervento umano sulle skill
             renderSkillsGrid();
         });
     });
@@ -299,6 +303,7 @@ window.analyzeSkills = async function() {
         
         if (res.ok && data.skills) {
             selectedSkills = data.skills.map(s => s.name || s.skill);
+            humanVerificationPerformed = true; // AI ha generato le skill
             
             document.getElementById('skills-result').classList.remove('hidden');
             renderSkillsGrid();
@@ -408,6 +413,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Skills (estrai solo nomi)
                         if (p.hard_skills && p.hard_skills.length > 0) {
                             selectedSkills = p.hard_skills.map(s => s.skill || s.name);
+                            humanVerificationPerformed = true; // AI mapping via CV
                             document.getElementById('skills-result').classList.remove('hidden');
                             renderSkillsGrid();
                         }
@@ -567,7 +573,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 other_skills: document.getElementById('other_skills').value,
                 
                 // Sistema
-                operator_chat_id: chatId
+                operator_chat_id: chatId,
+
+                // Log di Conformità (GDPR & AI Act Reg. UE 2024/1689)
+                compliance_log: {
+                    ai_disclosure_seen: document.getElementById('chk_ai').checked,
+                    human_verification_performed: humanVerificationPerformed,
+                    api_provider: "Google Gemini (Corporate Key provided by Owner)",
+                    data_retention_policy: "Linked to contract duration",
+                    timestamp: new Date().toISOString()
+                }
             };
             
             try {
