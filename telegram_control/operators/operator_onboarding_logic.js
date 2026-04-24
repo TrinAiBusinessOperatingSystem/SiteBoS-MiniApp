@@ -33,7 +33,6 @@ const i18n = {
         legal_privacy: "Informativa Trattamento Dati e Sistemi AI", legal_terms: "Accetto Termini di Servizio", 
         legal_ai: "Accetto l'analisi delle competenze tramite AI (AI Act Reg. UE 2024/1689)",
         btn_get_key: "Ottieni Gratis", byok_note: "La tua chiave personale, nessuno la vedrà.",
-        lbl_id_card: "Documento Identità", upload_lock: "Carica documento per procedere",
         lbl_name: "Nome", lbl_surname: "Cognome", lbl_fiscal: "Codice Fiscale", lbl_email: "Email", lbl_phone: "Telefono",
         section_address: "Indirizzo", section_education: "Formazione", section_work: "Esperienza Lavorativa", section_skills: "Competenze Tecniche",
         lbl_education: "Titolo di Studio", lbl_education_field: "Specializzazione / Indirizzo",
@@ -57,7 +56,6 @@ const i18n = {
         legal_privacy: "Personal Data & AI Systems Disclosure", legal_terms: "I accept Terms of Service", 
         legal_ai: "I accept skills analysis via AI (AI Act Reg. UE 2024/1689)",
         btn_get_key: "Get Free", byok_note: "Your personal key, nobody will see it.",
-        lbl_id_card: "ID Document", upload_lock: "Upload document to proceed",
         lbl_name: "Name", lbl_surname: "Surname", lbl_fiscal: "Fiscal Code", lbl_email: "Email", lbl_phone: "Phone",
         section_address: "Address", section_education: "Education", section_work: "Work Experience", section_skills: "Technical Skills",
         lbl_education: "Education Level", lbl_education_field: "Specialization / Field",
@@ -433,57 +431,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.error(e);
                     cvStatusText.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#ffc107;"></i> Impossibile analizzare CV. Compila manualmente.';
                 }
-            };
-            
-            reader.readAsDataURL(file);
-        });
-    }
-    
-    // DOCUMENT UPLOAD & OCR
-    const idDocument = document.getElementById('id_document');
-    if (idDocument) {
-        idDocument.addEventListener('change', async function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            document.getElementById('upload-text').innerHTML = '<i class="fas fa-spinner fa-spin"></i> Analisi in corso...';
-            
-            const reader = new FileReader();
-            reader.onload = async function(event) {
-                const base64 = event.target.result;
-                
-                try {
-                    const res = await fetch(ONBOARDING_API, {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({
-                            action: 'parse_document',
-                            chat_id: chatId,
-                            document_base64: base64,
-                            gemini_key: document.getElementById('gemini_key').value
-                        })
-                    });
-                    
-                    const data = await res.json();
-                    
-                    if (res.ok && data.extracted) {
-                        document.getElementById('name').value = data.extracted.name || '';
-                        document.getElementById('surname').value = data.extracted.surname || '';
-                        document.getElementById('fiscal_code').value = data.extracted.fiscal_code || '';
-                        
-                        document.getElementById('upload-text').innerHTML = '<i class="fas fa-check"></i> Documento verificato';
-                        document.getElementById('upload-icon').innerHTML = '<i class="fas fa-check-circle" style="color:var(--success);"></i>';
-                        
-                        tg.HapticFeedback.notificationOccurred('success');
-                    } else {
-                        throw new Error('Parsing failed');
-                    }
-                } catch (e) {
-                    console.error(e);
-                    document.getElementById('upload-text').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Errore analisi, compila manualmente';
-                }
-                
-                checkStep1();
             };
             
             reader.readAsDataURL(file);
