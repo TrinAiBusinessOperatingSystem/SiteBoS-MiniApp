@@ -239,7 +239,7 @@
             }
 
             showLoader('Caricamento dati...');
-            const data = await apiCall('get');
+            const data = await apiCall('GET');
             
             if (sessionId) {
                 loadSession(sessionId);
@@ -463,6 +463,135 @@
             document.getElementById('wizard-container').classList.add('hidden');
             document.getElementById('completion-screen').classList.remove('hidden');
             document.getElementById('completion-screen').classList.add('flex');
+        }
+
+        function showLoader(text) {
+            document.getElementById('loader').classList.remove('hidden');
+            if (text) document.getElementById('loader-text').innerText = text;
+            document.getElementById('app-content').classList.add('hidden');
+        }
+
+        function hideLoader() {
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+        }
+
+        function setEvidenceType(type) {
+            activeEvidenceType = type;
+            document.querySelectorAll('.evidence-panel').forEach(p => p.classList.add('hidden'));
+            const target = document.getElementById(`ev-${type}`);
+            if (target) target.classList.remove('hidden');
+            
+            if (type === 'SIGNATURE') initSignaturePad();
+        }
+
+        async function startCamera() {
+            const video = document.getElementById('camera-feed');
+            const placeholder = document.getElementById('camera-placeholder');
+            const startBtn = document.getElementById('startCamBtn');
+            const snapBtn = document.getElementById('snapBtn');
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+                video.srcObject = videoStream;
+                video.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                startBtn.classList.add('hidden');
+                snapBtn.classList.remove('hidden');
+            } catch (err) {
+                console.error("Camera error:", err);
+                tg.showAlert("Impossibile accedere alla fotocamera.");
+            }
+        }
+
+        function takePhoto() {
+            const video = document.getElementById('camera-feed');
+            const canvasEl = document.getElementById('camera-canvas');
+            const snapBtn = document.getElementById('snapBtn');
+            
+            canvasEl.width = video.videoWidth;
+            canvasEl.height = video.videoHeight;
+            canvasEl.getContext('2d').drawImage(video, 0, 0);
+            
+            capturedPhotoB64 = canvasEl.toDataURL('image/jpeg').split(',')[1];
+            
+            video.classList.add('hidden');
+            canvasEl.classList.remove('hidden');
+            
+            snapBtn.innerText = "✅ Foto Acquisita";
+            snapBtn.classList.replace('bg-red-600', 'bg-green-600');
+            snapBtn.disabled = true;
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function initSignaturePad() {
+            canvas = document.getElementById('signature-pad');
+            ctx = canvas.getContext('2d');
+            
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+
+            const startDrawing = (e) => {
+                isDrawing = true;
+                const pos = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            };
+
+            const draw = (e) => {
+                if (!isDrawing) return;
+                const pos = getPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+                e.preventDefault();
+            };
+
+            const stopDrawing = () => {
+                isDrawing = false;
+            };
+
+            const getPos = (e) => {
+                const r = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - r.left, y: clientY - r.top };
+            };
+
+            canvas.addEventListener('mousedown', startDrawing);
+            canvas.addEventListener('mousemove', draw);
+            window.addEventListener('mouseup', stopDrawing);
+
+            canvas.addEventListener('touchstart', startDrawing);
+            canvas.addEventListener('touchmove', draw, { passive: false });
+            canvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function clearSignature() {
+            if (!canvas || !ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileNameDisplay').innerText = file.name;
+            selectedFileMime = file.type;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                selectedFileB64 = e.target.result.split(',')[1];
+            };
+            reader.readAsDataURL(file);
         }
 
         document.addEventListener('DOMContentLoaded', initApp);
