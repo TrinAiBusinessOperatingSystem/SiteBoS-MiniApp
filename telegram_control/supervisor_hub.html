@@ -51,9 +51,18 @@
     <script>
         // Blocco di Sicurezza: controlla tg.initData
         (function() {
+            console.log("[Security] Checking WebApp initData...");
             if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
-                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2></div></body>`;
-                window.stop();
+                console.warn("[Security] Telegram WebApp initData missing!");
+                // Se siamo in un browser normale, mostriamo un avviso ma non blocchiamo tutto se vogliamo debuggare
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    console.info("[Security] Localhost detected, bypassing hard stop for debugging.");
+                } else {
+                    document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2><p class="text-[10px] mt-4 opacity-50">Questa applicazione è accessibile solo tramite Telegram</p></div></body>`;
+                    window.stop();
+                }
+            } else {
+                console.log("[Security] WebApp initData found.");
             }
         })();
     </script>
@@ -195,23 +204,42 @@
         let selectedFileMime = null;
         
         async function apiCall(action, payload = {}) {
+            const method = action === 'GET' ? 'GET' : 'POST';
+            const bodyData = { 
+                action, 
+                ash, 
+                sop_id: sopId,
+                _auth: tg.initData,
+                ...payload 
+            };
+
+            console.log(`[API] Request: ${method} ${action}`, bodyData);
+
             try {
-                const res = await fetch(WEBHOOK_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        action, 
-                        ash, 
-                        sop_id: sopId,
-                        _auth: tg.initData,
-                        ...payload 
-                    })
-                });
-                if (!res.ok) throw new Error("Network error");
-                return await res.json();
+                let url = WEBHOOK_URL;
+                let options = { method };
+
+                if (method === 'GET') {
+                    const params = new URLSearchParams();
+                    Object.keys(bodyData).forEach(key => {
+                        if (bodyData[key] !== undefined && bodyData[key] !== null) {
+                            params.append(key, typeof bodyData[key] === 'object' ? JSON.stringify(bodyData[key]) : bodyData[key]);
+                        }
+                    });
+                    url += `?${params.toString()}`;
+                } else {
+                    options.headers = { "Content-Type": "application/json" };
+                    options.body = JSON.stringify(bodyData);
+                }
+
+                const res = await fetch(url, options);
+                if (!res.ok) throw new Error(`Network error: ${res.status}`);
+                const data = await res.json();
+                console.log(`[API] Success:`, data);
+                return data;
             } catch (e) {
                 console.error("API Error:", e);
-                tg.showAlert("Errore di connessione al server.");
+                // Non mostriamo alert per non bloccare la UI se n8n risponde con errori gestiti
                 return null;
             }
         }
@@ -305,14 +333,20 @@
         }
 
         async function initApp() {
+            console.log("[App] Initializing app...");
+            console.log("[App] URL Parameters:", { ash, sopId, sessionId });
+
             if (!ash) {
+                console.error("[App] ASH parameter missing!");
                 document.body.innerHTML = `<div class="h-full flex items-center justify-center font-black text-red-500">ASH MISSING</div>`;
                 return;
             }
             
             if (sessionId) {
+                console.log("[App] Loading session mode:", sessionId);
                 loadSession(sessionId);
             } else {
+                console.log("[App] Loading dashboard mode");
                 loadDashboard();
             }
         }
@@ -389,7 +423,7 @@
                         current_step_index: 0,
                         steps: [
                             { id: 's1', title: 'Verifica Sicurezza', description: 'Assicurati che i protocolli SSH siano attivi e documentati.', quality_check: { evidence_type: 'VISION' } },
-                            { id: 's2', title: 'Backup Dati', description: 'Inserisci l\\'URL del log di backup mensile.', quality_check: { evidence_type: 'TEXT' } },
+                            { id: 's2', title: 'Backup Dati', description: "Inserisci l'URL del log di backup mensile.", quality_check: { evidence_type: 'TEXT' } },
                             { id: 's3', title: 'Review Utenti', description: 'Conferma rimozione accessi obsoleti.', quality_check: { evidence_type: 'SIGNATURE' } }
                         ]
                     }
