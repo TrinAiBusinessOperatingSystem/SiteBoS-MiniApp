@@ -97,18 +97,68 @@
   </div>
 
   <!-- MODAL EDIT -->
-  <div id="edit-cat-modal" class="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center p-6 z-[1000] hidden">
-    <div class="card-noir p-6 w-full max-w-sm space-y-5">
-        <h3 class="text-lg font-black uppercase tracking-tighter">Modifica Categoria</h3>
-        <div class="space-y-4">
-            <input type="text" id="edit-cat-short" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none" placeholder="Nome Breve">
-            <textarea id="edit-cat-long" rows="2" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-medium border border-transparent focus:border-black outline-none resize-none" placeholder="Descrizione"></textarea>
+    </div>
+  </div>
+
+  <!-- PRODUCT HUB (DASHBOARD) -->
+  <div id="hub-drawer" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000] hidden transition-all duration-300 translate-y-full">
+    <div class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[3rem] p-8 space-y-6 shadow-2xl overflow-y-auto max-h-[85vh]">
+        <div class="flex justify-between items-start">
+            <div>
+                <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1 italic">Product Hub</div>
+                <h3 id="hub-product-name" class="text-2xl font-black tracking-tighter uppercase leading-none">Nome Prodotto</h3>
+                <p id="hub-product-sku" class="text-[8px] font-black text-gray-400 uppercase mt-1 tracking-widest">SKU: ---</p>
+            </div>
+            <button onclick="closeHub()" class="w-10 h-10 bg-gray-50 rounded-full flex items-center justify-center active:scale-90 transition"><i class="fas fa-times text-xs"></i></button>
         </div>
-        <div class="flex gap-3 pt-2">
-            <button class="flex-1 py-3 rounded-xl border border-border text-[9px] font-black uppercase tracking-widest" onclick="closeEditModal()">Annulla</button>
-            <button class="flex-1 py-3 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest" onclick="saveEditCategory()">Salva</button>
+
+        <!-- GRID DASHBOARD -->
+        <div class="grid grid-cols-2 gap-4">
+            <button onclick="launchSubEditor('edit-product.html')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
+                <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                    <i class="fas fa-edit text-lg"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest">Dettagli & Prezzi</span>
+            </button>
+
+            <button onclick="launchSubEditor('edit-knowledge.html')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
+                <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                    <i class="fas fa-book-open text-lg"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest">User Guide</span>
+            </button>
+
+            <button onclick="launchSubEditor('supervisor_hub.html')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
+                <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                    <i class="fas fa-user-tie text-lg"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest">Supervisor Hub</span>
+            </button>
+
+            <button onclick="tg.showAlert('Modulo Stats in arrivo...')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 opacity-40 active:scale-95 transition">
+                <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-chart-bar text-lg"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest">Performance</span>
+            </button>
+
+            <button onclick="tg.showAlert('Modulo Social in arrivo...')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 opacity-40 active:scale-95 transition">
+                <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
+                    <i class="fas fa-share-alt text-lg"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest">Marketing Hub</span>
+            </button>
+        </div>
+
+        <div class="pt-4 border-t border-gray-50">
+            <button onclick="tg.close()" class="w-full py-4 bg-gray-50 text-gray-400 rounded-2xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition">Chiudi Pannello</button>
         </div>
     </div>
+  </div>
+
+  <!-- QUICK EDITOR DRAWER (MATRIOSKA FRAME) -->
+  <div id="quick-editor-drawer" class="fixed inset-0 bg-white z-[3000] hidden transition-all duration-300 translate-y-full flex flex-col">
+    <iframe id="quickEditorFrame" class="w-full h-full border-none" src="about:blank"></iframe>
   </div>
 
   <script>
@@ -240,29 +290,63 @@
 
     window.goToAddCategory = () => { location.href = `add-category.html?ash=${ash}&macro=${currentMacro}`; };
     window.goToAddProduct = (catId) => { location.href = `add-product.html?ash=${ash}&catId=${catId}`; };
+    
+    let currentSopId = null;
+
     window.openProduct = (page, pId, catId) => { 
         if (page === 'edit-blueprint.html') {
-            tg.showPopup({
-                title: 'Gestione Voce',
-                message: 'Seleziona il tipo di intervento:',
-                buttons: [
-                    { id: 'logic', type: 'default', text: '🛠️ Modifica Logica Operativa' },
-                    { id: 'struct', type: 'default', text: '📦 Modifica Struttura' },
-                    { type: 'cancel', text: 'Annulla' }
-                ]
-            }, (buttonId) => {
-                if (buttonId === 'logic') {
-                    location.href = `edit-blueprint.html?ash=${ash}&sop_id=${pId}`;
-                } else if (buttonId === 'struct') {
-                    location.href = `edit-product.html?ash=${ash}&sop_id=${pId}`;
-                }
-            });
+            currentSopId = pId;
+            const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === pId);
+            document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli Prodotto';
+            document.getElementById('hub-product-sku').innerText = `ID: ${pId}`;
+            
+            const hub = document.getElementById('hub-drawer');
+            hub.classList.remove('hidden');
+            setTimeout(() => hub.classList.remove('translate-y-full'), 10);
+            
+            if(tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(closeHub);
+            }
             return;
         }
-        let url = `${page}?ash=${ash}&productId=${pId}`;
-        if(page.includes('add-product')) url += `&catId=${catId}&ghostId=${pId}`;
-        location.href = url;
+        location.href = `${page}?ash=${ash}&productId=${pId}&catId=${catId}&ghostId=${pId}`;
     };
+
+    function closeHub() {
+        const hub = document.getElementById('hub-drawer');
+        hub.classList.add('translate-y-full');
+        setTimeout(() => hub.classList.add('hidden'), 300);
+        if(tg.BackButton) tg.BackButton.hide();
+    }
+
+    function launchSubEditor(page) {
+        const drawer = document.getElementById('quick-editor-drawer');
+        const frame = document.getElementById('quickEditorFrame');
+        const url = `${page}?ash=${ash}&sop_id=${currentSopId}&from_hub=true`;
+        
+        frame.src = url;
+        drawer.classList.remove('hidden');
+        setTimeout(() => drawer.classList.remove('translate-y-full'), 10);
+        
+        if(tg.BackButton) {
+            tg.BackButton.onClick(closeSubEditor);
+        }
+    }
+
+    function closeSubEditor() {
+        const drawer = document.getElementById('quick-editor-drawer');
+        drawer.classList.add('translate-y-full');
+        setTimeout(() => {
+            drawer.classList.add('hidden');
+            document.getElementById('quickEditorFrame').src = 'about:blank';
+        }, 300);
+        
+        // Al ritorno, ripristiniamo il BackButton per chiudere l'Hub
+        if(tg.BackButton) {
+            tg.BackButton.onClick(closeHub);
+        }
+    }
     window.openEditModal = (n, s, id) => { currentEditingCatId = id; document.getElementById('edit-cat-long').value = n; document.getElementById('edit-cat-short').value = s; document.getElementById('edit-cat-modal').classList.remove('hidden'); };
     window.closeEditModal = () => { document.getElementById('edit-cat-modal').classList.add('hidden'); };
     window.saveEditCategory = async () => {
