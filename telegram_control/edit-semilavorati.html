@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Semilavorati Manager | SiteBoS</title>
+    <title>Semilavorati Architect | SiteBoS</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -34,32 +34,15 @@
             box-shadow: none !important; 
             outline: none !important;
         }
-        .text-primary, .text-black, .text-blue-600, .text-black { color: #000000 !important; }
-        .bg-primary, .bg-black, .bg-black, .bg-black { background-color: #000000 !important; color: #ffffff !important; }
-        .border-primary, .border-black, .border-blue-600, .border-black { border-color: #000000 !important; }
-        .spinner { border-top-color: #000 !important; }
-        input[type="checkbox"]:checked { background-color: #000 !important; border-color: #000 !important; }
-        .fas, .far, .fal { font-weight: 900 !important; font-family: "Font Awesome 6 Free" !important; }
-
+        .bg-black { background-color: #000000 !important; color: #ffffff !important; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .spinner { border: 2px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .view-overlay { position: fixed; inset: 0; background: #fafafa; z-index: 50; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(100%); overflow-y: auto; }
         .view-overlay.active { transform: translateX(0); }
+        .tag-anim { animation: tagIn 0.3s ease-out; }
+        @keyframes tagIn { from { opacity: 0; scale: 0.9; } to { opacity: 1; scale: 1; } }
     </style>
-
-    <script>
-        // Blocco di Sicurezza: controlla tg.initData
-        (function() {
-            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
-                document.documentElement.innerHTML = `<body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2></div></body>`;
-                window.stop();
-            }
-        })();
-    </script>
 </head>
 <body class="p-5 pb-24">
 
@@ -70,8 +53,7 @@
     </div>
 
     <!-- MAIN DASHBOARD -->
-    <div class="max-w-md mx-auto space-y-6 animate-fade-in hidden" id="app-content">
-        
+    <div class="max-w-md mx-auto space-y-6 hidden" id="app-content">
         <header class="flex justify-between items-center py-2">
             <div>
                 <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1">Produzione</div>
@@ -84,64 +66,68 @@
 
         <section>
             <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 mb-4">Lotti Attivi</p>
-            <div id="semi-list" class="space-y-3">
-                <!-- Popolato da JS -->
-                <div class="text-center py-10 text-gray-300">
-                    <i class="fas fa-box-open text-4xl mb-2"></i>
-                    <p class="text-[10px] font-black uppercase tracking-widest">Nessun semilavorato</p>
-                </div>
-            </div>
+            <div id="semi-list" class="space-y-3"></div>
         </section>
     </div>
 
-    <!-- CREATE VIEW OVERLAY -->
+    <!-- CREATE VIEW OVERLAY (ARCHITECT) -->
     <div id="view-create" class="view-overlay flex flex-col p-5 pb-24">
         <header class="flex justify-between items-center py-2 mb-6">
             <button onclick="closeCreateView()" class="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition">
                 <i class="fas fa-arrow-left text-sm"></i>
             </button>
-            <h2 class="text-sm font-black uppercase tracking-widest">Nuovo Lotto</h2>
+            <h2 class="text-sm font-black uppercase tracking-widest italic">Nuovo Semilavorato</h2>
             <div class="w-10"></div>
         </header>
 
-        <div class="space-y-4 flex-1">
+        <div class="space-y-6 flex-1">
+            
+            <!-- 1. IDENTITÀ E LOTTO -->
             <div class="card rounded-3xl p-5 space-y-4">
+                <p class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300">📋 Identità Lotto</p>
                 
                 <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Prodotto Base (Parent ID)</label>
-                    <input type="text" id="input-parent-id" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-xs font-bold outline-none focus:border-black transition-colors" placeholder="Es. PROD-1234">
-                </div>
-
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Identificativo Lotto</label>
-                    <div class="relative">
-                        <input type="text" id="input-lot-id" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-xs font-bold outline-none focus:border-black transition-colors" placeholder="Es. LOT-2026-A1">
-                        <button onclick="generateLotId()" class="absolute right-3 top-3 text-[10px] bg-black text-white px-2 py-1 rounded-lg font-bold uppercase tracking-widest active:scale-95 transition">Auto</button>
-                    </div>
+                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Nome / Parent ID</label>
+                    <input type="text" id="input-parent-id" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-xs font-bold outline-none focus:border-black transition-colors" placeholder="Es. IMPASTO-NAPOLETANO">
                 </div>
 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
-                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Quantità</label>
-                        <input type="number" id="input-qty" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-xs font-bold outline-none focus:border-black transition-colors" placeholder="0">
+                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">ID Lotto</label>
+                        <input type="text" id="input-lot-id" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-[10px] font-black outline-none focus:border-black transition-colors uppercase" placeholder="Es. L2604-XYZ">
                     </div>
                     <div class="space-y-1">
-                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Unità di Misura</label>
-                        <select id="input-unit" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-xs font-bold outline-none focus:border-black transition-colors">
-                            <option value="kg">Chilogrammi (kg)</option>
-                            <option value="g">Grammi (g)</option>
-                            <option value="lt">Litri (lt)</option>
-                            <option value="ml">Millilitri (ml)</option>
-                            <option value="pz">Pezzi (pz)</option>
-                        </select>
+                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Quantità</label>
+                        <input type="number" id="input-qty" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-xs font-black outline-none focus:border-black transition-colors" placeholder="0">
                     </div>
                 </div>
+            </div>
 
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Data Scadenza (Opzionale)</label>
-                    <input type="date" id="input-expiry" class="w-full bg-gray-50 border border-border rounded-xl p-4 text-xs font-bold outline-none focus:border-black transition-colors">
+            <!-- 2. COMPONENTI (BOM) -->
+            <div class="card rounded-3xl p-5 space-y-4">
+                <div class="flex justify-between items-center">
+                    <p class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300">📦 Ingredienti / Componenti</p>
+                    <button onclick="addBomRow()" class="text-[9px] font-black uppercase text-blue-600">+ Aggiungi</button>
                 </div>
+                <div id="bom-container" class="space-y-2"></div>
+            </div>
 
+            <!-- 3. BLUEPRINT (PROCEDURA) -->
+            <div class="card rounded-3xl p-5 space-y-4">
+                <div class="flex justify-between items-center">
+                    <p class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300">⚡ Blueprint Operativo</p>
+                    <button onclick="addStepRow()" class="text-[9px] font-black uppercase text-blue-600">+ Step</button>
+                </div>
+                <div id="steps-container" class="space-y-3"></div>
+            </div>
+
+            <!-- 4. ASSET / ATTREZZATURE -->
+            <div class="card rounded-3xl p-5 space-y-4">
+                <div class="flex justify-between items-center">
+                    <p class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300">🛠️ Attrezzature Necessarie</p>
+                    <button onclick="addAssetRow()" class="text-[9px] font-black uppercase text-blue-600">+ Asset</button>
+                </div>
+                <div id="assets-container" class="space-y-2"></div>
             </div>
 
             <button onclick="saveSemilavorato()" class="w-full py-5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95 transition">
@@ -157,64 +143,23 @@
         
         const urlParams = new URLSearchParams(window.location.search);
         const ash = urlParams.get('ash');
+        const sopId = urlParams.get('sop_id');
         
-        let semiList = [];
-
-        async function apiCall(action, payload = {}) {
-            try {
-                const res = await fetch(WEBHOOK_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        action, 
-                        ash, 
-                        _auth: tg.initData,
-                        ...payload 
-                    })
-                });
-                if (!res.ok) throw new Error("Network error");
-                return await res.json();
-            } catch (e) {
-                console.error("API Error:", e);
-                // Non mostriamo sempre alert di errore in dev
-                return null;
-            }
-        }
-
-        function showLoader(text) {
-            document.getElementById('loader').classList.remove('hidden');
-            if (text) document.getElementById('loader-text').innerText = text;
-        }
-
-        function hideLoader() {
-            document.getElementById('loader').classList.add('hidden');
-            document.getElementById('app-content').classList.remove('hidden');
-        }
+        let semiList = [], bomItems = [], blueprintSteps = [], assetItems = [];
 
         async function initApp() {
             if (!ash) {
                 document.body.innerHTML = `<div class="h-full flex items-center justify-center font-black text-red-500">ASH MISSING</div>`;
                 return;
             }
-            
-            showLoader('Recupero Lotti...');
-            
-            // Call API
-            // const data = await apiCall('semi_get_list');
+            showLoader('Sincronizzazione...');
             
             // Mock Data
-            const data = {
-                semi_finished_goods: [
-                    { _id: '1', parent_item_id: 'PRD-IMPASTO', lot_info: { lot_id: 'LOT-2026-A1', expiry_date: '2026-05-10', produced_at: '2026-04-26' }, stock_info: { quantity: 15, unit: 'kg' } },
-                    { _id: '2', parent_item_id: 'PRD-BASE-PIZZA', lot_info: { lot_id: 'LOT-2026-B3', expiry_date: '2026-04-30', produced_at: '2026-04-27' }, stock_info: { quantity: 50, unit: 'pz' } }
-                ]
-            };
-            
             setTimeout(() => {
-                if (data && data.semi_finished_goods) {
-                    semiList = data.semi_finished_goods;
-                    renderList();
-                }
+                semiList = [
+                    { _id: '1', parent_item_id: 'PRD-IMPASTO', lot_info: { lot_id: 'LOT-2026-A1', produced_at: '2026-04-26' }, stock_info: { quantity: 15, unit: 'kg' } }
+                ];
+                renderList();
                 hideLoader();
             }, 800);
         }
@@ -222,145 +167,126 @@
         function renderList() {
             const container = document.getElementById('semi-list');
             container.innerHTML = '';
-            
             if (semiList.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-10 text-gray-300">
-                        <i class="fas fa-box-open text-4xl mb-2"></i>
-                        <p class="text-[10px] font-black uppercase tracking-widest">Nessun semilavorato</p>
-                    </div>`;
+                container.innerHTML = `<div class="text-center py-10 text-gray-300"><i class="fas fa-box-open text-4xl mb-2"></i><p class="text-[10px] font-black uppercase tracking-widest">Nessun semilavorato</p></div>`;
                 return;
             }
-
             semiList.forEach(item => {
-                const isExpiring = isCloseToExpiry(item.lot_info.expiry_date);
-                
                 const card = document.createElement('div');
                 card.className = "card rounded-2xl p-4 flex flex-col gap-2 relative overflow-hidden";
-                
-                if (isExpiring) {
-                    card.innerHTML += `<div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>`;
-                }
-
-                card.innerHTML += `
+                card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div>
                             <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">${item.parent_item_id}</p>
                             <h3 class="text-xs font-black uppercase tracking-tight">${item.lot_info.lot_id}</h3>
                         </div>
-                        <div class="text-right">
-                            <span class="bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg">${item.stock_info.quantity} ${item.stock_info.unit}</span>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-end mt-2 pt-2 border-t border-gray-50">
-                        <p class="text-[8px] font-black uppercase tracking-widest ${isExpiring ? 'text-red-500' : 'text-gray-400'}">
-                            <i class="fas fa-clock mr-1"></i> Scad: ${formatDate(item.lot_info.expiry_date) || 'N/A'}
-                        </p>
-                        <button onclick="deleteSemi('${item._id}')" class="text-[8px] font-black uppercase tracking-widest text-red-500 active:scale-95 transition">Elimina</button>
+                        <span class="bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg">${item.stock_info.quantity} ${item.stock_info.unit || 'kg'}</span>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        function isCloseToExpiry(dateStr) {
-            if (!dateStr) return false;
-            const expiry = new Date(dateStr);
-            const now = new Date();
-            const diffTime = Math.abs(expiry - now);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-            return diffDays <= 3; // Meno di 3 giorni
+        // --- BOM LOGIC ---
+        function addBomRow() {
+            const id = Date.now();
+            bomItems.push({ id, name: '', qty: 0 });
+            renderBom();
+        }
+        function renderBom() {
+            const container = document.getElementById('bom-container');
+            container.innerHTML = '';
+            bomItems.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex gap-2 items-center tag-anim';
+                row.innerHTML = `
+                    <input type="text" placeholder="Ingrediente/Mat." value="${item.name}" oninput="bomItems[${index}].name=this.value" class="flex-[2] bg-gray-50 p-2 rounded-lg text-[10px] font-bold border border-transparent focus:border-black outline-none">
+                    <input type="number" placeholder="Q.tà" value="${item.qty}" oninput="bomItems[${index}].qty=this.value" class="flex-1 bg-gray-50 p-2 rounded-lg text-[10px] font-black border border-transparent focus:border-black outline-none text-center">
+                    <button onclick="bomItems.splice(${index},1);renderBom();" class="text-red-400"><i class="fas fa-times-circle"></i></button>
+                `;
+                container.appendChild(row);
+            });
         }
 
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const d = new Date(dateStr);
-            return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        // --- STEPS LOGIC ---
+        function addStepRow() {
+            const id = Date.now();
+            blueprintSteps.push({ id, title: '', desc: '' });
+            renderSteps();
+        }
+        function renderSteps() {
+            const container = document.getElementById('steps-container');
+            container.innerHTML = '';
+            blueprintSteps.forEach((step, index) => {
+                const row = document.createElement('div');
+                row.className = 'bg-gray-50 p-3 rounded-xl border border-border tag-anim space-y-1';
+                row.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-[9px] font-black bg-black text-white px-2 py-0.5 rounded-full">${index+1}</span>
+                        <button onclick="blueprintSteps.splice(${index},1);renderSteps();" class="text-red-400 text-xs"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <input type="text" placeholder="Titolo operazione..." value="${step.title}" oninput="blueprintSteps[${index}].title=this.value" class="w-full bg-transparent text-[10px] font-black uppercase outline-none">
+                    <textarea placeholder="Dettagli step..." oninput="blueprintSteps[${index}].desc=this.value" class="w-full bg-transparent text-[9px] font-medium outline-none resize-none" rows="2">${step.desc}</textarea>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // --- ASSET LOGIC ---
+        function addAssetRow() {
+            const id = Date.now();
+            assetItems.push({ id, name: '' });
+            renderAssets();
+        }
+        function renderAssets() {
+            const container = document.getElementById('assets-container');
+            container.innerHTML = '';
+            assetItems.forEach((item, index) => {
+                const row = document.createElement('div');
+                row.className = 'flex gap-2 items-center tag-anim';
+                row.innerHTML = `
+                    <input type="text" placeholder="Nome Attrezzatura..." value="${item.name}" oninput="assetItems[${index}].name=this.value" class="flex-1 bg-gray-50 p-2 rounded-lg text-[10px] font-bold border border-transparent focus:border-black outline-none">
+                    <button onclick="assetItems.splice(${index},1);renderAssets();" class="text-red-400"><i class="fas fa-times-circle"></i></button>
+                `;
+                container.appendChild(row);
+            });
         }
 
         function openCreateView() {
             document.getElementById('view-create').classList.add('active');
-            tg.BackButton.show();
-            tg.BackButton.onClick(closeCreateView);
+            if(tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(closeCreateView); }
         }
-
         function closeCreateView() {
             document.getElementById('view-create').classList.remove('active');
-            tg.BackButton.hide();
-        }
-
-        function generateLotId() {
-            const date = new Date();
-            const yy = date.getFullYear().toString().slice(-2);
-            const mm = String(date.getMonth() + 1).padStart(2, '0');
-            const dd = String(date.getDate()).padStart(2, '0');
-            const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
-            document.getElementById('input-lot-id').value = `L${yy}${mm}${dd}-${rand}`;
+            if(tg.BackButton) tg.BackButton.hide();
         }
 
         async function saveSemilavorato() {
             const parentId = document.getElementById('input-parent-id').value.trim();
-            const lotId = document.getElementById('input-lot-id').value.trim();
-            const qty = parseFloat(document.getElementById('input-qty').value);
-            const unit = document.getElementById('input-unit').value;
-            const expiry = document.getElementById('input-expiry').value;
-
-            if (!parentId || !lotId || isNaN(qty)) {
-                tg.showAlert("Compila tutti i campi obbligatori (ID, Lotto, Quantità).");
-                return;
-            }
-
-            const payload = {
-                document_type: "SEMI_FINISHED_GOOD",
-                parent_item_id: parentId,
-                lot_info: {
-                    lot_id: lotId,
-                    expiry_date: expiry || null,
-                    produced_at: new Date().toISOString()
-                },
-                stock_info: {
-                    quantity: qty,
-                    unit: unit
-                }
-            };
-
+            if (!parentId) { tg.showAlert("Nome Semilavorato obbligatorio"); return; }
+            
             showLoader('Salvataggio...');
-
-            // API CALL
-            // const res = await apiCall('semi_create', payload);
-
-            // Mock success
+            // Invia al backend
+            const payload = {
+                action: 'SAVE_SEMI',
+                sop_id: sopId,
+                identity: { name: parentId, lot: document.getElementById('input-lot-id').value },
+                bom: bomItems,
+                blueprint: blueprintSteps,
+                assets: assetItems,
+                qty: document.getElementById('input-qty').value
+            };
+            
             setTimeout(() => {
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                semiList.push({ _id: Date.now().toString(), ...payload });
-                
-                // Clear form
-                document.getElementById('input-parent-id').value = '';
-                document.getElementById('input-lot-id').value = '';
-                document.getElementById('input-qty').value = '';
-                document.getElementById('input-expiry').value = '';
-                
+                tg.showAlert("Semilavorato Salvato correttamente!");
                 closeCreateView();
-                renderList();
                 hideLoader();
-            }, 600);
+            }, 1000);
         }
 
-        async function deleteSemi(id) {
-            tg.showConfirm("Sei sicuro di voler eliminare questo semilavorato dal magazzino?", async (conf) => {
-                if(conf) {
-                    showLoader('Eliminazione...');
-                    // await apiCall('semi_delete', { id });
-                    
-                    setTimeout(() => {
-                        semiList = semiList.filter(s => s._id !== id);
-                        renderList();
-                        hideLoader();
-                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
-                    }, 500);
-                }
-            });
-        }
+        function showLoader(text) { document.getElementById('loader').classList.remove('hidden'); document.getElementById('loader-text').innerText = text; }
+        function hideLoader() { document.getElementById('loader').classList.add('hidden'); document.getElementById('app-content').classList.remove('hidden'); }
 
         document.addEventListener('DOMContentLoaded', initApp);
     </script>

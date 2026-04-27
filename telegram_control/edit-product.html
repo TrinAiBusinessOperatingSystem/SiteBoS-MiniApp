@@ -286,18 +286,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     </div>
                 </div>
 
-                <!-- SEZIONE BLUEPRINT OPERATIVO -->
-                <div class="space-y-2 pt-4 border-t border-gray-100 mt-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Blueprint Operativo (SOP)</label>
-                        <button type="button" onclick="addBlueprintStep()" class="text-[9px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
-                            + Aggiungi Step
-                        </button>
-                    </div>
-                    <div id="blueprintContainer" class="space-y-3">
-                        <!-- JS injected -->
-                    </div>
-                </div>
             </div>
 
         </div>
@@ -355,7 +343,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             { id: "loc_3", name: "Scaffale B2" }
         ];
         
-        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [], locationItems = [], blueprintSteps = [];
+        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [], locationItems = [];
         let currentVisionContext = 'ASSET';
 
         const i18n = {
@@ -913,34 +901,9 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         function updateAssetNotes(index, value) { assetItems[index].notes = value; checkDirty(); }
         function removeAssetItem(index) { assetItems.splice(index, 1); renderAssets(); checkDirty(); }
 
-        // --- BLUEPRINT WIDGET ---
-        function renderBlueprint() {
-            const container = document.getElementById('blueprintContainer');
-            container.innerHTML = '';
-            if (blueprintSteps.length === 0) {
-                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-4 border-2 border-dashed border-gray-50 rounded-2xl uppercase tracking-widest font-black">Nessun passaggio definito</div>`;
-                return;
-            }
-            blueprintSteps.forEach((step, index) => {
-                const row = document.createElement('div');
-                row.className = 'bg-gray-50 p-3 rounded-xl border border-gray-100 tag-anim space-y-2';
-                row.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-black bg-black text-white w-5 h-5 flex items-center justify-center rounded-full">${index + 1}</span>
-                        <button type="button" onclick="removeBlueprintStep(${index})" class="text-red-400 hover:text-red-600 transition">
-                            <i class="fas fa-times-circle text-xs"></i>
-                        </button>
-                    </div>
-                    <input type="text" placeholder="Titolo Step (es. Impasto)" value="${step.title || ''}" oninput="updateBlueprintField(${index}, 'title', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors">
-                    <textarea placeholder="Descrizione dettagliata operazione..." oninput="updateBlueprintField(${index}, 'description', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-medium outline-none focus:border-black transition-colors resize-none" rows="2">${step.description || ''}</textarea>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function addBlueprintStep() { blueprintSteps.push({ title: '', description: '', estimated_duration_minutes: 5 }); renderBlueprint(); checkDirty(); }
-        function updateBlueprintField(index, field, value) { blueprintSteps[index][field] = value; checkDirty(); }
-        function removeBlueprintStep(index) { blueprintSteps.splice(index, 1); renderBlueprint(); checkDirty(); }
+        function addAssetItem() { assetItems.push({ asset_id: '', notes: '' }); renderAssets(); checkDirty(); }
+        function updateAssetNotes(index, value) { assetItems[index].notes = value; checkDirty(); }
+        function removeAssetItem(index) { assetItems.splice(index, 1); renderAssets(); checkDirty(); }
 
         // --- QUICK EDITOR LOGIC ---
         function openQuickEditor(url, title) {
@@ -1021,8 +984,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 suppliers: JSON.stringify(supplierItems),
                 locations: JSON.stringify(locationItems),
                 bom: JSON.stringify(bomItems),
-                assets: JSON.stringify(assetItems),
-                blueprint: JSON.stringify(blueprintSteps)
+                assets: JSON.stringify(assetItems)
             };
         }
 
@@ -1093,9 +1055,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
             payload.bom = bomItems;
             payload.assets = assetItems;
-
-            if (!payload.operations.execution_flow) payload.operations.execution_flow = { steps: [] };
-            payload.operations.execution_flow.steps = blueprintSteps;
 
             try {
                 await fetch(WEBHOOK_URL, {
