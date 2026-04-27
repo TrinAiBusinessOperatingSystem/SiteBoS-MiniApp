@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Support Hub | SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' }, borderRadius: { '3xl': '1.5rem' } } }
+        }
+    </script>
+    <style>
+        /* SiteBoS Architect Alignment */
+        body { background-color: #fafafa !important; color: #000000 !important; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        input:focus, textarea:focus, select:focus { border-color: #000000 !important; box-shadow: none !important; outline: none !important; }
+        .spinner { border: 2px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        input[type="checkbox"] { appearance: none; width: 18px; height: 18px; border: 2px solid #000; border-radius: 4px; position: relative; cursor: pointer; }
+        input[type="checkbox"]:checked { background-color: #000; }
+        input[type="checkbox"]:checked::after { content: "\f00c"; font-family: "Font Awesome 6 Free"; font-weight: 900; color: white; font-size: 9px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        select { appearance: none; background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 0.8em; }
+        .fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-bg text-black min-h-screen flex flex-col pb-24 overflow-x-hidden no-scrollbar">
+
+    <header class="bg-white border-b border-border p-5 sticky top-0 z-50 shadow-sm flex items-center gap-4 fade-in-up">
+        <div id="headerIcon" class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center text-lg shadow-md">
+            <i class="fas fa-ticket-alt"></i>
+        </div>
+        <div>
+            <div id="headerTag" class="hidden px-2 py-0.5 bg-black text-white text-[6px] font-black uppercase tracking-widest rounded-full mb-1 w-max">Owner Hub</div>
+            <h1 id="headerTitle" class="text-base font-black tracking-tighter uppercase leading-none">Support Center</h1>
+            <p id="headerSubtitle" class="text-[8px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Apertura Pratica</p>
+        </div>
+    </header>
+
+    <main class="flex-1 p-5 space-y-6 fade-in-up">
+        
+        <!-- NEW TICKET SETTINGS (Hidden in Handover mode) -->
+        <div id="newTicketSection" class="grid grid-cols-2 gap-3">
+            <div class="space-y-1">
+                <label class="text-[8px] font-black uppercase tracking-widest text-gray-500 ml-1">Reparto</label>
+                <select id="department" class="w-full bg-white p-3 rounded-xl text-[10px] font-bold border border-border outline-none transition focus:border-black">
+                    <option value="Tecnico">Tecnico</option>
+                    <option value="Amministrazione">Amministrazione</option>
+                    <option value="Commerciale">Commerciale</option>
+                </select>
+            </div>
+            <div class="space-y-1">
+                <label class="text-[8px] font-black uppercase tracking-widest text-gray-500 ml-1">Urgenza</label>
+                <select id="priority" class="w-full bg-white p-3 rounded-xl text-[10px] font-bold border border-border outline-none transition focus:border-black">
+                    <option value="Bassa">Bassa</option>
+                    <option value="Media" selected>Media</option>
+                    <option value="Alta">Alta 🔥</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- MESSAGE BOX -->
+        <div class="bg-white rounded-3xl p-5 border border-border shadow-sm space-y-3">
+            <div class="flex justify-between items-center px-1">
+                <span id="messageLabel" class="text-[8px] font-black uppercase tracking-widest text-gray-300">Descrizione</span>
+                <span class="text-[8px] font-bold text-gray-200 uppercase italic">Encrypted</span>
+            </div>
+            <textarea id="messageInput" rows="5" oninput="validateForm()" 
+                class="w-full bg-gray-50 p-4 rounded-2xl text-sm font-medium border border-transparent focus:border-black outline-none transition-all resize-none leading-relaxed"
+                placeholder="Scrivi qui... (min. 10 car.)"></textarea>
+        </div>
+
+        <!-- ATTACHMENT UPLOAD -->
+        <div class="space-y-2">
+            <span class="text-[8px] font-black uppercase tracking-widest text-gray-500 ml-2 italic">Allegato (Opzionale)</span>
+            <div id="uploadBox" onclick="document.getElementById('fileInput').click()" 
+                class="w-full border-2 border-dashed border-gray-100 bg-white rounded-3xl py-8 flex flex-col items-center justify-center cursor-pointer hover:border-black transition-all">
+                <div id="uploadUI" class="text-center">
+                    <i class="fas fa-paperclip text-xl text-gray-200 mb-1"></i>
+                    <p class="text-[8px] font-black uppercase tracking-widest text-gray-500">PDF, JPG, PNG (Max 10MB)</p>
+                </div>
+                <div id="filePreviewUI" class="hidden text-center">
+                    <i class="fas fa-file-circle-check text-xl text-black mb-1"></i>
+                    <p id="fileName" class="text-[9px] font-black text-black truncate max-w-[150px] uppercase"></p>
+                    <button type="button" onclick="removeFile(event)" class="text-[7px] font-black uppercase text-red-500 mt-1">Rimuovi</button>
+                </div>
+            </div>
+            <input type="file" id="fileInput" class="hidden" accept=".pdf,image/jpeg,image/png" onchange="handleFileSelect(event)">
+        </div>
+
+        <!-- NEW TICKET PRIVACY (Hidden in Handover mode) -->
+        <div id="privacySection" class="bg-white rounded-2xl p-4 border border-border shadow-sm flex items-start gap-3 transition-all active:scale-[0.98]">
+            <input type="checkbox" id="privacyCheck" onchange="validateForm()">
+            <label for="privacyCheck" class="flex-1 cursor-pointer">
+                <p class="text-[9px] font-black uppercase tracking-widest text-black">Accetto Privacy Policy</p>
+                <p class="text-[7px] text-gray-500 font-bold uppercase tracking-tight mt-1">Acconsento al trattamento dei dati SiteBoS.</p>
+            </label>
+        </div>
+
+        <!-- HANDOVER CLOSE TICKET (Hidden in New Ticket mode) -->
+        <div id="closeTicketSection" class="hidden bg-white rounded-2xl p-4 border border-border shadow-sm flex items-center gap-3 transition-all active:scale-[0.98]">
+            <input type="checkbox" id="closeTicket">
+            <label for="closeTicket" class="flex-1 cursor-pointer">
+                <p class="text-[9px] font-black uppercase tracking-widest text-black">Chiudi Pratica</p>
+                <p class="text-[7px] text-gray-500 font-bold uppercase tracking-tight">Risolvi e archivia nel database</p>
+            </label>
+        </div>
+
+    </main>
+
+    <footer class="fixed bottom-0 left-0 w-full p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-[100]">
+        <div class="flex items-center gap-3 max-w-md mx-auto">
+            <button onclick="tg.close()" class="w-10 h-10 bg-white text-black rounded-xl shadow-md flex items-center justify-center text-lg border border-gray-100 active:scale-90 transition">
+                <i class="fas fa-times"></i>
+            </button>
+            <button id="sendBtn" disabled class="flex-1 h-10 bg-black text-white rounded-xl shadow-sm font-black uppercase tracking-widest text-[9px] active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2">
+                <i class="fas fa-paper-plane text-xs"></i> <span id="btnText">Invia</span>
+            </button>
+        </div>
+    </footer>
+
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 bg-white/80 backdrop-blur-sm z-[999] hidden flex items-center justify-center">
+        <div class="spinner"></div>
+    </div>
+
+    <script>
+        'use strict';
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/8eb69e84-d20d-486e-a70e-9acf31c3da9e";
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash');
+        // Se ash è presente, siamo in modalità Handover, altrimenti New Ticket.
+        const isHandover = !!ash;
+
+        const dom = {
+            headerIcon: document.getElementById('headerIcon'),
+            headerTag: document.getElementById('headerTag'),
+            headerTitle: document.getElementById('headerTitle'),
+            headerSubtitle: document.getElementById('headerSubtitle'),
+            newTicketSection: document.getElementById('newTicketSection'),
+            privacySection: document.getElementById('privacySection'),
+            closeTicketSection: document.getElementById('closeTicketSection'),
+            messageLabel: document.getElementById('messageLabel'),
+            messageInput: document.getElementById('messageInput'),
+            department: document.getElementById('department'),
+            priority: document.getElementById('priority'),
+            privacyCheck: document.getElementById('privacyCheck'),
+            closeTicketCheck: document.getElementById('closeTicket'),
+            fileInput: document.getElementById('fileInput'),
+            uploadBox: document.getElementById('uploadBox'),
+            uploadUI: document.getElementById('uploadUI'),
+            previewUI: document.getElementById('filePreviewUI'),
+            fileName: document.getElementById('fileName'),
+            btn: document.getElementById('sendBtn'),
+            btnText: document.getElementById('btnText'),
+            loader: document.getElementById('loader')
+        };
+
+        let selectedFile = null;
+
+        function initUI() {
+            if (isHandover) {
+                // Configurazione Handover (Risposta a pratica esistente)
+                dom.headerIcon.innerHTML = '<i class="fas fa-headset"></i>';
+                dom.headerTag.classList.remove('hidden');
+                dom.headerTitle.innerText = 'Handover Chat';
+                dom.headerSubtitle.innerText = 'Protocollo Risposta';
+                dom.newTicketSection.classList.add('hidden');
+                dom.privacySection.classList.add('hidden');
+                dom.closeTicketSection.classList.remove('hidden');
+                dom.messageLabel.innerText = 'Messaggio di Handover';
+                dom.btnText.innerText = 'Invia Risposta';
+                // In Handover mode, la policy non serve, abilitiamo se c'è testo
+                validateForm(); 
+            } else {
+                // Configurazione New Ticket (Apertura nuova pratica)
+                dom.btnText.innerText = 'Invia Ticket';
+            }
+        }
+
+        function validateForm() {
+            const textLength = dom.messageInput.value.trim().length;
+            if (isHandover) {
+                // In handover serve solo testo o file (almeno 1 dei due) - se solo testo, almeno 2 caratteri
+                dom.btn.disabled = !(textLength > 1 || selectedFile);
+            } else {
+                // In new ticket serve testo min 10 car + privacy checked
+                dom.btn.disabled = !(textLength >= 10 && dom.privacyCheck.checked);
+            }
+        }
+
+        function handleFileSelect(e) {
+            const f = e.target.files[0]; if (!f) return;
+            if (f.size > 10 * 1024 * 1024) { tg.showAlert("Il file supera i 10MB massimi consentiti."); return; }
+            const r = new FileReader(); 
+            r.onload = (ev) => {
+                selectedFile = { base64_content: ev.target.result.split(',')[1], mime_type: f.type, file_name: f.name };
+                dom.uploadUI.classList.add('hidden'); 
+                dom.previewUI.classList.remove('hidden');
+                dom.fileName.innerText = f.name; 
+                validateForm();
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            };
+            r.readAsDataURL(f);
+        }
+
+        function removeFile(e) { 
+            e.stopPropagation(); 
+            selectedFile = null; 
+            dom.fileInput.value = ''; 
+            dom.previewUI.classList.add('hidden'); 
+            dom.uploadUI.classList.remove('hidden'); 
+            validateForm();
+        }
+
+        dom.btn.onclick = async () => {
+            dom.btn.disabled = true; 
+            dom.loader.classList.remove('hidden'); 
+            dom.btnText.innerText = "INVIO...";
+            
+            const payload = {
+                _auth: tg.initData,
+                user_id: tg.initDataUnsafe?.user?.id,
+                action: isHandover ? "handover" : "submit_ticket",
+                timestamp: new Date().toISOString()
+            };
+
+            if (isHandover) {
+                payload.ash = ash;
+                payload.message_text = dom.messageInput.value.trim();
+                payload.close_ticket = dom.closeTicketCheck.checked;
+                payload.file_data = selectedFile;
+            } else {
+                payload.ticket_data = {
+                    department: dom.department.value,
+                    priority: dom.priority.value,
+                    message: dom.messageInput.value.trim(),
+                    attachment: selectedFile ? selectedFile.base64_content : null
+                };
+            }
+
+            try {
+                const r = await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify(payload) 
+                });
+                
+                if (r.ok) { 
+                    dom.btn.className = "flex-1 h-10 bg-green-600 text-black rounded-xl shadow-sm font-black uppercase tracking-widest text-[9px] flex items-center justify-center gap-2"; 
+                    dom.btnText.innerText = "INVIATO!"; 
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); 
+                    setTimeout(() => tg.close(), 1200); 
+                } else {
+                    throw new Error("Network response was not ok");
+                }
+            } catch (err) { 
+                dom.loader.classList.add('hidden'); 
+                dom.btn.disabled = false; 
+                dom.btnText.innerText = "RIPROVA"; 
+                tg.showAlert("Si è verificato un errore durante l'invio.");
+            }
+        };
+
+        initUI();
+    </script>
+</body>
+</html>

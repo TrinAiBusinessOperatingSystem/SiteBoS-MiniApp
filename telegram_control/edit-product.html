@@ -230,6 +230,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             
             <!-- HIDDEN FIELDS PER FORNITORE -->
             <input type="hidden" id="drawerSupplierName">
+            <input type="hidden" id="drawerSupplierItem">
             <input type="hidden" id="drawerSupplierVat">
             <input type="hidden" id="drawerSupplierPrice">
             <input type="hidden" id="drawerSupplierSku">
@@ -253,6 +254,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     </div>
                     <div class="space-y-2">
                         <input type="text" id="suppName" placeholder="Nome Fornitore *" class="w-full p-2.5 text-xs font-bold rounded-lg border border-transparent focus:border-black outline-none">
+                        <input type="text" id="suppItemName" placeholder="Cosa Fornisce? (es. Base Pizza) *" class="w-full p-2.5 text-xs font-bold rounded-lg border border-transparent focus:border-black outline-none">
                         <input type="text" id="suppVat" placeholder="P.IVA / VAT" class="w-full p-2.5 text-xs font-bold rounded-lg border border-transparent focus:border-black outline-none">
                         <div class="grid grid-cols-2 gap-2">
                             <input type="number" step="0.01" id="suppPrice" placeholder="Costo (€)" class="w-full p-2.5 text-xs font-black rounded-lg border border-transparent focus:border-black outline-none text-right">
@@ -266,7 +268,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             <!-- SEZIONE SEMILAVORAZIONI -->
             <div class="space-y-2 pt-2 border-t border-gray-100 mt-4">
                 <div class="flex items-center justify-between mb-2">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Semilavorazioni (BOM)</label>
+                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Semilavorazioni</label>
                     <button type="button" onclick="addBomItem()" class="text-[9px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
                         + Aggiungi
                     </button>
@@ -311,6 +313,9 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         </div>
     </div>
 
+    <!-- HIDDEN FILE INPUT FOR ASSETS -->
+    <input type="file" id="assetFileInput" multiple accept="image/*,application/pdf" class="hidden" onchange="handleAssetFiles(this)">
+
     <script>
         'use strict';
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/2c6416b1-32c6-4661-bd8f-b175d24fd035";
@@ -323,8 +328,8 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         const langParam = tg.initDataUnsafe?.user?.language_code || 'it';
 
         let globalSuppliers = [
-            { id: "supp_1", name: "GlobalTech Italia SRL", vat: "IT0123456789", price: 14.50, sku: "GT-991" },
-            { id: "supp_2", name: "Forniture Rapide SPA", vat: "IT9876543210", price: 15.00, sku: "FR-AX2" }
+            { id: "supp_1", name: "GlobalTech Italia SRL", item: "Scheda Madre AX", vat: "IT0123456789", price: 14.50, sku: "GT-991" },
+            { id: "supp_2", name: "Forniture Rapide SPA", item: "Base Pizza 33cm", vat: "IT9876543210", price: 15.00, sku: "FR-AX2" }
         ];
         let globalSemis = [
             { id: "semi_1", name: "Lotto Legno Premium" },
@@ -430,6 +435,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             
             // Drawer fields
             val('drawerSupplierName', data.procurement?.supplier_name);
+            val('drawerSupplierItem', data.procurement?.supplier_item_name);
             val('drawerSupplierVat', data.procurement?.supplier_vat);
             val('drawerSupplierPrice', data.procurement?.cost_of_goods);
             val('drawerSupplierSku', data.procurement?.supplier_sku);
@@ -517,6 +523,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     const nid = 'supp_custom_' + Date.now();
                     globalSuppliers.push({
                         id: nid, name: storedName,
+                        item: document.getElementById('drawerSupplierItem').value,
                         vat: document.getElementById('drawerSupplierVat').value,
                         price: document.getElementById('drawerSupplierPrice').value,
                         sku: document.getElementById('drawerSupplierSku').value
@@ -540,12 +547,32 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             if (val === 'NEW') {
                 openSupplierForm(false);
             } else if (val === 'SCAN') {
-                tg.showAlert("La funzione Scan AI analizzerà una foto per estrarre Fornitore e Prezzi automaticamente. Presto disponibile!");
+                // RICERCA FORNITORI AI
+                const query = prompt("Inserisci nome o parole chiave per cercare il fornitore:");
+                if (query) {
+                    tg.showScanQrPopup({ text: "Ricerca Fornitore in corso..." }); // Visual feedback
+                    setTimeout(() => tg.closeScanQrPopup(), 2000);
+                    
+                    fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            _auth: tg.initData, 
+                            action: 'SEARCH_SUPPLIER', 
+                            query: query,
+                            sop_id: sopId 
+                        })
+                    }).then(res => res.json())
+                      .then(data => {
+                          tg.showAlert("Ricerca inviata al backend. Riceverai i risultati a breve.");
+                      }).catch(err => console.error(err));
+                }
                 document.getElementById('supplierSelect').value = '';
             } else if (val) {
                 const match = globalSuppliers.find(x => x.id === val);
                 if (match) {
                     document.getElementById('drawerSupplierName').value = match.name;
+                    document.getElementById('drawerSupplierItem').value = match.item || '';
                     document.getElementById('drawerSupplierVat').value = match.vat;
                     document.getElementById('drawerSupplierPrice').value = match.price;
                     document.getElementById('drawerSupplierSku').value = match.sku;
@@ -562,6 +589,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         function removeSupplier() {
             document.getElementById('supplierSelect').value = '';
             document.getElementById('drawerSupplierName').value = '';
+            document.getElementById('drawerSupplierItem').value = '';
             document.getElementById('drawerSupplierVat').value = '';
             document.getElementById('drawerSupplierPrice').value = '';
             document.getElementById('drawerSupplierSku').value = '';
@@ -579,6 +607,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 const match = globalSuppliers.find(x => x.id === val);
                 if (match) {
                     document.getElementById('suppName').value = match.name;
+                    document.getElementById('suppItemName').value = match.item || '';
                     document.getElementById('suppVat').value = match.vat;
                     document.getElementById('suppPrice').value = match.price;
                     document.getElementById('suppSku').value = match.sku;
@@ -586,6 +615,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             } else {
                 document.getElementById('supplierFormTitle').innerText = "Nuovo Fornitore";
                 document.getElementById('suppName').value = '';
+                document.getElementById('suppItemName').value = '';
                 document.getElementById('suppVat').value = '';
                 document.getElementById('suppPrice').value = '';
                 document.getElementById('suppSku').value = '';
@@ -599,14 +629,15 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function saveSupplierForm() {
             const name = document.getElementById('suppName').value.trim();
-            if(!name) { tg.showAlert("Il nome fornitore è obbligatorio"); return; }
+            const itemName = document.getElementById('suppItemName').value.trim();
+            if(!name || !itemName) { tg.showAlert("Fornitore e Articolo sono obbligatori"); return; }
             
             const selVal = document.getElementById('supplierSelect').value;
             const isEdit = selVal && selVal !== 'NEW' && selVal !== 'SCAN';
             const id = isEdit ? selVal : 'supp_' + Date.now();
             
             const data = {
-                id: id, name: name,
+                id: id, name: name, item: itemName,
                 vat: document.getElementById('suppVat').value,
                 price: document.getElementById('suppPrice').value,
                 sku: document.getElementById('suppSku').value
@@ -620,6 +651,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             }
             
             document.getElementById('drawerSupplierName').value = data.name;
+            document.getElementById('drawerSupplierItem').value = data.item;
             document.getElementById('drawerSupplierVat').value = data.vat;
             document.getElementById('drawerSupplierPrice').value = data.price;
             document.getElementById('drawerSupplierSku').value = data.sku;
@@ -677,7 +709,20 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 document.getElementById(`bomFormName_${index}`).value = '';
                 bomItems[index].semi_id = '';
             } else if (val === 'SCAN') {
-                tg.showAlert("Ricerca AI Semilavorati arriverà a breve!");
+                // SMART DRAFT PER SEMILAVORATI
+                tg.showConfirm("Vuoi avviare la creazione intelligente (Smart Draft) per questo semilavorato e la sua ricetta?", (conf) => {
+                    if (conf) {
+                        fetch(WEBHOOK_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                _auth: tg.initData, 
+                                action: 'SMART_DRAFT_BOM', 
+                                sop_id: sopId 
+                            })
+                        }).then(() => tg.showAlert("Richiesta Smart Draft inviata!"));
+                    }
+                });
                 renderBom();
             } else {
                 bomItems[index].semi_id = val;
@@ -763,7 +808,8 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 document.getElementById(`assetFormName_${index}`).value = '';
                 assetItems[index].asset_id = '';
             } else if (val === 'SCAN') {
-                tg.showAlert("Ricerca AI Asset arriverà a breve!");
+                // VISION AI PER ASSET (FOTO/PDF)
+                document.getElementById('assetFileInput').click();
                 renderAssets();
             } else {
                 assetItems[index].asset_id = val;
@@ -771,6 +817,54 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 renderAssets();
                 checkDirty();
             }
+        }
+
+        async function handleAssetFiles(input) {
+            const files = Array.from(input.files);
+            if (files.length > 4) {
+                tg.showAlert("Massimo 4 file consentiti.");
+                input.value = '';
+                return;
+            }
+            if (files.length === 0) return;
+
+            tg.MainButton.setText("CARICAMENTO FILE...").show();
+            
+            try {
+                const base64Files = await Promise.all(files.map(f => convertToBase64(f)));
+                
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        _auth: tg.initData, 
+                        action: 'VISION_ASSET_ANALYSIS', 
+                        files: base64Files,
+                        sop_id: sopId 
+                    })
+                });
+                
+                tg.showAlert("File inviati per l'analisi vision. Riceverai i dati a breve.");
+            } catch (err) {
+                console.error(err);
+                tg.showAlert("Errore durante il caricamento dei file.");
+            } finally {
+                tg.MainButton.hide();
+                input.value = '';
+            }
+        }
+
+        function convertToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve({
+                    name: file.name,
+                    type: file.type,
+                    data: reader.result.split(',')[1]
+                });
+                reader.onerror = error => reject(error);
+            });
         }
         
         function editAssetItem(index) {
@@ -827,66 +921,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             if(tg.BackButton) tg.BackButton.hide();
         }
 
-        function renderBom() {
-            const container = document.getElementById('bomContainer');
-            container.innerHTML = '';
-            if (bomItems.length === 0) {
-                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-4 border-2 border-dashed border-gray-50 rounded-2xl uppercase tracking-widest font-black">Nessun semilavorato collegato</div>`;
-                return;
-            }
-            bomItems.forEach((item, index) => {
-                const row = document.createElement('div');
-                row.className = 'flex items-center gap-2 bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim';
-                row.innerHTML = `
-                    <div class="flex-1">
-                        <input type="text" placeholder="ID Semilavorato" value="${item.semi_id || ''}" oninput="updateBomItem(${index}, 'semi_id', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors">
-                    </div>
-                    <div class="w-16">
-                        <input type="number" step="0.01" placeholder="Q.tà" value="${item.qty || 1}" oninput="updateBomItem(${index}, 'qty', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
-                    </div>
-                    <button type="button" onclick="editSemi('${item.semi_id}')" class="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors">
-                        <i class="fas fa-pencil-alt text-[10px]"></i>
-                    </button>
-                    <button type="button" onclick="removeBomItem(${index})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-colors">
-                        <i class="fas fa-trash-alt text-[10px]"></i>
-                    </button>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function openBomSelector() {
-            tg.showConfirm("Vuoi inserire un semilavorato esistente? Premi ANNULLA per crearne uno nuovo.", (conf) => {
-                if(conf) {
-                    addBomItem(); 
-                } else {
-                    window.location.href = `edit-semilavorati.html?ash=${ash}&sop_id=${sopId}`;
-                }
-            });
-        }
-
-        function editSemi(semiId) {
-            if(!semiId) { tg.showAlert("Imposta l'ID prima di modificare."); return; }
-            window.location.href = `edit-semilavorati.html?ash=${ash}&sop_id=${sopId}&edit_id=${semiId}`;
-        }
-
-        function addBomItem() {
-            bomItems.push({ semi_id: '', qty: 1 });
-            renderBom();
-            checkDirty();
-        }
-
-        function updateBomItem(index, field, value) {
-            if (field === 'qty') value = parseFloat(value) || 0;
-            bomItems[index][field] = value;
-            checkDirty();
-        }
-
-        function removeBomItem(index) {
-            bomItems.splice(index, 1);
-            renderBom();
-            checkDirty();
-        }
         // --------------------------
 
         function collectDataFromForm() {
@@ -905,6 +939,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 st: skillTags.join(','),
                 ex: JSON.stringify(extraOptions),
                 suppName: document.getElementById('drawerSupplierName').value,
+                suppItem: document.getElementById('drawerSupplierItem').value,
                 suppVat: document.getElementById('drawerSupplierVat').value,
                 suppPrice: document.getElementById('drawerSupplierPrice').value,
                 suppSku: document.getElementById('drawerSupplierSku').value,
@@ -976,6 +1011,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             // Update Drawer specific nodes
             if (!payload.procurement) payload.procurement = {};
             payload.procurement.supplier_name = form.suppName;
+            payload.procurement.supplier_item_name = form.suppItem;
             payload.procurement.supplier_vat = form.suppVat;
             payload.procurement.cost_of_goods = parseFloat(form.suppPrice) || 0;
             payload.procurement.supplier_sku = form.suppSku;
