@@ -202,6 +202,7 @@
                     body: JSON.stringify({ 
                         action, 
                         ash, 
+                        sop_id: sopId,
                         _auth: tg.initData,
                         ...payload 
                     })
@@ -320,7 +321,7 @@
             showLoader('Recupero Sessioni...');
             
             // API CALL
-            let data = await apiCall('cert_get_list');
+            let data = await apiCall('GET', { type: 'CERT_LIST' });
             
             // Fallback to MOCK se il backend non risponde
             if (!data || !data.sessions) {
@@ -375,8 +376,8 @@
                 });
             }
             
-            // API CALL: cert_get_state
-            let data = await apiCall('cert_get_state', { session_id: id });
+            // API CALL: GET CERT_STATE
+            let data = await apiCall('GET', { type: 'CERT_STATE', session_id: id });
             
             // Fallback to MOCK se il backend non risponde
             if (!data || !data.session) {
@@ -412,7 +413,7 @@
 
         async function startNewSession() {
             showLoader('Avvio nuova certificazione...');
-            const data = await apiCall('cert_init');
+            const data = await apiCall('SAVE', { type: 'CERT_INIT' });
             
             if (data && data.session_id) {
                 loadSession(data.session_id);
@@ -495,7 +496,8 @@
             showLoader('Salvataggio...');
             
             // API CALL: aggiorna step
-            const res = await apiCall('cert_update_step', { 
+            const res = await apiCall('SAVE', { 
+                type: 'CERT_UPDATE',
                 session_id: currentSession.id, 
                 step_id: step.id, 
                 evidence_type: activeEvidenceType,
@@ -518,7 +520,7 @@
         }
 
         async function finishSession() {
-            await apiCall('cert_finish', { session_id: currentSession.id });
+            await apiCall('SAVE', { type: 'CERT_FINISH', session_id: currentSession.id });
             currentSession.status = 'COMPLETED';
             showCompletion();
             hideLoader();
