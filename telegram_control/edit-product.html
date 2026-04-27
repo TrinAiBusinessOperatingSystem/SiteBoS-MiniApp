@@ -256,14 +256,15 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
             <!-- SEZIONE LOGISTICA E ASSET -->
             <div class="space-y-4 pt-4 border-t border-gray-100 mt-4">
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="space-y-1">
-                        <label id="lblStorageLoc" class="text-[8px] font-black text-gray-500 uppercase ml-1">Scaffale/Area</label>
-                        <input type="text" id="drawerStorageLocation" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition" oninput="checkDirty()">
+                <div class="space-y-2 pt-2">
+                    <div class="flex items-center justify-between mb-2">
+                        <label id="lblStorageLoc" class="text-[8px] font-black uppercase tracking-widest text-gray-500">Aree Logistiche / Erogazione</label>
+                        <button type="button" onclick="addLocationItem()" class="text-[8px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
+                            + Aggiungi
+                        </button>
                     </div>
-                    <div class="space-y-1" id="divStorageTemp">
-                        <label class="text-[8px] font-black text-gray-500 uppercase ml-1">Temp. (°C)</label>
-                        <input type="text" id="drawerStorageTemp" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition" placeholder="Ambiente" oninput="checkDirty()">
+                    <div id="locationContainer" class="space-y-2">
+                        <!-- JS injected -->
                     </div>
                 </div>
                 
@@ -289,8 +290,8 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         </div>
     </div>
 
-    <!-- HIDDEN FILE INPUT FOR ASSETS -->
-    <input type="file" id="assetFileInput" multiple accept="image/*,application/pdf" class="hidden" onchange="handleAssetFiles(this)">
+    <!-- HIDDEN FILE INPUT FOR VISION AI -->
+    <input type="file" id="visionFileInput" multiple accept="image/*,application/pdf" class="hidden" onchange="handleVisionFiles(this)">
 
     <script>
         'use strict';
@@ -316,7 +317,14 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             { id: "ast_2", name: "Trapano a Colonna" }
         ];
         
-        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [];
+        let globalLocations = [
+            { id: "loc_1", name: "Cella Frigo A" },
+            { id: "loc_2", name: "Sala Meeting 1" },
+            { id: "loc_3", name: "Scaffale B2" }
+        ];
+        
+        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [], locationItems = [];
+        let currentVisionContext = 'ASSET';
 
         const i18n = {
             it: { 
@@ -429,14 +437,26 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 });
             }
 
-            val('drawerStorageLocation', data.logistics?.storage_location);
-            val('drawerStorageTemp', data.logistics?.storage_temperature);
+            // Locations fields
+            locationItems = data.logistics?.locations || [];
+            
+            // Legacy conversion for locations
+            if (locationItems.length === 0 && data.logistics?.storage_location) {
+                const legacyId = 'loc_legacy_' + Date.now();
+                globalLocations.push({ id: legacyId, name: data.logistics.storage_location });
+                locationItems.push({
+                    loc_id: legacyId,
+                    temperature: data.logistics.storage_temperature || ''
+                });
+            }
+
             bomItems = data.bom || [];
             assetItems = data.assets || [];
 
             renderTags(dom.skillContainer, skillTags);
             renderAddons();
             renderSuppliers();
+            renderLocations();
             renderBom();
             renderAssets();
         }
@@ -608,6 +628,68 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         function updateSupplierField(index, field, value) { supplierItems[index][field] = field==='cost'?parseFloat(value)||0:value; checkDirty(); }
         function removeSupplierItem(index) { supplierItems.splice(index, 1); renderSuppliers(); checkDirty(); }
 
+        // --- LOCATIONS WIDGET ---
+        function renderLocations() {
+            const container = document.getElementById('locationContainer');
+            if(!container) return; // Fail-safe
+            container.innerHTML = '';
+            if (locationItems.length === 0) {
+                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-4 border-2 border-dashed border-gray-50 rounded-2xl uppercase tracking-widest font-black">Nessun luogo configurato</div>`;
+                return;
+            }
+            locationItems.forEach((item, index) => {
+                let optionsHtml = `<option value="">-- Seleziona --</option><option value="NEW">➕ Crea Nuovo</option><option value="SCAN">📸 Scan AI</option>`;
+                globalLocations.forEach(s => {
+                    optionsHtml += `<option value="${s.id}" ${item.loc_id === s.id ? 'selected' : ''}>${s.name}</option>`;
+                });
+                if (item.loc_id && !globalLocations.find(x => x.id === item.loc_id)) {
+                    optionsHtml += `<option value="${item.loc_id}" selected>${item.loc_id} (Sconosciuto)</option>`;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim mb-2';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2 mb-2">
+                        <select onchange="handleLocationSelect(${index}, this.value)" class="flex-1 w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
+                            ${optionsHtml}
+                        </select>
+                        <button type="button" onclick="editLocationItem(${index})" class="${item.loc_id ? 'flex' : 'hidden'} w-8 h-8 items-center justify-center bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-pencil-alt text-[10px]"></i>
+                        </button>
+                        <button type="button" onclick="removeLocationItem(${index})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-colors">
+                            <i class="fas fa-trash-alt text-[10px]"></i>
+                        </button>
+                    </div>
+                    <input type="text" placeholder="Condizioni (es. +4°C, o note erogazione)" value="${item.temperature || ''}" oninput="updateLocationNotes(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-medium outline-none focus:border-black transition-colors">
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function handleLocationSelect(index, val) {
+            if(val === 'NEW') {
+                checkUnsavedAndRedirect(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=NEW`);
+                setTimeout(() => renderLocations(), 500);
+            } else if (val === 'SCAN') {
+                currentVisionContext = 'LOCATION';
+                document.getElementById('visionFileInput').click();
+                renderLocations();
+            } else {
+                locationItems[index].loc_id = val;
+                renderLocations();
+                checkDirty();
+            }
+        }
+
+        function editLocationItem(index) {
+            const sid = locationItems[index].loc_id;
+            checkUnsavedAndRedirect(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=${sid}`);
+        }
+
+        function addLocationItem() { locationItems.push({ loc_id: '', temperature: '' }); renderLocations(); checkDirty(); }
+        function updateLocationNotes(index, value) { locationItems[index].temperature = value; checkDirty(); }
+        function removeLocationItem(index) { locationItems.splice(index, 1); renderLocations(); checkDirty(); }
+
         // --- BOM WIDGET ---
         function renderBom() {
             const container = document.getElementById('bomContainer');
@@ -640,20 +722,26 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                             <i class="fas fa-trash-alt text-[10px]"></i>
                         </button>
                     </div>
-                    <div id="bomForm_${index}" class="hidden bg-gray-100 p-2 rounded-lg space-y-2 mt-2">
-                        <input type="text" id="bomFormName_${index}" placeholder="Nome Semilavorato *" class="w-full p-2 text-[10px] font-bold rounded-lg border-none outline-none focus:border-black">
-                        <button type="button" onclick="saveBomForm(${index})" class="w-full bg-black text-white text-[9px] font-black uppercase tracking-widest p-2 rounded-lg active:scale-95 transition">Salva Semilavorato</button>
-                    </div>
                 `;
                 container.appendChild(row);
             });
         }
         
+        function checkUnsavedAndRedirect(url) {
+            if (!dom.saveBtn.disabled) {
+                tg.showConfirm("Attenzione: hai modifiche non salvate in questa pagina. Vuoi uscire comunque senza salvare?", (conf) => {
+                    if(conf) window.location.href = url;
+                });
+            } else {
+                window.location.href = url;
+            }
+        }
+        
         function handleBomSelect(index, val) {
             if(val === 'NEW') {
-                document.getElementById(`bomForm_${index}`).classList.remove('hidden');
-                document.getElementById(`bomFormName_${index}`).value = '';
-                bomItems[index].semi_id = '';
+                checkUnsavedAndRedirect(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=NEW`);
+                // Reset select UI if user cancels
+                setTimeout(() => renderBom(), 500);
             } else if (val === 'SCAN') {
                 // SMART DRAFT PER SEMILAVORATI
                 tg.showConfirm("Vuoi avviare la creazione intelligente (Smart Draft) per questo semilavorato e la sua ricetta?", (conf) => {
@@ -672,7 +760,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 renderBom();
             } else {
                 bomItems[index].semi_id = val;
-                document.getElementById(`bomForm_${index}`).classList.add('hidden');
                 renderBom();
                 checkDirty();
             }
@@ -680,26 +767,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         
         function editBomItem(index) {
             const sid = bomItems[index].semi_id;
-            const match = globalSemis.find(x => x.id === sid);
-            document.getElementById(`bomForm_${index}`).classList.remove('hidden');
-            document.getElementById(`bomFormName_${index}`).value = match ? match.name : sid;
-        }
-        
-        function saveBomForm(index) {
-            const name = document.getElementById(`bomFormName_${index}`).value.trim();
-            if(!name) { tg.showAlert("Nome obbligatorio"); return; }
-            let sid = bomItems[index].semi_id;
-            if(!sid) {
-                sid = 'semi_' + Date.now();
-                globalSemis.push({ id: sid, name: name });
-                bomItems[index].semi_id = sid;
-            } else {
-                const match = globalSemis.find(x => x.id === sid);
-                if(match) match.name = name;
-                else globalSemis.push({ id: sid, name: name });
-            }
-            renderBom();
-            checkDirty();
+            checkUnsavedAndRedirect(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=${sid}`);
         }
 
         function addBomItem() { bomItems.push({ semi_id: '', qty: 1 }); renderBom(); checkDirty(); }
@@ -738,11 +806,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                         </button>
                     </div>
                     <input type="text" placeholder="Note operative (es. portarlo carico)" value="${item.notes || ''}" oninput="updateAssetNotes(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-medium outline-none focus:border-black transition-colors">
-                    
-                    <div id="assetForm_${index}" class="hidden bg-gray-100 p-2 rounded-lg space-y-2 mt-2">
-                        <input type="text" id="assetFormName_${index}" placeholder="Nome Asset *" class="w-full p-2 text-[10px] font-bold rounded-lg border-none outline-none focus:border-black">
-                        <button type="button" onclick="saveAssetForm(${index})" class="w-full bg-black text-white text-[9px] font-black uppercase tracking-widest p-2 rounded-lg active:scale-95 transition">Salva Asset</button>
-                    </div>
                 `;
                 container.appendChild(row);
             });
@@ -750,25 +813,24 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function handleAssetSelect(index, val) {
             if(val === 'NEW') {
-                document.getElementById(`assetForm_${index}`).classList.remove('hidden');
-                document.getElementById(`assetFormName_${index}`).value = '';
-                assetItems[index].asset_id = '';
+                checkUnsavedAndRedirect(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=NEW`);
+                setTimeout(() => renderAssets(), 500);
             } else if (val === 'SCAN') {
                 // VISION AI PER ASSET (FOTO/PDF)
-                document.getElementById('assetFileInput').click();
+                currentVisionContext = 'ASSET';
+                document.getElementById('visionFileInput').click();
                 renderAssets();
             } else {
                 assetItems[index].asset_id = val;
-                document.getElementById(`assetForm_${index}`).classList.add('hidden');
                 renderAssets();
                 checkDirty();
             }
         }
 
-        async function handleAssetFiles(input) {
+        async function handleVisionFiles(input) {
             const files = Array.from(input.files);
             if (files.length > 4) {
-                tg.showAlert("Massimo 4 file consentiti.");
+                tg.showAlert("Massimo 4 file consentiti per lo Scan AI.");
                 input.value = '';
                 return;
             }
@@ -784,7 +846,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         _auth: tg.initData, 
-                        action: 'VISION_ASSET_ANALYSIS', 
+                        action: `VISION_${currentVisionContext}_ANALYSIS`, 
                         files: base64Files,
                         sop_id: sopId 
                     })
@@ -815,26 +877,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         
         function editAssetItem(index) {
             const sid = assetItems[index].asset_id;
-            const match = globalAssets.find(x => x.id === sid);
-            document.getElementById(`assetForm_${index}`).classList.remove('hidden');
-            document.getElementById(`assetFormName_${index}`).value = match ? match.name : sid;
-        }
-        
-        function saveAssetForm(index) {
-            const name = document.getElementById(`assetFormName_${index}`).value.trim();
-            if(!name) { tg.showAlert("Nome obbligatorio"); return; }
-            let sid = assetItems[index].asset_id;
-            if(!sid) {
-                sid = 'ast_' + Date.now();
-                globalAssets.push({ id: sid, name: name });
-                assetItems[index].asset_id = sid;
-            } else {
-                const match = globalAssets.find(x => x.id === sid);
-                if(match) match.name = name;
-                else globalAssets.push({ id: sid, name: name });
-            }
-            renderAssets();
-            checkDirty();
+            checkUnsavedAndRedirect(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=${sid}`);
         }
 
         function addAssetItem() { assetItems.push({ asset_id: '', notes: '' }); renderAssets(); checkDirty(); }
@@ -844,13 +887,9 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         function openAdvancedDrawer() {
             const itemType = document.getElementById('itemType').value;
             if (itemType === 'SERVICE') {
-                document.getElementById('lblStorageLoc').innerText = "Luogo Erogazione";
-                document.getElementById('drawerStorageLocation').placeholder = "Es. Sala 1, Ufficio...";
-                document.getElementById('divStorageTemp').classList.add('hidden');
+                document.getElementById('lblStorageLoc').innerText = "Luoghi di Erogazione";
             } else {
-                document.getElementById('lblStorageLoc').innerText = "Scaffale/Area Stoccaggio";
-                document.getElementById('drawerStorageLocation').placeholder = "";
-                document.getElementById('divStorageTemp').classList.remove('hidden');
+                document.getElementById('lblStorageLoc').innerText = "Aree di Stoccaggio";
             }
 
             document.getElementById('advanced-drawer').classList.remove('translate-y-full');
@@ -886,8 +925,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 ex: JSON.stringify(extraOptions),
                 ex: JSON.stringify(extraOptions),
                 suppliers: JSON.stringify(supplierItems),
-                locLoc: document.getElementById('drawerStorageLocation').value,
-                locTemp: document.getElementById('drawerStorageTemp').value,
+                locations: JSON.stringify(locationItems),
                 bom: JSON.stringify(bomItems),
                 assets: JSON.stringify(assetItems)
             };
@@ -956,8 +994,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             payload.procurement.suppliers = supplierItems;
 
             if (!payload.logistics) payload.logistics = {};
-            payload.logistics.storage_location = form.locLoc;
-            payload.logistics.storage_temperature = form.locTemp;
+            payload.logistics.locations = locationItems;
 
             payload.bom = bomItems;
             payload.assets = assetItems;
