@@ -146,6 +146,11 @@
         const sopId = urlParams.get('sop_id');
         
         let semiList = [], bomItems = [], blueprintSteps = [], assetItems = [];
+        let globalAssets = [
+            { id: "ast_1", name: "Impastatrice Spirale" },
+            { id: "ast_2", name: "Cella Lievitazione" },
+            { id: "ast_3", name: "Bilancia Digitale" }
+        ];
 
         async function initApp() {
             if (!ash) {
@@ -232,24 +237,47 @@
             });
         }
 
-        // --- ASSET LOGIC ---
+        // --- ASSET LOGIC (Allineato a Advanced Drawer) ---
         function addAssetRow() {
-            const id = Date.now();
-            assetItems.push({ id, name: '' });
+            assetItems.push({ asset_id: '', notes: '' });
             renderAssets();
         }
         function renderAssets() {
             const container = document.getElementById('assets-container');
             container.innerHTML = '';
             assetItems.forEach((item, index) => {
+                let optionsHtml = `<option value="">-- Seleziona --</option><option value="NEW">➕ Nuovo</option>`;
+                globalAssets.forEach(a => {
+                    optionsHtml += `<option value="${a.id}" ${item.asset_id === a.id ? 'selected' : ''}>${a.name}</option>`;
+                });
+
                 const row = document.createElement('div');
-                row.className = 'flex gap-2 items-center tag-anim';
+                row.className = 'bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim space-y-2';
                 row.innerHTML = `
-                    <input type="text" placeholder="Nome Attrezzatura..." value="${item.name}" oninput="assetItems[${index}].name=this.value" class="flex-1 bg-gray-50 p-2 rounded-lg text-[10px] font-bold border border-transparent focus:border-black outline-none">
-                    <button onclick="assetItems.splice(${index},1);renderAssets();" class="text-red-400"><i class="fas fa-times-circle"></i></button>
+                    <div class="flex items-center gap-2">
+                        <select onchange="handleAssetSelect(${index}, this.value)" class="flex-1 bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black appearance-none transition-colors">
+                            ${optionsHtml}
+                        </select>
+                        <button onclick="assetItems.splice(${index},1);renderAssets();" class="text-red-400 text-sm"><i class="fas fa-times-circle"></i></button>
+                    </div>
+                    <input type="text" placeholder="Note operative (es. temp. esercizio)" value="${item.notes || ''}" oninput="assetItems[${index}].notes=this.value" class="w-full bg-white border border-transparent rounded-lg p-2 text-[9px] font-medium outline-none focus:border-black transition-colors">
                 `;
                 container.appendChild(row);
             });
+        }
+
+        function handleAssetSelect(index, val) {
+            if(val === 'NEW') {
+                const name = prompt("Inserisci nome nuova attrezzatura:");
+                if(name) {
+                    const id = 'ast_' + Date.now();
+                    globalAssets.push({ id, name });
+                    assetItems[index].asset_id = id;
+                }
+            } else {
+                assetItems[index].asset_id = val;
+            }
+            renderAssets();
         }
 
         function openCreateView() {
@@ -266,7 +294,6 @@
             if (!parentId) { tg.showAlert("Nome Semilavorato obbligatorio"); return; }
             
             showLoader('Salvataggio...');
-            // Invia al backend
             const payload = {
                 action: 'SAVE_SEMI',
                 sop_id: sopId,
