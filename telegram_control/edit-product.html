@@ -95,8 +95,13 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
-                        <label class="text-[9px] font-black text-gray-500 uppercase ml-1">SKU</label>
-                        <input type="text" id="itemSku" disabled class="w-full bg-gray-100 text-gray-500 p-3.5 rounded-xl text-[10px] font-bold outline-none opacity-60">
+                        <label class="text-[9px] font-black text-gray-500 uppercase ml-1">Codice Invito</label>
+                        <div class="relative">
+                            <input type="text" id="itemInvitationCode" readonly class="w-full bg-gray-100 text-gray-400 p-3.5 rounded-xl text-[10px] font-bold outline-none pr-10">
+                            <button type="button" onclick="copyInvitationCode()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black active:scale-90 transition">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="space-y-1">
                         <label class="text-[9px] font-black text-gray-500 uppercase ml-1" data-i18n="lblType">Tipo</label>
@@ -290,6 +295,19 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         </div>
     </div>
 
+    <!-- QUICK EDITOR DRAWER -->
+    <div id="quick-editor-drawer" class="fixed inset-0 bg-white z-[150] transition-transform duration-300 translate-y-full flex flex-col">
+        <header class="flex justify-between items-center p-5 border-b border-gray-100 bg-white">
+            <h2 id="quickEditorTitle" class="text-sm font-black uppercase tracking-tighter italic">Quick Editor</h2>
+            <button type="button" onclick="closeQuickEditor()" class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg active:scale-95 transition">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </header>
+        <div class="flex-1 overflow-hidden">
+            <iframe id="quickEditorFrame" class="w-full h-full border-none"></iframe>
+        </div>
+    </div>
+
     <!-- HIDDEN FILE INPUT FOR VISION AI -->
     <input type="file" id="visionFileInput" multiple accept="image/*,application/pdf" class="hidden" onchange="handleVisionFiles(this)">
 
@@ -403,7 +421,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             const val = (id, v) => { if (document.getElementById(id)) document.getElementById(id).value = v || ''; };
             const chk = (id, v) => { if (document.getElementById(id)) document.getElementById(id).checked = !!v; };
             val('itemName', data.identity?.item_name);
-            val('itemSku', data.identity?.item_sku);
+            val('itemInvitationCode', data.identity?.item_sku || data.identity?.invitation_code);
             val('itemType', data.identity?.item_type);
             val('descShort', data.identity?.description?.short);
             val('descLong', data.identity?.description?.long);
@@ -418,7 +436,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             extraOptions = data.commercial_setup?.extra_options || [];
             
             // Drawer fields
-            supplierItems = data.procurement?.suppliers || [];
+            supplierItems = (data.procurement?.suppliers || []).map(s => ({ ...s, usage: s.usage || 1 }));
             
             // Legacy conversion
             if (supplierItems.length === 0 && data.procurement?.supplier_name) {
@@ -450,7 +468,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 });
             }
 
-            bomItems = data.bom || [];
+            bomItems = (data.bom || []).map(b => ({ ...b, usage: b.usage || b.qty || 1 }));
             assetItems = data.assets || [];
 
             renderTags(dom.skillContainer, skillTags);
@@ -543,9 +561,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                             <i class="fas fa-trash-alt text-[10px]"></i>
                         </button>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <input type="text" placeholder="Articolo fornito (es. Base Pizza)" value="${item.item_name || ''}" oninput="updateSupplierField(${index}, 'item_name', this.value)" class="flex-[2] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors">
-                        <input type="number" step="0.01" placeholder="Costo (€)" value="${item.cost || 0}" oninput="updateSupplierField(${index}, 'cost', this.value)" class="flex-[1] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
+                    <div class="grid grid-cols-3 gap-2">
+                        <input type="text" placeholder="Articolo" value="${item.item_name || ''}" oninput="updateSupplierField(${index}, 'item_name', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors">
+                        <input type="number" step="0.01" placeholder="Costo (€)" value="${item.cost || 0}" oninput="updateSupplierField(${index}, 'cost', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
+                        <input type="number" step="0.01" placeholder="Uso" value="${item.usage || 1}" oninput="updateSupplierField(${index}, 'usage', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
                     </div>
                     
                     <div id="supplierForm_${index}" class="hidden bg-gray-100 p-2 rounded-lg space-y-2 mt-2 border border-gray-200">
@@ -624,8 +643,8 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             checkDirty();
         }
 
-        function addSupplierItem() { supplierItems.push({ supp_id: '', item_name: '', cost: 0 }); renderSuppliers(); checkDirty(); }
-        function updateSupplierField(index, field, value) { supplierItems[index][field] = field==='cost'?parseFloat(value)||0:value; checkDirty(); }
+        function addSupplierItem() { supplierItems.push({ supp_id: '', item_name: '', cost: 0, usage: 1 }); renderSuppliers(); checkDirty(); }
+        function updateSupplierField(index, field, value) { supplierItems[index][field] = (field==='cost'||field==='usage')?parseFloat(value)||0:value; checkDirty(); }
         function removeSupplierItem(index) { supplierItems.splice(index, 1); renderSuppliers(); checkDirty(); }
 
         // --- LOCATIONS WIDGET ---
@@ -668,8 +687,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function handleLocationSelect(index, val) {
             if(val === 'NEW') {
-                checkUnsavedAndRedirect(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=NEW`);
-                setTimeout(() => renderLocations(), 500);
+                openQuickEditor(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=NEW`, "Nuovo Luogo");
             } else if (val === 'SCAN') {
                 currentVisionContext = 'LOCATION';
                 document.getElementById('visionFileInput').click();
@@ -683,7 +701,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function editLocationItem(index) {
             const sid = locationItems[index].loc_id;
-            checkUnsavedAndRedirect(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=${sid}`);
+            openQuickEditor(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=${sid}`, "Modifica Luogo");
         }
 
         function addLocationItem() { locationItems.push({ loc_id: '', temperature: '' }); renderLocations(); checkDirty(); }
@@ -711,10 +729,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 row.className = 'bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim mb-2';
                 row.innerHTML = `
                     <div class="flex items-center gap-2">
-                        <select onchange="handleBomSelect(${index}, this.value)" class="flex-[3] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
+                        <select onchange="handleBomSelect(${index}, this.value)" class="flex-[2] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
                             ${optionsHtml}
                         </select>
-                        <input type="number" step="0.01" placeholder="Q.tà" value="${item.qty || 1}" oninput="updateBomItem(${index}, 'qty', this.value)" class="flex-[1] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
+                        <input type="number" step="0.01" placeholder="Uso" value="${item.usage || 1}" oninput="updateBomItem(${index}, 'usage', this.value)" class="flex-[1] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
                         <button type="button" onclick="editBomItem(${index})" class="${item.semi_id ? 'flex' : 'hidden'} w-8 h-8 items-center justify-center bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors">
                             <i class="fas fa-pencil-alt text-[10px]"></i>
                         </button>
@@ -739,9 +757,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         
         function handleBomSelect(index, val) {
             if(val === 'NEW') {
-                checkUnsavedAndRedirect(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=NEW`);
-                // Reset select UI if user cancels
-                setTimeout(() => renderBom(), 500);
+                openQuickEditor(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=NEW`, "Nuova Semilavorazione");
             } else if (val === 'SCAN') {
                 // SMART DRAFT PER SEMILAVORATI
                 tg.showConfirm("Vuoi avviare la creazione intelligente (Smart Draft) per questo semilavorato e la sua ricetta?", (conf) => {
@@ -813,8 +829,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function handleAssetSelect(index, val) {
             if(val === 'NEW') {
-                checkUnsavedAndRedirect(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=NEW`);
-                setTimeout(() => renderAssets(), 500);
+                openQuickEditor(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=NEW`, "Nuovo Asset");
             } else if (val === 'SCAN') {
                 // VISION AI PER ASSET (FOTO/PDF)
                 currentVisionContext = 'ASSET';
@@ -877,12 +892,43 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         
         function editAssetItem(index) {
             const sid = assetItems[index].asset_id;
-            checkUnsavedAndRedirect(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=${sid}`);
+            openQuickEditor(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=${sid}`, "Modifica Asset");
         }
 
         function addAssetItem() { assetItems.push({ asset_id: '', notes: '' }); renderAssets(); checkDirty(); }
         function updateAssetNotes(index, value) { assetItems[index].notes = value; checkDirty(); }
         function removeAssetItem(index) { assetItems.splice(index, 1); renderAssets(); checkDirty(); }
+
+        // --- QUICK EDITOR LOGIC ---
+        function openQuickEditor(url, title) {
+            document.getElementById('quickEditorTitle').innerText = title;
+            document.getElementById('quickEditorFrame').src = url;
+            document.getElementById('quick-editor-drawer').classList.remove('translate-y-full');
+            if(tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(closeQuickEditor);
+            }
+        }
+
+        function closeQuickEditor() {
+            document.getElementById('quick-editor-drawer').classList.add('translate-y-full');
+            document.getElementById('quickEditorFrame').src = 'about:blank';
+            // Se eravamo nel drawer avanzato, torna al drawer avanzato
+            if (!document.getElementById('advanced-drawer').classList.contains('translate-y-full')) {
+                if(tg.BackButton) tg.BackButton.onClick(closeAdvancedDrawer);
+            } else {
+                if(tg.BackButton) tg.BackButton.hide();
+            }
+        }
+
+        function copyInvitationCode() {
+            const code = document.getElementById('itemInvitationCode').value;
+            if(!code) return;
+            navigator.clipboard.writeText(code).then(() => {
+                tg.showAlert("Codice copiato negli appunti!");
+                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            });
+        }
 
         function openAdvancedDrawer() {
             const itemType = document.getElementById('itemType').value;
@@ -922,7 +968,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 inv: document.getElementById('requiresInventory').checked,
                 notes_enabled: document.getElementById('allowCustomerNotes').checked,
                 st: skillTags.join(','),
-                ex: JSON.stringify(extraOptions),
                 ex: JSON.stringify(extraOptions),
                 suppliers: JSON.stringify(supplierItems),
                 locations: JSON.stringify(locationItems),
