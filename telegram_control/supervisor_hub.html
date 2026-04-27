@@ -204,11 +204,11 @@
         let selectedFileMime = null;
         
         async function apiCall(action, payload = {}) {
-            const method = action === 'GET' ? 'GET' : 'POST';
+            // Categorico: Tutte le chiamate al Webhook devono essere POST
+            const method = 'POST';
             const bodyData = { 
                 action, 
                 ash, 
-                sop_id: sopId,
                 _auth: tg.initData,
                 ...payload 
             };
@@ -216,221 +216,92 @@
             console.log(`[API] Request: ${method} ${action}`, bodyData);
 
             try {
-                let url = WEBHOOK_URL;
-                let options = { method };
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(bodyData)
+                });
 
-                if (method === 'GET') {
-                    const params = new URLSearchParams();
-                    Object.keys(bodyData).forEach(key => {
-                        if (bodyData[key] !== undefined && bodyData[key] !== null) {
-                            params.append(key, typeof bodyData[key] === 'object' ? JSON.stringify(bodyData[key]) : bodyData[key]);
-                        }
-                    });
-                    url += `?${params.toString()}`;
-                } else {
-                    options.headers = { "Content-Type": "application/json" };
-                    options.body = JSON.stringify(bodyData);
-                }
-
-                const res = await fetch(url, options);
                 if (!res.ok) throw new Error(`Network error: ${res.status}`);
                 const data = await res.json();
                 console.log(`[API] Success:`, data);
                 return data;
             } catch (e) {
                 console.error("API Error:", e);
-                // Non mostriamo alert per non bloccare la UI se n8n risponde con errori gestiti
                 return null;
             }
         }
 
-        function showLoader(text) {
-            document.getElementById('loader').classList.remove('hidden');
-            if (text) document.getElementById('loader-text').innerText = text;
-        }
-
-        function hideLoader() {
-            document.getElementById('loader').classList.add('hidden');
-            document.getElementById('app-content').classList.remove('hidden');
-        }
-
-        // --- EVIDENCE UI LOGIC ---
-        function setEvidenceType(type) {
-            activeEvidenceType = type;
-            document.querySelectorAll('.evidence-panel').forEach(el => el.classList.add('hidden'));
-            document.getElementById(`ev-${type}`).classList.remove('hidden');
-
-            if (type === 'SIGNATURE' && !canvas) {
-                initSignaturePad();
-            }
-        }
-
-        // --- SIGNATURE LOGIC ---
-        function initSignaturePad() {
-            canvas = document.getElementById('signature-pad'); 
-            ctx = canvas.getContext('2d');
-            const res = () => { 
-                const r = Math.max(window.devicePixelRatio||1,1); 
-                canvas.width = canvas.offsetWidth*r; 
-                canvas.height = canvas.offsetHeight*r; 
-                ctx.scale(r,r); ctx.strokeStyle = "#000"; ctx.lineWidth = 2; ctx.lineCap = "round"; 
-            };
-            setTimeout(res, 50);
-            const gC = (e) => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX||e.touches[0].clientX) - r.left, y: (e.clientY||e.touches[0].clientY) - r.top }; };
-            const st = (e) => { isDrawing = true; const {x,y} = gC(e); ctx.beginPath(); ctx.moveTo(x,y); };
-            const mv = (e) => { if(!isDrawing) return; const {x,y} = gC(e); ctx.lineTo(x,y); ctx.stroke(); };
-            const sp = () => isDrawing = false;
-            canvas.addEventListener('mousedown', st); canvas.addEventListener('mousemove', mv); window.addEventListener('mouseup', sp);
-            canvas.addEventListener('touchstart', (e) => { st(e); e.preventDefault(); }, {passive: false});
-            canvas.addEventListener('touchmove', (e) => { mv(e); e.preventDefault(); }, {passive: false});
-            canvas.addEventListener('touchend', sp);
-        }
-        function clearSignature() { if(ctx) ctx.clearRect(0, 0, canvas.width, canvas.height); }
-
-        // --- VISION LOGIC ---
-        async function startCamera() {
-            try {
-                const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: 1280, height: 720 } });
-                videoStream = s; 
-                const v = document.getElementById('camera-feed'); 
-                v.srcObject = s;
-                v.classList.remove('hidden'); 
-                document.getElementById('camera-placeholder').classList.add('hidden');
-                v.onloadedmetadata = () => { 
-                    v.play(); 
-                    document.getElementById('startCamBtn').classList.add('hidden'); 
-                    document.getElementById('snapBtn').classList.remove('hidden'); 
-                };
-            } catch (e) { tg.showAlert("Accesso camera negato o non supportato."); }
-        }
-
-        function takePhoto() {
-            const v = document.getElementById('camera-feed'); 
-            const c = document.getElementById('camera-canvas');
-            c.width = v.videoWidth; c.height = v.videoHeight; 
-            c.getContext('2d').drawImage(v, 0, 0);
-            if (videoStream) videoStream.getTracks().forEach(t => t.stop());
-            capturedPhotoB64 = c.toDataURL('image/jpeg', 0.8).split(',')[1];
-            
-            v.classList.add('hidden');
-            c.classList.remove('hidden');
-            document.getElementById('snapBtn').innerText = "Foto Acquisita!";
-            document.getElementById('snapBtn').classList.replace('bg-red-600', 'bg-green-600');
-            document.getElementById('snapBtn').disabled = true;
-        }
-
-        // --- FILE LOGIC ---
-        function handleFileSelect(e) {
-            const f = e.target.files[0]; 
-            if(!f) return;
-            const r = new FileReader(); 
-            r.onload = (x) => { 
-                selectedFileB64 = x.target.result.split(',')[1]; 
-                selectedFileMime = f.type;
-                document.getElementById('fileNameDisplay').innerText = f.name.toUpperCase(); 
-            };
-            r.readAsDataURL(f);
-        }
-
         async function initApp() {
-            console.log("[App] Initializing app...");
-            console.log("[App] URL Parameters:", { ash, sopId, sessionId });
-
             if (!ash) {
-                console.error("[App] ASH parameter missing!");
                 document.body.innerHTML = `<div class="h-full flex items-center justify-center font-black text-red-500">ASH MISSING</div>`;
                 return;
             }
+
+            showLoader('Caricamento dati...');
+            const data = await apiCall('get');
             
             if (sessionId) {
-                console.log("[App] Loading session mode:", sessionId);
                 loadSession(sessionId);
             } else {
-                console.log("[App] Loading dashboard mode");
-                loadDashboard();
+                renderDashboard(data);
             }
         }
-        
-        async function loadDashboard() {
-            showLoader('Recupero Dati Hub...');
+
+        function renderDashboard(data) {
+            const sessions = (data && data.sessions) ? data.sessions : [];
+            const procedures = (data && data.procedures) ? data.procedures : [];
+
+            const list = document.getElementById('sessions-list');
+            list.innerHTML = '';
             
-            console.log("[Dashboard] Fetching sessions and procedures...");
-            // Recuperiamo sia le sessioni attive che le procedure (SOP) disponibili
-            const sessionsData = await apiCall('GET', { type: 'CERT_LIST' });
-            const proceduresData = await apiCall('GET', { type: 'SOP_LIST' });
-            
-            let data = sessionsData;
-            
-            // Fallback to MOCK se il backend non risponde
-            if (!data || !data.sessions) {
-                console.warn("API fallita o incompleta, uso dati mock per sessioni.");
-                data = {
-                    sessions: [
-                        { id: 'sess_1', type: 'Audit Sicurezza Q3', date: '2026-04-20', status: 'IN_PROGRESS' },
-                        { id: 'sess_2', type: 'Verifica Manutenzione', date: '2026-04-25', status: 'IN_PROGRESS' }
-                    ]
-                };
-            }
-            
-            const procedures = (proceduresData && proceduresData.procedures) ? proceduresData.procedures : [
-                { id: 'sop_1', title: 'Certificazione Standard' },
-                { id: 'sop_2', title: 'Audit Qualità Fornitori' }
-            ];
-            
-            setTimeout(() => {
-                const list = document.getElementById('sessions-list');
-                list.innerHTML = '';
-                
-                // Mostra Sessioni Attive
-                if(data.sessions.length === 0) {
-                    list.innerHTML = `<div class="text-center py-6 text-gray-300 font-bold text-xs uppercase tracking-widest">Nessuna sessione aperta</div>`;
-                } else {
-                    data.sessions.forEach(s => {
-                        const card = document.createElement('div');
-                        card.className = 'card rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-black transition active:scale-95 mb-3';
-                        card.onclick = () => loadSession(s.id);
-                        card.innerHTML = `
-                            <div>
-                                <h3 class="text-xs font-black uppercase tracking-tight">${s.type}</h3>
-                                <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1"><i class="fas fa-calendar-alt"></i> ${s.date}</p>
-                            </div>
-                            <i class="fas fa-chevron-right text-gray-300 text-sm"></i>
-                        `;
-                        list.appendChild(card);
-                    });
-                }
-                
-                // Aggiungiamo sezione Procedure se non già presente nel DOM in modo esplicito
-                let procSection = document.getElementById('procedures-section');
-                if (!procSection) {
-                    procSection = document.createElement('div');
-                    procSection.id = 'procedures-section';
-                    procSection.className = 'mt-8 space-y-4';
-                    procSection.innerHTML = `<h2 class="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Avvia Nuova Procedura</h2><div id="procedures-list" class="space-y-3"></div>`;
-                    list.parentElement.appendChild(procSection);
-                }
-                
-                const pList = document.getElementById('procedures-list');
-                pList.innerHTML = '';
-                procedures.forEach(p => {
+            if(sessions.length === 0) {
+                list.innerHTML = `<div class="text-center py-6 text-gray-300 font-bold text-xs uppercase tracking-widest">Nessuna sessione aperta</div>`;
+            } else {
+                sessions.forEach(s => {
                     const card = document.createElement('div');
-                    card.className = 'card rounded-2xl p-4 flex justify-between items-center cursor-pointer border-dashed hover:border-black transition active:scale-95';
-                    card.onclick = () => startNewSession(p.id);
+                    card.className = 'card rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-black transition active:scale-95 mb-3';
+                    card.onclick = () => loadSession(s.id);
                     card.innerHTML = `
                         <div>
-                            <h3 class="text-xs font-black uppercase tracking-tight">${p.title}</h3>
-                            <p class="text-[8px] font-bold text-blue-500 uppercase tracking-widest mt-1">SOP ID: ${p.id}</p>
+                            <h3 class="text-xs font-black uppercase tracking-tight">${s.type}</h3>
+                            <p class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1"><i class="fas fa-calendar-alt"></i> ${s.date}</p>
                         </div>
-                        <i class="fas fa-plus text-gray-300 text-sm"></i>
+                        <i class="fas fa-chevron-right text-gray-300 text-sm"></i>
                     `;
-                    pList.appendChild(card);
+                    list.appendChild(card);
                 });
-                
-                document.getElementById('header-status').innerText = 'Dashboard Hub';
-                document.getElementById('wizard-container').classList.add('hidden');
-                document.getElementById('dashboard-container').classList.remove('hidden');
-                hideLoader();
-            }, 600);
+            }
+            
+            let procSection = document.getElementById('procedures-section');
+            if (!procSection) {
+                procSection = document.createElement('div');
+                procSection.id = 'procedures-section';
+                procSection.className = 'mt-8 space-y-4';
+                procSection.innerHTML = `<h2 class="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Avvia Nuova Procedura</h2><div id="procedures-list" class="space-y-3"></div>`;
+                list.parentElement.appendChild(procSection);
+            }
+            
+            const pList = document.getElementById('procedures-list');
+            pList.innerHTML = '';
+            procedures.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-2xl p-4 flex justify-between items-center cursor-pointer border-dashed hover:border-black transition active:scale-95';
+                card.onclick = () => startNewSession(p.id);
+                card.innerHTML = `
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-tight">${p.title}</h3>
+                        <p class="text-[8px] font-bold text-blue-500 uppercase tracking-widest mt-1">SOP ID: ${p.id}</p>
+                    </div>
+                    <i class="fas fa-plus text-gray-300 text-sm"></i>
+                `;
+                pList.appendChild(card);
+            });
+            
+            document.getElementById('header-status').innerText = 'Dashboard Hub';
+            document.getElementById('wizard-container').classList.add('hidden');
+            document.getElementById('dashboard-container').classList.remove('hidden');
+            hideLoader();
         }
 
         async function loadSession(id) {
@@ -441,44 +312,38 @@
                 tg.BackButton.show();
                 tg.BackButton.onClick(() => {
                     document.getElementById('wizard-container').classList.add('hidden');
-                    loadDashboard();
+                    initApp();
                     tg.BackButton.hide();
                 });
             }
             
-            // API CALL: GET CERT_STATE
             let data = await apiCall('GET', { type: 'CERT_STATE', session_id: id });
             
-            // Fallback to MOCK se il backend non risponde
-            if (!data || !data.session) {
-                console.warn("API fallita, uso dati mock per la sessione.");
-                data = {
-                    session: {
-                        id: id,
-                        status: 'IN_PROGRESS',
-                        current_step_index: 0,
-                        steps: [
-                            { id: 's1', title: 'Verifica Sicurezza', description: 'Assicurati che i protocolli SSH siano attivi e documentati.', quality_check: { evidence_type: 'VISION' } },
-                            { id: 's2', title: 'Backup Dati', description: "Inserisci l'URL del log di backup mensile.", quality_check: { evidence_type: 'TEXT' } },
-                            { id: 's3', title: 'Review Utenti', description: 'Conferma rimozione accessi obsoleti.', quality_check: { evidence_type: 'SIGNATURE' } }
-                        ]
-                    }
-                };
-            }
-            
-            setTimeout(() => {
-                if (data && data.session) {
-                    currentSession = data.session;
-                    if (currentSession.status === 'COMPLETED') {
-                        showCompletion();
-                    } else {
-                        renderCurrentStep();
-                    }
+            if (data && data.session) {
+                currentSession = data.session;
+                if (currentSession.status === 'COMPLETED') {
+                    showCompletion();
                 } else {
-                    loadDashboard();
+                    renderCurrentStep();
                 }
-                hideLoader();
-            }, 800);
+            } else {
+                // Fallback mock session for debug
+                currentSession = {
+                    id: id, status: 'IN_PROGRESS', current_step_index: 0,
+                    steps: [{ id: 's1', title: 'Step Mock', description: 'Descrizione mock', quality_check: { evidence_type: 'TEXT' } }]
+                };
+                renderCurrentStep();
+            }
+            hideLoader();
+        }
+
+        async function startNewSession(targetSopId) {
+            const sid = targetSopId || sopId;
+            if (!sid) { tg.showAlert("Seleziona una procedura."); return; }
+            showLoader('Avvio...');
+            const data = await apiCall('SAVE', { type: 'CERT_INIT', sop_id: sid });
+            if (data && data.session_id) loadSession(data.session_id);
+            else hideLoader();
         }
 
         async function startNewSession(targetSopId) {
