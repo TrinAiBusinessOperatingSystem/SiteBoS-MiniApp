@@ -307,12 +307,43 @@
     
     let currentSopId = null;
 
-    window.openProduct = (page, pId, catId) => { 
+    window.openProduct = async (page, pId, catId) => { 
         if (page === 'edit-blueprint.html') {
             currentSopId = pId;
+            
+            // Visualizza subito il nome (se presente in locale)
             const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === pId);
             document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli Prodotto';
             document.getElementById('hub-product-sku').innerText = `ID: ${pId}`;
+
+            // Chiamata di controllo moduli (Blog/Marketing)
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_ghost_info', sop_id: pId, ash: ash, _auth: tg.initData })
+                });
+                const info = await res.json();
+                
+                // Gestione visibilità pulsanti dinamici
+                const blogBtn = document.querySelector('button[onclick*="edit-blog.html"]');
+                const marketBtn = document.querySelector('button[onclick*="Marketing Hub"]');
+                
+                if (info.blog_active) {
+                    blogBtn.classList.remove('hidden');
+                } else {
+                    blogBtn.classList.add('hidden');
+                }
+
+                if (info.marketing_active) {
+                    marketBtn.classList.remove('hidden');
+                    marketBtn.classList.remove('opacity-40');
+                } else {
+                    marketBtn.classList.add('hidden');
+                }
+            } catch (e) {
+                console.error("Ghost Info Error:", e);
+            }
             
             const hub = document.getElementById('hub-drawer');
             hub.classList.remove('hidden');
