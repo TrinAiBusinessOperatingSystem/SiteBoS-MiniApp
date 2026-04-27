@@ -113,14 +113,22 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         const tg = window.Telegram.WebApp;
         tg.expand(); tg.ready();
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/914bd78e-8a41-46d7-8935-7eb73cbbae66";
-        const blogId = window.location.search.substring(1); 
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash');
+        const blogId = urlParams.get('sop_id') || urlParams.get('blog_id');
+        
         let currentData = null, base64Image = null;
 
         async function loadData() {
-            if (!blogId) return;
+            if (!blogId) { console.error("ID mancante"); return; }
             toggleLoader(true);
             try {
-                const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'get_blog', blog_id: blogId }) });
+                const r = await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ _auth: tg.initData, action: 'get_blog', blog_id: blogId, ash: ash }) 
+                });
                 const res = await r.json();
                 if (res.status === 'success') { currentData = res.blog_content_structure; renderEditor(res.image_url); }
             } catch (e) { tg.showAlert("Errore caricamento."); }
@@ -233,7 +241,11 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             if (action !== 'delete_blog') syncData();
             toggleLoader(true);
             try {
-                const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: action, blog_id: blogId, updated_content: currentData, new_image_base64: base64Image }) });
+                const r = await fetch(WEBHOOK_URL, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ _auth: tg.initData, action: action, blog_id: blogId, ash: ash, updated_content: currentData, new_image_base64: base64Image }) 
+                });
                 if (r.ok) { tg.showAlert("SISTEMA AGGIORNATO."); if (action === 'publish_blog' || action === 'delete_blog') setTimeout(() => tg.close(), 1000); }
             } catch (err) { tg.showAlert("Errore."); }
             finally { toggleLoader(false); }
