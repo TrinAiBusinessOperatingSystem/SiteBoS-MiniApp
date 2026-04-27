@@ -352,14 +352,18 @@
         }
         
         async function loadDashboard() {
-            showLoader('Recupero Sessioni...');
+            showLoader('Recupero Dati Hub...');
             
-            // API CALL
-            let data = await apiCall('GET', { type: 'CERT_LIST' });
+            console.log("[Dashboard] Fetching sessions and procedures...");
+            // Recuperiamo sia le sessioni attive che le procedure (SOP) disponibili
+            const sessionsData = await apiCall('GET', { type: 'CERT_LIST' });
+            const proceduresData = await apiCall('GET', { type: 'SOP_LIST' });
+            
+            let data = sessionsData;
             
             // Fallback to MOCK se il backend non risponde
             if (!data || !data.sessions) {
-                console.warn("API fallita, uso dati mock per dashboard.");
+                console.warn("API fallita o incompleta, uso dati mock per sessioni.");
                 data = {
                     sessions: [
                         { id: 'sess_1', type: 'Audit Sicurezza Q3', date: '2026-04-20', status: 'IN_PROGRESS' },
@@ -368,16 +372,22 @@
                 };
             }
             
+            const procedures = (proceduresData && proceduresData.procedures) ? proceduresData.procedures : [
+                { id: 'sop_1', title: 'Certificazione Standard' },
+                { id: 'sop_2', title: 'Audit Qualità Fornitori' }
+            ];
+            
             setTimeout(() => {
                 const list = document.getElementById('sessions-list');
                 list.innerHTML = '';
                 
+                // Mostra Sessioni Attive
                 if(data.sessions.length === 0) {
                     list.innerHTML = `<div class="text-center py-6 text-gray-300 font-bold text-xs uppercase tracking-widest">Nessuna sessione aperta</div>`;
                 } else {
                     data.sessions.forEach(s => {
                         const card = document.createElement('div');
-                        card.className = 'card rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-black transition active:scale-95';
+                        card.className = 'card rounded-2xl p-4 flex justify-between items-center cursor-pointer hover:border-black transition active:scale-95 mb-3';
                         card.onclick = () => loadSession(s.id);
                         card.innerHTML = `
                             <div>
@@ -389,6 +399,32 @@
                         list.appendChild(card);
                     });
                 }
+                
+                // Aggiungiamo sezione Procedure se non già presente nel DOM in modo esplicito
+                let procSection = document.getElementById('procedures-section');
+                if (!procSection) {
+                    procSection = document.createElement('div');
+                    procSection.id = 'procedures-section';
+                    procSection.className = 'mt-8 space-y-4';
+                    procSection.innerHTML = `<h2 class="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Avvia Nuova Procedura</h2><div id="procedures-list" class="space-y-3"></div>`;
+                    list.parentElement.appendChild(procSection);
+                }
+                
+                const pList = document.getElementById('procedures-list');
+                pList.innerHTML = '';
+                procedures.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'card rounded-2xl p-4 flex justify-between items-center cursor-pointer border-dashed hover:border-black transition active:scale-95';
+                    card.onclick = () => startNewSession(p.id);
+                    card.innerHTML = `
+                        <div>
+                            <h3 class="text-xs font-black uppercase tracking-tight">${p.title}</h3>
+                            <p class="text-[8px] font-bold text-blue-500 uppercase tracking-widest mt-1">SOP ID: ${p.id}</p>
+                        </div>
+                        <i class="fas fa-plus text-gray-300 text-sm"></i>
+                    `;
+                    pList.appendChild(card);
+                });
                 
                 document.getElementById('header-status').innerText = 'Dashboard Hub';
                 document.getElementById('wizard-container').classList.add('hidden');
@@ -439,15 +475,20 @@
                         renderCurrentStep();
                     }
                 } else {
-                    startNewSession();
+                    loadDashboard();
                 }
                 hideLoader();
             }, 800);
         }
 
-        async function startNewSession() {
-            showLoader('Avvio nuova certificazione...');
-            const data = await apiCall('SAVE', { type: 'CERT_INIT' });
+        async function startNewSession(targetSopId) {
+            const sid = targetSopId || sopId;
+            if (!sid) {
+                tg.showAlert("Seleziona una procedura da avviare.");
+                return;
+            }
+            showLoader('Avvio certificazione...');
+            const data = await apiCall('SAVE', { type: 'CERT_INIT', sop_id: sid });
             
             if (data && data.session_id) {
                 loadSession(data.session_id);
