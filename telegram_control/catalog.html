@@ -135,11 +135,18 @@
                 <span class="text-[9px] font-black uppercase tracking-widest">Logica Operativa</span>
             </button>
 
-            <button onclick="launchSubEditor('edit-blog.html')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
+            <button id="hub-blog-btn" onclick="launchSubEditor('edit-blog.html')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black hidden">
                 <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
                     <i class="fas fa-pen-nib text-lg"></i>
                 </div>
                 <span class="text-[9px] font-black uppercase tracking-widest">Blog & Story</span>
+            </button>
+
+            <button id="hub-social-btn" onclick="openSocialViewer()" class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black hidden">
+                <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                    <i class="fas fa-share-nodes text-lg"></i>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest">Social Posts</span>
             </button>
 
             <button onclick="launchSubEditor('supervisor_hub.html')" class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
@@ -173,6 +180,20 @@
   <!-- QUICK EDITOR DRAWER (MATRIOSKA FRAME) -->
   <div id="quick-editor-drawer" class="fixed inset-0 bg-white z-[3000] hidden transition-all duration-300 translate-y-full flex flex-col">
     <iframe id="quickEditorFrame" class="w-full h-full border-none" src="about:blank"></iframe>
+  </div>
+
+  <!-- SOCIAL VIEWER DRAWER -->
+  <div id="social-viewer-drawer" class="fixed inset-0 bg-gray-50 z-[4000] hidden transition-all duration-300 translate-y-full overflow-y-auto">
+    <div class="max-w-md mx-auto p-6 space-y-6">
+        <header class="flex justify-between items-center">
+            <h3 class="text-xl font-black uppercase tracking-tighter italic">Social Hub</h3>
+            <button onclick="closeSocialViewer()" class="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center active:scale-90 transition shadow-sm"><i class="fas fa-times"></i></button>
+        </header>
+
+        <div id="social-content-container" class="space-y-6 pb-20">
+            <!-- Populated by JS -->
+        </div>
+    </div>
   </div>
 
   <script>
@@ -306,17 +327,17 @@
     window.goToAddProduct = (catId) => { location.href = `add-product.html?ash=${ash}&catId=${catId}`; };
     
     let currentSopId = null;
+    let currentSocialData = null;
 
     window.openProduct = async (page, pId, catId) => { 
         if (page === 'edit-blueprint.html') {
             currentSopId = pId;
+            currentSocialData = null; // Reset
             
-            // Visualizza subito il nome (se presente in locale)
             const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === pId);
             document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli Prodotto';
             document.getElementById('hub-product-sku').innerText = `ID: ${pId}`;
 
-            // Chiamata di controllo moduli (Blog/Marketing)
             try {
                 const res = await fetch(WEBHOOK_URL, {
                     method: 'POST',
@@ -324,26 +345,29 @@
                     body: JSON.stringify({ action: 'get_ghost_info', sop_id: pId, ash: ash, _auth: tg.initData })
                 });
                 const info = await res.json();
+                const rawInfo = Array.isArray(info) ? info[0] : info;
                 
-                // Gestione visibilità pulsanti dinamici
-                const blogBtn = document.querySelector('button[onclick*="edit-blog.html"]');
-                const marketBtn = document.querySelector('button[onclick*="Marketing Hub"]');
-                
-                if (info.blog_active) {
-                    blogBtn.classList.remove('hidden');
+                // Gestione Blog
+                const blogBtn = document.getElementById('hub-blog-btn');
+                if (rawInfo.blog_active) blogBtn.classList.remove('hidden');
+                else blogBtn.classList.add('hidden');
+
+                // Gestione Social Post
+                const socialBtn = document.getElementById('hub-social-btn');
+                if (rawInfo.post) {
+                    currentSocialData = rawInfo.post;
+                    socialBtn.classList.remove('hidden');
                 } else {
-                    blogBtn.classList.add('hidden');
+                    socialBtn.classList.add('hidden');
                 }
 
-                if (info.marketing_active) {
-                    marketBtn.classList.remove('hidden');
+                // Gestione Marketing (Placeholder logic)
+                const marketBtn = document.querySelector('button[onclick*="Marketing Hub"]');
+                if (rawInfo.marketing_active) {
                     marketBtn.classList.remove('opacity-40');
-                } else {
-                    marketBtn.classList.add('hidden');
+                    marketBtn.onclick = () => tg.showAlert("Marketing Hub Attivo");
                 }
-            } catch (e) {
-                console.error("Ghost Info Error:", e);
-            }
+            } catch (e) { console.error("Ghost Info Error:", e); }
             
             const hub = document.getElementById('hub-drawer');
             hub.classList.remove('hidden');
@@ -357,6 +381,95 @@
         }
         location.href = `${page}?ash=${ash}&productId=${pId}&catId=${catId}&ghostId=${pId}`;
     };
+
+    function openSocialViewer() {
+        if (!currentSocialData) return;
+        const container = document.getElementById('social-content-container');
+        container.innerHTML = '';
+
+        // Psicologia
+        if (currentSocialData.psycological_analysis) {
+            const psi = currentSocialData.psycological_analysis;
+            container.innerHTML += `
+                <section class="card-noir p-5 space-y-4 bg-black text-white">
+                    <span class="text-[8px] font-black uppercase tracking-widest text-neutral-500 italic">Analisi Psicologica AI</span>
+                    <div class="space-y-3">
+                        <div><p class="text-[7px] font-black uppercase text-neutral-500">Emotional Drivers</p><p class="text-[10px] font-medium leading-relaxed">${psi.emotional_drivers}</p></div>
+                        <div><p class="text-[7px] font-black uppercase text-neutral-500">Logical Drivers</p><p class="text-[10px] font-medium leading-relaxed">${psi.logical_drivers}</p></div>
+                        <div><p class="text-[7px] font-black uppercase text-neutral-500">Cognitive Biases</p><p class="text-[10px] font-medium leading-relaxed italic">${psi.cognitive_biases_used}</p></div>
+                    </div>
+                </section>
+            `;
+        }
+
+        // Social Platforms
+        const platforms = [
+            { id: 'linkedin', icon: 'fa-linkedin', label: 'LinkedIn Professional' },
+            { id: 'facebook', icon: 'fa-facebook', label: 'Facebook Community' },
+            { id: 'instagram', icon: 'fa-instagram', label: 'Instagram Visual' },
+            { id: 'x', icon: 'fa-x-twitter', label: 'X (Twitter) Viral' },
+            { id: 'tiktok', icon: 'fa-tiktok', label: 'TikTok POV' }
+        ];
+
+        platforms.forEach(p => {
+            if (currentSocialData[p.id]) {
+                container.innerHTML += `
+                    <div class="card-noir p-5 space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[8px] font-black uppercase tracking-widest text-gray-300"><i class="fab ${p.icon} mr-1"></i> ${p.label}</span>
+                            <button onclick="copyToClipboard('${p.id}')" class="text-[8px] font-black uppercase bg-gray-100 px-2 py-1 rounded-md active:scale-90 transition">Copia</button>
+                        </div>
+                        <p id="post-text-${p.id}" class="text-[11px] font-medium leading-relaxed text-gray-800">${currentSocialData[p.id]}</p>
+                    </div>
+                `;
+            }
+        });
+
+        // Prompt & Visual
+        if (currentSocialData.prompt || currentSocialData.veo_master_prompt_8s) {
+            container.innerHTML += `
+                <section class="card-noir p-5 space-y-4 border-dashed">
+                    <span class="text-[8px] font-black uppercase tracking-widest text-gray-300">Visual & Prompts (AI Generation)</span>
+                    ${currentSocialData.prompt ? `
+                        <div>
+                            <p class="text-[7px] font-black uppercase text-gray-400 mb-1">Image Prompt (Gemini/Midjourney)</p>
+                            <div class="bg-gray-50 p-3 rounded-xl text-[9px] font-mono leading-tight border border-gray-100">${currentSocialData.prompt}</div>
+                        </div>
+                    ` : ''}
+                    ${currentSocialData.veo_master_prompt_8s ? `
+                        <div>
+                            <p class="text-[7px] font-black uppercase text-gray-400 mb-1">Video Master Prompt (VEO 8s)</p>
+                            <div class="bg-gray-50 p-3 rounded-xl text-[9px] font-mono leading-tight border border-gray-100">${currentSocialData.veo_master_prompt_8s}</div>
+                        </div>
+                    ` : ''}
+                </section>
+            `;
+        }
+
+        const drawer = document.getElementById('social-viewer-drawer');
+        drawer.classList.remove('hidden');
+        setTimeout(() => drawer.classList.remove('translate-y-full'), 10);
+        
+        if(tg.BackButton) {
+            tg.BackButton.show();
+            tg.BackButton.onClick(closeSocialViewer);
+        }
+    }
+
+    function closeSocialViewer() {
+        const drawer = document.getElementById('social-viewer-drawer');
+        drawer.classList.add('translate-y-full');
+        setTimeout(() => drawer.classList.add('hidden'), 300);
+        if(tg.BackButton) tg.BackButton.onClick(closeHub);
+    }
+
+    function copyToClipboard(id) {
+        const text = document.getElementById(`post-text-${id}`).innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            tg.showAlert("Copiato negli appunti!");
+            if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        });
+    }
 
     function closeHub() {
         const hub = document.getElementById('hub-drawer');
