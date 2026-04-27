@@ -228,40 +228,16 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         <div class="flex-1 overflow-y-auto p-5 space-y-8 no-scrollbar pb-24">
             
-            <!-- HIDDEN FIELDS PER FORNITORE -->
-            <input type="hidden" id="drawerSupplierName">
-            <input type="hidden" id="drawerSupplierItem">
-            <input type="hidden" id="drawerSupplierVat">
-            <input type="hidden" id="drawerSupplierPrice">
-            <input type="hidden" id="drawerSupplierSku">
-
             <!-- SEZIONE FORNITORI -->
             <div class="space-y-2">
-                <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Fornitore Principale</label>
-                <div class="flex gap-2">
-                    <select id="supplierSelect" onchange="handleSupplierSelect()" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none appearance-none">
-                        <!-- JS Injected -->
-                    </select>
-                    <button id="btnEditSupplier" type="button" onclick="openSupplierForm(true)" class="hidden w-12 flex items-center justify-center bg-gray-100 text-gray-500 rounded-xl active:scale-95 transition"><i class="fas fa-pencil-alt text-xs"></i></button>
-                    <button id="btnDelSupplier" type="button" onclick="removeSupplier()" class="hidden w-12 flex items-center justify-center bg-red-50 text-red-400 rounded-xl active:scale-95 transition"><i class="fas fa-trash-alt text-xs"></i></button>
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Fornitori e Articoli Forniti</label>
+                    <button type="button" onclick="addSupplierItem()" class="text-[9px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
+                        + Aggiungi
+                    </button>
                 </div>
-                
-                <!-- INLINE SUPPLIER FORM -->
-                <div id="supplierForm" class="hidden p-3 bg-gray-50 border border-border rounded-xl space-y-3 mt-2 tag-anim">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[9px] font-black uppercase tracking-widest" id="supplierFormTitle">Nuovo Fornitore</span>
-                        <button type="button" onclick="closeSupplierForm()" class="text-gray-400 p-1"><i class="fas fa-times"></i></button>
-                    </div>
-                    <div class="space-y-2">
-                        <input type="text" id="suppName" placeholder="Nome Fornitore *" class="w-full p-2.5 text-xs font-bold rounded-lg border border-transparent focus:border-black outline-none">
-                        <input type="text" id="suppItemName" placeholder="Cosa Fornisce? (es. Base Pizza) *" class="w-full p-2.5 text-xs font-bold rounded-lg border border-transparent focus:border-black outline-none">
-                        <input type="text" id="suppVat" placeholder="P.IVA / VAT" class="w-full p-2.5 text-xs font-bold rounded-lg border border-transparent focus:border-black outline-none">
-                        <div class="grid grid-cols-2 gap-2">
-                            <input type="number" step="0.01" id="suppPrice" placeholder="Costo (€)" class="w-full p-2.5 text-xs font-black rounded-lg border border-transparent focus:border-black outline-none text-right">
-                            <input type="text" id="suppSku" placeholder="SKU Fornitore" class="w-full p-2.5 text-xs font-bold rounded-lg border border-transparent focus:border-black outline-none">
-                        </div>
-                        <button type="button" onclick="saveSupplierForm()" class="w-full bg-black text-white text-[9px] font-black uppercase tracking-widest p-3 rounded-lg mt-2 active:scale-95 transition">Salva Anagrafica</button>
-                    </div>
+                <div id="supplierContainer" class="space-y-2">
+                    <!-- JS injected -->
                 </div>
             </div>
 
@@ -340,7 +316,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             { id: "ast_2", name: "Trapano a Colonna" }
         ];
         
-        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [];
+        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [];
 
         const i18n = {
             it: { 
@@ -434,20 +410,33 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             extraOptions = data.commercial_setup?.extra_options || [];
             
             // Drawer fields
-            val('drawerSupplierName', data.procurement?.supplier_name);
-            val('drawerSupplierItem', data.procurement?.supplier_item_name);
-            val('drawerSupplierVat', data.procurement?.supplier_vat);
-            val('drawerSupplierPrice', data.procurement?.cost_of_goods);
-            val('drawerSupplierSku', data.procurement?.supplier_sku);
+            supplierItems = data.procurement?.suppliers || [];
+            
+            // Legacy conversion
+            if (supplierItems.length === 0 && data.procurement?.supplier_name) {
+                const legacyId = 'supp_legacy_' + Date.now();
+                globalSuppliers.push({
+                    id: legacyId, name: data.procurement.supplier_name,
+                    item: data.procurement.supplier_item_name || '',
+                    vat: data.procurement.supplier_vat || '',
+                    price: data.procurement.cost_of_goods || 0,
+                    sku: data.procurement.supplier_sku || ''
+                });
+                supplierItems.push({
+                    supp_id: legacyId,
+                    item_name: data.procurement.supplier_item_name || '',
+                    cost: data.procurement.cost_of_goods || 0
+                });
+            }
+
             val('drawerStorageLocation', data.logistics?.storage_location);
-            val('drawerStorageTemp', data.logistics?.storage_temperature);
             val('drawerStorageTemp', data.logistics?.storage_temperature);
             bomItems = data.bom || [];
             assetItems = data.assets || [];
 
             renderTags(dom.skillContainer, skillTags);
             renderAddons();
-            renderSupplierSelect();
+            renderSuppliers();
             renderBom();
             renderAssets();
         }
@@ -502,55 +491,63 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         // --- IN-PAGE DB & WIDGET LOGIC ---
 
-        function renderSupplierSelect() {
-            const sel = document.getElementById('supplierSelect');
-            sel.innerHTML = `<option value="">-- Nessun fornitore --</option>
-                             <option value="NEW">➕ Crea Nuovo Fornitore</option>
-                             <option value="SCAN">📸 Ricerca con AI</option>`;
-            globalSuppliers.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id; opt.innerText = s.name;
-                sel.appendChild(opt);
-            });
-            const storedName = document.getElementById('drawerSupplierName').value;
-            if(storedName) {
-                const match = globalSuppliers.find(x => x.name === storedName);
-                if (match) {
-                    sel.value = match.id;
-                    document.getElementById('btnEditSupplier').classList.remove('hidden');
-                    document.getElementById('btnDelSupplier').classList.remove('hidden');
-                } else {
-                    const nid = 'supp_custom_' + Date.now();
-                    globalSuppliers.push({
-                        id: nid, name: storedName,
-                        item: document.getElementById('drawerSupplierItem').value,
-                        vat: document.getElementById('drawerSupplierVat').value,
-                        price: document.getElementById('drawerSupplierPrice').value,
-                        sku: document.getElementById('drawerSupplierSku').value
-                    });
-                    const opt = document.createElement('option');
-                    opt.value = nid; opt.innerText = storedName;
-                    sel.appendChild(opt);
-                    sel.value = nid;
-                    document.getElementById('btnEditSupplier').classList.remove('hidden');
-                    document.getElementById('btnDelSupplier').classList.remove('hidden');
-                }
-            } else {
-                sel.value = "";
-                document.getElementById('btnEditSupplier').classList.add('hidden');
-                document.getElementById('btnDelSupplier').classList.add('hidden');
+        // --- SUPPLIERS WIDGET ---
+
+        function renderSuppliers() {
+            const container = document.getElementById('supplierContainer');
+            container.innerHTML = '';
+            if (supplierItems.length === 0) {
+                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-4 border-2 border-dashed border-gray-50 rounded-2xl uppercase tracking-widest font-black">Nessun fornitore collegato</div>`;
+                return;
             }
+            supplierItems.forEach((item, index) => {
+                let optionsHtml = `<option value="">-- Seleziona --</option><option value="NEW">➕ Crea Nuovo</option><option value="SCAN">📸 Scan AI</option>`;
+                globalSuppliers.forEach(s => {
+                    optionsHtml += `<option value="${s.id}" ${item.supp_id === s.id ? 'selected' : ''}>${s.name}</option>`;
+                });
+                if (item.supp_id && !globalSuppliers.find(x => x.id === item.supp_id)) {
+                    optionsHtml += `<option value="${item.supp_id}" selected>${item.supp_id} (Sconosciuto)</option>`;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim mb-2';
+                row.innerHTML = `
+                    <div class="flex items-center gap-2 mb-2">
+                        <select onchange="handleSupplierSelect(${index}, this.value)" class="flex-1 w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
+                            ${optionsHtml}
+                        </select>
+                        <button type="button" onclick="editSupplierItem(${index})" class="${item.supp_id ? 'flex' : 'hidden'} w-8 h-8 items-center justify-center bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-pencil-alt text-[10px]"></i>
+                        </button>
+                        <button type="button" onclick="removeSupplierItem(${index})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-colors">
+                            <i class="fas fa-trash-alt text-[10px]"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" placeholder="Articolo fornito (es. Base Pizza)" value="${item.item_name || ''}" oninput="updateSupplierField(${index}, 'item_name', this.value)" class="flex-[2] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors">
+                        <input type="number" step="0.01" placeholder="Costo (€)" value="${item.cost || 0}" oninput="updateSupplierField(${index}, 'cost', this.value)" class="flex-[1] w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
+                    </div>
+                    
+                    <div id="supplierForm_${index}" class="hidden bg-gray-100 p-2 rounded-lg space-y-2 mt-2 border border-gray-200">
+                        <input type="text" id="suppFormName_${index}" placeholder="Nome Fornitore *" class="w-full p-2 text-[10px] font-bold rounded-lg border-none outline-none focus:border-black">
+                        <input type="text" id="suppFormVat_${index}" placeholder="P.IVA / VAT" class="w-full p-2 text-[10px] font-medium rounded-lg border-none outline-none focus:border-black">
+                        <input type="text" id="suppFormSku_${index}" placeholder="SKU Fornitore" class="w-full p-2 text-[10px] font-medium rounded-lg border-none outline-none focus:border-black">
+                        <button type="button" onclick="saveSupplierForm(${index})" class="w-full bg-black text-white text-[9px] font-black uppercase tracking-widest p-2 rounded-lg active:scale-95 transition">Salva Anagrafica Fornitore</button>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
         }
 
-        function handleSupplierSelect() {
-            const val = document.getElementById('supplierSelect').value;
-            if (val === 'NEW') {
-                openSupplierForm(false);
+        function handleSupplierSelect(index, val) {
+            if(val === 'NEW') {
+                document.getElementById(`supplierForm_${index}`).classList.remove('hidden');
+                document.getElementById(`suppFormName_${index}`).value = '';
+                supplierItems[index].supp_id = '';
             } else if (val === 'SCAN') {
-                // RICERCA FORNITORI AI
                 const query = prompt("Inserisci nome o parole chiave per cercare il fornitore:");
                 if (query) {
-                    tg.showScanQrPopup({ text: "Ricerca Fornitore in corso..." }); // Visual feedback
+                    tg.showScanQrPopup({ text: "Ricerca Fornitore in corso..." });
                     setTimeout(() => tg.closeScanQrPopup(), 2000);
                     
                     fetch(WEBHOOK_URL, {
@@ -562,105 +559,54 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                             query: query,
                             sop_id: sopId 
                         })
-                    }).then(res => res.json())
-                      .then(data => {
-                          tg.showAlert("Ricerca inviata al backend. Riceverai i risultati a breve.");
-                      }).catch(err => console.error(err));
+                    }).then(() => tg.showAlert("Ricerca inviata al backend.")).catch(console.error);
                 }
-                document.getElementById('supplierSelect').value = '';
-            } else if (val) {
-                const match = globalSuppliers.find(x => x.id === val);
-                if (match) {
-                    document.getElementById('drawerSupplierName').value = match.name;
-                    document.getElementById('drawerSupplierItem').value = match.item || '';
-                    document.getElementById('drawerSupplierVat').value = match.vat;
-                    document.getElementById('drawerSupplierPrice').value = match.price;
-                    document.getElementById('drawerSupplierSku').value = match.sku;
-                    checkDirty();
-                }
-                document.getElementById('supplierForm').classList.add('hidden');
-                document.getElementById('btnEditSupplier').classList.remove('hidden');
-                document.getElementById('btnDelSupplier').classList.remove('hidden');
+                renderSuppliers();
             } else {
-                removeSupplier();
+                supplierItems[index].supp_id = val;
+                const match = globalSuppliers.find(x => x.id === val);
+                if(match) {
+                    if(!supplierItems[index].item_name) supplierItems[index].item_name = match.item || '';
+                    if(!supplierItems[index].cost) supplierItems[index].cost = match.price || 0;
+                }
+                document.getElementById(`supplierForm_${index}`).classList.add('hidden');
+                renderSuppliers();
+                checkDirty();
             }
         }
-
-        function removeSupplier() {
-            document.getElementById('supplierSelect').value = '';
-            document.getElementById('drawerSupplierName').value = '';
-            document.getElementById('drawerSupplierItem').value = '';
-            document.getElementById('drawerSupplierVat').value = '';
-            document.getElementById('drawerSupplierPrice').value = '';
-            document.getElementById('drawerSupplierSku').value = '';
-            document.getElementById('btnEditSupplier').classList.add('hidden');
-            document.getElementById('btnDelSupplier').classList.add('hidden');
-            document.getElementById('supplierForm').classList.add('hidden');
+        
+        function editSupplierItem(index) {
+            const sid = supplierItems[index].supp_id;
+            const match = globalSuppliers.find(x => x.id === sid);
+            document.getElementById(`supplierForm_${index}`).classList.remove('hidden');
+            document.getElementById(`suppFormName_${index}`).value = match ? match.name : sid;
+            document.getElementById(`suppFormVat_${index}`).value = match ? match.vat : '';
+            document.getElementById(`suppFormSku_${index}`).value = match ? match.sku : '';
+        }
+        
+        function saveSupplierForm(index) {
+            const name = document.getElementById(`suppFormName_${index}`).value.trim();
+            const vat = document.getElementById(`suppFormVat_${index}`).value.trim();
+            const sku = document.getElementById(`suppFormSku_${index}`).value.trim();
+            if(!name) { tg.showAlert("Nome fornitore obbligatorio"); return; }
+            
+            let sid = supplierItems[index].supp_id;
+            if(!sid) {
+                sid = 'supp_' + Date.now();
+                globalSuppliers.push({ id: sid, name: name, vat: vat, sku: sku });
+                supplierItems[index].supp_id = sid;
+            } else {
+                const match = globalSuppliers.find(x => x.id === sid);
+                if(match) { match.name = name; match.vat = vat; match.sku = sku; }
+                else globalSuppliers.push({ id: sid, name: name, vat: vat, sku: sku });
+            }
+            renderSuppliers();
             checkDirty();
         }
 
-        function openSupplierForm(isEdit) {
-            document.getElementById('supplierForm').classList.remove('hidden');
-            if (isEdit) {
-                document.getElementById('supplierFormTitle').innerText = "Modifica Fornitore";
-                const val = document.getElementById('supplierSelect').value;
-                const match = globalSuppliers.find(x => x.id === val);
-                if (match) {
-                    document.getElementById('suppName').value = match.name;
-                    document.getElementById('suppItemName').value = match.item || '';
-                    document.getElementById('suppVat').value = match.vat;
-                    document.getElementById('suppPrice').value = match.price;
-                    document.getElementById('suppSku').value = match.sku;
-                }
-            } else {
-                document.getElementById('supplierFormTitle').innerText = "Nuovo Fornitore";
-                document.getElementById('suppName').value = '';
-                document.getElementById('suppItemName').value = '';
-                document.getElementById('suppVat').value = '';
-                document.getElementById('suppPrice').value = '';
-                document.getElementById('suppSku').value = '';
-            }
-        }
-
-        function closeSupplierForm() {
-            document.getElementById('supplierForm').classList.add('hidden');
-            if(document.getElementById('supplierSelect').value === 'NEW') document.getElementById('supplierSelect').value = '';
-        }
-
-        function saveSupplierForm() {
-            const name = document.getElementById('suppName').value.trim();
-            const itemName = document.getElementById('suppItemName').value.trim();
-            if(!name || !itemName) { tg.showAlert("Fornitore e Articolo sono obbligatori"); return; }
-            
-            const selVal = document.getElementById('supplierSelect').value;
-            const isEdit = selVal && selVal !== 'NEW' && selVal !== 'SCAN';
-            const id = isEdit ? selVal : 'supp_' + Date.now();
-            
-            const data = {
-                id: id, name: name, item: itemName,
-                vat: document.getElementById('suppVat').value,
-                price: document.getElementById('suppPrice').value,
-                sku: document.getElementById('suppSku').value
-            };
-            
-            if (isEdit) {
-                const idx = globalSuppliers.findIndex(x => x.id === id);
-                if(idx > -1) globalSuppliers[idx] = data;
-            } else {
-                globalSuppliers.push(data);
-            }
-            
-            document.getElementById('drawerSupplierName').value = data.name;
-            document.getElementById('drawerSupplierItem').value = data.item;
-            document.getElementById('drawerSupplierVat').value = data.vat;
-            document.getElementById('drawerSupplierPrice').value = data.price;
-            document.getElementById('drawerSupplierSku').value = data.sku;
-            
-            closeSupplierForm();
-            renderSupplierSelect();
-            document.getElementById('supplierSelect').value = id;
-            handleSupplierSelect();
-        }
+        function addSupplierItem() { supplierItems.push({ supp_id: '', item_name: '', cost: 0 }); renderSuppliers(); checkDirty(); }
+        function updateSupplierField(index, field, value) { supplierItems[index][field] = field==='cost'?parseFloat(value)||0:value; checkDirty(); }
+        function removeSupplierItem(index) { supplierItems.splice(index, 1); renderSuppliers(); checkDirty(); }
 
         // --- BOM WIDGET ---
         function renderBom() {
@@ -938,11 +884,8 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 notes_enabled: document.getElementById('allowCustomerNotes').checked,
                 st: skillTags.join(','),
                 ex: JSON.stringify(extraOptions),
-                suppName: document.getElementById('drawerSupplierName').value,
-                suppItem: document.getElementById('drawerSupplierItem').value,
-                suppVat: document.getElementById('drawerSupplierVat').value,
-                suppPrice: document.getElementById('drawerSupplierPrice').value,
-                suppSku: document.getElementById('drawerSupplierSku').value,
+                ex: JSON.stringify(extraOptions),
+                suppliers: JSON.stringify(supplierItems),
                 locLoc: document.getElementById('drawerStorageLocation').value,
                 locTemp: document.getElementById('drawerStorageTemp').value,
                 bom: JSON.stringify(bomItems),
@@ -1010,11 +953,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
             // Update Drawer specific nodes
             if (!payload.procurement) payload.procurement = {};
-            payload.procurement.supplier_name = form.suppName;
-            payload.procurement.supplier_item_name = form.suppItem;
-            payload.procurement.supplier_vat = form.suppVat;
-            payload.procurement.cost_of_goods = parseFloat(form.suppPrice) || 0;
-            payload.procurement.supplier_sku = form.suppSku;
+            payload.procurement.suppliers = supplierItems;
 
             if (!payload.logistics) payload.logistics = {};
             payload.logistics.storage_location = form.locLoc;
