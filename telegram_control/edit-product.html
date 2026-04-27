@@ -95,10 +95,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1">
-                        <label class="text-[9px] font-black text-gray-500 uppercase ml-1">Codice Invito</label>
+                        <label class="text-[9px] font-black text-gray-500 uppercase ml-1">SKU</label>
                         <div class="relative">
-                            <input type="text" id="itemInvitationCode" readonly class="w-full bg-gray-100 text-gray-400 p-3.5 rounded-xl text-[10px] font-bold outline-none pr-10">
-                            <button type="button" onclick="copyInvitationCode()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black active:scale-90 transition">
+                            <input type="text" id="itemSku" readonly class="w-full bg-gray-100 text-gray-400 p-3.5 rounded-xl text-[10px] font-bold outline-none pr-10">
+                            <button type="button" onclick="copyValue('itemSku')" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black active:scale-90 transition">
                                 <i class="fas fa-copy"></i>
                             </button>
                         </div>
@@ -428,7 +428,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             const val = (id, v) => { if (document.getElementById(id)) document.getElementById(id).value = v || ''; };
             const chk = (id, v) => { if (document.getElementById(id)) document.getElementById(id).checked = !!v; };
             val('itemName', data.identity?.item_name);
-            val('itemInvitationCode', data.identity?.item_sku || data.identity?.invitation_code);
+            val('itemSku', data.identity?.item_sku);
             val('itemType', data.identity?.item_type);
             val('descShort', data.identity?.description?.short);
             val('descLong', data.identity?.description?.long);
@@ -597,7 +597,13 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     <div id="supplierForm_${index}" class="hidden bg-gray-100 p-2 rounded-lg space-y-2 border border-gray-200">
                         <input type="text" id="suppFormName_${index}" placeholder="Nome Fornitore *" class="w-full p-2 text-[10px] font-bold rounded-lg border-none outline-none focus:border-black">
                         <input type="text" id="suppFormVat_${index}" placeholder="P.IVA / VAT" class="w-full p-2 text-[10px] font-medium rounded-lg border-none outline-none focus:border-black">
-                        <input type="text" id="suppFormSku_${index}" placeholder="SKU Fornitore" class="w-full p-2 text-[10px] font-medium rounded-lg border-none outline-none focus:border-black">
+                        <div class="relative">
+                            <input type="text" id="suppFormInv_${index}" placeholder="Codice Invito" readonly class="w-full p-2 text-[10px] font-black rounded-lg border-none outline-none bg-white pr-24">
+                            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
+                                <button type="button" onclick="generateInviteCode(${index})" class="bg-black text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest">Genera</button>
+                                <button type="button" onclick="copyValue('suppFormInv_${index}')" class="text-gray-400 p-1"><i class="fas fa-copy text-[10px]"></i></button>
+                            </div>
+                        </div>
                         <button type="button" onclick="saveSupplierForm(${index})" class="w-full bg-black text-white text-[9px] font-black uppercase tracking-widest p-2 rounded-lg active:scale-95 transition">Salva Anagrafica Fornitore</button>
                     </div>
                 `;
@@ -647,7 +653,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             document.getElementById(`supplierForm_${index}`).classList.remove('hidden');
             document.getElementById(`suppFormName_${index}`).value = match ? match.name : sid;
             document.getElementById(`suppFormVat_${index}`).value = match ? match.vat : '';
-            document.getElementById(`suppFormSku_${index}`).value = match ? match.sku : '';
+            document.getElementById(`suppFormInv_${index}`).value = match ? match.invite_code : '';
         }
 
         function handleArticleSelect(index, val) {
@@ -668,18 +674,18 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         function saveSupplierForm(index) {
             const name = document.getElementById(`suppFormName_${index}`).value.trim();
             const vat = document.getElementById(`suppFormVat_${index}`).value.trim();
-            const sku = document.getElementById(`suppFormSku_${index}`).value.trim();
+            const inv = document.getElementById(`suppFormInv_${index}`).value.trim();
             if(!name) { tg.showAlert("Nome fornitore obbligatorio"); return; }
             
             let sid = supplierItems[index].supp_id;
             if(!sid) {
                 sid = 'supp_' + Date.now();
-                globalSuppliers.push({ id: sid, name: name, vat: vat, sku: sku });
+                globalSuppliers.push({ id: sid, name: name, vat: vat, invite_code: inv });
                 supplierItems[index].supp_id = sid;
             } else {
                 const match = globalSuppliers.find(x => x.id === sid);
-                if(match) { match.name = name; match.vat = vat; match.sku = sku; }
-                else globalSuppliers.push({ id: sid, name: name, vat: vat, sku: sku });
+                if(match) { match.name = name; match.vat = vat; match.invite_code = inv; }
+                else globalSuppliers.push({ id: sid, name: name, vat: vat, invite_code: inv });
             }
             renderSuppliers();
             checkDirty();
@@ -989,12 +995,25 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             }
         }
 
-        function copyInvitationCode() {
-            const code = document.getElementById('itemInvitationCode').value;
-            if(!code) return;
-            navigator.clipboard.writeText(code).then(() => {
-                tg.showAlert("Codice copiato negli appunti!");
+        function copyValue(elementId) {
+            const val = document.getElementById(elementId).value;
+            if(!val) return;
+            navigator.clipboard.writeText(val).then(() => {
+                tg.showAlert("Copiato negli appunti!");
                 if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            });
+        }
+
+        async function generateInviteCode(index) {
+            const name = document.getElementById(`suppFormName_${index}`).value.trim();
+            if(!name) { tg.showAlert("Inserisci prima il nome del fornitore"); return; }
+            
+            tg.showConfirm("Generare un nuovo Codice Invito per questo fornitore?", async (ok) => {
+                if(!ok) return;
+                // Qui n8n restituirà il codice. Per ora mockiamo.
+                const code = "INV-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+                document.getElementById(`suppFormInv_${index}`).value = code;
+                if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             });
         }
 
