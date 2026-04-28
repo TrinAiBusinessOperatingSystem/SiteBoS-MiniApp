@@ -509,11 +509,12 @@ async function handleSave(e) {
             _auth: tg.initData,
             ash: ash || '',
             msg: msg || '',
+            msg_id: msg || '', // Invio entrambi per sicurezza
             category_id: catId || '',
             new_product_block: draftData
         };
 
-        // Chiamata immediata senza await
+        // Chiamata immediata con keepalive
         fetch(SAVE_WEBHOOK, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -522,7 +523,11 @@ async function handleSave(e) {
         });
         
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-        tg.close();
+        
+        // Piccolo ritardo per garantire l'uscita del pacchetto
+        setTimeout(() => {
+            tg.close();
+        }, 200);
         
     } catch (err) {
         console.error("SAVE ERROR:", err);
