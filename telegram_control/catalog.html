@@ -508,17 +508,15 @@
             const wh = type === 'blog' ? "https://prod.workflow.trinai.it/webhook/914bd78e-8a41-46d7-8935-7eb73cbbae66" : "https://prod.workflow.trinai.it/webhook/8fc050ca-41cd-4469-989c-269a113a00f9";
             const cost = type === 'blog' ? 10 : 10; // Costo indicativo
             const actionValue = type === 'blog' ? 'create' : 'activate_social';
-            tg.showConfirm(`Attivare ${type.toUpperCase()}? (Costo: ${cost} crediti). Il contenuto verrà generato e inviato su Telegram.`, async ok => {
+            tg.showConfirm(`Attivare ${type.toUpperCase()}? (Costo: ${cost} crediti). Il contenuto verrà generato e inviato su Telegram.`, ok => {
                 if (ok) {
-                    try {
-                        await fetch(wh, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: actionValue, sop_id: currentSopId, ash: ash, msg: msg, _auth: tg.initData })
-                        });
-                        tg.showAlert("Processo avviato! Riceverai una notifica su Telegram.");
-                        setTimeout(() => tg.close(), 1000);
-                    } catch (e) { console.error("Activation Error:", e); }
+                    fetch(wh, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: actionValue, sop_id: currentSopId, ash: ash, msg: msg, _auth: tg.initData }),
+                        keepalive: true
+                    });
+                    tg.close();
                 }
             });
         };
@@ -622,17 +620,15 @@
         }
 
         window.generateVideo = async () => {
-            tg.showConfirm("Generare un video per questo post? (15 crediti)", async ok => {
+            tg.showConfirm("Generare un video per questo post? (15 crediti)", ok => {
                 if (ok) {
-                    try {
-                        await fetch("https://prod.workflow.trinai.it/webhook/7d09d946-95e6-4efa-baee-00c458c82e9e", {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'generate_video', sop_id: currentSopId, ash: ash, msg: msg, _auth: tg.initData })
-                        });
-                        tg.showAlert("Generazione video avviata!");
-                        setTimeout(() => tg.close(), 1000);
-                    } catch (e) { console.error("Video Gen Error:", e); }
+                    fetch("https://prod.workflow.trinai.it/webhook/7d09d946-95e6-4efa-baee-00c458c82e9e", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'generate_video', sop_id: currentSopId, ash: ash, msg: msg, _auth: tg.initData }),
+                        keepalive: true
+                    });
+                    tg.close();
                 }
             });
         };
