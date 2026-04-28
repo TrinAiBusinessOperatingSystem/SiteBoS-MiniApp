@@ -190,6 +190,7 @@
     
     const urlParams = new URLSearchParams(window.location.search);
     const ash = urlParams.get('ash');
+    const msg = urlParams.get('msg');
 
     let fullCatalog = [], currentMacro = 'SOP', currentEditingCatId = null;
 
@@ -202,7 +203,7 @@
             const res = await fetch(WEBHOOK_URL, { 
                 method: "POST", 
                 headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ action: "get_catalog", _auth: tg.initData, ash: ash }) 
+                body: JSON.stringify({ action: "get_catalog", _auth: tg.initData, ash: ash, msg: msg }) 
             });
             const raw = await res.json();
             const data = Array.isArray(raw) ? raw[0] : (raw.catalog || raw);
@@ -309,8 +310,8 @@
         if(!isOpen) { body.classList.remove('hidden'); icon.classList.add('rotate-180'); }
     }
 
-    window.goToAddCategory = () => { location.href = `add-category.html?ash=${ash}&macro=${currentMacro}`; };
-    window.goToAddProduct = (catId) => { location.href = `add-product.html?ash=${ash}&catId=${catId}`; };
+    window.goToAddCategory = () => { location.href = `add-category.html?ash=${ash}&msg=${msg || ''}&macro=${currentMacro}`; };
+    window.goToAddProduct = (catId) => { location.href = `add-product.html?ash=${ash}&msg=${msg || ''}&catId=${catId}`; };
     
     let currentSopId = null;
     let currentSocialData = null;
@@ -328,23 +329,50 @@
                 const res = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'get_ghost_info', sop_id: pId, ash: ash, _auth: tg.initData })
+                    body: JSON.stringify({ action: 'get_ghost_info', sop_id: pId, ash: ash, msg: msg, _auth: tg.initData })
                 });
                 const info = await res.json();
                 const rawInfo = Array.isArray(info) ? info[0] : info;
                 
                 // Gestione Blog
                 const blogBtn = document.getElementById('hub-blog-btn');
-                if (rawInfo.blog_active) blogBtn.classList.remove('hidden');
-                else blogBtn.classList.add('hidden');
+                blogBtn.classList.remove('hidden');
+                if (rawInfo.blog_active) {
+                    blogBtn.onclick = () => launchSubEditor('edit-blog.html');
+                    blogBtn.innerHTML = `
+                        <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center">
+                            <i class="fas fa-pen-nib text-lg"></i>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest">Blog & Story</span>`;
+                } else {
+                    blogBtn.onclick = () => activateService('blog');
+                    blogBtn.innerHTML = `
+                        <div class="w-12 h-12 bg-gray-50 text-gray-300 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-200">
+                            <i class="fas fa-plus text-lg"></i>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 italic">Crea Blog</span>
+                        <div class="absolute top-2 right-2 bg-blue-600 text-white text-[5px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Premium</div>`;
+                }
 
                 // Gestione Social Post
                 const socialBtn = document.getElementById('hub-social-btn');
+                socialBtn.classList.remove('hidden');
                 if (rawInfo.post) {
                     currentSocialData = rawInfo.post;
-                    socialBtn.classList.remove('hidden');
+                    socialBtn.onclick = () => openSocialViewer();
+                    socialBtn.innerHTML = `
+                        <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center">
+                            <i class="fas fa-share-nodes text-lg"></i>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest">Social Posts</span>`;
                 } else {
-                    socialBtn.classList.add('hidden');
+                    socialBtn.onclick = () => activateService('social');
+                    socialBtn.innerHTML = `
+                        <div class="w-12 h-12 bg-gray-50 text-gray-300 rounded-2xl flex items-center justify-center border-2 border-dashed border-gray-200">
+                            <i class="fas fa-plus text-lg"></i>
+                        </div>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 italic">Crea Social</span>
+                        <div class="absolute top-2 right-2 bg-blue-600 text-white text-[5px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tighter">Premium</div>`;
                 }
             } catch (e) { console.error("Ghost Info Error:", e); }
             
@@ -358,7 +386,24 @@
             }
             return;
         }
-        location.href = `${page}?ash=${ash}&productId=${pId}&catId=${catId}&ghostId=${pId}`;
+        location.href = `${page}?ash=${ash}&msg=${msg || ''}&productId=${pId}&catId=${catId}&ghostId=${pId}`;
+    };
+
+    window.activateService = async (type) => {
+        const wh = type === 'blog' ? "PLACEHOLDER_WH_BLOG" : "PLACEHOLDER_WH_SOCIAL";
+        tg.showConfirm(`Attivare ${type.toUpperCase()}? (Verranno scalati i crediti previsti)`, async ok => {
+            if(ok) {
+                try {
+                    await fetch(wh, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: `activate_${type}`, sop_id: currentSopId, ash: ash, msg: msg, _auth: tg.initData })
+                    });
+                    tg.showAlert("Processo avviato! Riceverai una notifica su Telegram.");
+                    setTimeout(() => tg.close(), 1000);
+                } catch (e) { console.error("Activation Error:", e); }
+            }
+        });
     };
 
     function openSocialViewer() {
@@ -433,6 +478,15 @@
             `;
         }
 
+        // Genera Video Button
+        container.innerHTML += `
+            <div class="pt-6">
+                <button onclick="generateVideo()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition text-[10px] uppercase tracking-widest">
+                    <i class="fas fa-video"></i> Genera Video AI
+                </button>
+            </div>
+        `;
+
         const drawer = document.getElementById('social-viewer-drawer');
         drawer.classList.remove('hidden');
         setTimeout(() => drawer.classList.remove('translate-y-full'), 10);
@@ -450,6 +504,22 @@
         if(tg.BackButton) tg.BackButton.onClick(closeHub);
     }
 
+    window.generateVideo = async () => {
+        tg.showConfirm("Generare un video per questo post? (15 crediti)", async ok => {
+            if(ok) {
+                try {
+                    await fetch("PLACEHOLDER_WH_VIDEO", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'generate_video', sop_id: currentSopId, ash: ash, msg: msg, _auth: tg.initData })
+                    });
+                    tg.showAlert("Generazione video avviata!");
+                    setTimeout(() => tg.close(), 1000);
+                } catch(e) { console.error("Video Gen Error:", e); }
+            }
+        });
+    };
+
     function copyToClipboard(elementId) {
         const text = document.getElementById(elementId).innerText;
         navigator.clipboard.writeText(text).then(() => {
@@ -466,9 +536,12 @@
     }
 
     function launchSubEditor(page) {
+        console.log(`[Hub] Launching SubEditor: ${page} for SOP: ${currentSopId}`);
         const drawer = document.getElementById('quick-editor-drawer');
         const frame = document.getElementById('quickEditorFrame');
-        const url = `${page}?ash=${ash}&sop_id=${currentSopId}&from_hub=true`;
+        const url = `${page}?ash=${ash}&msg=${msg || ''}&sop_id=${currentSopId}&from_hub=true`;
+        
+        console.log(`[Hub] Target URL: ${url}`);
         
         frame.src = url;
         drawer.classList.remove('hidden');
@@ -505,7 +578,7 @@
             const res = await fetch(WEBHOOK_URL, { 
                 method: "POST", 
                 headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify({ action: "update_category", _auth: tg.initData, ash: ash, category_id: id, name, short_name }) 
+                body: JSON.stringify({ action: "update_category", _auth: tg.initData, ash: ash, msg: msg, category_id: id, name, short_name }) 
             });
             if (res.ok) {
                 closeEditModal();
@@ -527,7 +600,7 @@
                     await fetch(WEBHOOK_URL, { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
-                        body: JSON.stringify({ action: "delete_category", _auth: tg.initData, ash: ash, category_id: id }) 
+                        body: JSON.stringify({ action: "delete_category", _auth: tg.initData, ash: ash, msg: msg, category_id: id }) 
                     });
                     loadCatalog(true);
                 } catch(e) { console.error("Delete Error", e); }
@@ -541,7 +614,7 @@
                     await fetch(WEBHOOK_URL, { 
                         method: "POST", 
                         headers: { "Content-Type": "application/json" }, 
-                        body: JSON.stringify({ action: "delete_product", _auth: tg.initData, ash: ash, product_id: id }) 
+                        body: JSON.stringify({ action: "delete_product", _auth: tg.initData, ash: ash, msg: msg, product_id: id }) 
                     });
                     loadCatalog(true);
                 } catch(e) { console.error("Delete Error", e); }

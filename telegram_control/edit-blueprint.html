@@ -142,7 +142,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         const urlParams = new URLSearchParams(window.location.search);
         const ash = urlParams.get('ash');
         const sopId = urlParams.get('sop_id');
-        const messageId = urlParams.get('message_id');
+        const msg = urlParams.get('msg') || urlParams.get('message_id');
         let currentData = null, initialDataString = "", stageSortable = null;
 
         async function init() {
@@ -157,7 +157,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 const res = await fetch(WEBHOOK_URL, { 
                     method: 'POST', 
                     headers: { 'Content-Type': 'application/json' }, 
-                    body: JSON.stringify({ action: 'GET', type: 'BLUEPRINT', sop_id: sopId, message_id: messageId, ash: ash, _auth: tg.initData }) 
+                    body: JSON.stringify({ action: 'GET', type: 'BLUEPRINT', sop_id: sopId, msg: msg, ash: ash, _auth: tg.initData }) 
                 });
                 const rD = await res.json();
                 const bp = (Array.isArray(rD) ? rD[0] : rD).blueprint || (Array.isArray(rD) ? rD[0] : rD);
@@ -268,7 +268,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         async function triggerComplianceCheck() {
             tg.showConfirm("Analyze with AI?", async (ok) => {
                 if (!ok) return;
-                try { await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'COMPLIANCE_CHECK', type: 'BLUEPRINT', sop_id: sopId, message_id: messageId, payload: currentData }) }); tg.showAlert("Analysis in progress..."); } catch(e) { tg.showAlert("Error."); }
+                try { await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'COMPLIANCE_CHECK', type: 'BLUEPRINT', sop_id: sopId, msg: msg, payload: currentData }) }); tg.showAlert("Analysis in progress..."); } catch(e) { tg.showAlert("Error."); }
             });
         }
 
@@ -276,7 +276,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             const btn = document.getElementById('saveBtn'); btn.disabled = true; document.getElementById('saveBtnText').innerText = "DEPLOYING...";
             const payload = JSON.parse(JSON.stringify(currentData));
             try {
-                const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'SAVE', type: 'BLUEPRINT', sop_id: sopId, message_id: messageId, payload: payload }) });
+                const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'SAVE', type: 'BLUEPRINT', sop_id: sopId, msg: msg, payload: payload }) });
                 if (res.ok) { btn.className = "flex-1 h-12 bg-green-600 text-black rounded-xl shadow-sm font-black uppercase text-[10px] flex items-center justify-center gap-2"; document.getElementById('saveBtnText').innerText = "SUCCESS"; if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); setTimeout(() => tg.close(), 1200); }
             } catch(e) { btn.disabled = false; document.getElementById('saveBtnText').innerText = "RETRY"; tg.showAlert("Error."); }
         }
