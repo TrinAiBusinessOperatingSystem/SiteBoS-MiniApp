@@ -123,12 +123,11 @@
                         <span class="text-[7px] font-black uppercase tracking-[0.2em] text-gray-300 italic">Global Efficiency</span>
                         <h3 class="text-xl font-black tracking-tighter uppercase text-black">Audit Analytics</h3>
                     </div>
-                    <div class="relative w-16 h-16 flex items-center justify-center">
-                        <svg class="w-full h-full transform -rotate-90">
-                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" class="text-gray-50" />
-                            <circle id="global-progress-circle" cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" stroke-dasharray="175.9" stroke-dashoffset="175.9" class="text-blue-500 transition-all duration-1000 ease-out" />
-                        </svg>
-                        <span id="global-pct-text" class="absolute text-[10px] font-black italic text-black">0%</span>
+                    <div class="text-right flex flex-col items-end">
+                        <div id="global-performance-rank" class="text-3xl font-black italic tracking-tighter leading-none">---</div>
+                        <div id="global-performance-stars" class="flex gap-0.5 justify-end mt-1 text-[6px]">
+                            <!-- Stars populated by JS -->
+                        </div>
                     </div>
                 </div>
 
@@ -513,18 +512,30 @@
             document.getElementById('stats-total-sessions').innerText = totalSessions;
             document.getElementById('stats-success-rate').innerText = `${successRate}%`;
             
-            // Progress Circle Update
-            const circle = document.getElementById('global-progress-circle');
-            if (circle) {
-                const radius = 28;
-                const circumference = 2 * Math.PI * radius;
-                const offset = circumference - (globalEfficiency / 100) * circumference;
-                circle.style.strokeDasharray = `${circumference} ${circumference}`;
-                circle.style.strokeDashoffset = offset;
-                document.getElementById('global-pct-text').innerText = `${globalEfficiency}%`;
+            // Calculate Global Rank based on efficiency and success rate
+            const globalScore = (globalEfficiency + successRate) / 2;
+            let gRank = 'B', gStars = 3, gColor = 'text-green-500';
+            if (globalScore >= 95) { gRank = 'S'; gStars = 5; gColor = 'text-yellow-400'; }
+            else if (globalScore >= 85) { gRank = 'A'; gStars = 4; gColor = 'text-blue-500'; }
+            else if (globalScore >= 70) { gRank = 'B'; gStars = 3; gColor = 'text-green-500'; }
+            else { gRank = 'C'; gStars = 2; gColor = 'text-gray-300'; }
+
+            const gRankEl = document.getElementById('global-performance-rank');
+            if (gRankEl) {
+                gRankEl.innerText = gRank;
+                gRankEl.className = `text-3xl font-black italic tracking-tighter leading-none ${gColor}`;
+            }
+            const gStarEl = document.getElementById('global-performance-stars');
+            if (gStarEl) {
+                gStarEl.innerHTML = '';
+                for(let i=0; i<5; i++) {
+                    const s = document.createElement('i');
+                    s.className = `fas fa-star ${i < gStars ? gColor : 'text-gray-50'}`;
+                    gStarEl.appendChild(s);
+                }
             }
 
-            // Evidence Mix Mock Visualization (based on average hits)
+            // Evidence Mix Visualization
             const bars = document.getElementById('evidence-bars');
             if (bars) {
                 bars.innerHTML = '';
@@ -553,6 +564,7 @@
 
         function showHistory() {
             document.getElementById('dashboard-container').classList.add('hidden');
+            document.getElementById('session-detail-container').classList.add('hidden');
             document.getElementById('history-container').classList.remove('hidden');
             
             if(tg.BackButton) {
@@ -776,7 +788,7 @@
                         <div class="flex-1 pb-4">
                             <div class="flex justify-between items-start">
                                 <h4 class="text-[10px] font-black uppercase leading-tight text-gray-800">${step.step_name || `Step ${idx+1}`}</h4>
-                                <span class="text-[7px] font-mono text-gray-300">${step.timestamp ? new Date(step.timestamp).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : ''}</span>
+                                <span class="text-[7px] font-bold text-gray-400">${step.timestamp ? new Date(step.timestamp).toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'}) : ''}</span>
                             </div>
                             <p class="text-[7px] text-gray-400 font-bold uppercase tracking-widest mt-1">${step.method || 'SUPERVISOR_HIT'} • ${isSkip ? 'SKIP' : 'ACQUIRED'}</p>
                         </div>
