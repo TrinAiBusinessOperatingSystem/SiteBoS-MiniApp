@@ -454,21 +454,19 @@ async function saveCategory() {
             short_name: generatedCategoryData?.short_name || dom.catName.value,
             callback_data: generatedCategoryData?.callback_data || dom.catName.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '').replace(/\s/g, '_').substring(0, 60),
             subcategories: selected
-        },
-        ...Object.fromEntries(urlParams)
+        }
     };
 
     try {
-        // 4. Invio al Backend
-        const res = await fetch(SAVE_WEBHOOK_URL, {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+        fetch(SAVE_WEBHOOK_URL, {
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify(payload),
+            keepalive: true
         });
         
-        if (!res.ok) throw new Error();
-        
-        // 5. REDIRECT IMMEDIATO
-        // Mantiene tutti i parametri URL (token, chat_id, ecc) e torna al catalogo
-        window.location.href = "catalog.html" + window.location.search;
+        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        tg.close();
 
     } catch (e) {
         handleError(e);

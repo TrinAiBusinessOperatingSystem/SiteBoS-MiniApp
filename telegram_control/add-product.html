@@ -461,73 +461,72 @@ function removeAddon(index) {
 }
 
 async function handleSave(e) {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
-    // --- PARTE 1: RACCOLTA DATI ---
-    const get = (id) => document.getElementById(id).value;
-    const getChk = (id) => document.getElementById(id).checked;
+    // --- PARTE 1: RACCOLTA DATI CON SICUREZZA ---
+    const get = (id) => document.getElementById(id) ? document.getElementById(id).value : '';
+    const getChk = (id) => document.getElementById(id) ? document.getElementById(id).checked : false;
 
-    if(!draftData) return alert("Errore: Bozza mancante.");
-
-    // (Raggruppamento dati...)
-    draftData.identity.item_name = get('outName');
-    draftData.identity.item_sku = get('outSku');
-    draftData.identity.item_type = get('outType');
-    
-    if(!draftData.identity.description) draftData.identity.description = {};
-    draftData.identity.description.short = get('outShortDesc');
-    draftData.identity.description.long = get('outLongDesc');
-    draftData.identity.description.internal_notes = get('outInternal');
-
-    if(!draftData.pricing) draftData.pricing = {};
-    draftData.pricing.base_price = parseFloat(get('outPrice')) || 0;
-    draftData.pricing.unit_of_measure = get('outUnit');
-    
-    if(!draftData.pricing.pricing_rules_engine) draftData.pricing.pricing_rules_engine = {};
-    draftData.pricing.pricing_rules_engine.is_dynamic_price = getChk('outDynamicPrice');
-
-    if(!draftData.operations) draftData.operations = {};
-    draftData.operations.requires_booking = getChk('outBooking');
-
-    draftData.identity.tags = get('outTags').split(',').map(s=>s.trim()).filter(Boolean);
-    
-    if(!draftData.relations) draftData.relations = {};
-    if(!draftData.relations.marketing_info) draftData.relations.marketing_info = {};
-    draftData.relations.marketing_info.target_audience_tags = get('outTarget').split(',').map(s=>s.trim()).filter(Boolean);
-
-    // ADDED ADDONS
-    if (!draftData.commercial_setup) draftData.commercial_setup = {};
-    draftData.commercial_setup.extra_options = extraOptions;
-    draftData.commercial_setup.allow_customer_notes = getChk('allowCustomerNotes');
-
-    // --- PARTE 2: INVIO A WEBHOOK (NO SESSION STORAGE) ---
-    showLoader(t.status_save);
-
-    const n8nPayload = {
-        _auth: tg.initData,
-        ash: ash,
-        category_id: catId,
-        msg_id: msgId,
-        new_product_block: draftData
-    };
-    console.log("DEBUG: Sending payload to webhook:", n8nPayload);
+    if(!draftData) {
+        alert("Errore: Dati bozza non caricati.");
+        return;
+    }
 
     try {
+        // Assicuriamo l'esistenza della struttura base
+        if (!draftData.identity) draftData.identity = {};
+        if (!draftData.identity.description) draftData.identity.description = {};
+        if (!draftData.pricing) draftData.pricing = {};
+        if (!draftData.pricing.pricing_rules_engine) draftData.pricing.pricing_rules_engine = {};
+        if (!draftData.operations) draftData.operations = {};
+        if (!draftData.relations) draftData.relations = {};
+        if (!draftData.relations.marketing_info) draftData.relations.marketing_info = {};
+        if (!draftData.commercial_setup) draftData.commercial_setup = {};
+
+        // Mapping campi
+        draftData.identity.item_name = get('outName');
+        draftData.identity.item_sku = get('outSku');
+        draftData.identity.item_type = get('outType');
+        draftData.identity.description.short = get('outShortDesc');
+        draftData.identity.description.long = get('outLongDesc');
+        draftData.identity.description.internal_notes = get('outInternal');
+        
+        draftData.pricing.base_price = parseFloat(get('outPrice')) || 0;
+        draftData.pricing.unit_of_measure = get('outUnit');
+        draftData.pricing.pricing_rules_engine.is_dynamic_price = getChk('outDynamicPrice');
+
+        draftData.operations.requires_booking = getChk('outBooking');
+        draftData.identity.tags = get('outTags').split(',').map(s=>s.trim()).filter(Boolean);
+        draftData.relations.marketing_info.target_audience_tags = get('outTarget').split(',').map(s=>s.trim()).filter(Boolean);
+        
+        draftData.commercial_setup.extra_options = typeof extraOptions !== 'undefined' ? extraOptions : [];
+        draftData.commercial_setup.allow_customer_notes = getChk('allowCustomerNotes');
+
+        // --- PARTE 2: INVIO A WEBHOOK ---
+        showLoader(t.status_save || "Salvataggio...");
+
+        const n8nPayload = {
+            _auth: tg.initData,
+            ash: ash || '',
+            msg: msg || '',
+            category_id: catId || '',
+            new_product_block: draftData
+        };
+
         const res = await fetch(SAVE_WEBHOOK, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(n8nPayload)
         });
         
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error(`Errore Server: ${res.status}`);
         
-        // Chiudi MiniApp immediatamente
         if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         tg.close();
         
     } catch (err) {
-        console.error(err);
-        alert(t.err_generic + "\n" + err.message);
+        console.error("SAVE ERROR:", err);
+        alert("Errore durante il salvataggio: " + err.message);
         hideLoader();
     }
 }
