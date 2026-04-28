@@ -79,8 +79,12 @@
         
         <!-- HEADER -->
         <header class="space-y-1 py-2 text-center">
-            <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1">Supervisor Hub</div>
+            <div id="category-badge" class="hidden px-2 py-0.5 bg-gray-100 text-gray-400 text-[6px] font-black uppercase tracking-widest rounded-full mb-1 inline-block">Categoria</div>
+            <div class="block">
+                <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1">Supervisor Hub</div>
+            </div>
             <h1 id="main-title" class="text-xl font-black tracking-tighter uppercase leading-none">Supervisione</h1>
+            <p id="blueprint-desc" class="text-[8px] text-gray-400 font-medium px-6 hidden"></p>
             <p id="header-status" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 italic">Recupero dati...</p>
         </header>
 
@@ -282,17 +286,36 @@
             const root = Array.isArray(data) ? data[0] : data;
             const sessions = (root && root.session) ? root.session : [];
             const blueprint = (root && root.blueprint) ? root.blueprint : null;
+            const category = (root && root.category) ? root.category : null;
+
+            if (category) {
+                const catBadge = document.getElementById('category-badge');
+                catBadge.innerText = `${category.short_name || category.name} > ${category.subcategory?.short_name || category.subcategory?.name || ''}`;
+                catBadge.classList.remove('hidden');
+            }
 
             if (blueprint) {
-                document.getElementById('sop-badge').innerText = `SOP: ${blueprint.blueprint_name || sopId}`;
+                document.getElementById('sop-badge').innerText = `SKU: ${blueprint.service_sku || sopId}`;
                 document.getElementById('main-title').innerText = blueprint.blueprint_name || 'Supervisione';
                 
-                // Render Milestones (Steps) per supervisione singola
+                const desc = document.getElementById('blueprint-desc');
+                if (blueprint.blueprint_description) {
+                    desc.innerText = blueprint.blueprint_description;
+                    desc.classList.remove('hidden');
+                }
+
+                // Render Milestones (Steps) per supervisione singola organizzati per Stage
                 const mList = document.getElementById('milestones-list');
                 if (mList) {
                     mList.innerHTML = '';
                     if (blueprint.stages) {
                         blueprint.stages.forEach(stage => {
+                            // Stage Header
+                            const sHeader = document.createElement('div');
+                            sHeader.className = "text-[7px] font-black uppercase tracking-[0.2em] text-gray-300 mt-4 mb-2 border-l-2 border-gray-100 pl-2";
+                            sHeader.innerText = stage.stage_name;
+                            mList.appendChild(sHeader);
+
                             stage.steps.forEach(step => {
                                 const btn = document.createElement('button');
                                 btn.className = 'flex items-center justify-between p-3 bg-white border border-border rounded-xl active:scale-95 transition text-left w-full mb-1';
@@ -321,7 +344,7 @@
             list.innerHTML = '';
             
             if(sessions.length === 0) {
-                list.innerHTML = `<div class="text-center py-6 text-gray-300 font-bold text-[9px] uppercase tracking-widest">Nessuna sessione di percorso attiva</div>`;
+                list.innerHTML = `<div class="text-center py-6 text-gray-300 font-bold text-[9px] uppercase tracking-widest border border-dashed border-gray-100 rounded-2xl">Nessuna sessione di percorso attiva</div>`;
             } else {
                 sessions.forEach(s => {
                     const card = document.createElement('div');
