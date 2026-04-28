@@ -36,7 +36,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; margin: 0; padding-bottom: 100px; }
     .noir-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-card); box-shadow: 0 4px 12px rgba(0,0,0,0.02); overflow: hidden; }
-    .noir-input, .noir-textarea, .noir-select { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-input); background: #f9fafb; padding: 0.75rem 1rem; transition: all .15s ease; outline: none; font-size: 14px; }
+    .noir-input, .noir-textarea, .noir-select { width: 100%; border: 1px solid var(--line); border-radius: var(--radius-input); background: #fff; padding: 0.75rem 1rem; transition: all .15s ease; outline: none; font-size: 14px; }
     .noir-input:focus, .noir-textarea:focus, .noir-select:focus { background: #fff; border-color: #000; }
     .label-k { display: block; margin-bottom: .4rem; font-size: 9px; font-weight: 900; letter-spacing: 0.2em; text-transform: uppercase; color: #94a3b8; }
     .noir-btn { height: 44px; border-radius: 12px; padding: 0 1.2rem; border: none; background: #000; color: #fff; font-weight: 900; text-transform: uppercase; letter-spacing: .1em; font-size: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: all .1s; }
@@ -60,7 +60,15 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     const tg = window.Telegram.WebApp;
     const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/50891655-84c8-4213-90e8-26ebbc3d6c4c';
     if (!tg.initData) { document.body.innerHTML = "ACCESS DENIED"; window.stop(); }
-    const dataFetch = fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'GET_MINISITE_DATA' }) }).then(r => r.json());
+    const urlParams = new URLSearchParams(window.location.search);
+    let ash = urlParams.get('ash');
+    let msg = urlParams.get('msg') || urlParams.get('message_id');
+    if (ash && ash.includes('?msg=')) {
+        const parts = ash.split('?msg=');
+        ash = parts[0];
+        if (!msg) msg = parts[1];
+    }
+    const dataFetch = fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'GET_MINISITE_DATA', ash: ash, msg: msg }) }).then(r => r.json());
   </script>
 
   <div id="loading" class="fixed inset-0 flex items-center justify-center bg-white z-50">
@@ -185,7 +193,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     byId('preview-btn-f').onclick = async () => {
         haptic(); byId('preview-btn-f').innerText = "...";
         try {
-            const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'PREVIEW_MINISITE', ...state.root }) });
+            const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'PREVIEW_MINISITE', ash: ash, msg: msg, ...state.root }) });
             const res = await r.json(); if(res.html) { byId('preview-frame').srcdoc = res.html; byId('preview-modal').classList.remove('hidden'); }
         } catch(e) { tg.showAlert("Error."); } finally { byId('preview-btn-f').innerText = "Preview"; }
     };
@@ -194,7 +202,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     byId('btn-gen-offer').onclick = async () => {
       haptic();
       try {
-        const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'Generate_Offer', prompt: byId('offer-prompt').value, company_context: state.root.HoneyPot.company_context_string }) });
+        const r = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'Generate_Offer', ash: ash, msg: msg, prompt: byId('offer-prompt').value, company_context: state.root.HoneyPot.company_context_string }) });
         const res = await r.json(); if(res.html_content) { state.root.HoneyPot.offer_text = res.html_content; populateForm(); }
       } catch(e) {}
     };
@@ -203,7 +211,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     function procMedia(i, k) { if (i.files && i.files[0]) { const r = new FileReader(); r.onload = e => { state.root.HoneyPot.assets[k].url = e.target.result; populateForm(); syncDirty(); }; r.readAsDataURL(i.files[0]); } }
     function renderServices() { const list = byId('services-list'); list.innerHTML = ''; state.root.HoneyPot.active_services.forEach(s => { const d = document.createElement('div'); d.className = 'noir-card p-3 flex justify-between items-center'; d.innerHTML = `<div><div class="font-black text-[10px] uppercase">${s.name}</div><div class="text-[7px] opacity-40 font-bold uppercase">${s.macro}</div></div>`; list.appendChild(d); }); }
 
-    byId('save-btn').onclick = () => { tg.showConfirm("Publish Changes?", async ok => { if(!ok) return; try { await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'PUBLISH_MINISITE', ...state.root }) }); tg.showAlert("Published!"); state.originalHash = JSON.stringify(state.root.MiniSiteJson); syncDirty(); } catch (e) {} }); };
+    byId('save-btn').onclick = () => { tg.showConfirm("Publish Changes?", async ok => { if(!ok) return; try { await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, action: 'PUBLISH_MINISITE', ash: ash, msg: msg, ...state.root }) }); tg.showAlert("Published!"); state.originalHash = JSON.stringify(state.root.MiniSiteJson); syncDirty(); } catch (e) {} }); };
 
     document.querySelectorAll('.menu-btn').forEach(b => b.onclick = () => { document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden')); document.querySelector(`[data-panel="${b.dataset.tab}"]`).classList.remove('hidden'); toggleMenu(); });
     byId('overlay').onclick = toggleMenu;

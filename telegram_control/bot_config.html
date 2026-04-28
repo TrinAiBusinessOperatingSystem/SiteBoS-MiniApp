@@ -113,7 +113,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     </div>
                     <div class="space-y-1">
                         <label class="text-[9px] font-black text-gray-500 uppercase ml-1">Vibe</label>
-                        <input type="text" id="vibe" class="w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none transition">
+                        <input type="text" id="vibe" class="w-full bg-white p-3 rounded-xl text-[10px] font-bold border border-gray-100 outline-none transition">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -168,6 +168,16 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     <script>
         const tg = window.Telegram.WebApp;
         const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/8eb69e84-d20d-486e-a70e-9acf31c3da9e';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        let ash = urlParams.get('ash');
+        let msg = urlParams.get('msg');
+
+        if (ash && ash.includes('?msg=')) {
+            const parts = ash.split('?msg=');
+            ash = parts[0];
+            if (!msg) msg = parts[1];
+        }
         let fullConfig = {}; 
 
         tg.expand();
@@ -178,7 +188,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ _auth: tg.initData, user_id: tg.initDataUnsafe.user?.id, action: "get_bot_config" })
+                    body: JSON.stringify({ _auth: tg.initData, user_id: tg.initDataUnsafe.user?.id, action: "get_bot_config", ash: ash, msg: msg })
                 });
                 fullConfig = await response.json();
 
@@ -224,7 +234,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ _auth: tg.initData, user_id: tg.initDataUnsafe.user?.id, action: "save_bot_config", config: fullConfig })
+                    body: JSON.stringify({ _auth: tg.initData, user_id: tg.initDataUnsafe.user?.id, action: "save_bot_config", config: fullConfig, ash: ash, msg: msg })
                 });
                 if (response.ok) {
                     btnLabel.innerText = "Configurazione Salvata!";

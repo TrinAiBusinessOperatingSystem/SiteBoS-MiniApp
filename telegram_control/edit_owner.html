@@ -297,13 +297,22 @@
 
         const WH_URL = "https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4";
         const urlParams = new URLSearchParams(window.location.search);
-        const ash = urlParams.get('ash');
+        let ash = urlParams.get('ash');
+        let msg = urlParams.get('msg') || urlParams.get('message_id');
+
+        // Robust parsing for dirty ash: TOKEN?msg=ID
+        if (ash && ash.includes('?msg=')) {
+            const parts = ash.split('?msg=');
+            ash = parts[0];
+            if (!msg) msg = parts[1];
+        }
+
         let ownerData = {};
 
         console.log("TG: ASH Session", ash);
 
         function buildEnvelope(payload) { 
-            return { _auth: tg.initData, ash: ash, ...payload };
+            return { _auth: tg.initData, ash: ash, msg: msg, ...payload };
         }
 
         window.onload = async () => {
