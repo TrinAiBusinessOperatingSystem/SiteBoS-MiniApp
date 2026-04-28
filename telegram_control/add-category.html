@@ -86,9 +86,19 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         <div id="inputPhase">
             
             <div class="dark-card rounded-xl p-5 mb-6">
+                <!-- MACRO SELECTOR -->
+                <div class="mb-6">
+                    <label class="block text-[8px] font-black uppercase tracking-[0.2em] text-gray-500 mb-3 ml-1">Ambiente Operativo</label>
+                    <div class="flex bg-[#333] p-1 rounded-xl gap-1">
+                        <button type="button" onclick="setMacro('SOP')" id="m-SOP" class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-gray-500 transition-all">SOP</button>
+                        <button type="button" onclick="setMacro('SER')" id="m-SER" class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-gray-500 transition-all">Servizi</button>
+                        <button type="button" onclick="setMacro('PRO')" id="m-PRO" class="flex-1 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-gray-500 transition-all">Prodotti</button>
+                    </div>
+                </div>
+
                 <div class="mb-4">
                     <label for="categoryName" class="block text-sm font-medium text-gray-500 mb-2 required" data-i18n="lblCatName">Nome Categoria</label>
-                    <input type="text" id="categoryName" required placeholder="..." class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-0 focus:border-black text-black">
+                    <input type="text" id="categoryName" required placeholder="..." class="w-full p-3 rounded-lg bg-[#333] border border-[#555] focus:ring-0 focus:border-black text-white">
                 </div>
                 
                 <div class="mb-4">
@@ -164,8 +174,16 @@ const tg = window.Telegram.WebApp;
 tg.ready(); tg.expand();
 
 const urlParams = new URLSearchParams(window.location.search);
-const ash = urlParams.get('ash');
+let ash = urlParams.get('ash');
+let msg = urlParams.get('msg');
+let selectedMacro = urlParams.get('macro') || 'SOP';
 let generatedCategoryData = null;
+
+if (ash && ash.includes('?msg=')) {
+    const parts = ash.split('?msg=');
+    ash = parts[0];
+    if (!msg) msg = parts[1];
+}
 
 // I18N COMPLETE
 const i18n = {
@@ -277,6 +295,9 @@ function init() {
         if(el) el.innerText = t[key];
     }
     dom.manualInput.placeholder = t.manualPlaceholder || "...";
+
+    // Macro Init
+    setMacro(selectedMacro);
 
     // Bind Events
     document.getElementById('generateBtn').addEventListener('click', handleGenerate);
@@ -425,9 +446,11 @@ async function saveCategory() {
     const payload = {
         _auth: tg.initData,
         ash: ash,
+        msg: msg,
         new_category_block: {
             name: dom.catName.value, 
             description: dom.catDesc.value,
+            macrocategories: selectedMacro,
             short_name: generatedCategoryData?.short_name || dom.catName.value,
             callback_data: generatedCategoryData?.callback_data || dom.catName.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '').replace(/\s/g, '_').substring(0, 60),
             subcategories: selected
@@ -466,6 +489,19 @@ function handleError(error) {
     console.error(error);
     hideLoader();
     tg.showAlert(t.err_generic);
+}
+
+function setMacro(m) {
+    selectedMacro = m;
+    document.querySelectorAll('[id^="m-"]').forEach(btn => {
+        btn.classList.remove('bg-black', 'text-white');
+        btn.classList.add('text-gray-500');
+    });
+    const active = document.getElementById('m-' + m);
+    if (active) {
+        active.classList.add('bg-black', 'text-white');
+        active.classList.remove('text-gray-500');
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);

@@ -260,9 +260,16 @@
         const tg = window.Telegram.WebApp;
         tg.ready(); tg.expand();
         const urlParams = new URLSearchParams(window.location.search);
-        const ash = urlParams.get('ash');
+        let ash = urlParams.get('ash');
         const sopId = urlParams.get('sop_id');
-        const msg = urlParams.get('msg') || urlParams.get('message_id');
+        let msg = urlParams.get('msg') || urlParams.get('message_id');
+
+        // Robust parsing for dirty ash: TOKEN?msg=ID
+        if (ash && ash.includes('?msg=')) {
+            const parts = ash.split('?msg=');
+            ash = parts[0];
+            if (!msg) msg = parts[1];
+        }
         let currentData = null, initialDataString = "", stageSortable = null;
 
         async function init() {
