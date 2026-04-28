@@ -116,15 +116,46 @@
 
         <!-- HISTORY CONTAINER (Matrioska Style) -->
         <div id="history-container" class="space-y-6 hidden animate-fade-in">
-            <!-- Stats Summary -->
-            <div class="grid grid-cols-2 gap-3">
-                <div class="card p-4 rounded-2xl flex flex-col justify-center">
-                    <span class="text-[7px] font-black uppercase tracking-widest text-gray-400">Totali</span>
-                    <span id="stats-total" class="text-xl font-black">0</span>
+            <!-- Premium Dashboard -->
+            <div class="card p-6 rounded-[2.5rem] bg-black !border-none text-white space-y-6 shadow-2xl">
+                <div class="flex justify-between items-center">
+                    <div class="space-y-0.5">
+                        <span class="text-[7px] font-black uppercase tracking-[0.2em] text-neutral-500 italic">Global Efficiency</span>
+                        <h3 class="text-xl font-black tracking-tighter uppercase">Audit Analytics</h3>
+                    </div>
+                    <div class="relative w-16 h-16 flex items-center justify-center">
+                        <svg class="w-full h-full transform -rotate-90">
+                            <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" class="text-neutral-800" />
+                            <circle id="global-progress-circle" cx="32" cy="32" r="28" stroke="currentColor" stroke-width="4" fill="transparent" stroke-dasharray="175.9" stroke-dashoffset="175.9" class="text-white transition-all duration-1000 ease-out" />
+                        </svg>
+                        <span id="global-pct-text" class="absolute text-[10px] font-black italic">0%</span>
+                    </div>
                 </div>
-                <div class="card p-4 rounded-2xl flex flex-col justify-center">
-                    <span class="text-[7px] font-black uppercase tracking-widest text-green-500">Chiuse</span>
-                    <span id="stats-completed" class="text-xl font-black">0</span>
+
+                <div class="grid grid-cols-3 gap-4 pt-4 border-t border-neutral-800">
+                    <div class="text-center space-y-1">
+                        <p class="text-[6px] font-black uppercase tracking-widest text-neutral-500">Hits</p>
+                        <p id="stats-total-hits" class="text-lg font-black leading-none">0</p>
+                    </div>
+                    <div class="text-center space-y-1">
+                        <p class="text-[6px] font-black uppercase tracking-widest text-neutral-500">Sessions</p>
+                        <p id="stats-total-sessions" class="text-lg font-black leading-none text-white">0</p>
+                    </div>
+                    <div class="text-center space-y-1">
+                        <p class="text-[6px] font-black uppercase tracking-widest text-neutral-500">Success</p>
+                        <p id="stats-success-rate" class="text-lg font-black leading-none text-green-400">0%</p>
+                    </div>
+                </div>
+
+                <!-- Evidence Distribution Matrix (Mini Bars) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between text-[6px] font-black uppercase tracking-widest text-neutral-500">
+                        <span>Evidence Mix</span>
+                        <span id="evidence-mix-summary">---</span>
+                    </div>
+                    <div class="flex h-1 gap-1 rounded-full overflow-hidden bg-neutral-900" id="evidence-bars">
+                        <!-- JS populated bars -->
+                    </div>
                 </div>
             </div>
 
@@ -142,13 +173,21 @@
 
         <!-- WIZARD CONTAINER -->
         <div id="wizard-container" class="space-y-6 hidden">
+            <!-- Session Context Dashboard (Premium) -->
+            <div id="session-mini-dash" class="flex gap-2 animate-fade-in hidden">
+                <div class="flex-1 bg-gray-100 rounded-xl p-2 flex items-center justify-between px-4">
+                    <span class="text-[6px] font-black uppercase text-gray-400">Progress</span>
+                    <span id="session-pct-badge" class="text-[9px] font-black">0%</span>
+                </div>
+                <div class="flex-1 bg-gray-100 rounded-xl p-2 flex items-center justify-between px-4">
+                    <span class="text-[6px] font-black uppercase text-gray-400">Step</span>
+                    <span id="session-step-counter" class="text-[9px] font-black">1/N</span>
+                </div>
+            </div>
+
             <!-- Progress Bar -->
             <div class="space-y-2">
-                <div class="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                    <span id="step-label">Step 1 di N</span>
-                    <span id="step-percentage">0%</span>
-                </div>
-                <div class="w-full bg-gray-100 h-2 rounded-full overflow-hidden">
+                <div class="w-full bg-gray-100 h-1 rounded-full overflow-hidden">
                     <div id="progress-bar" class="h-full bg-black transition-all duration-300" style="width: 0%"></div>
                 </div>
             </div>
@@ -324,6 +363,7 @@
                 catBadge.classList.remove('hidden');
             }
 
+            let totalStepsInBlueprint = 0;
             if (blueprint) {
                 document.getElementById('sop-badge').innerText = `SKU: ${blueprint.service_sku || sopId}`;
                 document.getElementById('main-title').innerText = blueprint.blueprint_name || 'Supervisione';
@@ -346,6 +386,7 @@
                             mList.appendChild(sHeader);
 
                             stage.steps.forEach(step => {
+                                totalStepsInBlueprint++;
                                 const btn = document.createElement('button');
                                 btn.className = 'flex items-center justify-between p-3 bg-white border border-border rounded-xl active:scale-95 transition text-left w-full mb-1';
                                 const typeIcon = { 'TEXT': 'fa-pen', 'VISION': 'fa-camera', 'SIGNATURE': 'fa-signature', 'FILE': 'fa-file-upload' }[step.quality_check?.evidence_type] || 'fa-check-circle';
@@ -369,10 +410,54 @@
                 }
             }
 
-            // Stats & Badge
-            document.getElementById('session-count-badge').innerText = `Sessioni (${allSessions.length})`;
-            document.getElementById('stats-total').innerText = allSessions.length;
-            document.getElementById('stats-completed').innerText = allSessions.filter(s => s.status === 'COMPLETED').length;
+            // --- PREMIUM ANALYTICS POPULATION ---
+            const totalSessions = allSessions.length;
+            const completedSessions = allSessions.filter(s => s.status === 'COMPLETED').length;
+            const successRate = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+            const totalHits = allSessions.reduce((acc, s) => acc + (s.total_steps_executed || 0), 0);
+            
+            // Global completion % based on blueprint steps
+            let globalEfficiency = 0;
+            if (totalSessions > 0 && totalStepsInBlueprint > 0) {
+                const totalPossibleSteps = totalSessions * totalStepsInBlueprint;
+                globalEfficiency = Math.min(100, Math.round((totalHits / totalPossibleSteps) * 100));
+            }
+
+            document.getElementById('session-count-badge').innerText = `Sessioni (${totalSessions})`;
+            document.getElementById('stats-total-hits').innerText = totalHits;
+            document.getElementById('stats-total-sessions').innerText = totalSessions;
+            document.getElementById('stats-success-rate').innerText = `${successRate}%`;
+            
+            // Progress Circle Update
+            const circle = document.getElementById('global-progress-circle');
+            if (circle) {
+                const radius = 28;
+                const circumference = 2 * Math.PI * radius;
+                const offset = circumference - (globalEfficiency / 100) * circumference;
+                circle.style.strokeDasharray = `${circumference} ${circumference}`;
+                circle.style.strokeDashoffset = offset;
+                document.getElementById('global-pct-text').innerText = `${globalEfficiency}%`;
+            }
+
+            // Evidence Mix Mock Visualization (based on average hits)
+            const bars = document.getElementById('evidence-bars');
+            if (bars) {
+                bars.innerHTML = '';
+                const types = [
+                    { color: 'bg-white', w: '40%', label: 'VISION' },
+                    { color: 'bg-neutral-500', w: '30%', label: 'SIGN' },
+                    { color: 'bg-neutral-800', w: '20%', label: 'DOC' },
+                    { color: 'bg-green-500', w: '10%', label: 'TEXT' }
+                ];
+                types.forEach(t => {
+                    const b = document.createElement('div');
+                    b.className = `h-full ${t.color}`;
+                    b.style.width = t.w;
+                    bars.appendChild(b);
+                });
+                document.getElementById('evidence-mix-summary').innerText = 'Vision Heavy';
+            }
+            // -------------------------------------
 
             document.getElementById('header-status').innerText = 'Hub Supervisione';
             document.getElementById('wizard-container').classList.add('hidden');
@@ -545,11 +630,20 @@
             const step = currentSession.steps[stepIndex];
             const total = currentSession.steps.length;
             
+            // Session Dash Update
+            const miniDash = document.getElementById('session-mini-dash');
+            if (currentSession.status !== 'SINGLE_STEP') {
+                miniDash.classList.remove('hidden');
+                document.getElementById('session-step-counter').innerText = `${stepIndex + 1}/${total}`;
+                const pct = Math.round((stepIndex / total) * 100);
+                document.getElementById('session-pct-badge').innerText = `${pct}%`;
+                document.getElementById('progress-bar').style.width = `${pct}%`;
+            } else {
+                miniDash.classList.add('hidden');
+                document.getElementById('progress-bar').style.width = `100%`;
+            }
+
             document.getElementById('header-status').innerText = currentSession.status === 'SINGLE_STEP' ? `Supervisione Singola` : `Supervisione Attiva`;
-            document.getElementById('step-label').innerText = `Step ${stepIndex + 1} di ${total}`;
-            const pct = Math.round((stepIndex / total) * 100);
-            document.getElementById('step-percentage').innerText = `${pct}%`;
-            document.getElementById('progress-bar').style.width = `${pct}%`;
             
             document.getElementById('step-title').innerText = step.step_name || step.title;
             document.getElementById('step-description').innerText = step.instructions || step.description;
