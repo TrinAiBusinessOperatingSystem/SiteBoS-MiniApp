@@ -39,6 +39,10 @@
     return new URLSearchParams(window.location.search || '').get('ash');
   }
 
+  function getMsgId() {
+    return new URLSearchParams(window.location.search || '').get('msg_id');
+  }
+
   function requireAsh() {
     const ash = getAsh();
     if (!ash) {
@@ -49,15 +53,42 @@
     return ash;
   }
 
+  function requireMsgId() {
+    const msgId = getMsgId();
+    if (!msgId) {
+      renderDenied('Parametro messaggio mancante (msg_id).');
+      try { window.stop(); } catch (_) {}
+      return null;
+    }
+    return msgId;
+  }
+
   function cleanupUrl() {
     try {
       const url = new URL(window.location.href);
       const ash = url.searchParams.get('ash');
-      const nextUrl = `${url.pathname}${ash ? `?ash=${encodeURIComponent(ash)}` : ''}${url.hash || ''}`;
+      const msgId = url.searchParams.get('msg_id');
+      const vat = url.searchParams.get('vat');
+      const userId = url.searchParams.get('user_id');
+      
+      const params = new URLSearchParams();
+      if (ash) params.set('ash', ash);
+      if (msgId) params.set('msg_id', msgId);
+      if (vat) params.set('vat', vat);
+      if (userId) params.set('user_id', userId);
+
+      const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ''}${url.hash || ''}`;
       window.history.replaceState({}, '', nextUrl);
     } catch (_) {}
   }
 
-  window.TwaSoftskillGuard = { requireTelegramWebApp, getAsh, requireAsh, cleanupUrl };
+  window.TwaSoftskillGuard = { 
+    requireTelegramWebApp, 
+    getAsh, 
+    requireAsh, 
+    getMsgId, 
+    requireMsgId, 
+    cleanupUrl 
+  };
 })();
 

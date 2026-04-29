@@ -177,8 +177,6 @@ export const questions26to30: Question[] = [
         value: "Parlo Poco, Solo se Devo",
         text: "(Positivo: eccellente autocontrollo e capacità di ascolto analitico, approccio riflessivo che minimizza il rischio di errori comunicativi o conflitti non necessari) (Negativo: percezione di chiusura sociale o reticenza, mancanza di iniziativa relazionale, potenziale isolamento informativo e difficoltà nel networking)."
       }
-    ],iudizio negativo altrui grazie a comunicazione minima e  iper-controllata)."
-      }
     ],
     softSkill: "ComunicazioneEfficace, Empatia",
     characteristics: "Stile di Comunicazione, Sensibilità, Evitamento del Conflitto"

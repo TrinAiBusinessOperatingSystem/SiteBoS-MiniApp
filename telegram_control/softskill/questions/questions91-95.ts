@@ -15,7 +15,8 @@ export const questions91to95: Question[] = [
       "Mappa",
       "Bussola",
       "Rosa dei Venti"
-    ],    options: [
+    ],
+    options: [
       {
         value: "GPS",
         text: "(Positivo: massimo controllo e gestione del rischio attraverso una pianificazione millimetrica del percorso, eccellente riduzione degli imprevisti) (Negativo: eccessiva dipendenza dagli strumenti e vulnerabilità psicologica di fronte al guasto tecnico o all'imprevedibile totale, mancanza di flessibilità)."

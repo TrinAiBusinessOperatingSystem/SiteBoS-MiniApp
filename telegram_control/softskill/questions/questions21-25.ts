@@ -176,8 +176,6 @@ export const questions21to25: Question[] = [
         value: "Tutti Vogliono Essere Come Me",
         text: "(Positivo: leadership carismatica di massa e potere di influenza eccezionale, capacità di dettare standard comportamentali e ispirare emulazione totale su larga scala) (Negativo: rischio di narcisismo patologico e manipolazione carismatica, tendenza a circondarsi di 'yes-men', potenziale distacco dalla realtà per eccessivo senso di superiorità sociale)."
       }
-    ],a carismatica del leader indiscusso e onnipotente)."
-      }
     ],
     softSkill: "Leadership, GestioneDelTeam",
     characteristics: "Influenza, Carisma, Role Modeling, Leadership (potenziale)"

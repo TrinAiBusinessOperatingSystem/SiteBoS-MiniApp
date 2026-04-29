@@ -178,8 +178,6 @@ export const questions: Question[] = [
         value: "Foresta Misteriosa",
         text: "(Positivo: apertura mentale verso l'ignoto e attrazione per la complessità e l'innovazione, curiosità intellettuale spiccata e capacità di navigare nell'ambiguità) (Negativo: potenziale eccessiva astrazione che allontana dalla concretezza, rischio di sentirsi a disagio in contesti lineari e prevedibili, possibile dispersione in dettagli non prioritari)."
       }
-    ],datto a contesti che richiedono concretezza e pragmatismo)."
-      }
     ],
     softSkill: "MenteAperta, Innovazione",
     characteristics: "Le tue preferenze raccontano qualcosa di te e delle esperienze che cerchi."

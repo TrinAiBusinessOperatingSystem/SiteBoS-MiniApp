@@ -178,8 +178,6 @@ export const questions: Question[] = [
         value: "Riparto alla Grande",
         text: "(Positivo: resilienza costruttiva e capacità di apprendimento dai conflitti, orientamento alla crescita personale e alla trasformazione degli ostacoli in opportunità) (Negativo: focus eccessivo sulla performance individuale a discapito della cura della relazione, rischio di apparire autocentrati o di ignorare l'impatto emotivo del conflitto sul clima di team)."
       }
-    ],e e professionale individuale fine a sé stessa)))."
-      }
     ],
     softSkill: "Resilienza, GestioneDelloStress",
     characteristics: "Resilienza, Perseveranza, Ottimismo, Approccio alla Risoluzione dei Problemi"

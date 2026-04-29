@@ -176,8 +176,6 @@ export const questions: Question[] = [
         value: "Futuro? Panico Totale",
         text: "(Positivo: alta sensibilità verso le incognite che può fungere da segnale d'allarme per la ricerca di supporto e nuove competenze, consapevolezza critica dei pericoli ambientali) (Negativo: blocco emotivo e paralisi decisionale dovuta al pessimismo sistemico, scarsa autostima e locus of control esterno, incapacità di pianificare azioni costruttive verso il domani)."
       }
-    ],nte al futuro  inevitabilmente incerto per tutti gli esseri umani)."
-      }
     ],
     softSkill: "PianificazioneEOrganizzazione, GestioneDelloStress",
     characteristics: "Livelli di Ansia, Proattività, Orientamento al Futuro"
