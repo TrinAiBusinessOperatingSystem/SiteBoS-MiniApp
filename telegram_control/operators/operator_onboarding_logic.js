@@ -8,14 +8,16 @@ const ONBOARDING_API = "https://trinai.api.workflow.dcmake.it/webhook/771638a1-7
 const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
 const ash = window.TwaGuard?.getAsh?.();
 let chatId = tg.initDataUnsafe?.user?.id;
-window.TwaGuard?.cleanupUrl?.(['ash']);
+
+// URL PARAMS
+const urlParams = new URLSearchParams(window.location.search);
+const langParam = urlParams.get('lang') || 'it';
+const msgId = urlParams.get('msg_id');
+
+window.TwaGuard?.cleanupUrl?.(['ash', 'msg_id']);
 
 // PATCH FETCH TO INCLUDE _auth AND ash AUTOMATICALLY
 window.TwaGuard?.patchFetchJson?.();
-
-// URL PARAMS (keep only strict minimum; ash is passed through)
-const urlParams = new URLSearchParams(window.location.search);
-const langParam = urlParams.get('lang') || 'it';
 
 // STATE
 let currentStep = 1;
@@ -184,6 +186,7 @@ async function validateInvitation() {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     action: 'get',
+                    msg_id: msgId,
                     chat_id: chatId
                 })
             });
@@ -299,6 +302,7 @@ window.verifyGeminiKey = async function() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 action: 'verify_gemini_key',
+                msg_id: msgId,
                 chat_id: chatId,
                 gemini_key: key
             })
@@ -371,6 +375,7 @@ window.analyzeSkills = async function() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 action: 'analyze_skills',
+                msg_id: msgId,
                 chat_id: chatId,
                 gemini_key: document.getElementById('gemini_key').value,
                 work_description: workDescription,
@@ -467,6 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             action: 'parse_cv',
+                            msg_id: msgId,
                             chat_id: chatId,
                             cv_base64: base64,
                             gemini_key: document.getElementById('gemini_key').value
@@ -620,6 +626,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
                         action: 'complete_onboarding',
+                        msg_id: msgId,
                         chat_id: chatId,
                         operator_data: operatorData
                     })
