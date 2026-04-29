@@ -21,6 +21,7 @@ window.TwaGuard?.patchFetchJson?.();
 
 // STATE
 let currentStep = 1;
+let ownerDataFromGet = null;
 let ownerCompanyName = "";
 let selectedSkills = []; // Array di skill names
 let certifications = [];
@@ -192,6 +193,7 @@ async function validateInvitation() {
             });
             const data = await res.json();
             const owner = data.owner_data || data; // Handle both direct and wrapped structures
+            ownerDataFromGet = owner;
             
             if (res.ok && (owner.ragione_sociale || owner.company_name)) {
                 ownerCompanyName = owner.ragione_sociale || owner.company_name;
@@ -200,9 +202,11 @@ async function validateInvitation() {
                 // Extra details
                 if (owner.vat_number || owner.indirizzo) {
                     const extra = document.getElementById('company-details-extra');
-                    extra.style.display = 'block';
-                    if (owner.vat_number) document.getElementById('company-vat-display').innerText = owner.vat_number;
-                    if (owner.indirizzo) document.getElementById('company-address-display').innerText = owner.indirizzo;
+                    if (extra) {
+                      extra.style.display = 'block';
+                      if (owner.vat_number) document.getElementById('company-vat-display').innerText = owner.vat_number;
+                      if (owner.indirizzo) document.getElementById('company-address-display').innerText = owner.indirizzo;
+                    }
                 }
                 
                 if (data.chat_id) chatId = data.chat_id;
@@ -227,12 +231,14 @@ async function validateInvitation() {
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 action: 'get',
+                msg_id: msgId,
                 chat_id: chatId
             })
         });
         
         const data = await res.json();
         const owner = data.owner_data || data;
+        ownerDataFromGet = owner;
         
         if (res.ok && (data.valid || owner.ragione_sociale)) {
             ownerCompanyName = owner.ragione_sociale || owner.company_name || "l'azienda";
@@ -312,15 +318,18 @@ window.verifyGeminiKey = async function() {
         
         if (res.ok && data.success) {
             const tier = data['gemini key'] || data.tier || (data.success ? 'Valid' : 'Invalid');
-            status.innerText = tier;
             
             if (tier === 'Paid Tier') {
+                status.innerText = tier;
                 status.style.color = '#10b981'; // Success
                 tg.HapticFeedback.notificationOccurred('success');
             } else if (tier === 'Free Tier') {
+                status.innerText = 'Free Tier (Non Salvata)';
                 status.style.color = '#f59e0b'; // Warning
+                document.getElementById('gemini_key').value = ''; // Rimuovi se free
                 tg.HapticFeedback.notificationOccurred('warning');
             } else {
+                status.innerText = tier;
                 status.style.color = '#10b981';
             }
         } else {
@@ -352,6 +361,18 @@ function validateStep1() {
 }
 
 function checkStep1() {
+    const chkPrivacy = document.getElementById('chk_privacy').checked;
+    const chkTerms = document.getElementById('chk_terms').checked;
+    const chkAi = document.getElementById('chk_ai').checked;
+    const allChecked = chkPrivacy && chkTerms && chkAi;
+    
+    // Gestione visibilità input
+    const container = document.getElementById('step1-inputs-container');
+    if (container) {
+        container.style.opacity = allChecked ? '1' : '0.5';
+        container.style.pointerEvents = allChecked ? 'auto' : 'none';
+    }
+    
     document.getElementById('btn-step1').disabled = !validateStep1();
 }
 
@@ -560,64 +581,78 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             const isFirstJob = document.getElementById('is_first_job').checked;
+            const email = document.getElementById('email').value.trim();
+            const nome = document.getElementById('name').value.trim();
+            const cognome = document.getElementById('surname').value.trim();
             
-            const operatorData = {
-                // Anagrafica
-                name: document.getElementById('name').value,
-                surname: document.getElementById('surname').value,
-                fiscal_code: document.getElementById('fiscal_code').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                
-                // Indirizzo
-                address: {
-                    route: document.getElementById('addr_route').value,
-                    number: document.getElementById('addr_num').value,
-                    zip: document.getElementById('addr_zip').value,
-                    city: document.getElementById('addr_city').value,
-                    province: document.getElementById('addr_prov').value
-                },
-                
-                // Config
-                gemini_key: document.getElementById('gemini_key').value,
-                lenguage: langParam,
-                
-                // Formazione
-                education_level: document.getElementById('education_level').value,
-                education_field: document.getElementById('education_field').value,
-                
-                // Professionale
-                job_title: document.getElementById('job_title').value,
-                is_first_job: isFirstJob,
-                experience_years: isFirstJob ? null : document.getElementById('experience_years').value,
-                first_job_year: isFirstJob ? null : document.getElementById('first_job_year').value,
-                
-                // Rapporto Owner
-                works_for_owner: document.getElementById('works_for_owner').checked,
-                years_with_owner: document.getElementById('years_with_owner').value,
-                collaboration_type: document.getElementById('collaboration_type').value,
-                
-                certifications: certifications.filter(c => c),
-                
-                // Skills (tutte con livello intermediate)
-                work_description: document.getElementById('work_description').value,
-                hard_skills: selectedSkills.map(skill => ({
-                    skill: skill,
-                    level: 'intermediate'
-                })),
-                other_skills: document.getElementById('other_skills').value,
-                
-                // Sistema
-                operator_chat_id: chatId,
-
-                // Log di Conformità (GDPR & AI Act Reg. UE 2024/1689)
-                compliance_log: {
-                    ai_disclosure_seen: document.getElementById('chk_ai').checked,
-                    human_verification_performed: humanVerificationPerformed,
-                    api_provider: "Google Gemini (Corporate Key provided by Owner)",
-                    data_retention_policy: "Linked to contract duration",
-                    timestamp: new Date().toISOString()
+            // STRUTTURA STAKEHOLDER (Canonical JSON)
+            const stakeholderProfile = {
+                sessionId: email,
+                data: {
+                    document_type: "STAKEHOLDER_PROFILE",
+                    owner_data_ref: {
+                        vat_number: ownerDataFromGet?.vat_number || ownerDataFromGet?.user_id,
+                        ragioneSociale: ownerDataFromGet?.ragione_sociale || ownerDataFromGet?.company_name,
+                        chat_id: ownerDataFromGet?.chat_id
+                    },
+                    user_ref: {
+                        nome: nome,
+                        cognome: cognome,
+                        email: email,
+                        telefono: document.getElementById('phone').value.trim(),
+                        fiscal_code: document.getElementById('fiscal_code').value.trim(),
+                        status: "ACTIVE",
+                        profileCompleted: true,
+                        operator_chat_id: chatId,
+                        address: {
+                            route: document.getElementById('addr_route').value,
+                            number: document.getElementById('addr_num').value,
+                            zip: document.getElementById('addr_zip').value,
+                            city: document.getElementById('addr_city').value,
+                            province: document.getElementById('addr_prov').value
+                        },
+                        config: {
+                            gemini_key: document.getElementById('gemini_key').value,
+                            language: langParam
+                        }
+                    },
+                    professional_profile: {
+                        role: "Operator",
+                        job_title: document.getElementById('job_title').value,
+                        experience_years: isFirstJob ? "0" : document.getElementById('experience_years').value,
+                        education: {
+                            level: document.getElementById('education_level').value,
+                            field: document.getElementById('education_field').value
+                        },
+                        hard_skills: selectedSkills,
+                        certifications: certifications.filter(c => c).join(", "),
+                        work_description: document.getElementById('work_description').value,
+                        other_skills: document.getElementById('other_skills').value
+                    },
+                    behavioral_profile: {
+                        current_stance: {
+                            stance_id: "ONBOARDED_OPERATOR",
+                            rationale: "Onboarding completed via WebApp"
+                        }
+                    },
+                    compliance_log: {
+                        ai_disclosure_seen: document.getElementById('chk_ai').checked,
+                        human_verification_performed: humanVerificationPerformed,
+                        api_provider: "Google Gemini",
+                        timestamp: new Date().toISOString()
+                    }
                 }
+            };
+
+            // AGGIORNAMENTO LISTA OPERATORI PER OWNER
+            const ownerOperatorsUpdate = {
+                OperatorName: `${nome} ${cognome}`,
+                OperatorChatID: chatId,
+                OperatorEmail: email,
+                Role: "Operator",
+                status: "ACTIVE",
+                FreeHandOperator: true,
+                GeminiKey: document.getElementById('gemini_key').value
             };
             
             try {
@@ -628,7 +663,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         action: 'complete_onboarding',
                         msg_id: msgId,
                         chat_id: chatId,
-                        operator_data: operatorData
+                        operator_data: stakeholderProfile,
+                        owner_operators_update: ownerOperatorsUpdate
                     })
                 });
                 

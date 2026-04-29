@@ -15,23 +15,22 @@ export const questions: Question[] = [
       "Porgi le tue Scuse",
       "Mi Scuso, Spiego e Rassicuro",
       "Super-Scuse e Omaggio"
-    ],
-    options: [
+    ],    options: [
       {
-        value: "Tutti possono sbagliare",
-        text: "(Negativo: mancanza di empatia e minimizzazione disagio cliente, distacco e poca immedesimazione, rigidità e insensibilità verso emozioni cliente, rischio di alienazione cliente) (Positivo: professionalità e autostima, approccio diretto senza inutili autocolpevolizzazioni, rassicurazione implicita su errore umano e risoluzione rapida, sicurezza di sé e non servilismo inautentico)."
+        value: "Tutti possiamo sbagliare",
+        text: "(Positivo: eccellente assertività professionale e mantenimento dell'autostima operativa, approccio basato sul realismo che evita l'autocolpevolizzazione tossica, rassicurazione pragmatica sulla risoluzione del problema) (Negativo: rischio di distacco empatico percepito come indifferenza, potenziale alienazione del cliente per mancanza di validazione emotiva, scarsa attitudine al 'service recovery' relazionale)."
       },
       {
         value: "Porgi le tue Scuse",
-        text: "(Negativo: superficialità e scarsa empatia, sbrigativo e poco sentito, mancanza di attenzione e cura verso cliente arrabbiato, rischio di aumentare frustrazione cliente) (Positivo: efficienza e rapidità scuse formali, approccio veloce e senza perdite di tempo, massimizzazione velocità operativa e semplificazione gestione lamentela, evitamento complicazioni burocratiche e relazionali prolungate)."
+        text: "(Positivo: massima efficienza nella gestione del protocollo di scuse, orientamento alla rapidità operativa e alla chiusura immediata della contestazione, approccio formale inappuntabile) (Negativo: rischio di percezione di insincerità o approccio sbrigativo, mancanza di approfondimento empatico sulle cause del disagio, potenziale inefficacia nel recupero della fiducia del cliente a lungo termine)."
       },
       {
         value: "Mi Scuso, Spiego e Rassicuro",
-        text: "(Positivo: empatia e rassicurazione attiva cliente arrabbiato, approccio orientato a soluzione collaborativa e fidelizzazione, volontà di riconquistare fiducia cliente con comprensione e spiegazioni, massimizzazione probabilità di trasformare criticità in opportunità di fidelizzazione) (Negativo: potenziale inefficienza temporale e focus eccessivo su singolo cliente problematico, rischio di perdere tempo prezioso per singole lamentele non sempre giustificato in termini di efficienza operativa complessiva, approccio non sempre ottimizzato per massima efficienza operativa e gestione del tempo in contesti che richiedono velocità e focalizzazione sulla quantità)."
+        text: "(Positivo: alta intelligenza emotiva e orientamento alla fidelizzazione proattiva, capacità di trasformare un errore in un'opportunità di consolidamento della relazione, approccio analitico e rassicurante) (Negativo: potenziale inefficienza temporale in contesti ad alto volume, rischio di eccessivo focus sulla singola contestazione a scapito di altre priorità, possibile percezione di eccessiva giustificazione)."
       },
       {
         value: "Super-Scuse e Omaggio",
-        text: "(Positivo: massima attenzione a soddisfazione cliente a tutti i costi e fidelizzazione estrema con omaggi extra, approccio iper-customer-centric per coccolare cliente arrabbiato oltre aspettative e trasformare negatività in fidelizzazione massima, volontà di creare effetto wow memorabile anche con spese extra) (Negativo: rischio di eccessiva accondiscendenza e creazione aspettative irrealistiche e non sostenibili per azienda, potenziale assuefazione cliente a super-trattamenti non scalabili per clientela media, approccio non sempre pragmatico in termini di costo-beneficio reale per azienda nel lungo periodo, rischio di standard di servizio troppo elevati e non replicabili su larga scala)."
+        text: "(Positivo: orientamento estremo alla 'Customer Obsession' e creazione di un 'effetto wow' memorabile, investimento strategico sulla 'Lifetime Value' del cliente attraverso la sovra-compensazione) (Negativo: rischio di creare aspettative insostenibili nel lungo periodo, mancanza di pragmatismo nel rapporto costo/beneficio, potenziale vulnerabilità a comportamenti opportunistici della clientela)."
       }
     ],
     softSkill: "SoddisfazioneDelCliente, RelazioniInterpersonali",
@@ -55,19 +54,19 @@ export const questions: Question[] = [
     options: [
       {
         value: "Nello Stesso Posto Tutta la Vita",
-        text: "(Positivo: ricerca di massima sicurezza e stabilità nel percorso professionale,  forte avversione al rischio e  valorizzazione della prevedibilità e della comfort zone lavorativa,  approccio tradizionalista e  conservativo che privilegia la certezza del posto fisso a tutti i costi) (Negativo:  potenziale mancanza di ambizione e  rinuncia a opportunità di crescita e cambiamento professionale,  rischio di monotonia e  routine appiattente nel lungo periodo,  percezione di approccio poco dinamico e  non pienamente allineato con un mercato del lavoro moderno e in continua evoluzione,  mancanza di slancio imprenditoriale e  di spirito di iniziativa personale nel creare attivamente il proprio futuro professionale invece che subirlo passivamente o adeguarsi ad esso  in modo conformista)."
+        text: "(Positivo: massima affidabilità e fedeltà istituzionale, valorizzazione della stabilità come base per l'eccellenza in un ruolo consolidato, affidabilità granitica nei processi routinari) (Negativo: potenziale resistenza al cambiamento e scarsa flessibilità cognitiva, rischio di obsolescenza professionale per mancanza di stimoli evolutivi, limitata ambizione imprenditoriale)."
       },
       {
         value: "Un Posto Fisso anche con un Cambiamento",
-        text: "(Positivo: desiderio di stabilità e sicurezza del posto fisso anche in un contesto di cambiamento e  mobilità professionale,  approccio prudente e  pianificato al cambiamento che non rinuncia alla sicurezza di base del posto fisso,  volontà di conciliare sicurezza e  crescita senza salti nel buio eccessivamente rischiosi o  azzardati senza paracadute di sorta) (Negativo: eccessiva paura di perdere la sicurezza del posto fisso che frena la piena realizzazione del desiderio di fare qualcosa di proprio e  limitare davvero il potenziale di crescita e cambiamento reale e significativo,  approccio troppo prudente o  attendista che rischia di rimandare sempre il vero cambiamento desiderato e di rimanere bloccato in una zona di comfort solo apparente e non pienamente soddisfacente nel lungo periodo,  percezione di eccessiva cautela e  mancanza di slancio imprenditoriale e di vera propensione al rischio quando serve davvero  per cogliere al volo opportunità uniche e irripetibili di crescita e cambiamento  reale e significativo)."
+        text: "(Positivo: approccio equilibrato tra sicurezza contrattuale e mobilità professionale, gestione prudente e pianificata della carriera, capacità di conciliare stabilità e adattamento ambientale) (Negativo: potenziale eccesso di cautela che frena la realizzazione del pieno potenziale, rischio di rimanere in una 'comfort zone' limitante, possibile timore del rischio calcolato)."
       },
       {
         value: "Provo a Fare Qualcosa di Mio",
-        text: "(Positivo: spirito imprenditoriale e desiderio di mettersi in proprio e creare qualcosa di personale,  approccio graduale e realistico che non brucia i ponti alle spalle ma esplora con cautela nuove strade e opportunità imprenditoriali anche partendo dal basso e senza salti nel buio eccessivamente rischiosi,  volontà di costruire gradualmente il proprio futuro professionale senza rinunciare del tutto alla sicurezza iniziale del posto fisso) (Negativo: mancanza di audacia e  coraggio nel lanciarsi davvero senza rete di protezione alcuna nel mondo imprenditoriale competitivo e incerto,  approccio troppo cauto o  graduale che rischia di limitare davvero le opportunità di successo rapido e  significativo in contesti competitivi e dinamici e non sempre pazienti o tolleranti verso chi procede troppo lentamente e con eccessiva cautela,  percezione di ambizione imprenditoriale moderata o  non pienamente sviluppata e matura per competere davvero nel mondo imprenditoriale reale e non solo idealizzato o immaginato in teoria)."
+        text: "(Positivo: spirito imprenditoriale bilanciato e realismo strategico, capacità di esplorare nuove strade mantenendo una base di sicurezza, orientamento alla costruzione graduale di valore autonomo) (Negativo: potenziale lentezza nel distaccarsi da situazioni consolidate, rischio di dispersione di energie tra due fronti, ambizione imprenditoriale che potrebbe mancare di audacia estrema in momenti critici)."
       },
       {
         value: "Mi Lancio Senza Paura",
-        text: "(Positivo: massima ambizione e  coraggio nel lanciarsi senza paura nel mondo imprenditoriale competitivo e incerto,  forte propensione al rischio e  determinazione ferrea nel raggiungere il successo imprenditoriale a tutti i costi,  approccio dinamico,  aggressivo e  iper-competitivo che valorizza la sfida estrema e  la vittoria personale sopra ogni altra cosa) (Negativo: impulsività e eccessiva propensione al rischio non calcolato,  pericolo di decisioni avventate e  non ponderate che possono compromettere la sicurezza economica personale e familiare,  approccio troppo rischioso e  poco prudente e non sempre sostenibile nel lungo periodo in contesti economici incerti e volatili,  percezione di eccessiva temerarietà,  impulsività e  mancanza di cautela e  pianificazione responsabile e a lungo termine)."
+        text: "(Positivo: audacia imprenditoriale superiore e orientamento al successo radicale, forte propensione al rischio strategico e determinazione nel perseguire l'autonomia totale, dinamismo estremo) (Negativo: rischio elevato di instabilità finanziaria per decisioni impulsive, mancanza di prudenza e pianificazione difensiva, potenziale sovrastima delle proprie risorse in contesti volatili)."
       }
     ],
     softSkill: "DecisionMakingStrategico, PianificazioneEOrganizzazione",
@@ -91,19 +90,19 @@ export const questions: Question[] = [
     options: [
       {
         value: "Annuisco e Scrivo Tutto, Cerchero di Capire Dopo.",
-        text: "(Negativo: scarso impegno iniziale e delega comprensione, approccio superficiale e poco responsabile verso info importanti, poca iniziativa in problem-solving comunicativo, percezione di persona poco coinvolta e non affidabile nel capire subito) (Positivo: pragmatismo e uso del team come risorsa, gestione pragmatica situazione imbarazzante, evita blocchi riunione per difficoltà personali, approccio collaborativo che usa team per lacune individuali, massimizza efficienza apparente riunione a breve termine)."
+        text: "(Positivo: pragmatismo operativo immediato ed evitamento di attriti in fase di briefing, capacità di utilizzare il team come risorsa di decodifica successiva, mantenimento del flusso comunicativo) (Negativo: scarso impegno cognitivo iniziale e rischio di omissione di dati critici, mancanza di 'ownership' nella comprensione immediata, percezione di scarsa competenza analitica)."
       },
       {
         value: "Contestualizzo le Richieste e Cerco di Capire.",
-        text: "(Negativo: comprensione superficiale e imprecisa, rischio di perdere dettagli importanti per fretta, approccio sbrigativo e non ottimizzato per precisione info tecniche complesse, percezione di approccio un po' superficiale e poco rigoroso per evitare errori futuri) (Positivo: efficienza e tentativo comprensione rapida idea generale, approccio pragmatico e orientato all'azione che privilegia velocità comprensione essenziale, volontà di non rallentare riunione con domande eccessive, massimizzazione velocità operativa e gestione tempo in contesti rapidi)."
+        text: "(Positivo: rapidità di sintesi e orientamento alla comprensione dell'essenziale, approccio pragmatico che privilegia la velocità operativa senza rallentare il cliente, attitudine all'azione rapida) (Negativo: rischio di comprensione superficiale o imprecisa dei dettagli tecnici, potenziale trascuratezza di clausole complesse per eccessiva focalizzazione sulla visione d'insieme)."
       },
       {
         value: "Chiedo Documentazioni e Spiegazioni.",
-        text: "(Positivo: impegno attivo per comprensione vera e attenzione a dettagli precisi, approccio responsabile orientato a qualità comprensione prima di andare avanti, volontà di chiarire ogni dubbio per evitare errori futuri, percezione di persona coscienziosa, attenta ai dettagli e orientata a accuratezza comunicazione) (Negativo: potenziale lentezza e focus eccessivo su dettagli non essenziali per comprensione generale, rischio di perdersi in dettagli eccessivi e non rilevanti per problema comunicativo immediato, approccio non sempre ottimizzato per massima efficienza e rapidità operativa in contesti che richiedono velocità azione concreta)."
+        text: "(Positivo: coscienziosità superiore e rigore metodologico nella raccolta dati, impegno concreto per la qualità dell'output finale attraverso la chiarezza totale, orientamento alla precisione) (Negativo: potenziale rallentamento del processo decisionale per eccesso di burocratizzazione, rischio di focalizzarsi su dettagli non prioritari, possibile inefficienza in contesti che richiedono agilità immediata)."
       },
       {
         value: "Lo Interrogo, Devo Capire per Aiutare il Cliente",
-        text: "(Positivo: massima accuratezza e comprensione totale, impegno estremo per chiarezza assoluta comunicazione, approccio perfezionista orientato a eccellenza comunicativa, volontà di non lasciare nulla non capito e verificare ogni dettaglio per massima precisione comprensione) (Negativo: pedanteria e potenziale rallentamento estremo comunicazione, rischio di paralisi da analisi per eccessiva perfezione comunicativa a scapito di velocità operativa, percezione di persona eccessivamente puntigliosa, pedante, perfezionista e non sempre ottimizzata per massima efficienza operativa in contesti che richiedono velocità e sintesi)."
+        text: "(Positivo: massima accuratezza analitica e ricerca della verità operativa, impegno totale per l'eccellenza comunicativa ed eliminazione di ogni ambiguità, forte senso di responsabilità verso il cliente) (Negativo: rischio di percezione di aggressività o pedanteria, potenziale paralisi da analisi per eccessivo rigore informativo, inefficacia in contesti che premiano la sintesi e la rapidità esecutiva)."
       }
     ],
     softSkill: "AscoltoAttivo, ComunicazioneEfficace",
@@ -127,19 +126,19 @@ export const questions: Question[] = [
     options: [
       {
         value: "Pesano di Più i Rapporti Umani",
-        text: "(Positivo: valorizzazione profonda delle relazioni umane ed empatia spiccata, priorità assoluta ai legami affettivi e alla connessione umana come valore primario e fondamentale, approccio umanistico e altruista che mette al centro le persone e le relazioni positive e costruttive) (Negativo: potenziale irrazionalità e decisioni influenzate eccessivamente dalle emozioni a scapito della logica e dell' obiettività, rischio di soggettività e parzialità nel giudizio, approccio forse non sempre ottimizzato per contesti che richiederebbero maggiore distacco emotivo, obiettività razionale e decisioni imparziali e non influenzate da fattori emotivi o personali eccessivamente coinvolgenti)."
+        text: "(Positivo: spiccata intelligenza emotiva e orientamento umanistico, capacità di costruire relazioni solide e leali come base per ogni successo professionale, empatia profonda) (Negativo: rischio di parzialità nel giudizio dovuta al coinvolgimento emotivo, potenziale difficoltà nel prendere decisioni impopolari o puramente razionali, vulnerabilità alle dinamiche relazionali)."
       },
       {
         value: "Pesano di Più i Divertimenti",
-        text: "(Positivo: leggerezza e ottimismo contagiosi, approccio spensierato e gioioso alla vita che valorizza il piacere, il divertimento e la leggerezza, persona easygoing, rilassata e non ossessionata da stress e preoccupazioni eccessive e paralizzanti) (Negativo: mancanza di serietà e potenziale superficialità in contesti che richiedono impegno, responsabilità e serietà massima, rischio di apparire poco affidabile o non pienamente responsabile in situazioni che richiederebbero maggiore serietà e impegno formale e sostanziale, percezione di approccio troppo leggero, superficiale e poco incline all' assunzione di responsabilità serie e prolungate nel tempo)."
+        text: "(Positivo: ottimismo contagioso e capacità di 'stress management' attraverso la leggerezza, approccio creativo e non convenzionale alla vita, alta reattività emotiva positiva) (Negativo: rischio di scarsa affidabilità in contesti ad alta pressione e responsabilità, potenziale superficialità gestionale, mancanza di focus sugli obiettivi di lungo periodo)."
       },
       {
         value: "Pesano di Più le Responsabilità",
-        text: "(Positivo: affidabilità e senso di responsabilità spiccati, massimo impegno personale nell' assumersi le proprie responsabilità e nel portarle a termine con serietà e dedizione, approccio responsabile, affidabile e orientato al dovere e all' impegno personale  prima di tutto) (Negativo: rischio di sovraccarico e stress eccessivo per iper-responsabilizzazione, potenziale difficoltà a delegare e a fidarsi pienamente degli altri, percezione di approccio troppo serioso, rigido, iper-responsabile e poco incline alla leggerezza e al  lasciarsi andare  e  delegare  quando  opportuno e  necessario per evitare il burnout e il sovraccarico  personale e  non sempre  utile  nel lungo periodo per la massima efficienza e  benessere  complessivo)."
+        text: "(Positivo: affidabilità granitica e forte senso del dovere professionale, orientamento all'impegno costante e alla consegna dei risultati, lealtà istituzionale superiore) (Negativo: rischio elevato di stress da sovraccarico e burnout, potenziale rigidità relazionale per eccesso di rigore, difficoltà a delegare e a concedersi spazi di recupero necessari)."
       },
       {
         value: "Pesa di Più il mio Benessere",
-        text: "(Positivo: forte attenzione al benessere personale e all'equilibrio vita-lavoro, ricerca di armonia e sostenibilità nel lungo periodo, approccio olistico che integra performance e benessere personale in modo equilibrato e sinergico  e non conflittuale o  dicotomico) (Negativo: potenziale percezione di scarsa ambizione e dedizione totale al lavoro (priorità al benessere prima della performance  a tutti i costi), rischio di performance non massimizzata in contesti iper-competitivi che richiederebbero maggiore dedizione esclusiva al lavoro e al  successo professionale  a scapito del benessere  personale  in senso stretto, percezione di persona forse non pienamente allineata con contesti lavorativi che premiano l' iper-performance e la dedizione estrema al lavoro  anche a costo del benessere  personale)."
+        text: "(Positivo: eccellente gestione dell'equilibrio vita-lavoro e sostenibilità della performance nel tempo, approccio consapevole che preserva le risorse personali come asset strategico) (Negativo: potenziale percezione di scarsa dedizione o ambizione in contesti 'high-performance', rischio di non rispondere adeguatamente a picchi di lavoro straordinari)."
       }
     ],
     softSkill: "Equita , Empatia",
@@ -163,19 +162,21 @@ export const questions: Question[] = [
     options: [
       {
         value: "Futuro? Zero Paranoie",
-        text: "(Positivo: ottimismo incrollabile e fiducia totale nel futuro,  approccio proattivo e  senza paura di fronte all'ignoto,  visione rosea e  rassicurante del domani,  persona forte,  coraggiosa e  non intimidita dalle incognite del futuro) (Negativo: eccessivo ottimismo e potenziale imprudenza e sottovalutazione dei rischi reali e delle sfide concrete che il futuro inevitabilmente riserva,  approccio forse non sempre realistico o  pragmatico e  poco incline alla prudenza e alla preparazione necessarie per affrontare davvero le incognite e i pericoli  del futuro  in modo efficace e responsabile nel lungo periodo)."
+        text: "(Positivo: ottimismo resiliente superiore e fiducia proattiva nel proprio futuro, approccio privo di freni inibitori verso l'innovazione e l'ignoto, coraggio operativo spiccato) (Negativo: rischio di imprudenza strategica e sottovalutazione dei rischi sistemici, potenziale mancanza di piani di emergenza per eccesso di sicurezza, scarsa propensione alla pianificazione difensiva)."
       },
       {
         value: "Pronto ad Ogni Caso",
-        text: "(Positivo: preparazione meticolosa e  pianificazione dettagliata per affrontare qualsiasi evenienza futura,  approccio previdente e  orientato al controllo e alla gestione proattiva dei rischi e delle incognite del futuro,  volontà di non farsi cogliere impreparato e di avere un piano per tutto anche di fronte all' imprevedibilità intrinseca del futuro) (Negativo: ansia anticipatoria e ipercontrollo eccessivi e  potenzialmente paralizzanti,  rischio di vivere in uno stato di allerta e preoccupazione costanti che compromettono il benessere psicofisico quotidiano,  approccio troppo rigido,  iper-controllante e  poco incline alla spontaneità e all' accettazione dell' imprevedibilità e dell' incertezza  intrinseca del futuro,  percezione di persona ansiosa,  apprensiva e  ossessionata dal controllo e dalla pianificazione minuziosa e forse eccessiva e non sempre funzionale al vero benessere psicofisico nel lungo periodo)."
+        text: "(Positivo: eccellente capacità di previsione e gestione proattiva del rischio, approccio metodico alla pianificazione del futuro che garantisce sicurezza e controllo in ogni scenario) (Negativo: rischio di ansia anticipatoria e iper-controllo paralizzante, potenziale perdita di spontaneità operativa, eccessivo dispendio di energie cognitive nella preparazione di scenari improbabili)."
       },
       {
         value: "Boh, Chi lo Sa?",
-        text: "(Positivo: capacità di vivere pienamente il presente e non farsi sopraffare dall'ansia del futuro,  approccio mindfulness e  orientato al qui e ora,  valorizzazione dell' incertezza del futuro come stimolo alla creatività e all' improvvisazione nel presente,  persona spontanea,  flessibile,  adattabile e  non ossessionata dalla pianificazione e dal controllo eccessivo del futuro  incerto per sua natura) (Negativo: mancanza di pianificazione e potenziale imprevidenza e  rischio di non essere preparato ad affrontare sfide future prevedibili o inevitabili,  approccio troppo leggero e  superficiale che evita di confrontarsi seriamente con le responsabilità e le scadenze  del futuro  prossimo o remoto,  percezione di persona impreparata,  non affidabile nel lungo periodo,  poco responsabile e non sempre incline alla serietà e all' impegno necessari per costruire un futuro sicuro e stabile per sé stessi e per gli altri  che dipendono dalle sue decisioni e azioni  nel presente)."
+        text: "(Positivo: massima flessibilità adattiva e orientamento al presente ('mindfulness'), capacità di navigare nell'incertezza senza stress eccessivo, apertura alla serendipità e alla creatività) (Negativo: imprevidenza gestionale e mancanza di obiettivi di lungo termine, rischio di subire passivamente il cambiamento invece di guidarlo, percezione di scarsa affidabilità strategica)."
       },
       {
         value: "Futuro? Panico Totale",
-        text: "(Negativo: ansia paralizzante e pessimismo eccessivi di fronte al futuro incerto,  approccio negativo e  autodistruttivo che blocca l'azione proattiva e  impedisce di affrontare costruttivamente le sfide future prevedibili o inevitabili,  mancanza di fiducia in sé stessi e  nelle proprie risorse interiori per affrontare il futuro con coraggio e determinazione,  percezione di persona fragile,  insicura,  vittima della paura e non pienamente padrona del proprio destino e delle proprie scelte future) (Positivo: consapevolezza lucida della propria ansia e potenziale campanello d'allarme utile per affrontare le proprie paure in modo costruttivo e  cercare supporto esterno per superare il blocco emotivo e la paralisi psicologica causati dalla paura del futuro  e dall' incertezza  esistenziale, *ma positivo solo come punto di partenza per un cambiamento attivo e costruttivo e non come atteggiamento stabile e persistente nel tempo di fronte al futuro  inevitabilmente incerto per tutti gli esseri umani)."
+        text: "(Positivo: alta sensibilità verso le incognite che può fungere da segnale d'allarme per la ricerca di supporto e nuove competenze, consapevolezza critica dei pericoli ambientali) (Negativo: blocco emotivo e paralisi decisionale dovuta al pessimismo sistemico, scarsa autostima e locus of control esterno, incapacità di pianificare azioni costruttive verso il domani)."
+      }
+    ],nte al futuro  inevitabilmente incerto per tutti gli esseri umani)."
       }
     ],
     softSkill: "PianificazioneEOrganizzazione, GestioneDelloStress",

@@ -15,23 +15,22 @@ export const questions136to140: Question[] = [
       "A Tutti una Parte Uguale",
       "La Spendo per Tutti",
       "La Dono in Beneficenza"
-    ],
-    options: [
+      options: [
       {
         value: "Prendo Tutto Io",
-        text: "(Negativo: approccio predatorio e non etico e danneggiamento potenziale della relazione con l'altra parte, percezione di persona avida e egoista e poco affidabile sul piano relazionale e collaborativo, rischio di bruciare opportunità future di collaborazione) (Positivo: massimizzazione del guadagno personale immediato e efficacia nel massimizzare il profitto nella singola transazione, approccio iper-competitivo e orientato al risultato economico senza compromessi, massima efficienza nel capitalizzare immediatamente l'opportunità di guadagno, *ma positivo solo in ottica strettamente economica e non etica o relazionale*)."
+        text: "(Positivo: massima efficacia nella cattura immediata del valore in contesti competitivi e determinazione nel perseguire il profitto individuale) (Negativo: totale assenza di etica della reciprocità e grave danno al capitale relazionale, percezione di inaffidabilità cronica)."
       },
       {
-        value: "Meta a Testa",
-        text: "(Positivo: massima equità e giustizia percepita nella divisione e soddisfazione paritaria di entrambe le parti, creazione di un clima di fiducia e reciprocità, approccio collaborativo e win-win, persona percepita come corretta e affidabile) (Negativo: potenziale non massimizzazione del guadagno personale estremo e rinuncia a sfruttare eventuali asimmetrie di potere a proprio vantaggio, percezione di ambizione personale moderata e non sempre massimizzata in ottica di profitto individuale puro, approccio forse non sempre ottimizzato per la massima performance ego-centrica senza compromessi etici o di equità)."
+        value: "A Tutti una Parte Uguale",
+        text: "(Positivo: eccellente promozione dell'equità e della giustizia distributiva, consolidando la fiducia reciproca e la coesione del gruppo) (Negativo: rinuncia sistematica a margini di profitto superiori, approccio che potrebbe mancare di incisività in trattative ad alto coefficiente competitivo)."
       },
       {
-        value: "A Te la Parte Migliore",
-        text: "(Positivo: massima attenzione alla soddisfazione altrui e approccio generoso e altruista, costruzione di una relazione forte e duratura basata sulla fiducia e reciprocità, persona percepita come leale e generosa e profondamente orientata alla relazione e alla soddisfazione altrui) (Negativo: sacrificio guadagno personale immediato e non massimizzazione profitto individuale diretto, percezione di eccessivo altruismo o generosità non sempre giustificata in contesti competitivi o meramente commerciali, approccio forse non sempre ottimizzato per la massima performance economica ego-centrica e profit-oriented senza compromessi)."
+        value: "La Spendo per Tutti",
+        text: "(Positivo: straordinaria capacità di trasformare un guadagno individuale in un asset collettivo, rafforzando i legami attraverso la generosità proattiva) (Negativo: rischio di percezione di eccessiva prodigalità o mancanza di una gestione oculata delle risorse personali)."
       },
       {
         value: "La Dono in Beneficenza",
-        text: "(Positivo: massima priorità alla relazione e all'armonia e approccio non materialista e idealista, valorizzazione dei legami umani sopra il guadagno economico, persona percepita come profondamente umana e empatica e orientata alla relazione e non corrotta dal denaro, massima importanza data ai valori umani e relazionali) (Negativo: rinuncia totale al guadagno economico e approccio non pragmatico in contesti competitivi, perdita di opportunità economica concreta, percezione di eccessivo idealismo o utopismo in contesti meramente materialistici e profit-oriented, approccio forse non sempre ottimizzato per la massima performance economica tout court)."
+        text: "(Positivo: suprema integrità morale e orientamento a valori altruistici superiori, anteponendo l'impatto sociale al guadagno materiale) (Negativo: approccio potenzialmente percepito come idealistico o distaccato dalle necessità pragmatiche del contesto operativo)."
       }
     ],
     softSkill: "Negoziazione, OrientamentoAlCliente",
@@ -55,19 +54,19 @@ export const questions136to140: Question[] = [
     options: [
       {
         value: "Propongo Subito un'Iniziativa",
-        text: "(Negativo:  **scarsa negoziazione**:  nessun tentativo di negoziazione o compromesso con il team,  approccio unilaterale. **Scarso orientamento al cliente (team)**:  non considera le preferenze o la soddisfazione del team,  approccio autocratico e  non partecipativo,  rischio di demotivazione del team) (Positivo: **massima efficienza decisionale**:  decisione rapida e  senza perdite di tempo,  utile in situazioni urgenti.  Chiarezza e  direzione univoca,  evita ambiguità.  Leadership decisa,  anche se autoritaria. Massimizzazione della velocità decisionale e  operativa)."
+        text: "(Positivo: massima efficienza decisionale e capacità di fornire una direzione chiara e tempestiva in situazioni di incertezza) (Negativo: grave deficit di leadership partecipativa, rischio di generare demotivazione per mancanza di coinvolgimento del team)."
       },
       {
         value: "Vince la Maggioranza",
-        text: "(Negativo:  **negoziazione limitata**:  negoziazione ridotta alla fase di presentazione delle proposte,  ma non vera mediazione o ricerca di consenso. **Orientamento al cliente (team) parziale**:  considera le preferenze del team in modo formale, ma non garantisce la soddisfazione di tutti, minoranza potenzialmente frustrata. Rischio di decisione percepita come  fredda o  distaccata) (Positivo: **equità formale**:  processo decisionale percepito come  equo e  democratico,  rispetto formale delle opinioni di tutti.  Efficienza decisionale moderata,  più rapido del consenso,  accettabile compromesso tra velocità e  partecipazione.  Coinvolgimento di base del team nel processo decisionale)."
+        text: "(Positivo: implementazione di un processo di equità formale basato sul consenso democratico e sulla trasparenza delle scelte) (Negativo: potenziale frustrazione delle minoranze e mancanza di una vera mediazione qualitativa volta all'armonia collettiva)."
       },
       {
         value: "Offro Opzioni",
-        text: "(Positivo: **alta negoziazione**:  massimo impegno nella negoziazione e  ricerca di un accordo che soddisfi tutti,  priorità al consenso. **Forte orientamento al cliente (team)**:  massima attenzione alla soddisfazione e all'armonia del team,  valorizzazione delle preferenze di tutti,  massimizzazione della coesione di gruppo.  Team building potenziale,  rafforzamento legami) (Negativo: **lentezza decisionale**:  processo decisionale potenzialmente lungo e  faticoso,  rischio di compromessi eccessivi o  decisioni \"annacquate\".  Inefficienza potenziale se il team è  troppo eterogeneo o  conflittuale.  Richiede tempo e  abilità di mediazione)."
+        text: "(Positivo: eccellente orientamento alla negoziazione inclusiva e alla ricerca di un accordo di sintesi che valorizzi le diverse prospettive) (Negativo: rischio di rallentamenti operativi e potenziale stallo decisionale per eccessiva enfasi sulla ricerca del consenso unanime)."
       },
       {
         value: "Fate Vobis",
-        text: "(Positivo: **massimo orientamento al cliente (team)**:  fiducia totale nel team e  massima autonomia decisionale concessa al gruppo,  valorizzazione dell'iniziativa e  responsabilizzazione del team.  Forte empowerment del team,  clima di fiducia e  autonomia.  Minimo sforzo decisionale per il leader,  delega completa.  Flessibilità e  adattamento alle preferenze del team) (Negativo: **negoziazione indiretta/assente**:  nessuna negoziazione diretta da parte del leader,  delega totale della negoziazione interna al team (se presente).  Rischio di decisioni non ottimali per l'azienda o  non allineate con obiettivi strategici.  Perdita di controllo e  direzione da parte del leader.  Potenziale inefficienza o  decisioni caotiche se il team non è  autonomo o  responsabile)."
+        text: "(Positivo: massimo empowerment del gruppo attraverso la delega totale dell'autonomia decisionale, favorendo la responsabilizzazione dei membri) (Negativo: potenziale abdicazione dal ruolo di guida e rischio di deriva caotica in assenza di un coordinamento strategico superiore)."
       }
     ],
     softSkill: "Negoziazione, OrientamentoAlCliente",
@@ -91,19 +90,19 @@ export const questions136to140: Question[] = [
     options: [
       {
         value: "Taglio del Debito",
-        text: "(Positivo: massima sicurezza finanziaria immediata e liberazione dal peso del debito, approccio pragmatico e responsabile, riduzione dello stress e dell'ansia legati al debito, persona percepita come affidabile e previdente) (Negativo: mancata massimizzazione della crescita del patrimonio e rinuncia a potenziali guadagni da investimento, percezione di eccessiva avversione al rischio e cautela, approccio forse non sempre ottimizzato per la massima crescita finanziaria a lungo termine e dinamicità del portafoglio finanziario complessivo)."
+        text: "(Positivo: eccellente responsabilità finanziaria e prioritizzazione della solidità patrimoniale attraverso l'eliminazione dei fardelli passivi) (Negativo: rinuncia a opportunità di crescita esponenziale e mancata ottimizzazione del costo opportunità del capitale)."
       },
       {
         value: "Bilancia Perfetta",
-        text: "(Positivo: approccio equilibrato e razionale e bilanciamento tra sicurezza immediata (riduzione debito) e potenziale crescita futura (investimento), gestione oculata e responsabile delle risorse finanziarie extra, persona percepita come ponderata e pragmatica) (Negativo: non massimizzazione della velocità di riduzione del debito e non massimizzazione del potenziale di crescita dell'investimento, percezione di approccio moderato e non estremo in nessuna direzione, rischio di non eccellere né nella sicurezza estrema né nella crescita massima, approccio forse non pienamente ottimizzato per la massima performance finanziaria in assoluto in nessuna delle due direzioni estreme)."
+        text: "(Positivo: approccio analitico e bilanciato volto a mitigare il rischio garantendo al contempo una proiezione di crescita futura) (Negativo: rischio di non eccellere né nella sicurezza estrema né nella massimizzazione dei profitti per un'eccessiva mediazione tra le due strategie)."
       },
       {
         value: "Investo e Conservo",
-        text: "(Positivo: diversificazione del portafoglio finanziario e bilanciamento tra sicurezza (risparmio) e potenziale di crescita (investimento), approccio prudente ma non passivo e orientato alla crescita controllata, gestione diversificata del rischio e delle opportunità, persona percepita come equilibrata e versatile) (Negativo: non massimizzazione della sicurezza del capitale e non punta alla massima crescita potenziale, non considera minimamente la priorità di ridurre il debito, potenzialmente trascurando un impegno finanziario esistente e essere percepito come non sempre sufficientemente audace o ambizioso in termini di massimizzazione della crescita del patrimonio)."
+        text: "(Positivo: spiccata dinamicità finanziaria e visione orientata alla costruzione di ricchezza attraverso la diversificazione del rischio) (Negativo: potenziale sottovalutazione della sostenibilità del debito esistente, rischio di sovraesposizione finanziaria)."
       },
       {
         value: "Cassaforte Chiusa",
-        text: "(Positivo: massima sicurezza del capitale conservato e approccio iper-difensivo e massimamente prudente, evitamento assoluto di rischi finanziari e perdite potenziali, massimizzazione della protezione del patrimonio esistente, persona percepita come previdente e attenta alla sicurezza) (Negativo: rinuncia totale alla crescita potenziale del capitale extra e non sfrutta le opportunità di investimento potenzialmente redditizie, non considera minimamente la possibilità di usare l'extra per ridurre il debito, ignorando un aspetto importante della responsabilità finanziaria complessiva e essere percepito come eccessivamente avaro o ossessionato dalla sicurezza e non sempre razionale in termini di massimizzazione del potenziale di crescita del patrimonio nel lungo periodo)."
+        text: "(Positivo: massima cautela e protezione dell'integrità del capitale contro la volatilità del mercato e l'incertezza economica) (Negativo: stagnazione patrimoniale per eccessiva avversione al rischio, incapacità di sfruttare il valore tempo del denaro)."
       }
     ],
     softSkill: "FinanzaPersonale, ResponsabilitaSociale",
@@ -127,19 +126,19 @@ export const questions136to140: Question[] = [
     options: [
       {
         value: "Disconnetto e Ignoro",
-        text: "(Negativo: non gestione della relazione impropria e mancanza di feedback al collega sul comportamento inappropriato, perpetuazione potenziale di dinamiche relazionali ambigue o sbagliate, percezione di persona evitante e distaccata) (Positivo: massima distanza di sicurezza professionale e non alimentazione dinamiche improprie, evitamento conflitto diretto, mantenimento focus rigorosamente professionale, approccio tranchant che taglia corto dinamiche ambigue o inopportune)."
+        text: "(Positivo: rigorosa difesa della propria integrità professionale attraverso il distacco immediato da dinamiche improprie) (Negativo: mancanza di feedback riparativo, rischio di lasciare irrisolta una criticità relazionale che potrebbe reiterarsi)."
       },
       {
         value: "Semaforo Giallo",
-        text: "(Negativo: messaggio ambiguo e poco chiaro e rischio di non essere compreso o preso sul serio dal collega, mancanza di fermezza e chiarezza nel porre i confini professionali, percezione di persona indecisa e poco assertiva) (Positivo: approccio diplomatico e non confrontazionale e tentativo di sensibilizzazione soft, minimo segnale di disagio senza scontro aperto, volontà di non ignorare completamente il problema, pur senza esporsi direttamente e rischiare in prima persona, mantenimento di un clima relativamente disteso e non conflittuale apertamente)."
+        text: "(Positivo: diplomazia relazionale volta a segnalare un disagio senza innescare conflitti diretti, mantenendo l'operatività del team) (Negativo: ambiguità comunicativa che potrebbe essere interpretata come incertezza o tacita tolleranza del comportamento)."
       },
       {
         value: "Bolla di Sapone",
-        text: "(Positivo: assertività gentile ed efficace nel respingere l'avance e chiarimento dei confini in modo non aggressivo, mantenimento della forma e della leggerezza, gestione ferma ma educata della situazione inappropriata, persona percepita come abile nella comunicazione assertiva soft e professionale) (Negativo: potenziale percezione di non sufficiente fermezza o chiarezza e rischio di fraintendimento della gentilezza come apertura, non scoraggiamento completo di comportamenti futuri inappropriati, percezione di assertività moderata e non sempre ottimale in contesti che richiederebbero maggiore risolutezza e chiarezza inequivocabile nel respingere in modo netto avances inopportune e non gradite)."
+        text: "(Positivo: eccellente assertività empatica capace di ripristinare i confini professionali con fermezza e decoro senza alienare l'interlocutore) (Negativo: potenziale rischio di inefficacia contro soggetti che richiedono comunicazioni più esplicite e perentorie)."
       },
       {
         value: "Blocco Immediato",
-        text: "(Positivo: massima fermezza e chiarezza nel respingere comportamenti inappropriati e tolleranza zero verso molestie o dinamiche non professionali, affermazione inequivocabile di confini professionali rigidi e non negoziabili, massima protezione della vittima potenziale e dell'etica professionale, persona percepita come integra e corretta) (Negativo: potenziale escalation del conflitto e rischio di creare tensione nel team, percezione di approccio eccessivamente severo o intransigente e non sempre incline alla mediazione o alla comprensione umana delle debolezze altrui, approccio forse non sempre ottimizzato per la massima armonia e distensione delle dinamiche relazionali nel team)."
+        text: "(Positivo: suprema integrità perimetrale e adozione di una politica di tolleranza zero contro ogni forma di condotta non professionale) (Negativo: rischio di escalation della tensione nel team per mancanza di una fase intermedia di mediazione o dialogo)."
       }
     ],
     softSkill: "RelazioniImproprie, SicurezzaDigitale",
@@ -163,19 +162,19 @@ export const questions136to140: Question[] = [
     options: [
       {
         value: "Accontento e Consegno",
-        text: "(Negativo: servizio non ottimale per il cliente e rischio di insoddisfazione futura del cliente per la scelta sbagliata, mancanza di valore aggiunto consulenziale, percezione di approccio passivo e non proattivo e poco orientato alla vera soddisfazione del cliente nel lungo periodo) (Positivo: massima efficienza operativa immediata e semplicità e velocità della transazione, evitamento complicazioni e discussioni, approccio diretto e sbrigativo, focalizzazione sulla velocità e semplificazione del processo di vendita immediato)."
+        text: "(Positivo: massima velocità operativa nel soddisfare una richiesta esplicita, rispettando l'autonomia decisionale dichiarata dal cliente) (Negativo: totale abdicazione dal ruolo consultivo, rischio di fallimento della performance finale per inadeguatezza dello strumento)."
       },
       {
         value: "Consegno, Ma Ho Dubbi",
-        text: "(Positivo: segnalazione velata del potenziale problema e approccio cauto e non impositivo, rispetto della volontà del cliente, pur esprimendo una riserva professionale, persona percepita come prudente e non invadente) (Negativo: efficacia limitata del suggerimento velato e rischio che il cliente non colga appieno il consiglio, mancanza di guida attiva e diretta verso la soluzione ottimale, percezione di consulenza incompleta o non pienamente efficace nel problem-solving, approccio forse non sempre ottimizzato per la massima soddisfazione del cliente nel lungo periodo)."
+        text: "(Positivo: approccio prudente volto a manifestare una riserva professionale senza imporre la propria visione sul processo d'acquisto) (Negativo: inefficacia della segnalazione per mancanza di assertività, approccio che non garantisce la reale tutela del cliente)."
       },
       {
         value: "Ti Guardo e Ti Spiego",
-        text: "(Positivo: massima attenzione ai bisogni veri del cliente e approccio problem-solving e solution-oriented, guida esperta e personalizzata verso la scelta ottimale, creazione di valore aggiunto consulenziale, persona percepita come competente e affidabile) (Negativo: richiede tempo per la consulenza e potenziale allungamento tempi di vendita, approccio forse non sempre gradito da clienti impazienti o poco interessati alla consulenza approfondita, percezione di lentezza o eccessivo dettaglio tecnico o verbosità accademica)."
+        text: "(Positivo: eccellente expertise consulenziale volta a proteggere il cliente da scelte sub-ottimali attraverso una guida personalizzata e formativa) (Negativo: potenziale allungamento dei tempi transazionali, rischio di essere percepiti come eccessivamente tecnici da clienti sbrigativi)."
       },
       {
         value: "Correggo l'Errore",
-        text: "(Positivo: massima proattività nel correggere l'errore del cliente e approccio iper-protettivo e orientato alla soluzione ottimale a tutti i costi, volontà di evitare al cliente una scelta sbagliata e le conseguenze negative che ne deriverebbero, persona percepita come sicura di sé e determinata) (Negativo: potenziale paternalismo percepito e rischio di scavalcare la volontà del cliente, percezione di approccio troppo direttivo e poco rispettoso dell'autonomia decisionale altrui, mancanza di negoziazione e compromesso, approccio forse non sempre ottimizzato per la massima soddisfazione del cliente in termini di percezione di controllo e libertà di scelta individuale)."
+        text: "(Positivo: suprema proattività nel garantire il miglior risultato possibile attraverso un intervento correttivo risolutivo e competente) (Negativo: rischio di percezione di paternalismo o invadenza, potenziale frizione dovuta alla rimozione del controllo decisionale del cliente)."
       }
     ],
     softSkill: "VenditaConsultiva, ServizioAlCliente",

@@ -15,23 +15,22 @@ export const questions106to110: Question[] = [
       "Guida gli Altri",
       "Verifica Prima di Uscire",
       "Resto al Mio Posto"
-    ],
-    options: [
+    ],    options: [
       {
         value: "Fuga Organizzata",
-        text: "(Positivo: massima priorità alla sicurezza, efficienza nell'evacuazione, calma e disciplina, rispetto delle procedure di sicurezza, approccio responsabile e affidabile in emergenza) (Negativo: potenziale mancanza di iniziativa personale, rischio di passività di fronte a situazioni complesse, percezione di leadership non spiccata in emergenza, approccio un po' gregario e dipendente dalle direttive altrui)."
+        text: "(Positivo: eccellente conformità procedurale e capacità di mantenere la disciplina operativa in situazioni di emergenza) (Negativo: potenziale carenza di iniziativa autonoma e tendenza a un comportamento gregario, limitata leadership situazionale in contesti imprevisti)."
       },
       {
-        value: "Guida gli Altri",
-        text: "(Positivo: massima attenzione alla sicurezza altrui, leadership proattiva in emergenza, altruismo e senso di responsabilità verso il team, percezione di persona coraggiosa, altruista e leader) (Negativo: potenziale rischio per la propria sicurezza, rischio di sottovalutare i pericoli individuali, percezione di eccessivo eroismo o non sempre prudenza nella gestione dei rischi personali in emergenza)."
+        value: "Guarda gli Altri",
+        text: "(Positivo: spiccata leadership situazionale e orientamento prioritario alla salvaguardia del capitale umano, alto senso di responsabilità collettiva) (Negativo: potenziale esposizione a rischi individuali non necessari per eccesso di altruismo, rischio di rallentamento dell'evacuazione)."
       },
       {
         value: "Verifica Prima di Uscire",
-        text: "(Positivo: approccio cauto e ponderato, importanza data alla verifica delle informazioni prima di agire, razionalità e controllo della situazione, percezione di persona riflessiva, pragmatica e non impulsiva) (Negativo: potenziale perdita di tempo prezioso in emergenza, rischio di ritardare l'evacuazione, percezione di lentezza decisionale, eccessiva razionalità in contesti che richiederebbero maggiore istintività e rapidità d'azione)."
+        text: "(Positivo: straordinario sangue freddo e approccio analitico finalizzato alla validazione delle informazioni prima dell'azione) (Negativo: rischio di perdita di tempo critico in emergenze reali, potenziale paralisi decisionale per eccesso di razionalismo in contesti urgenti)."
       },
       {
         value: "Resto al Mio Posto",
-        text: "(Negativo: sottovalutazione del pericolo, inosservanza protocolli sicurezza, potenziale comportamento rischioso per sé e per gli altri, percezione di persona negligente, inconsapevole del pericolo o eccessivamente sicura di sé e poco prudente) (Positivo: calma e sangue freddo, mantenimento della produttività, approccio stoico e focalizzato, non si lascia distrarre dal panico, massimizzazione dell'efficienza immediata, apparente coraggio di fronte al pericolo, *ma positivo solo in apparenza e non in termini di sicurezza reale*)."
+        text: "(Positivo: apparente stoicismo operativo e massima focalizzazione sulla continuità delle attività core anche in condizioni di disturbo) (Negativo: grave sottovalutazione dei protocolli di integrità sistemica e rischio elevato per la sicurezza propria e altrui per eccessiva sicurezza di sé)."
       }
     ],
     softSkill: "SicurezzaSulLavoro, GestioneDelloStress",
@@ -55,19 +54,19 @@ export const questions106to110: Question[] = [
     options: [
       {
         value: "Faccio Finta di Niente",
-        text: "(Negativo:  negligenza sicurezza e evitamento confronto, mancanza di senso di responsabilità, potenziale rischio per la sicurezza altrui, percezione di irresponsabilità e superficialità) (Positivo:  evitamento conflitti interpersonali e mantenimento di un clima di lavoro disteso, approccio \"laissez-faire\" e non giudicante, rispetto apparente autonomia altrui)."
+        text: "(Positivo: mantenimento della coesione relazionale immediata e rifiuto di un ruolo inquisitorio non richiesto) (Negativo: grave mancanza di corresponsabilità e negligenza verso la cultura della prevenzione, potenziale complicità tacita in rischi evitabili)."
       },
       {
         value: "Un Segnale Discreto",
-        text: "(Positivo: approccio non confrontazionale e tentativo di risolvere il problema in modo soft, attenzione alla relazione con il collega e volontà di evitare pubblicità negativa e imbarazzo, approccio diplomatico) (Negativo: inefficacia potenziale del segnale indiretto, rischio di fraintendimento, mancanza di chiarezza e incisività, percezione di scarsa determinazione nel far rispettare le regole e proteggere la sicurezza)."
+        text: "(Positivo: diplomazia relazionale e tentativo di correzione informale volto a tutelare la dignità del collega senza attriti gerarchici) (Negativo: potenziale inefficacia della segnalazione e mancanza di fermezza nel garantire la sicurezza sistemica, rischio di ambiguità comunicativa)."
       },
       {
         value: "Richiamo con Gentilezza",
-        text: "(Positivo: approccio diretto ma educato e comunicazione chiara delle regole, attenzione sia alla sicurezza che alla relazione con il collega e ricerca di una soluzione collaborativa e non aggressiva, percezione di persona responsabile, educata e assertiva al punto giusto) (Negativo: potenziale mancanza di incisività con colleghi non collaborativi, rischio di perdita di tempo in situazioni urgenti, percezione di approccio forse non sempre sufficientemente fermo e risolutivo in contesti che richiederebbero maggiore autorità e rapidità d'azione)."
+        text: "(Positivo: eccellente equilibrio tra assertività professionale e rispetto umano, capacità di influenzare positivamente i comportamenti altrui senza ostilità) (Negativo: rischio di non essere sufficientemente incisivo con profili recidivi o in situazioni di pericolo imminente)."
       },
       {
         value: "Allarme Immediato",
-        text: "(Positivo: massima priorità alla sicurezza, applicazione rigorosa dei protocolli, garanzia di intervento immediato e tutela della sicurezza collettiva, percezione di persona responsabile, affidabile e orientata alla sicurezza e al rispetto delle regole) (Negativo: potenziale rigidità percepita, burocraticità eccessiva, rischio di clima di lavoro teso o eccessivamente controllato, percezione di approccio poco flessibile e non sempre attento alle dinamiche relazionali e al contesto umano)."
+        text: "(Positivo: integrità assoluta e rispetto rigoroso dei protocolli di vigilanza proattiva a tutela dell'integrità aziendale) (Negativo: rischio di essere percepito come rigido o eccessivamente burocratico, potenziale deterioramento del clima di fiducia orizzontale nel team)."
       }
     ],
     softSkill: "SicurezzaSulLavoro, ResponsabilitaSociale",
@@ -91,19 +90,19 @@ export const questions106to110: Question[] = [
     options: [
       {
         value: "Occhi Chiusi",
-        text: "(Negativo: mancanza di responsabilità e negligenza sicurezza, indifferenza e potenziale rischio per la sicurezza aziendale, percezione di superficialità e menefreghismo) (Positivo: efficienza personale immediata, evitamento rogne, approccio minimalista, focalizzazione sulle proprie attività core, massimizzazione tempo personale)."
+        text: "(Positivo: massima focalizzazione sulle proprie attività core e rifiuto di dispersioni su compiti non esplicitamente assegnati) (Negativo: totale assenza di senso di appartenenza e grave irresponsabilità verso la tutela degli asset aziendali e della sicurezza collettiva)."
       },
       {
         value: "Alzata di Spalle",
-        text: "(Negativo: mancanza di follow-through e rischio che il problema non venga risolto, responsabilità diluita, percezione di consapevolezza incompleta o mancanza di reale senso di responsabilità attivo e concreto) (Positivo: segnalazione minima del problema, approccio collaborativo informale, non si carica di eccessive responsabilità, mantiene una certa leggerezza, consapevolezza di base senza eccessivo coinvolgimento personale)."
+        text: "(Positivo: consapevolezza basata sul principio di delega e riconoscimento dei propri limiti operativi rispetto alle funzioni di sicurezza) (Negativo: approccio passivo che non garantisce la risoluzione del problema, rischio di inazione per mancanza di follow-through attivo)."
       },
       {
         value: "Chiave in Mano",
-        text: "(Positivo: massima iniziativa personale e proattività, risoluzione diretta del problema, forte senso di responsabilità e attenzione alla sicurezza, percezione di persona efficiente, responsabile e problem-solver concreto e affidabile) (Negativo: potenziale cortocircuito delle procedure formali, rischio di non informare figure responsabili, approccio individualista, percezione di scarsa attenzione alle gerarchie formali e ai protocolli di sicurezza, eccessiva iniziativa personale che potrebbe non essere sempre coordinata)."
+        text: "(Positivo: straordinaria proattività e capacità di problem-solving immediato volto alla messa in sicurezza istantanea del contesto) (Negativo: potenziale violazione involontaria delle procedure di tracciabilità dell'incidente, rischio di non attivare i canali formali necessari)."
       },
       {
         value: "Sirena di Allarme",
-        text: "(Positivo: massima priorità alla sicurezza e applicazione rigorosa dei protocolli, garanzia di intervento formale e strutturato, tutela della sicurezza collettiva e rispetto delle procedure, percezione di persona responsabile, affidabile e orientata alla sicurezza e al rispetto delle regole e procedure formali e aziendali) (Negativo: potenziale eccessiva burocratizzazione, rischio di lentezza nella risoluzione pratica del problema, percezione di rigidità procedurale, eccessiva dipendenza dai protocolli formali e non sempre azione diretta e immediata, approccio forse non sempre ottimizzato per l'efficienza e la rapidità di risoluzione pratica del problema immediato)."
+        text: "(Positivo: rigoroso orientamento alla trasparenza e attivazione tempestiva dei protocolli formali di gestione del rischio aziendale) (Negativo: potenziale rallentamento della messa in sicurezza pratica per eccesso di formalismo, rischio di burocratizzazione di problemi risolvibili istantaneamente)."
       }
     ],
     softSkill: "SicurezzaSulLavoro, ResponsabilitaSociale",
@@ -127,19 +126,19 @@ export const questions106to110: Question[] = [
     options: [
       {
         value: "Sonnambulo Distratto",
-        text: "Bassa consapevolezza della sicurezza personale in pubblico,  potenzialmente negligente e vulnerabile ai rischi (negativo:  scarsa consapevolezza sicurezza,  negligenza,  vulnerabilità ai rischi,  percezione di imprudenza e  superficialità),  ma  vive il momento senza preoccupazioni e  si gode la \"passeggiata\" senza ansie e  approccio \"spensierato\" e  fiducioso (positivo:  spensieratezza,  godimento del momento presente,  assenza di ansia,  approccio \"leggero\",  fiducia nell'ambiente circostante,  non si lascia condizionare dalla \"paura\")."
+        text: "(Positivo: approccio fiducioso e sereno che favorisce un benessere psicologico immediato e l'assenza di pregiudizi verso l'ambiente) (Negativo: elevata vulnerabilità ai rischi esterni e grave mancanza di consapevolezza situazionale critica, esposizione al pericolo per negligenza)."
       },
       {
         value: "Paraocchi Sociali",
-        text: "Moderata consapevolezza dell'ambiente circostante,  ma le distrazioni possono ridurre il tempo di reazione alle minacce,  moderata consapevolezza della sicurezza (positivo:  moderata attenzione all'ambiente,  equilibrio tra vigilanza e  relax,  consapevolezza \"sufficiente\" senza eccessivo allarmismo,  approccio \"normale\" e  \"non paranoico\"),  ma  le distrazioni possono ridurre la prontezza di riflessi e  aumentare il rischio di imprevisti e  essere percepito come  non sempre \"sufficientemente\" attento o  un po' \"distratto\" in situazioni potenzialmente rischiose (negativo:  potenziale riduzione prontezza di riflessi per distrazioni,  rischio di imprevisti per minore attenzione,  percezione di attenzione \"moderata\" ma non \"massima\",  approccio forse non sempre \"ottimale\" in termini di \"prevenzione\" e  \"sicurezza proattiva\")."
+        text: "(Positivo: equilibrio funzionale tra concentrazione sulle proprie attività e vigilanza ambientale minima necessaria) (Negativo: rischio di non intercettare segnali di minaccia latenti a causa di una visione parziale e non olistica del contesto circostante)."
       },
       {
         value: "Suricato Sentinella",
-        text: "Bilancia consapevolezza e comfort,  generalmente attento all'ambiente circostante senza essere eccessivamente ansioso,  buona consapevolezza della sicurezza (positivo:  buona consapevolezza del contesto,  equilibrio tra attenzione e  relax,  vigilanza \"attiva\" ma non \"ansiosa\",  approccio \"responsabile\" e  \"consapevole\" senza eccessi,  percezione di persona \"attenta\" e  \"presente\" ma non \"paranoica\"),  ma  l'attenzione \"rilassata\" potrebbe non cogliere segnali di pericolo \"subdoli\" o  \"molto rapidi\" e  non massimizzare la \"reattività\" in caso di emergenza improvvisa e  essere percepito come  non sempre \"iper-vigile\" o  pronto a reagire \"fulmineamente\" in situazioni di pericolo \"estremo\" (negativo:  potenziale minore reattività di fronte a pericoli \"improvvisi\" o  \"subdoli\",  rischio di non intercettare segnali di allarme \"impercettibili\" ad un occhio \"non allenato\" all'iper-vigilanza,  percezione di vigilanza \"buona\" ma non \"massima\" in contesti di pericolo \"estremo\" e  \"immediato\")."
+        text: "(Positivo: eccellente consapevolezza situazionale dinamica che garantisce sicurezza senza compromettere la stabilità emotiva o il comfort) (Negativo: potenziale esposizione a pericoli estremamente rapidi o subdoli che richiederebbero uno stato di allerta superiore al normale)."
       },
       {
         value: "Molla Tesa",
-        text: "Estremamente attento alla sicurezza,  costantemente in allerta,  potenzialmente ansioso o eccessivamente cauto nelle situazioni quotidiane (positivo:  massima attenzione alla sicurezza,  iper-vigilanza e  massima \"prontezza\" di reazione di fronte al pericolo,  approccio \"iper-protettivo\" e  orientato alla \"prevenzione assoluta\",  percezione di persona estremamente \"attenta\",  \"responsabile\" e  \"pronta\" a reagire in emergenza \"estrema\"),  ma  potrebbe vivere in uno stato di ansia costante e  percepire pericoli ovunque e  essere percepito come  eccessivamente \"paranoico\" o  stressato e  non godersi appieno la \"passeggiata\" e  vivere il quotidiano con eccessiva tensione e  allarmismo (negativo:  stress e ansia elevati,  percezione di paranoia,  eccessiva cautela limitante,  approccio \"iper-vigile\" che può diventare \"stressante\" e  \"controproducente\" nel lungo periodo per il benessere psicofisico,  mancanza di \"leggerezza\" e  \"spontaneità\" nel vivere il quotidiano)."
+        text: "(Positivo: massima prontezza reattiva e iper-sensibilità ai segnali di rischio, garanzia di prevenzione attiva in ogni circostanza) (Negativo: elevato carico di stress e potenziale paranoia disfunzionale che compromette la qualità della vita e la serenità relazionale)."
       }
     ],
     softSkill: "SicurezzaSulLavoro, GestioneDelloStress",
@@ -163,19 +162,19 @@ export const questions106to110: Question[] = [
     options: [
       {
         value: "Armatura Subito Indossata",
-        text: "(Positivo: massima proattività e velocità nell'adottare le nuove difese, forte senso di responsabilità verso la sicurezza, approccio reattivo e all'avanguardia, persona percepita come sul pezzo e attenta alla protezione) (Negativo: potenziale mancanza di analisi critica approfondita, rischio di adozione acritica di mode o soluzioni non sempre ottimali, percezione di entusiasmo ingenuo o non sempre basato su valutazione razionale e ponderata)."
+        text: "(Positivo: straordinaria agilità nell'adozione di nuove tecnologie protettive e forte allineamento agli obiettivi di sicurezza aziendale) (Negativo: rischio di implementazione acritica o superficiale senza piena comprensione dei cambiamenti operativi introdotti)."
       },
       {
         value: "Armatura Sotto Esame",
-        text: "(Positivo: approccio cauto e ponderato, attenzione ai dettagli e alla comprensione profonda delle nuove misure, valutazione accurata prima dell'implementazione, persona percepita come responsabile, attenta e metodica) (Negativo: potenziale lentezza nell'implementazione, rischio di ritardare l'adozione di misure urgenti, percezione di eccessiva cautela o lentezza decisionale, mancanza di agilità e velocità di reazione di fronte a nuove minacce e cambiamenti rapidi)."
+        text: "(Positivo: approccio analitico e metodico volto a validare l'efficacia delle nuove misure prima della piena integrazione nei processi) (Negativo: potenziale lentezza nell'adeguamento a minacce urgenti, rischio di creare colli di bottiglia per eccesso di cautela analitica)."
       },
       {
         value: "Aiuto per Indossare",
-        text: "(Positivo: riconoscimento dell'importanza della competenza specialistica e ricerca di supporto qualificato, approccio collaborativo e orientato al team e volontà di delegare a esperti e non improvvisare, persona percepita come intelligente che sa delegare e valorizzare le competenze altrui) (Negativo: potenziale dipendenza da supporto esterno, rischio di non sviluppare autonomia e competenza personale, percezione di dipendenza e non piena autosufficienza nella gestione della sicurezza in prima persona)."
+        text: "(Positivo: riconoscimento intelligente dei propri limiti tecnici e valorizzazione delle competenze specialistiche per un'implementazione sicura) (Negativo: rischio di dipendenza operativa eccessiva e mancato sviluppo di un'autonomia minima necessaria nella gestione dei rischi cyber)."
       },
       {
         value: "Armatura Rifiutata",
-        text: "(Negativo: resistenza al cambiamento e sottovalutazione importanza sicurezza, potenziale vulnerabilità a minacce cyber, approccio negativo verso l'innovazione e il miglioramento della sicurezza, percezione di persona refrattaria al cambiamento, poco collaborativa e non sempre affidabile in termini di sicurezza aziendale) (Positivo: apparente semplificazione operativa nel breve termine, evitamento complicazioni procedurali immediate, mantenimento routine consolidate, massimizzazione apparente efficienza operativa immediata, *ma positivo solo nel brevissimo termine e non in ottica di sicurezza e prevenzione a lungo termine*)."
+        text: "(Positivo: apparente salvaguardia dell'efficienza operativa immediata e mantenimento di routine consolidate prive di attriti tecnologici) (Negativo: grave esposizione a vulnerabilità sistemiche e resistenza disfunzionale all'evoluzione dei protocolli di integrità digitale)."
       }
     ],
     softSkill: "SicurezzaDigitale, Adattabilita",

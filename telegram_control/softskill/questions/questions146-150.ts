@@ -15,23 +15,22 @@ export const questions146to150: Question[] = [
       "Chiedo Se Sono il Prossimo nella Fila Giusta",
       "Cambio Fila Pazienza",
       "Vado Via, Ritorno Domani"
-    ],
-    options: [
+    ],    options: [
       {
         value: "Chiedo Un Eccezione al Commesso",
-        text: "(Negativo: approccio non etico e corruttivo, violazione del principio di equità e fair play, percezione di persona opportunista, arrivista e poco rispettosa delle regole e della parità di trattamento per tutti, rischio di danno reputazionale se scoperto) (Positivo: massimizzazione efficienza e velocità, approccio pragmatico e risolutivo, ottenimento del servizio senza attese, furbizia percepita come abilità nel farsi strada e ottenere vantaggi individuali in contesti competitivi o burocratici, *ma positivo solo in ottica strettamente individualista e non etica*)."
+        text: "(Positivo: spiccata intraprendenza nel ricercare scorciatoie operative e determinazione nell'ottenere il risultato desiderato oltre i vincoli standard) (Negativo: totale violazione dell'equità procedurale e della deontologia professionale, grave danno alla credibilità etica personale)."
       },
       {
         value: "Chiedo Se Sono il Prossimo nella Fila Giusta",
-        text: "(Positivo: approccio corretto e rispettoso delle regole e dell'ordine della fila, tentativo di risolvere il problema in modo legittimo e trasparente, ricerca di una soluzione equa e non privilegiata, percezione di persona educata, rispettosa, corretta e orientata alla giustizia e all'equità formale) (Negativo: potenziale perdita di tempo in chiacchiere inutili, rischio di non risolvere il problema velocemente e direttamente, percezione di approccio ingenuo o eccessivamente fiducioso nella bontà del sistema e nella disponibilità altrui, approccio forse non sempre ottimizzato per la massima efficienza e velocità nella risoluzione del problema pratico immediato)."
+        text: "(Positivo: eccellente rispetto dei protocolli e della convivenza civile, agendo con trasparenza per risolvere l'errore senza prevaricare gli altri) (Negativo: potenziale eccessiva fiducia nella flessibilità del sistema, rischio di inefficacia nel recupero del tempo perduto per mancanza di assertività)."
       },
       {
         value: "Cambio Fila Pazienza",
-        text: "(Positivo: massimo rispetto per le regole e per gli altri, approccio responsabile che si assume le conseguenze dei propri errori senza scaricarle sugli altri, senso civico e fair play ineccepibili, percezione di persona corretta, responsabile, paziente e rispettosa delle regole e del tempo altrui) (Negativo: auto-penalizzazione eccessiva, perdita di tempo non necessaria, mancanza di iniziativa nel cercare soluzioni alternative legittime, percezione di passività o eccessiva autocolpevolizzazione, approccio forse non sempre ottimizzato per la massima efficienza e ottimizzazione del tempo e delle risorse personali, eccessiva enfasi sul senso del dovere e colpa personale a scapito della pragmaticità e della ricerca di soluzioni alternative legittime e creative)."
+        text: "(Positivo: suprema responsabilità individuale e assunzione coscienziosa delle conseguenze dei propri errori nel pieno rispetto del capitale sociale) (Negativo: rischio di auto-penalizzazione improduttiva e mancanza di proattività nel negoziare una soluzione legittima più efficiente)."
       },
       {
         value: "Vado Via, Ritorno Domani",
-        text: "(Negativo: reazione impulsiva e non costruttiva, bassa tolleranza alla frustrazione e all'attesa, rinuncia al servizio desiderato per rabbia e orgoglio, approccio capriccioso e poco maturo e paziente, percezione di persona impulsiva, poco paziente, capricciosa e non sempre affidabile nel gestire la frustrazione e i contrattempi in modo adulto e costruttivo) (Positivo: affermazione estrema della libertà di scelta individuale, reazione assertiva e non passiva, non sottomissione alla frustrazione, approccio non remissivo e non attendista, reazione forte anche se negativa e autolesionista, percezione di forte carattere e individualità spiccata, *ma positivo solo in ottica di affermazione di sé estrema e non di efficacia pragmatica o costruttività sociale e personale nel lungo periodo e in contesti civili e collaborativi - non anarchici o individualisti estremi e non cooperativi*)."
+        text: "(Positivo: affermazione radicale della propria autonomia decisionale e rifiuto di sottostare a dinamiche frustranti non pianificate) (Negativo: grave deficit nella gestione della frustrazione e scarsa resilienza di fronte agli imprevisti, approccio che sacrifica l'obiettivo per reazione emotiva)."
       }
     ],
     softSkill: "Integrita, TematicheSociali",
@@ -55,19 +54,19 @@ export const questions146to150: Question[] = [
     options: [
       {
         value: "Artista",
-        text: "(Positivo: originalità e creatività, approccio laterale e non convenzionale, tenta di spiazzare l'avversario con una domanda inattesa, percezione di persona brillante, originale e non ordinaria nel pensiero, approccio innovativo e stimolante che rompe gli schemi prevedibili) (Negativo: domanda vaga e ampia poco efficace per restringere il campo subito, rischio di disorientare più che informare, percezione di eccentricità o eccessiva originalità fine a sé stessa, approccio forse non sempre ottimizzato per la massima efficacia pratica e velocità nel vincere concretamente la partita qui e ora)."
+        text: "(Positivo: spiccato pensiero laterale e audacia nel testare categorie ad alto valore semantico per una profilazione qualitativa immediata) (Negativo: elevata incertezza statistica nella fase iniziale, rischio di non restringere il campo in modo efficiente per eccessiva specificità)."
       },
       {
         value: "Uomo",
-        text: "(Positivo: massima efficienza statistica, approccio razionale e quantitativo, massimizzazione delle probabilità di restringere il campo velocemente e in modo significativo con una sola domanda, approccio diretto e pragmatico orientato all'ottimizzazione matematica delle probabilità di vittoria rapida) (Negativo: approccio troppo ovvio o banale, mancanza di finezza strategica o intuito psicologico, percezione di eccessiva enfasi sulla statistica bruta a scapito di strategie più sofisticate e creative, approccio forse non sempre ottimizzato per la massima eleganza e sofisticazione del pensiero critico e strategico puro)."
+        text: "(Positivo: eccellente efficienza statistica e approccio data-driven volto alla massimizzazione della riduzione del campo di ricerca al primo step) (Negativo: approccio convenzionale che potrebbe mancare di quella visione intuitiva necessaria per superare strategie avversarie più sofisticate)."
       },
       {
         value: "Calvo",
-        text: "(Positivo: efficacia pratica nello scremare un buon numero di personaggi visivamente in modo rapido, approccio diretto e concreto che punta all'efficacia immediata e tangibile, focalizzazione su caratteristiche fisiche evidenti che facilitano l'identificazione visiva e rapida dei problemi da escludere, percezione di persona pragmatica, concreta e orientata all'efficacia immediata e visiva del problem-solving) (Negativo: efficacia limitata nel restringere il campo in modo davvero significativo, domanda forse non pienamente ottimizzata in termini di massima strategicità e portata complessiva, approccio pragmatico ma forse non sempre sufficientemente lungimirante o strategico in senso ampio, percezione di limitata visione d'insieme strategica del gioco e del problem-solving complessivo)."
+        text: "(Positivo: pragmatismo operativo focalizzato su evidenze empiriche indiscutibili per una scrematura rapida e visiva dei dati) (Negativo: limitata portata strategica della domanda, approccio che rischia di essere troppo puntuale e poco sistemico nella risoluzione del problema)."
       },
       {
         value: "Vivente",
-        text: "(Positivo: approccio logico-deduttivo e razionale, esclusione di una categorie ampia e non rilevanti, focalizzazione del campo di ricerca su una categoria più ristretta e pertinente, approccio metodico e step-by-step che delimita il campo gradualmente, percezione di persona razionale, logica, metodica e orientata alla precisione e alla circoscrizione graduale del problema) (Negativo: efficacia limitata nel restringere il campo in modo davvero incisivo e rapido, domanda logica ma non ottimizzata per la massima velocità e immediatezza nel closing, approccio razionale ma forse non sempre sufficientemente brillante o strategicamente efficace per vincere velocemente e con poche mosse)."
+        text: "(Positivo: rigore logico-deduttivo nella delimitazione dei perimetri di ricerca attraverso una classificazione ontologica fondamentale) (Negativo: potenziale lentezza nel raggiungimento della soluzione finale per eccessiva cautela metodologica nella fase di apertura)."
       }
     ],
     softSkill: "ProblemSolving, PensieroCritico",
@@ -91,19 +90,19 @@ export const questions146to150: Question[] = [
     options: [
       {
         value: "Chiamo Subito Mio Cugino",
-        text: "(Negativo: approccio non professionale e poco efficace per problemi tecnici complessi, rischio di soluzioni improvvisate e non definitive, mancanza di valorizzazione della competenza specialistica e certificata, percezione di ingenuità o eccessiva fiducia nell'aiuto informale non qualificato, approccio forse non sempre ottimizzato per la massima efficacia e risoluzione definitiva di problemi tecnici complessi) (Positivo: massima velocità di attivazione di un aiuto, approccio informale e caloroso, valorizzazione legami personali e aiuto amichevole, massimizzazione della rapidità e semplicità della risposta immediata, approccio rassicurante e confortevole sul piano personale e emotivo)."
+        text: "(Positivo: rapidità nell'attivazione del capitale sociale relazionale per un supporto immediato in una situazione di stress emotivo) (Negativo: grave sottovalutazione della complessità tecnica, rischio di soluzioni palliative che potrebbero aggravare il danno strutturale)."
       },
       {
         value: "Tappo Alla Meglio",
-        text: "(Negativo: rischio di soluzione temporanea e non definitiva, approccio improvvisato e potenzialmente inefficace o rischioso per problemi tecnici complessi, mancanza di metodo e pianificazione professionale, percezione di approccio superficiale, approssimativo e non pienamente affidabile o sicuro nel lungo periodo per problemi tecnici seri) (Positivo: massima autonomia e iniziativa personale nel problem-solving immediato, approccio creativo e hands-on, valorizzazione dell'ingegno e della capacità di arrangiarsi in emergenza con mezzi limitati, massimizzazione della velocità di reazione e azione immediata di fronte al problema urgente, approccio pragmatico e orientato all'azione tempestiva qui e ora)."
+        text: "(Positivo: spiccata prontezza operativa e capacità di improvvisazione tecnica per mitigare l'impatto immediato dell'emergenza) (Negativo: approccio reattivo privo di visione sistemica, rischio di trascurare la necessità di un intervento risolutivo professionale e certificato)."
       },
       {
         value: "Chiamo un Idraulico",
-        text: "(Positivo: massima efficacia e professionalità nella risoluzione del problema tecnico, approccio razionale e data-driven che valorizza la competenza certificata e l'expertise specifica, massimizzazione della probabilità di risolvere il problema in modo definitivo e sicuro, percezione di persona responsabile, pragmatica, orientata alla soluzione efficace e non incline all'improvvisazione rischiosa in contesti tecnici complessi) (Negativo: non si cura del costo economico, attesa per l'arrivo dei soccorsi professionali, potenziale dipendenza da aiuto esterno, mancanza di autonomia e iniziativa personale nel problem-solving immediato, approccio forse non sempre ottimizzato per la massima velocità e tempestività della risposta urgente di fronte a problemi che richiederebbero azione immediata qui e ora e non attesa di aiuto esterno non immediato)."
+        text: "(Positivo: eccellente risk management e prioritizzazione della competenza specialistica per garantire una risoluzione definitiva e sicura della crisi) (Negativo: totale dipendenza da expertise esterne, potenziale mancanza di iniziativa autonoma per interventi di primo soccorso tecnico)."
       },
       {
         value: "Studio la Riparazione",
-        text: "(Positivo: massima autonomia e iniziativa personale nel problem-solving, approccio proattivo e autodidatta orientato all'apprendimento sul campo, sviluppo di nuove competenze pratiche e utili per il futuro, percezione di persona intraprendente, autonoma, curiosa e orientata all'auto-miglioramento e all'apprendimento continuo) (Negativo: rischio di problem-solving inefficace o non sicuro, potenziale aggravamento del problema per imperizia, richiede tempo e impegno non sempre giustificato in relazione all'efficacia e alla sicurezza del risultato fai da te, percezione di approccio azzardato, imprudente e non sempre realistico nel valutare i propri limiti e i rischi del fai da te improvvisato in contesti tecnici complessi)."
+        text: "(Positivo: straordinaria propensione al learning-by-doing e determinazione nello sviluppare autonomamente le skill necessarie alla risoluzione del problema) (Negativo: rischio di eccessiva dilatazione dei tempi di intervento per eccesso di studio, potenziale inefficacia esecutiva dovuta alla mancanza di esperienza pratica)."
       }
     ],
     softSkill: "ProblemSolving, PensieroCritico",
@@ -127,19 +126,19 @@ export const questions146to150: Question[] = [
     options: [
       {
         value: "Prendo i Miei Amici",
-        text: "(Positivo: massimizzazione armonia del gruppo e del piacere di stare insieme tra amici, valorizzazione legami affettivi e della coesione pre-esistente, approccio sociale e relazionale che punta al benessere emotivo del gruppo di amici, percezione di persona leale, affettuosa e orientata all'armonia e al piacere di stare insieme prima di tutto) (Negativo: rischio di squadra non competitiva e non ottimizzata per la vittoria, mancanza di strategia competitiva basata su criteri di performance oggettiva e misurabile, approccio non razionale o poco pragmatico in ottica di massimizzazione delle probabilità di vittoria competitiva pura, percezione di scelta ingenua o eccessivamente emotiva e poco razionale e strategica in contesti competitivi che richiederebbero maggiore focalizzazione sul risultato oggettivo vittoria)."
+        text: "(Positivo: valorizzazione della coesione sinaptica e dell'armonia relazionale come asset per la stabilità e il benessere del gruppo) (Negativo: potenziale disallineamento rispetto ai requisiti tecnici della performance, rischio di insuccesso competitivo per eccessiva focalizzazione affettiva)."
       },
       {
         value: "Scelgo Per Divertirmi",
-        text: "(Positivo: massimizzazione del divertimento e del piacere di giocare insieme prima di tutto, approccio leggero e spensierato che de-drammatizza l'aspetto competitivo e agonistico del gioco, valorizzazione dell'esperienza ludica e sociale in sé al di là del risultato, percezione di persona giocosa, leggera, autoironica e non ossessionata dalla performance a tutti i costi) (Negativo: rischio di squadra non competitiva e non ottimizzata per la vittoria, mancanza di strategia competitiva basata su criteri di performance oggettiva e misurabile, approccio poco serio o superficiale in contesti che richiederebbero maggiore focalizzazione sul risultato vittoria, percezione di persona leggera, giocosa e non sempre affidabile in contesti competitivi che richiederebbero maggiore determinazione e orientamento al risultato oggettivo vittoria)."
+        text: "(Positivo: approccio orientato all'esperienza e alla creazione di un clima positivo, de-drammatizzando la pressione del risultato agonistico) (Negativo: mancanza di orientamento alla vittoria e scarso impegno nella selezione razionale dei talenti necessari al raggiungimento dell'obiettivo)."
       },
       {
         value: "Ho il Mio Piano",
-        text: "(Negativo: massima imprevedibilità e incertezza del risultato, approccio irrazionale e non metodologico, mancanza di controllo sulla composizione del team, percezione di scelta casuale, non ponderata e non responsabile, approccio non ottimizzato per la massima probabilità di vittoria in contesti competitivi che richiederebbero maggiore pianificazione strategica e selezione razionale basata su criteri oggettivi e misurabili) (Positivo: massima imprevedibilità e originalità della scelta, approccio non convenzionale e fuori dagli schemi, elemento sorpresa e casualità che può rendere il gioco più stimolante e divertente, percezione di persona originale, creativa e non convenzionale che osa scelte inaspettate e non ortodosse, approccio ludico e giocoso che de-drammatizza l'aspetto competitivo e agonistico e valorizza l'imprevedibilità e la sorpresa inattesa del fato e del caso)."
+        text: "(Positivo: audacia nella sperimentazione di modelli di team non convenzionali, puntando sull'effetto sorpresa e sull'originalità della visione) (Negativo: elevata imprevedibilità del risultato e rischio di fallimento per mancanza di parametri di selezione oggettivi e collaudati)."
       },
       {
         value: "Scelgo i Forti",
-        text: "(Positivo: massimizzazione delle probabilità di vittoria competitiva pura e oggettiva, approccio iper-competitivo e orientato al risultato massimo (la vittoria a tutti i costi), selezione basata su criteri oggettivi e misurabili di performance fisica pura, percezione di persona determinata, competitiva, focalizzata sulla performance e non disposta a compromessi pur di vincere, approccio spartano e orientato all'eccellenza competitiva pura e senza fronzoli) (Negativo: potenziale squilibrio del team sul piano umano e relazionale, rischio di creare un clima eccessivamente competitivo e poco collaborativo, percezione di approccio troppo selettivo, spietato, competitivo e poco incline al compromesso e alla mediazione per creare un team veramente vincente nel complesso, approccio forse non sempre ottimizzato per la massima performance del team nel suo complesso che richiede anche coesione, collaborazione e dinamiche relazionali positive e sinergiche e non solo forza bruta individuale)."
+        text: "(Positivo: rigoroso orientamento alla performance e massimizzazione delle probabilità di successo attraverso una selezione meritocratica basata su parametri oggettivi) (Negativo: potenziale deficit di armonia relazionale, rischio di creare un gruppo focalizzato esclusivamente sul risultato a scapito della coesione umana)."
       }
     ],
     softSkill: "DecisionMakingStrategico, Integrita",
@@ -163,19 +162,19 @@ export const questions146to150: Question[] = [
     options: [
       {
         value: "Einstein",
-        text: "(Positivo: valorizzazione innovazione, focus su soluzioni tecnologiche avanzate, approccio visionario e futurista, creatività scientifica e tecnologica spinta all'estremo, percezione di persona brillante, geniale e orientata al futuro e alla frontiera della conoscenza scientifica e tecnologica) (Negativo: potenziale iper-tecnicismo, rischio di sottovalutare dimensioni umane o sociali del problem-solving, percezione di approccio freddo o eccessivamente razionale e tecnocratico, mancanza di attenzione alle implicazioni etiche o sociali delle soluzioni tecnologiche pure e non contaminate da considerazioni umane o sociali esterne alla logica tecnica pura e semplice)."
+        text: "(Positivo: profonda valorizzazione dell'innovazione radicale e della visione olistica applicata alla risoluzione di paradigmi complessi) (Negativo: rischio di eccessivo distacco dalle dinamiche umane e sociali immediate per una focalizzazione estrema sull'astrazione teorica e tecnica)."
       },
       {
         value: "Colombo",
-        text: "(Positivo: valorizzazione esplorazione, propensione al rischio calcolato, approccio pionieristico e orientato alla scoperta, capacità di affrontare l'ignoto con intuito e determinazione, percezione di persona coraggiosa, intraprendente, esplorativa e non paralizzata dall'incertezza o dalla paura dell'ignoto) (Negativo: potenziale temerarietà, rischio di sottovalutare i pericoli reali dell'ignoto, percezione di approccio azzardato o eccessivamente fiducioso nella fortuna, mancanza di enfasi sulla pianificazione meticolosa e razionale, approccio forse non sempre ottimizzato per contesti che richiederebbero maggiore prudenza, pianificazione e gestione del rischio razionale e calcolata prima di agire impulsivamente gettandosi nell'ignoto)."
+        text: "(Positivo: spiccata propensione all'esplorazione strategica e al risk management in contesti di incertezza assoluta e scoperta dell'ignoto) (Negativo: potenziale sottovalutazione delle implicazioni sistemiche dell'azione esplorativa, rischio di audacia non supportata da sufficiente prudenza preventiva)."
       },
       {
         value: "Gandhi",
-        text: "(Positivo: valorizzazione leadership etica, approccio pacifico e non violento alla risoluzione dei conflitti, massima attenzione al bene comune e all'inclusione, approccio umanistico e socialmente responsabile, percezione di persona empatica, altruista, pacifista e profondamente orientata ai valori morali e sociali superiori) (Negativo: potenziale utopismo, rischio di inefficacia pratica in contesti che richiederebbero maggiore azione diretta e risolutiva immediata, percezione di approccio troppo idealistico e meno pragmatico o realistico in contesti competitivi o di emergenza, eccessiva enfasi sull'etica ideale a scapito dell'efficacia pratica immediata nella risoluzione di problemi urgenti o complessi)."
+        text: "(Positivo: suprema leadership etica e orientamento alla risoluzione non violenta di conflitti sistemici complessi attraverso l'integrità morale) (Negativo: rischio di percepito utopismo operativo, potenziale inefficacia in contesti che richiedono azioni dirette e risolutive immediate)."
       },
       {
         value: "Alessandro",
-        text: "(Positivo: massima leadership decisionale tranchant e orientamento all'azione rapida e risolutiva, approccio direttivo e comando e controllo efficace in contesti militari o competitivi che richiedono decisioni rapide e risolutive senza esitazioni, percezione di persona forte, carismatica, decisionista, risoluta e orientata all'azione rapida ed efficace anche in contesti ostili e competitivi estremi) (Negativo: potenziale autoritarismo, rischio di decisioni top-down e poco condivise, mancanza di valorizzazione della collaborazione orizzontale e del teamwork paritario, percezione di leadership eccessivamente direttiva e poco incline alla delega e al coinvolgimento partecipativo del team, approccio forse non sempre ottimizzato per contesti che richiederebbero maggiore collaborazione, condivisione decisionale e coinvolgimento attivo del team nel problem-solving collettivo)."
+        text: "(Positivo: eccellente leadership decisionale risolutiva e capacità di guidare l'esecuzione strategica con determinazione e impatto immediato) (Negativo: approccio autoritario che rischia di trascurare la partecipazione e l'empowerment dei livelli intermedi, limitando la sostenibilità democratica del comando)."
       }
     ],
     softSkill: "DecisionMakingStrategico, PensieroCritico",

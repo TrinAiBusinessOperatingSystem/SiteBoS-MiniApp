@@ -15,23 +15,22 @@ export const questions21to25: Question[] = [
       "Cerco di Essere Logico",
       "A Volte Non Capisco",
       "Ma Che Gli Salta in Mente?"
-    ],
-    options: [
+    ],    options: [
       {
         value: "Cerco di Capire Sempre Tutti",
-        text: "(Positivo: alta empatia e comprensione universale,  approccio inclusivo e  tollerante verso la diversità,  massima apertura mentale e  accettazione del diverso come valore) (Negativo: eccessiva giustificazione e potenziale mancanza di giudizio critico di fronte a comportamenti oggettivamente sbagliati,  rischio di buonismo eccessivo e  ingenuità nel valutare comportamenti borderline o  inaccettabili,  approccio forse non sempre ottimizzato per contesti che richiederebbero maggiore analisi critica e  capacità di discernimento oggettivo tra comportamenti  semplicemente  strani e  comportamenti oggettivamente problematici o  inaccettabili eticamente o  socialmente)."
+        text: "(Positivo: eccellente apertura mentale e attitudine all'inclusione radicale, capacità di sospendere il giudizio immediato per favorire la comprensione delle diversità comportamentali) (Negativo: rischio di eccessiva giustificazione di condotte disfunzionali, potenziale mancanza di rigore critico, tendenza al 'buonismo' che può compromettere l'obiettività valutativa)."
       },
       {
         value: "Cerco di Essere Logico",
-        text: "(Positivo: approccio logico e tentativo di comprensione razionale,  ricerca di spiegazioni logiche e  coerenti ai comportamenti altrui,  approccio analitico e  orientato alla comprensione razionale del perché le persone fanno ciò che fanno) (Negativo: rigidità logica e potenziale incomprensione di comportamenti non lineari o  non razionali in apparenza,  rischio di forzare la realtà in schemi logici predefiniti e  pre-concetti che potrebbero non aderire pienamente alla complessità e  irrazionalità del comportamento umano reale,  approccio forse non sempre ottimizzato per contesti che richiederebbero maggiore flessibilità mentale,  apertura all' irrazionalità e  tolleranza dell'ambiguità e  della non linearità del comportamento umano reale e  complesso)."
+        text: "(Positivo: approccio analitico rigoroso orientato alla decodifica razionale dei comportamenti, ricerca di coerenza causale e obiettività nel giudizio sociale) (Negativo: rischio di rigidità cognitiva di fronte a dinamiche emotive non lineari, potenziale incomprensione delle sfumature irrazionali del comportamento umano, distacco eccessivo)."
       },
       {
         value: "A Volte Non Capisco",
-        text: "(Positivo: onestà intellettuale e riconoscimento dei limiti della propria comprensione,  umiltà nel riconoscere che non sempre si può capire tutto del comportamento umano,  approccio realistico e  consapevole dei limiti della ragione e della comprensione razionale totale e  universale del comportamento umano) (Negativo: potenziale rinuncia alla comprensione e mancanza di impegno empatico costruttivo e  proattivo per superare i propri limiti di comprensione e  andare oltre la facile rassegnazione all' incomprensibilità,  rischio di passività o  rinuncia precoce di fronte alla sfida della comprensione empatica del comportamento diverso o  strano altrui,  percezione di approccio rassegnato o  poco ambizioso in termini di vera comprensione empatica profonda e  non solo superficiale o  limitata)."
+        text: "(Positivo: onestà intellettuale superiore e consapevolezza dei propri limiti euristici, umiltà nel riconoscere la complessità dell'altro senza forzare interpretazioni arbitrarie) (Negativo: potenziale passività o rinuncia precoce allo sforzo empatico, rischio di rassegnazione di fronte alla diversità, percezione di scarso impegno nella costruzione di ponti comunicativi)."
       },
       {
         value: "Ma Che Gli Salta in Mente?",
-        text: "(Negativo: scarsa empatia e difficoltà a comprendere punti di vista diversi,  approccio giudicante e  poco incline alla comprensione empatica del perché gli altri fanno ciò che fanno,  mancanza di curiosità autentica verso la diversità e  complessità del comportamento umano,  percezione di chiusura mentale e  pregiudizio verso ciò che è diverso dalla propria norma personale o  culturale) (Positivo: coerenza interna e senso di normalità e  rassicurante familiarità con il proprio sistema di riferimento logico e  culturale,  approccio diretto e  senza ambiguità nel giudizio immediato istintivo senza complicazioni analitiche o  empatiche eccessive,  massimizzazione della semplicità e  immediatezza del giudizio istintivo senza dubbi o  incertezze empatiche eccessive che potrebbero rallentare o  complicare la chiarezza del giudizio immediato e  istintivo puro)."
+        text: "(Positivo: forte ancoraggio al proprio sistema di valori e coerenza interna rassicurante, rapidità di giudizio basata su norme consolidate e chiarezza di standard comportamentali) (Negativo: elevato rischio di pregiudizio e chiusura verso l'alterità, mancanza di curiosità antropologica, percezione di intolleranza verso ciò che non è conforme al proprio modello)."
       }
     ],
     softSkill: "Empatia, Comprensione",
@@ -55,19 +54,19 @@ export const questions21to25: Question[] = [
     options: [
       {
         value: "Salvadanaio Vuoto",
-        text: "(Negativo: imprevidenza finanziaria e mancanza pianificazione a lungo termine, vulnerabilità economica futura e assenza sicurezza finanziaria, approccio spendaccione e noncurante conseguenze future) (Positivo: gratificazione immediata e godimento presente senza preoccupazioni future, approccio carpe diem che massimizza piacere ora e minimizza stress pianificazione futura)."
+        text: "(Positivo: orientamento alla gratificazione immediata e assenza di ansia anticipatoria legata al futuro, capacità di vivere pienamente il presente investendo nel benessere attuale) (Negativo: imprevidenza finanziaria critica e mancanza di pianificazione strategica, elevata vulnerabilità a shock economici esterni, assenza di visione prospettica)."
       },
       {
         value: "Salvadanaio Appena Iniziato",
-        text: "(Positivo: consapevolezza necessità risparmiare, approccio moderatamente previdente e non completamente irresponsabile, tentativo di creare minimo paracadute finanziario futuro) (Negativo: risparmio insufficiente e vulnerabilità finanziaria elevata, mancanza strategia finanziaria solida, approccio inadeguato per obiettivi finanziari ambiziosi, percezione di fragilità e non piena autonomia economica futura)."
+        text: "(Positivo: fase iniziale di consapevolezza previdenziale e tentativo di stabilire abitudini di risparmio sostenibili, riconoscimento della necessità di un paracadute finanziario) (Negativo: risparmio insufficiente a garantire una reale sicurezza nel lungo periodo, mancanza di una strategia finanziaria strutturata, potenziale fragilità economica)."
       },
       {
         value: "Salvadanaio Abbastanza Pieno",
-        text: "(Positivo: equilibrio tra presente e futuro e gestione responsabile denaro, approccio bilanciato e razionale che considera esigenze attuali e sicurezza futura, gestione finanziaria oculata e senza eccessi, percezione di persona equilibrata e responsabile) (Negativo: potenziale limitazione crescita finanziaria a lungo termine per eccessiva moderazione risparmio, approccio non sempre ottimizzato per massima performance finanziaria pura e assoluta nel tempo, rinuncia a slancio più ambizioso e proattivo gestione patrimonio)."
+        text: "(Positivo: eccellente equilibrio tra 'consumo presente' e 'sicurezza futura', gestione responsabile e razionale delle risorse economiche, approccio bilanciato e sostenibile) (Negativo: potenziale eccesso di prudenza che frena investimenti più ambiziosi o gratificazioni meritate, rischio di una crescita patrimoniale non massimizzata per timore del rischio)."
       },
       {
         value: "Salvadanaio Pieno Zeppo",
-        text: "(Positivo: massima sicurezza finanziaria futura e forte pianificazione a lungo termine, approccio iper-previdente e massimamente orientato a sicurezza economica assoluta, massimizzazione protezione patrimonio futuro da ogni imprevisto, percezione di persona previdente e totalmente affidabile gestione finanziaria) (Negativo: sacrificio eccessivo presente e potenziale rigidità finanziaria ossessiva, approccio iper-controllante che limita spontaneità e godimento presente e genera stress eccessivo, percezione di approccio eccessivamente rigido e ansioso e non sempre ottimizzato per benessere psicofisico attuale)."
+        text: "(Positivo: massima disciplina finanziaria e orientamento alla sicurezza assoluta nel lungo periodo, capacità di 'gratificazione differita' superiore e pianificazione patrimoniale rigorosa) (Negativo: rischio di frugalità ossessiva e sacrificio eccessivo del benessere presente, potenziale rigidità mentale legata all'accumulo, stress da controllo finanziario)."
       }
     ],
     softSkill: "FinanzaPersonale, Autodisciplina",
@@ -91,19 +90,19 @@ export const questions21to25: Question[] = [
     options: [
       {
         value: "Parlo Chiaro e Forte",
-        text: "(Positivo: comunicazione diretta ed efficace,  massima chiarezza e trasparenza senza filtri,  approccio tranchant e  senza ambiguità,  persona percepita come schietta,  diretta e  che non le manda a dire,  massima efficienza comunicativa in contesti che richiedono parlare chiaro senza perdersi in chiacchiere inutili) (Negativo: aggressività percepita e potenziale conflittualità,  rischio di ferire la sensibilità altrui con eccessiva direttezza e  franchezza brutale,  mancanza di diplomazia e  tatto,  percezione di persona eccessivamente aggressiva,  prepotente o  maleducata,  approccio forse non sempre ottimizzato per contesti che richiederebbero maggiore sensibilità,  empatia,  diplomazia e  mediazione soft e  non frontale aggressiva)."
+        text: "(Positivo: comunicazione ultra-diretta e trasparenza assoluta, efficienza nella trasmissione di messaggi critici senza ambiguità, franchezza che favorisce la risoluzione immediata dei problemi) (Negativo: rischio elevato di aggressività percepita e danno relazionale, mancanza di tatto diplomatico, potenziale isolamento per eccessiva durezza espressiva)."
       },
       {
         value: "Chiaro, ma con Cautela",
-        text: "(Positivo: comunicazione chiara e diplomatica,  massima efficacia comunicativa unita al tatto e alla diplomazia,  approccio assertivo ma non aggressivo,  persona percepita come professionale,  competente,  chiara ma rispettosa e  attenta alla sensibilità altrui) (Negativo: potenziale mancanza di incisività e messaggio annacquato per eccessiva cautela,  rischio di diluire il messaggio chiave per eccessiva preoccupazione di non offendere,  percezione di approccio moderato e  non sempre sufficientemente incisivo o  diretto al punto,  comunicazione forse non sempre ottimizzata per contesti che richiederebbero massima forza persuasiva e  chiarezza senza compromessi o  eufemismi)."
+        text: "(Positivo: eccellente equilibrio tra assertività e diplomazia, capacità di comunicare verità scomode preservando l'integrità della relazione, approccio professionale e rispettoso) (Negativo: rischio di diluire eccessivamente il messaggio per timore della reazione altrui, potenziale perdita di incisività in situazioni che richiederebbero una fermezza assoluta)."
       },
       {
         value: "Non Voglio Essere Diretto",
-        text: "(Positivo: evitamento del conflitto e mantenimento dell'armonia e gentilezza,  approccio pacifico e  non confrontazionale che preserva le relazioni interpersonali positive e  non conflittuali,  valorizzazione dell' armonia e del clima sereno anche a scapito della chiarezza diretta e tranchant,  percezione di persona gentile,  pacifica,  diplomatica e  orientata al consenso e all' armonia relazionale prima di tutto) (Negativo: mancanza di chiarezza e potenziale inefficacia nel risolvere i problemi davvero alla radice,  messaggio annacquato e  poco incisivo,  rischio di non essere compreso pienamente o  di non raggiungere l'obiettivo comunicativo primario per eccessiva preoccupazione di non essere troppo diretti,  evitamento problemi ma non risoluzione vera dei problemi sottostanti,  percezione di persona poco assertiva,  non sempre trasparente e  non pienamente efficace nel problem-solving comunicativo diretto e  aperto e  senza eufemismi)."
+        text: "(Positivo: orientamento alla preservazione dell'armonia del team e sensibilità verso i sentimenti altrui, approccio non conflittuale che favorisce un clima rilassato) (Negativo: inefficacia nel problem-solving comunicativo e ambiguità informativa, rischio di accumulare malintesi che possono degenerare, mancanza di assertività necessaria)."
       },
       {
         value: "Muto",
-        text: "(Negativo: mancanza di comunicazione e incapacità di esprimere le proprie opinioni e passività estrema di fronte alla necessità di comunicare chiaramente senza giri di parole,  rinuncia totale all' assertività e all' efficacia comunicativa diretta e  trasparente,  approccio passivo e  rinunciatario che evita completamente la sfida della comunicazione diretta e tranchant,  isolamento comunicativo e  non partecipazione attiva alla dinamica comunicativa interpersonale diretta e  aperta) (Positivo: evitamento di errori comunicativi e autoprotezione dal rischio di dire cose sbagliate o offensive o  di essere frainteso,  massima prudenza e  controllo della comunicazione,  approccio iper-cauto e  difensivo che minimizza il rischio di conflitto o  giudizio negativo altrui,  percezione di persona prudente,  controllata,  non impulsiva e  attenta a non sbagliare parola,  massimizzazione della sicurezza e dell' evitamento del rischio comunicativo a tutti i costi)."
+        text: "(Positivo: massima prudenza comunicativa in situazioni ad alto rischio, capacità di esercitare il silenzio come forma di autoprotezione e controllo dell'impulsività verbale) (Negativo: passività totale di fronte alla necessità di feedback, rinuncia alla leadership comunicativa, percezione di inaffidabilità o disimpegno relazionale)."
       }
     ],
     softSkill: "ComunicazioneEfficace, GestioneDeiConflitti",
@@ -127,19 +126,19 @@ export const questions21to25: Question[] = [
     options: [
       {
         value: "Chiedo Sempre Aiuto",
-        text: "(Positivo: leadership democratica e inclusiva, valorizza contributo team e decisioni condivise, massima apertura dialogo e partecipazione, approccio collaborativo che valorizza intelligenza collettiva) (Negativo: lentezza decisionale e mancanza direzione chiara, rischio processi decisionali farraginosi e inefficienti in contesti rapidi, percezione di leadership debole in emergenze che richiedono comando diretto)."
+        text: "(Positivo: leadership partecipativa e democratica che valorizza l'intelligenza collettiva, capacità di creare consenso attraverso il dialogo e la consultazione del team) (Negativo: rischio di lentezza decisionale e paralisi da consultazione, mancanza di una direzione ferma in situazioni di emergenza, percezione di leadership incerta o dipendente)."
       },
       {
         value: "Suggerisco, Non Comando",
-        text: "(Positivo: leadership gentile e rispettosa autonomia, approccio non direttivo che ispira senza imporre, clima di lavoro autonomo e responsabilizzante, approccio soft e rispettoso sensibilità altrui) (Negativo: potenziale mancanza assertività e guida incisiva, rischio apparire indeciso in situazioni guida forte, percezione leadership troppo soft e poco determinata in contesti competitivi)."
+        text: "(Positivo: approccio non direttivo che favorisce l'autonomia e la responsabilizzazione dei collaboratori, leadership ispirazionale basata sulla stima e non sull'autorità formale) (Negativo: potenziale mancanza di incisività e guida incerta, rischio di dispersione operativa in assenza di confini chiari, percezione di un'autorità troppo blanda)."
       },
       {
         value: "Guido con Gentilezza",
-        text: "(Positivo: leadership autorevole e rispettosa, guida gentile e attenta alle persone, equilibrio tra direzione e rispetto, approccio umano che bilancia efficacia e sensibilità, persona percepita autorevole ma empatica) (Negativo: potenziale mancanza fermezza decisionale in situazioni critiche, rischio apparire troppo gentile e poco incisivo in contesti comando diretto, approccio non sempre ottimizzato per contesti che premiano velocità decisionale e leadership tranchant)."
+        text: "(Positivo: leadership autorevole basata sull'intelligenza emotiva, capacità di guidare con fermezza rispettando profondamente la dignità e i bisogni delle persone, equilibrio ottimale) (Negativo: rischio di essere percepiti come manipolabili in contesti iper-competitivi, potenziale difficoltà a gestire collaboratori che richiedono stili di comando più assertivi)."
       },
       {
         value: "Comando e Basta",
-        text: "(Positivo: leadership decisa e forte, efficienza decisionale e chiarezza direzione, massima velocità decisionale e operativa, approccio direttivo e focalizzato su risultato senza perdite di tempo, persona percepita determinata e orientata a azione rapida) (Negativo: autoritarismo e demotivazione team e clima poco collaborativo, rischio demotivare team e soffocare iniziativa altrui per accentramento decisionale, percezione leadership autoritaria e poco incline a delega, clima di lavoro potenzialmente teso e poco stimolante per iniziativa spontanea)."
+        text: "(Positivo: leadership direttiva efficace in contesti di crisi o alta pressione, massima efficienza decisionale e chiarezza della catena di comando, orientamento al risultato immediato) (Negativo: rischio di autoritarismo demotivante e soffocamento dell'iniziativa individuale, clima di lavoro teso, potenziale turnover elevato per mancanza di riconoscimento del team)."
       }
     ],
     softSkill: "Leadership, GestioneDelTeam",
@@ -163,19 +162,21 @@ export const questions21to25: Question[] = [
     options: [
       {
         value: "Stile Unico, Nessuno Mi Copia",
-        text: "(Positivo: originalità e indipendenza e autonomia,  approccio non convenzionale e  fuori dagli schemi,  valorizzazione della unicità personale e  della distinzione dalla massa,  percezione di persona originale,  indipendente e  non omologata e  non influenzabile dalle mode o  dal giudizio altrui) (Negativo: mancanza di leadership e scarsa influenza sugli altri,  potenziale isolamento individualistico e  mancanza di impatto sociale ampio,  approccio forse non sempre ottimizzato per contesti che richiederebbero maggiore capacità di fare breccia nel cuore e nella mente degli altri e di guidare e influenzare grandi gruppi o  folle,  percezione di persona originale e  indipendente ma poco leader o  influente su larga scala)."
+        text: "(Positivo: originalità radicale e indipendenza totale dal conformismo sociale, forte identità personale e non influenzabilità esterna, unicità carismatica solitaria) (Negativo: isolamento sociale e mancanza di impatto sui comportamenti altrui, difficoltà nel trasmettere visioni o guidare cambiamenti collettivi, percezione di individualismo eccessivo)."
       },
       {
         value: "Qualcuno Mi Copia un Po'",
-        text: "(Positivo: un certo grado di influenza limitata e stile personale riconoscibile in una cerchia ristretta e modestia non ostentata,  approccio umile e  non narcisistico alla percezione della propria influenza limitata ma esistente,  valorizzazione della discrezione e  della non ostentazione della propria influenza potenziale ma non esagerata) (Negativo: influenza limitata e potenziale mancanza di ambizione di leadership su vasta scala,  approccio modesto che potrebbe auto-limitare il proprio potenziale di leadership e  influenza più ampia e  incisiva,  mancanza di slancio ambizioso verso una leadership di massa o  su larga scala,  percezione di ambizione di leadership circoscritta e  non massimizzata oltre la cerchia ristretta e informale)."
+        text: "(Positivo: influenza sottile e misurata in cerchie ristrette, stile personale riconoscibile ma non ostentato, equilibrio tra distinzione e integrazione sociale) (Negativo: potenziale mancanza di ambizione nell'espandere il proprio raggio d'influenza, leadership circoscritta a contesti informali, influenza non massimizzata)."
       },
       {
         value: "Mi Imitano Abbastanza",
-        text: "(Positivo: influenza significativa e capacità di essere un punto di riferimento per molti,  approccio leaderistico naturale e  riconosciuto da un certo numero di persone,  valorizzazione di un certo grado di influenza sociale senza eccessi di protagonismo o  narcisismo,  percezione di persona influente,  carismatica quanto basta e  punto di riferimento per molti ma non per tutti,  approccio equilibrato tra influenza e modestia non esagerata) (Negativo: potenziale eccessiva concentrazione sulla propria immagine esteriore e ricerca di approvazione esterna e  riconoscimento sociale diffuso,  rischio di dipendenza dal giudizio altrui e  dall' approvazione esterna come fonte di autostima e  conferma sociale,  percezione di fragilità nascosta dietro l' apparente sicurezza di sé sociale e  ricerca di conferma esteriore continua per alimentare l' autostima vacillante interiore,  approccio forse non sempre ottimizzato per la massima autenticità e  indipendenza dal giudizio altrui e dalla ricerca di approvazione esterna come fonte di autostima primaria e fondamentale)."
+        text: "(Positivo: capacità naturale di fungere da 'role model' per molti, leadership d'opinione consolidata e carisma socialmente riconosciuto, forte capacità di influenzare tendenze e decisioni altrui) (Negativo: rischio di eccessivo focus sulla propria immagine pubblica e ricerca di convalida esterna, potenziale dipendenza dal riconoscimento sociale per alimentare l'autostima)."
       },
       {
         value: "Tutti Vogliono Essere Come Me",
-        text: "(Positivo: forte influenza di massa,  carisma trascinante e  capacità di creare tendenze su larga scala,  leadership carismatica innata e  potente che fa tendenza e  detta la moda,  approccio dominante e  protagonistico che impone il proprio stile e la propria visione a molti,  percezione di persona leader nato,  carismatico,  influente oltre la norma e capace di  lasciare il segno in modo indelebile sulla società e sulla cultura di massa) (Negativo: eccessivo egocentrismo e narcisismo ipertrofico e potenziale manipolazione degli altri per mantenere il proprio status di guru incontrastato e  in eterno,  rischio di deriva autoritaria e  manipolatoria,  percezione di leadership eccessivamente accentratrice,  narcisistica,  autoreferenziale e  poco incline alla condivisione autentica del potere e dell' influenza con altri potenziali leader emergenti,  approccio forse non sempre ottimizzato per la massima collaborazione paritaria e  distribuita e per la creazione di un vero team leaderistico diffuso e  non accentrato in modo eccessivo e  personalistico intorno alla figura carismatica del leader indiscusso e onnipotente)."
+        text: "(Positivo: leadership carismatica di massa e potere di influenza eccezionale, capacità di dettare standard comportamentali e ispirare emulazione totale su larga scala) (Negativo: rischio di narcisismo patologico e manipolazione carismatica, tendenza a circondarsi di 'yes-men', potenziale distacco dalla realtà per eccessivo senso di superiorità sociale)."
+      }
+    ],a carismatica del leader indiscusso e onnipotente)."
       }
     ],
     softSkill: "Leadership, GestioneDelTeam",

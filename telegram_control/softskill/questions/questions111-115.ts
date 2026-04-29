@@ -202,19 +202,19 @@ export const questions111to115: Question[] = [
     options: [
       {
         value: "Aspirapolvere",
-        text: "(Positivo: massima priorità alla sicurezza e decisione rapida e netta,  evitamento di ogni potenziale rischio e approccio \"zero tolerance\" verso minacce cyber,  persona percepita come pragmatica, efficiente e orientata alla protezione) (Negativo: potenziale mancanza di approfondimento della minaccia e rischio di non imparare dalla minaccia stessa,  percezione di approccio eccessivo o troppo drastico e mancanza di curiosità investigativa e analisi più approfondita)."
+        text: "(Positivo: massima integrità perimetrale e prevenzione istantanea di minacce latenti attraverso una policy di tolleranza zero) (Negativo: potenziale perdita di informazioni forensi utili alla comprensione della minaccia, approccio puramente reattivo e privo di analisi critica)."
       },
       {
         value: "Buttafuori",
-        text: "(Positivo: proattività nella sicurezza e prevenzione di future minacce,  approccio orientato alla difesa proattiva e implementazione di barriere di sicurezza preventive e future-proof, persona percepita come previdente e attenta alla sicurezza a lungo termine) (Negativo: potenziale superficialità nell'analisi della minaccia specifica e rischio di non cogliere dettagli utili dalla singola email,  percezione di approccio generico e non sempre mirato alla minaccia specifica, eccessiva enfasi sulla prevenzione di massa a scapito dell'analisi puntuale)."
+        text: "(Positivo: proattività nella difesa dei sistemi e implementazione di filtri reputazionali per mitigare attacchi futuri) (Negativo: rischio di eccessiva generalizzazione del pericolo, potenziale inefficacia contro tecniche di social engineering mirate e sofisticate)."
       },
       {
         value: "Detective",
-        text: "(Positivo: delega appropriata a esperti e valorizzazione del team di sicurezza IT, rispetto dei protocolli aziendali e approccio collaborativo e strutturato,  persona percepita come responsabile che sa delegare e valorizzare le competenze altrui) (Negativo: potenziale ritardo nella risposta alla minaccia e rischio di dipendenza eccessiva da supporto esterno,  percezione di non piena autonomia e competenza personale in materia di sicurezza, approccio forse non sempre ottimizzato per la velocità di reazione e l'azione immediata)."
+        text: "(Positivo: eccellente conformità ai protocolli di escalation e valorizzazione delle competenze specialistiche per una validazione rigorosa) (Negativo: potenziale rallentamento della risposta immediata per dipendenza da terzi, rischio di inazione in attesa di pareri esterni)."
       },
       {
         value: "Apertura Curiosa",
-        text: "(Negativo: alto rischio di cadere vittima di truffe cyber e imprudenza e ingenuità, esposizione volontaria a pericoli reali,  percezione di scarsa consapevolezza del rischio e approccio non sicuro e potenzialmente autolesionista in termini di sicurezza informatica, curiosità pericolosa e non sempre utile) (Positivo: curiosità intellettuale e desiderio di approfondire la conoscenza delle minacce cyber e approccio investigativo e proattivo nella comprensione del pericolo e volontà di non ignorare potenziali minacce, *ma positivo con riserva etica e di sicurezza*)."
+        text: "(Positivo: spiccata curiosità analitica e desiderio di approfondire i meccanismi delle minacce per scopi di auto-formazione e difesa) (Negativo: esposizione sconsiderata ad attacchi reali e grave imprudenza operativa, rischio elevato di compromettere l'integrità dei sistemi aziendali)."
       }
     ],
     softSkill: "SicurezzaDigitale, SicurezzaSulLavoro",
@@ -238,19 +238,19 @@ export const questions111to115: Question[] = [
     options: [
       {
         value: "Porta Sempre Aperta",
-        text: "(Positivo: massima apertura sociale e facilità a creare nuove connessioni, approccio fiducioso e open-minded verso gli altri, valorizzazione del networking e delle relazioni sociali ampie) (Negativo: potenziale rischio per la privacy e ingenuità, eccessiva apertura indiscriminata e scarsa selettività, vulnerabilità potenziale a truffe o profili fake)."
+        text: "(Positivo: straordinaria apertura relazionale e propensione naturale al networking espansivo e multiculturale) (Negativo: grave vulnerabilità alle tecniche di ingegneria sociale e scarsa selettività nella tutela dei propri confini digitali e della privacy)."
       },
       {
         value: "Sbircio il Profilo",
-        text: "(Positivo: cautela ragionevole e attenzione minima alla sicurezza online, approccio pragmatico che bilancia apertura sociale e prudenza, persona percepita come normale e non paranoica, gestione equilibrata della privacy) (Negativo: protezione non massima e rischio residuo di accettare profili fake ben costruiti, percezione di cautela moderata ma non estrema, valutazione del rischio forse non sempre approfondita)."
+        text: "(Positivo: approccio pragmatico e bilanciato che concilia l'esplorazione di nuove opportunità sociali con una prudenza minima necessaria) (Negativo: livello di protezione non ottimale contro profili fake strutturati, rischio residuo di intrusione informativa indesiderata)."
       },
       {
         value: "Chiedo Referenze",
-        text: "(Positivo: massima prudenza e verifica tramite fonti fidate, approccio responsabile e orientato alla sicurezza informata, riduzione del rischio di accettare profili fake o non affidabili, persona percepita come accorta e responsabile) (Negativo: potenziale perdita di nuove connessioni valide per eccessiva cautela, rischio di eccessiva dipendenza dal giudizio altrui, percezione di diffidenza o non sempre spontaneità nelle nuove relazioni, approccio forse un po' troppo prudente e controllato a livello sociale)."
+        text: "(Positivo: eccellente rigore nella validazione della propria rete professionale attraverso verifiche reputazionali dirette e affidabili) (Negativo: potenziale percezione di eccessiva diffidenza o burocratizzazione delle relazioni sociali, rischio di perdere connessioni agili)."
       },
       {
         value: "Porta Blindata",
-        text: "(Positivo: massima protezione della privacy online e approccio iper-protettivo e orientato alla sicurezza massima, riduzione del rischio di contatti indesiderati o minacce alla privacy, persona percepita come estremamente attenta e responsabile) (Negativo: potenziale isolamento sociale online e mancanza di networking, perdita di opportunità relazionali, percezione di eccessiva chiusura, diffidenza e rigidità sociale online, approccio forse non sempre ottimale in termini di apertura e networking professionale o sociale)."
+        text: "(Positivo: massima tutela dell'integrità digitale e difesa rigorosa della privacy personale da interferenze esterne non verificate) (Negativo: isolamento relazionale e limitazione drastica delle opportunità di networking strategico, percezione di chiusura preconcetta)."
       }
     ],
     softSkill: "SicurezzaDigitale, RelazioniInterpersonali",
@@ -274,19 +274,19 @@ export const questions111to115: Question[] = [
     options: [
       {
         value: "Paga e Non Chiede",
-        text: "(Positivo: semplicità e rapidità nell'acquisto, evitamento dello stress della negoziazione, valorizzazione della comodità e del tempo, persona percepita come diretta e senza fronzoli) (Negativo: mancanza di risparmio potenziale e spreco di denaro evitabile, percezione di scarsa attenzione al value for money, eccessiva fiducia o ingenuità commerciale)."
+        text: "(Positivo: massima efficienza nel processo di acquisizione e rispetto del valore dichiarato dal mercato, focus sulla qualità e sul tempo) (Negativo: scarsa attenzione al rapporto value for money e rinuncia passiva a margini di risparmio potenziali)."
       },
       {
         value: "Chiede un Favore",
-        text: "(Positivo: approccio educato e non conflittuale, rispetto per il venditore e per le regole del gioco, tentativo di ottenere un piccolo vantaggio senza forzare la mano, persona percepita come cortese e non aggressiva commercialmente) (Negativo: risparmio limitato e non massimizzazione del potenziale di sconto, percezione di scarsa abilità negoziale o eccessiva timidezza commerciale, non sempre ottimizzazione del value for money)."
+        text: "(Positivo: cortesia negoziale e approccio non aggressivo volto a testare la flessibilità del venditore senza compromettere il clima relazionale) (Negativo: limitata incisività commerciale e probabile ottenimento di condizioni non ottimali rispetto al potenziale di mercato)."
       },
       {
         value: "Stretta di Mano Affare Fatto",
-        text: "(Positivo: approccio negoziale equilibrato e ricerca di un giusto prezzo, capacità di dialogare con il venditore per un accordo reciprocamente vantaggioso, persona percepita come abile nella negoziazione win-win e orientata alla soddisfazione reciproca) (Negativo: potenziale non massimizzazione del risparmio estremo e rischio di non ottenere il prezzo minimo di mercato, percezione di scarsa aggressività commerciale o eccessiva enfasi sul compromesso e relazione a scapito del prezzo migliore)."
+        text: "(Positivo: eccellente capacità di negoziazione win-win, orientata alla creazione di accordi sostenibili e reciprocamente vantaggiosi) (Negativo: potenziale rinuncia a vantaggi economici estremi in favore della preservazione della relazione commerciale, ambizione moderata)."
       },
       {
         value: "Avvoltoio Affamato",
-        text: "(Positivo: massimizzazione del risparmio e capacità di ottenere sempre il prezzo minimo possibile, approccio aggressivo e senza compromessi nella negoziazione, persona percepita come abile, determinata e orientata al risultato economico massimo) (Negativo: rischio di danneggiare relazioni commerciali e percezione di aggressività eccessiva e spietatezza, clima di tensione e conflittualità, approccio non sempre orientato alla relazione positiva e collaborativa, potenziale danno reputazionale se percepito come eccessivamente avido o sfruttatore)."
+        text: "(Positivo: straordinaria determinazione nel massimizzare il profitto e ottenere le condizioni economiche più competitive possibili) (Negativo: elevato rischio di erosione della fiducia e dei rapporti a lungo termine, percezione di aggressività tossica o mancanza di etica negoziale)."
       }
     ],
     softSkill: "Negoziazione, VenditaConsultiva",
@@ -310,19 +310,19 @@ export const questions111to115: Question[] = [
     options: [
       {
         value: "Sorgente Nascosta",
-        text: "(Positivo: ruolo essenziale dietro le quinte e supporto fondamentale alle funzioni front-line, contribuisce indirettamente ma in modo cruciale al successo aziendale complessivo, approccio disinteressato e orientato al supporto silenzioso ma indispensabile) (Negativo: mancanza di visibilità diretta del contributo al fatturato e potenziale percezione di ruolo meno centrale o meno riconosciuto in termini di generazione di ricchezza, soddisfazione indiretta e meno tangibile)."
+        text: "(Positivo: contributo strutturale e indispensabile alla solidità dei processi interni, garanzia di stabilità fondamentale per le funzioni front-line) (Negativo: scarsa visibilità del valore economico prodotto e potenziale difficoltà nel dimostrare il ROI diretto del proprio operato)."
       },
       {
         value: "Affluente Indiretto",
-        text: "(Positivo: contribuisce alla generazione di valore complessivo e fornisce un apporto indiretto ma rilevante al flusso di entrate, approccio collaborativo e orientato al supporto attivo delle funzioni core e front-line, percezione di ruolo importante anche se non direttamente visibile in termini di fatturato diretto) (Negativo: legame indiretto con il fatturato e misurabilità meno diretta della performance economica, potenziale percezione di ruolo meno centrale in termini di generazione di ricchezza diretta, soddisfazione legata a risultati indiretti e meno tangibili)."
+        text: "(Positivo: orientamento collaborativo alla catena del valore e capacità di supportare attivamente la generazione di revenue stream indiretti) (Negativo: misurabilità della performance economica complessa e legame non immediato con la marginalità aziendale percepita)."
       },
       {
         value: "Flusso Principale",
-        text: "(Positivo: contribuisce in modo diretto e misurabile alla creazione di prodotti e servizi fatturabili, ruolo centrale nella catena del valore aziendale e nella generazione di ricchezza, approccio pragmatico e orientato alla produzione e creazione di valore tangibile per il cliente e l'azienda) (Negativo: potenziale focus eccessivo sulla produzione a scapito della relazione con il cliente finale e legame indiretto con la vendita e la negoziazione commerciale, percezione di ruolo centrale nella produzione ma meno nella dinamica commerciale e relazionale con il cliente finale)."
+        text: "(Positivo: ruolo centrale nella produzione di valore tangibile e diretto per il cliente, motore dell'efficienza operativa e della qualità del prodotto) (Negativo: potenziale distacco dalle dinamiche di chiusura commerciale, rischio di focalizzazione puramente produttiva a scapito della vendita)."
       },
       {
         value: "Rubinetto Diretto",
-        text: "(Positivo: massima visibilità e misurabilità del contributo diretto al fatturato e legame tangibile e immediato tra lavoro e guadagno economico, approccio imprenditoriale e orientato al risultato economico diretto, percezione di ruolo chiave e fondamentale per la sopravvivenza economica dell'azienda e per la generazione di ricchezza immediata e diretta) (Negativo: esposizione diretta a pressione per risultati economici immediati e dipendenza dalla volontà di spesa del cliente, rischio di instabilità del reddito, percezione di orientamento eccessivo al breve termine e meno alla visione strategica a lungo raggio, potenziale stress da performance commerciale diretta e immediata)."
+        text: "(Positivo: massima orientamento al business e generazione immediata di flussi di cassa, contributo vitale alla crescita finanziaria aziendale) (Negativo: esposizione costante alla pressione commerciale e rischio di visione a breve termine focalizzata esclusivamente sulla fatturazione immediata)."
       }
     ],
     softSkill: "ServizioAlCliente, VenditaConsultiva",
@@ -346,19 +346,19 @@ export const questions111to115: Question[] = [
     options: [
       {
         value: "Fiore Abbandonato",
-        text: "(Negativo: mancata fidelizzazione e sottovalutazione feedback positivo, opportunità persa per rafforzare relazione, percezione di disinteresse e noncuranza) (Positivo: efficienza operativa immediata e nessun costo aggiuntivo, semplicità e velocità di gestione del feedback, approccio lean e senza fronzoli)."
+        text: "(Positivo: massima umiltà professionale e focalizzazione esclusiva sul lavoro successivo senza necessità di validazione esterna) (Negativo: grave perdita di opportunità per il cross-selling e la fidelizzazione, percezione di indifferenza verso il successo relazionale)."
       },
       {
         value: "Biglietto di Ringraziamento",
-        text: "(Negativo: non massimizzazione del potenziale del feedback positivo per la fidelizzazione, risposta standardizzata e poco memorabile, mancanza di personalizzazione e calore umano, percezione di approccio formale ma non sincero o coinvolgente) (Positivo: cortesia e professionalità formale, approccio misurato e non invadente, rispetto della distanza professionale, evitamento eccessivo entusiasmo percepito come non sincero o eccessivo)."
+        text: "(Positivo: gestione sobria e professionale della cortesia istituzionale, mantenimento di un rapporto equilibrato e privo di eccessi emotivi) (Negativo: approccio impersonale e burocratico che non valorizza il potenziale di advocacy del cliente soddisfatto)."
       },
       {
         value: "Annaffiatura Mirata",
-        text: "(Positivo: apprezzamento personalizzato e non standardizzato, rafforzamento della relazione cliente, consolidamento interazioni positive, miglioramento della percezione di valore da parte del cliente, approccio umano e attento al singolo cliente) (Negativo: potenziale percezione di calcolata personalizzazione e rischio di non creare legame emotivo profondo e duraturo, follow-up buono ma non eccezionale in termini di effetto wow, approccio non sempre percepito come totalmente spontaneo e autentico)."
+        text: "(Positivo: eccellente capacità di consolidare la fiducia attraverso un riconoscimento personalizzato del valore reciproco, rafforzamento del legame) (Negativo: rischio di limitarsi a una manutenzione passiva della relazione senza trasformare il feedback in nuove opportunità di business)."
       },
       {
         value: "Trapianto Prezioso",
-        text: "(Positivo: massima valorizzazione del feedback positivo e impegno totale per la fidelizzazione, costruzione di relazioni forti e durature, approccio proattivo e orientato all'eccellenza nella gestione della relazione cliente, percezione di cura e attenzione straordinarie e memorabili) (Negativo: alto investimento di risorse e potenziale problema di scalabilità, rischio di creare aspettative eccessive nel cliente, percezione di approccio non scalabile e troppo costoso in termini di tempo/risorse se applicato a tutti i clienti, sostenibilità economica non sempre garantita)."
+        text: "(Positivo: straordinaria visione strategica della relazione cliente, trasformazione del feedback in un motore proattivo per la crescita e l'advocacy) (Negativo: rischio di eccessivo investimento di risorse in un singolo caso, potenziale creazione di aspettative non scalabili nel lungo periodo)."
       }
     ],
     softSkill: "FidelizzazioneDelCliente, SoddisfazioneDelCliente",

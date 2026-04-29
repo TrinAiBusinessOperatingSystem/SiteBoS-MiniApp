@@ -19,19 +19,19 @@ export const questions126to130: Question[] = [
     options: [
       {
         value: "Non la Bevo",
-        text: "(Negativo: resistenza rigida al cambiamento e mancanza di adattabilità, perdita di opportunità di gestire il cambiamento in modo costruttivo, percezione di persona inflessibile e poco incline al compromesso e all'accettazione del nuovo) (Positivo: affermazione decisa delle proprie preferenze e non accettazione passiva del cambiamento imposto, coerenza con le proprie aspettative, approccio diretto e senza ambiguità, massima coerenza e integrità rispetto al proprio gusto personale)."
+        text: "(Positivo: rigorosa coerenza con i propri standard di qualità e rifiuto di compromessi su parametri prestabiliti) (Negativo: eccessiva rigidità cognitiva e resistenza al cambiamento, incapacità di esplorare nuove configurazioni del valore o del servizio)."
       },
       {
         value: "Bevo e Non Dico Niente",
-        text: "(Negativo: insoddisfazione latente non gestita e mancanza di feedback utile per il miglioramento, opportunità persa di comunicare le proprie preferenze e influenzare il cambiamento futuro, percezione di persona passiva, rassegnata e poco proattiva) (Positivo: approccio non conflittuale e collaborativo e mantenimento armonia e pace sociale, evitamento tensioni e problemi, gestione silenziosa e non invasiva della propria insoddisfazione, priorità all'equilibrio relazionale e alla convivenza pacifica)."
+        text: "(Positivo: eccellente resilienza relazionale e capacità di mantenere l'armonia nel contesto evitando conflitti non necessari) (Negativo: rinuncia sistematica al feedback costruttivo, favorendo una stagnazione qualitativa dovuta all'insoddisfazione inespressa)."
       },
       {
         value: "Chiedo Cosa è Cambiato",
-        text: "(Positivo: approccio razionale e orientato alla comprensione e alla ricerca di soluzioni, dialogo costruttivo e ricerca di informazioni utili per adattarsi al cambiamento, gestione attiva e non passiva del cambiamento, persona percepita come curiosa e aperta al dialogo) (Negativo: potenziale lentezza nell'adattamento emotivo e approccio cerebrale che potrebbe non cogliere appieno la dimensione emotiva del cambiamento, richiede tempo e sforzo per l'analisi e il dialogo, percezione di approccio troppo razionale e meno spontaneo o istintivo nella reazione al cambiamento)."
+        text: "(Positivo: eccellente capacità di analisi diagnostica del cambiamento e orientamento alla comprensione razionale delle nuove dinamiche) (Negativo: rischio di eccessiva cerebralità che può rallentare l'adattamento emotivo immediato, approccio che potrebbe mancare di spontaneità)."
       },
       {
         value: "Cambio Caffetteria",
-        text: "(Negativo: reazione eccessiva e sproporzionata e rischio di decisioni impulsive e non sempre ponderate, perdita potenziale di aspetti positivi del locale, percezione di intolleranza e rigidità e mancanza di flessibilità, approccio forse non sempre ottimizzato in termini di massima razionalità e value for money complessivo nel lungo periodo) (Positivo: decisione rapida e senza compromessi e affermazione decisa del proprio gusto, massima coerenza con la propria insoddisfazione e scelta radicale e definitiva per evitare ulteriori esperienze negative, approccio tranchant e senza ripensamenti)."
+        text: "(Positivo: decisionismo rapido e orientamento radicale alla massimizzazione della propria soddisfazione attraverso scelte di mercato nette) (Negativo: scarsa tolleranza all'errore e mancanza di visione a lungo termine nella costruzione di una relazione di fiducia con il fornitore)."
       }
     ],
     softSkill: "GestioneDelCambiamento, SoddisfazioneDelCliente",
@@ -55,19 +55,19 @@ export const questions126to130: Question[] = [
     options: [
       {
         value: "Io non Cucino, Creo",
-        text: "(Negativo: potenziale disallineamento con le aspettative del cliente e rischio di non soddisfare i gusti altrui, approccio autoreferenziale e poco orientato al servizio, percezione di chef artista ma forse poco attento al cliente reale) (Positivo: massima libertà creativa e espressione autentica del talento personale, valorizzazione della visione artistica individuale e approccio puro e senza compromessi in termini di integrità artistica)."
+        text: "(Positivo: straordinaria espressione del talento individuale e audacia nel proporre visioni originali e distintive) (Negativo: potenziale disallineamento strategico rispetto ai bisogni reali dell'interlocutore per eccessiva focalizzazione sulla propria auto-espressione)."
       },
       {
         value: "Telefono e Ordino",
-        text: "(Positivo: massima comodità e risparmio di tempo e energie personali, approccio efficiente che delega attività non core a esperti esterni, ottimizzazione del tempo libero e del relax personale, massimizzazione del comfort e del piacere immediato) (Negativo: mancanza di cura e affettività nel gesto del cucinare per gli altri e non sviluppo abilità personali in cucina, percezione di approccio delegante e poco personale, mancanza di coinvolgimento diretto nella preparazione e nella condivisione del cibo fatto in casa)."
+        text: "(Positivo: massima efficienza operativa attraverso la delega di attività non core, ottimizzazione del tempo per la gestione delle relazioni sociali) (Negativo: rischio di percepita mancanza di personalizzazione e scarso investimento emotivo nella creazione di valore diretto)."
       },
       {
         value: "Classico Imbattibile",
-        text: "(Positivo: massima probabilità di accontentare tutti e scelta sicura e collaudata, evitamento di rischi e esperimenti culinari potenzialmente fallimentari, approccio rassicurante e orientato al consenso e all'armonia conviviale, persona percepita come affidabile e prevedibile nelle scelte culinarie) (Negativo: mancanza di originalità e innovazione e approccio conformista e poco audace, percezione di prevedibilità e ripetitività, mancanza di sorpresa e novità, non massimizzazione del potenziale di stimolazione e curiosità culinaria dei commensali)."
+        text: "(Positivo: approccio orientato al consenso e alla stabilità del risultato, garantendo un'esperienza rassicurante e collaudata per tutti) (Negativo: limitata propensione all'innovazione e rischio di non generare quell'effetto sorpresa necessario per differenziarsi nel lungo periodo)."
       },
       {
         value: "Menu Degustazione",
-        text: "(Positivo: massimo impegno e dedizione per la soddisfazione del cliente e creazione di una esperienza culinaria memorabile e straordinaria, volontà di stupire e deliziare i commensali con qualcosa di unico e speciale, approccio generoso e orientato all'eccellenza e all'effetto wow, persona percepita come creativa e ambiziosa) (Negativo: alto investimento di risorse e potenziale eccessiva sofisticazione percepita come non necessaria o fuori luogo in contesti informali, rischio di non incontrare i gusti di tutti, percezione di eccessiva enfasi sull'apparenza e sulla performance culinaria estrema a scapito della semplicità e della convivialità spontanea)."
+        text: "(Positivo: suprema dedizione all'eccellenza e alla creazione di una customer experience memorabile e multisensoriale) (Negativo: elevato assorbimento di risorse per singola interazione, rischio di sovra-progettazione non sempre richiesta dal contesto situazionale)."
       }
     ],
     softSkill: "OrientamentoAlCliente, SviluppoPersonale",
@@ -91,19 +91,19 @@ export const questions126to130: Question[] = [
     options: [
       {
         value: "Cambio Strada",
-        text: "(Negativo: omissione di soccorso potenziale e mancanza di solidarietà verso la vittima, perpetuazione dell'ingiustizia per non intervento, percezione di persona egoista, indifferente e poco coraggiosa) (Positivo: massimizzazione sicurezza personale e evitamento rischi non necessari, approccio razionale e non impulsivo, priorità alla propria incolumità e sopravvivenza individuale, approccio pragmatico e self-preservation-oriented)."
+        text: "(Positivo: prioritizzazione rigorosa dell'integrità personale e gestione razionale del rischio attraverso l'evitamento preventivo) (Negativo: totale assenza di responsabilità sociale e omissione di supporto sistemico, percezione di passività assoluta di fronte all'ingiustizia)."
       },
       {
         value: "Urlo e Filmo",
-        text: "(Positivo: minimo intervento simbolico e non rischioso per sé stesso, tentativo di dare l'allarme senza esporsi direttamente, approccio prudente che bilancia non intervento totale e rischio personale, volontà di non ignorare completamente il crimine pur senza esporsi troppo) (Negativo: inefficacia quasi totale dell'intervento e segnalazione vaga e inutile, mancanza di aiuto concreto alla vittima, percezione di approccio tiepido, poco coraggioso e non pienamente utile o efficace)."
+        text: "(Positivo: tentativo di deterrenza attraverso la segnalazione senza esposizione diretta a minacce fisiche, monitoraggio passivo) (Negativo: inefficacia operativa dell'azione simbolica, mancanza di un reale contributo alla risoluzione della crisi e al supporto della vittima)."
       },
       {
         value: "Telefono Aiuto",
-        text: "(Positivo: attivazione rapida dei soccorsi professionali e approccio responsabile e orientato alla soluzione strutturata e formale del problema, massimizzazione potenziale di intervento efficace da parte delle autorità competenti, persona percepita come responsabile e pragmatica) (Negativo: mancanza di intervento immediato e diretto sulla scena del crimine e potenziale perdita di tempo prezioso nell'attesa di soccorsi esterni, percezione di approccio un po' burocratico o troppo dipendente dalle procedure formali e meno reattivo e tempestivo nell'azione immediata e diretta)."
+        text: "(Positivo: attivazione professionale dei canali istituzionali garantendo una gestione strutturata e competente dell'emergenza) (Negativo: rischio di ritardo nell'intervento immediato per eccessiva dipendenza da protocolli esterni, approccio che delega la responsabilità dell'azione)."
       },
       {
         value: "Corro Verso l'Azione",
-        text: "(Positivo: massimo coraggio e determinazione nell'intervento diretto e azione eroica e immediata per fermare il crimine, massima priorità all'aiuto attivo e tempestivo della vittima in prima persona, persona percepita come estremamente coraggiosa, integra e assertiva e paladina della giustizia) (Negativo: rischio personale estremo e potenzialmente autolesionista, azione impulsiva e non sempre ponderata, percezione di eccessiva avventatezza e incoscienza, mancanza di valutazione razionale dei rischi e delle proprie reali capacità di intervento efficace)."
+        text: "(Positivo: suprema leadership morale e coraggio nel proteggere attivamente l'integrità altrui attraverso un'azione risolutiva istantanea) (Negativo: grave sottovalutazione del rischio per l'incolumità propria e altrui, approccio impulsivo che potrebbe aggravare la situazione critica)."
       }
     ],
     softSkill: "TematicheSociali, SviluppoDellePersone",
@@ -127,19 +127,19 @@ export const questions126to130: Question[] = [
     options: [
       {
         value: "Ho un Martello",
-        text: "(Negativo: approccio non consultivo e mancanza di attenzione ai bisogni specifici, rischio di offrire una soluzione sbagliata o non ottimale per il cliente, percezione di vendita aggressiva e non personalizzata, scarsa attenzione alla vera soddisfazione del cliente nel lungo periodo) (Positivo: massima velocità e semplicità nella risposta, approccio diretto e senza fronzoli, efficienza operativa immediata e minimo dispendio di tempo in analisi e ascolto)."
+        text: "(Positivo: massima efficienza transazionale e rapidità nella risposta a una richiesta specifica, approccio asciutto e orientato al compito) (Negativo: totale mancanza di orientamento consultivo, rischio di fornire una soluzione inadeguata per mancanza di analisi dei bisogni reali)."
       },
       {
         value: "Tieni la Mia Cassetta",
-        text: "(Negativo: approccio non guidato e dispersivo e cliente confuso dalla troppa scelta, mancanza di supporto nella decisione, rischio di non soddisfare il cliente per indecisione o scelta sbagliata a causa della mancanza di guida esperta, percezione di approccio incompleto e non pienamente orientato al servizio personalizzato) (Positivo: offerta completa e trasparente e libertà di scelta al cliente, approccio non direttivo e non invasivo, rispetto dell'autonomia decisionale del cliente, evitamento di suggerimenti potenzialmente indebiti o non richiesti)."
+        text: "(Positivo: generosità nell'offerta e trasparenza totale sulle risorse disponibili, garantendo autonomia decisionale all'interlocutore) (Negativo: approccio dispersivo che trasferisce la complessità della scelta sul richiedente senza fornire la necessaria guida esperta)."
       },
       {
         value: "Cosa Devi Fare?",
-        text: "(Positivo: massima attenzione ai bisogni specifici del cliente e approccio tailored e personalizzato, offerta della soluzione migliore per quel cliente specifico, costruzione di fiducia e relazione solida e duratura, percezione di consulenza esperta e attenta e orientata alla vera soddisfazione del cliente) (Negativo: richiede tempo e impegno nella consulenza e analisi e potenziale allungamento dei tempi di vendita, non sempre scalabile per tutti i clienti, percezione di approccio dispendioso in termini di tempo/risorse se applicato sempre e a tutti)."
+        text: "(Positivo: eccellente mindset consultivo focalizzato sull'ascolto attivo e sulla diagnosi accurata delle necessità per una soluzione tailored) (Negativo: potenziale dilatazione dei tempi di risposta dovuta alla fase analitica, approccio che potrebbe essere percepito come eccessivamente indagatorio)."
       },
       {
         value: "Lo Faccio Io",
-        text: "(Positivo: massima comodità e semplicità per il cliente e soluzione completa e pronta all'uso, approccio problem-solving spinto all'estremo, offerta di un servizio premium e senza pensieri per il cliente, massimizzazione della facilità d'acquisto e della user experience) (Negativo: potenziale infantilizzazione del cliente e mancanza di empowerment e crescita del cliente, percezione di approccio paternalistico e troppo semplificato, rischio di non educare il cliente al valore intrinseco della soluzione, non massimizzazione della consapevolezza e autonomia del cliente)."
+        text: "(Positivo: straordinario orientamento al problem-solving e offerta di una soluzione chiavi in mano volta a sollevare l'interlocutore da ogni onere) (Negativo: rischio di limitare l'empowerment del richiedente e potenziale percezione di paternalismo operativo eccessivo)."
       }
     ],
     softSkill: "VenditaConsultiva, ServizioAlCliente",
@@ -163,19 +163,19 @@ export const questions126to130: Question[] = [
     options: [
       {
         value: "Statua di Cera",
-        text: "(Negativo: mancanza di empatia e supporto al collega in difficoltà e percezione di freddezza e distacco emotivo, non gestione della situazione socialmente imbarazzante, clima potenzialmente gelido e non collaborativo) (Positivo: massima discrezione e rispetto apparente della privacy del collega, evitamento di pubblicità negativa della gaffe, non alimentazione del gossip e del pettegolezzo, approccio non giudicante in pubblico, mantenimento di un clima formalmente neutro)."
+        text: "(Positivo: assoluta discrezione e neutralità formale volta a non enfatizzare l'errore altrui, mantenendo una postura professionale imperturbabile) (Negativo: mancanza di intelligenza sociale riparativa e percezione di distacco emotivo glaciale di fronte a una difficoltà relazionale evidente)."
       },
       {
         value: "Sussurro all'Orecchio",
-        text: "(Positivo: aiuto discreto e privato al collega e tentativo di proteggere la sua immagine pubblica, approccio solidale e non giudicante in pubblico, attenzione alla sensibilità e alla vulnerabilità del collega in quel momento, gestione soft e non invasiva della gaffe) (Negativo: efficacia parziale dell'intervento indiretto e rischio di ambiguità del messaggio sottovoce, non risoluzione immediata dell'imbarazzo pubblico, percezione di aiuto discreto ma non pienamente efficace o risolutivo in tempo reale)."
+        text: "(Positivo: supporto solidale privato volto a preservare l'immagine del collega attraverso una segnalazione discreta e rispettosa della sensibilità) (Negativo: efficacia limitata nel mitigare l'impatto pubblico della gaffe, rischio di ambiguità nella gestione del momento critico collettivo)."
       },
       {
         value: "Cambio Discorso",
-        text: "(Positivo: intervento tempestivo e salva-situazione immediato e protezione del collega dall'imbarazzo pubblico, gestione proattiva della situazione critica, volontà di risolvere rapidamente l'imbarazzo collettivo, persona percepita come pronta di riflessi e abile nel gestire situazioni delicate) (Negativo: potenziale eccessività percepita e rischio di apparire forzato o troppo teatrale, percezione di artificialità e non sempre spontaneità, approccio forse non sempre ottimale in termini di naturalezza e discrezione nel gestire l'imbarazzo collettivo)."
+        text: "(Positivo: straordinaria capacità di gestione situazionale e prontezza nel deviare l'attenzione collettiva per proteggere il clima relazionale) (Negativo: rischio di apparire artificioso o manipolatorio, approccio che evita il confronto diretto con la realtà dell'errore commesso)."
       },
       {
         value: "Lo Fulmini con lo Sguardo",
-        text: "(Negativo: reazione eccessiva e punitiva e mortificazione pubblica del collega, creazione di un clima di giudizio e condanna implacabile, mancanza di empatia e comprensione umana, percezione di persona rigida e giudicante) (Positivo: affermazione forte di disapprovazione e messaggio inequivocabile di intolleranza, approccio tranchant e senza ambiguità, massima chiarezza nel giudizio negativo e condanna non verbale del comportamento sbagliato, affermazione di standard elevati di perfezione e zero tolleranza verso errori e gaffe pubbliche)."
+        text: "(Positivo: difesa intransigente degli standard di condotta attraverso una sanzione non verbale immediata e inequivocabile) (Negativo: approccio punitivo e mortificante che mina la fiducia e la coesione del team, mancanza di empatia e di supporto riparativo)."
       }
     ],
     softSkill: "RelazioniImproprie, Presentazione",

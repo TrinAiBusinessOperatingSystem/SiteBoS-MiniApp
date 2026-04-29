@@ -19,19 +19,19 @@ export const questions31to35: Question[] = [
     options: [
       {
         value: "Star del Palco",
-        text: "(Positivo: sicurezza di sé e naturalezza in pubblico, forte carisma e dominio della scena, leadership assertiva e visibile, persona percepita carismatica e leader naturale) (Negativo: potenziale egocentrismo e ricerca approvazione esterna, rischio di apparire narcisista o eccessivamente protagonista, approccio non sempre adatto a contesti che richiedono modestia e leadership discreta)."
+        text: "(Positivo: eccellente sicurezza di sé e naturalezza nell'esposizione pubblica, carisma scenico superiore che facilita la leadership visibile e l'influenza sociale) (Negativo: rischio di deriva egocentrica e ricerca compulsiva di validazione esterna, potenziale percezione di narcisismo, difficoltà in ruoli che richiedono discrezione)."
       },
       {
         value: "Attenzione ok, Ma Non Troppa",
-        text: "(Positivo: equilibrio estroversione/introversione e gestione visibilità pubblica, approccio equilibrato che valorizza presenza scenica senza eccessi, persona percepita competente e affidabile e non bisognosa di eccessiva attenzione) (Negativo: potenziale sottoutilizzo leadership e influenza su grandi gruppi, rischio di non emergere in contesti competitivi che richiedono visibilità carismatica, approccio non sempre ottimizzato per leadership carismatica che conquista folle)."
+        text: "(Positivo: equilibrio ottimale tra presenza scenica e sobrietà professionale, capacità di gestire la visibilità con misura senza bisogno di protagonismo, affidabilità riconosciuta) (Negativo: potenziale sottoutilizzo del proprio potenziale di influenza su grandi gruppi, rischio di rimanere in ombra in contesti iper-competitivi)."
       },
       {
         value: "Un Poco a Disagio",
-        text: "(Positivo: modestia e umiltà e preferenza profilo basso, approccio introspettivo e orientato alla sostanza, persona percepita autentica e concentrata su qualità lavoro) (Negativo: potenziale evitamento opportunità crescita e visibilità professionale, rischio di auto-limitarsi in contesti estroversi, approccio non sempre ottimizzato per contesti che premiano visibilità e comunicazione efficace)."
+        text: "(Positivo: orientamento alla sostanza e al contenuto piuttosto che alla forma, umiltà intellettuale e preferenza per profili operativi concreti e non autoreferenziali) (Negativo: rischio di auto-limitazione della carriera per evitamento delle occasioni di visibilità, potenziale difficoltà nella comunicazione persuasiva pubblica)."
       },
       {
         value: "Panico da Palcoscenico",
-        text: "(Negativo: forte ansia sociale e blocco emotivo di fronte a esposizione pubblica, disagio estremo in situazioni visibilità, approccio iper-introverso e focalizzato su insicurezza, persona percepita timida e non adatta a leadership visibile) (Positivo: potenziale eccellenza in ruoli riservati e introspettivi, valorizzazione autenticità e sostanza lavoro indipendentemente da apprezzamento esterno, approccio più adatto a contesti che premiano qualità lavoro riservato)."
+        text: "(Positivo: eccellenza potenziale in ruoli tecnici o analitici di alta precisione che richiedono concentrazione solitaria e distacco dalle dinamiche di ribalta) (Negativo: ansia sociale paralizzante e blocco comunicativo in pubblico, incapacità di sostenere ruoli di rappresentanza o leadership visibile)."
       }
     ],
     softSkill: "FiduciaInSeStessi, Autocritica",
@@ -55,19 +55,19 @@ export const questions31to35: Question[] = [
     options: [
       {
         value: "Le mie Idee Volano",
-        text: "(Positivo:  massima capacità persuasiva e  naturalezza nel  convincere gli altri,  forte  ascendente  e  facilità  nell' ottenere  consensi  e  approvazione  unanimi,  approccio  carismatico  e  leaderistico  che  ispira  fiducia  e  adesione  spontanea  alle  proprie  visioni) (Negativo:  eccessiva  sicurezza  di  sé  e  potenziale  arroganza  o  prepotenza,  rischio  di  non  ascoltare  i  feedback  altrui  e  di  imporre  le  proprie  idee  senza  vera  condivisione  o  consenso  autentico  e  spontaneo,  percezione  di  approccio  forse  non  sempre  ottimizzato  per  contesti  che  richiederebbero  maggiore  umiltà,  collaborazione  paritaria  e  leadership  distribuita  e  condivisa  invece  che  accentrata  e  personalistica)."
+        text: "(Positivo: carisma persuasivo superiore e naturale ascendente sugli altri, capacità di generare consenso immediato attraverso una comunicazione visionaria e coinvolgente) (Negativo: rischio di eccessiva sicurezza che sfocia nell'arroganza, potenziale sottovalutazione del feedback critico, percezione di uno stile impositivo)."
       },
       {
         value: "Mi Ascoltano con Qualche Riserva",
-        text: "(Positivo:  buona capacità di  argomentazione  e  persuasione  e  capacità  di  convincere  gli  altri  con  la  logica  e  la  ragione,  approccio  razionale  e  pragmatico  che  valorizza  il  dialogo  e  il  confronto  costruttivo  per  raggiungere  un  accordo  condiviso,  volontà  di  mediare  e  negoziare  per  trovare  un  compromesso  accettabile  per  tutte  le  parti  in  gioco) (Negativo:  lentezza  nel  processo  di  persuasione  e  potenziale  inefficacia  con  interlocutori  poco  razionali  o  resistenti  al  cambiamento,  rischio  di  non  riuscire  a  far  accettare  idee  troppo  innovative  o  controcorrente  che  richiederebbero  maggiore  slancio  visionario  e  capacità  di  rompere  gli  schemi  preconcetti,  percezione  di  approccio  forse  non  sempre  ottimizzato  per  contesti  che  richiederebbero  massima  velocità  decisionale  e  capacità  di  persuadere  rapidamente  anche  interlocutori  difficili  o  ostili  a  priori  verso  le  novità  o  le  idee  non  convenzionali)."
+        text: "(Positivo: approccio dialettico e razionale basato sull'argomentazione logica, attitudine alla negoziazione costruttiva e alla ricerca di un consenso ponderato) (Negativo: potenziale lentezza nel processo decisionale collettivo, rischio di inefficacia con interlocutori guidati da spinte emotive o irrazionali)."
       },
       {
         value: "Devo Spingere per Farle Passare",
-        text: "(Positivo:  forte  perseveranza  e  determinazione  nel  difendere  le  proprie  idee  e  nel  non  mollare  mai  di  fronte  alle  resistenze  altrui,  approccio  combattivo  e  resiliente  che  valorizza  la  tenacia  e  la  forza  di  volontà  nel  superare  gli  ostacoli  e  le  opposizioni  per  raggiungere  il  proprio  obiettivo  comunicativo  e  persuasivo) (Negativo:  potenziale  conflittualità  e  tensione  interpersonale  e  percezione  di  eccessiva  testardaggine  o  rigidità,  rischio  di  generare  frustrazione  e  ostilità  negli  altri  con  un  approccio  troppo  insistente  e  forzato,  percezione  di  approccio  forse  non  sempre  ottimizzato  per  contesti  che  richiederebbero  maggiore  diplomazia,  mediazione  e  capacità  di  costruire  consenso  in  modo  collaborativo  e  non  impositivo  o  confrontazionale  a  tutti  i  costi)."
+        text: "(Positivo: resilienza e tenacia incrollabile nella difesa delle proprie visioni, capacità di superare resistenze ambientali attraverso la determinazione e la forza di volontà) (Negativo: elevato rischio di conflittualità interpersonale, percezione di rigidità cognitiva o testardaggine, possibile logoramento del clima di team)."
       },
       {
         value: "Trovo sempre un Muro di Gomma",
-        text: "(Negativo:  scarsa  autostima  e  percezione  di  impotenza  e  frustrazione  di  fronte  alla  difficoltà  di  essere  ascoltato  e  considerato  dagli  altri,  approccio  rinunciatario  e  passivo  che  evita  il  confronto  e  la  sfida  della  persuasione  e  della  comunicazione  efficace,  percezione  di  persona  non  assertiva,  poco  influente  e  non  sempre  abile  nel  farsi  valere  e  nel  far  accettare  le  proprie  idee  in  contesti  competitivi  o  poco  collaborativi) (Positivo:  adattabilità  e  capacità  di  evitare  frustrazioni  inutili  e  dispersioni  di  energie  in  tentativi  di  persuasione  percepite  come  inutili  o  controproducenti,  approccio  pragmatico  e  orientato  all'  efficienza  che  privilegia  l'  evitamento  di  conflitti  e  resistenze  inutili  e  la  concentrazione  su  attività  percepite  come  più  facili  o  più  proficue  in  altre  direzioni  o  ambiti  operativi,  valorizzazione  della  flessibilità  e  della  capacità  di  adattarsi  a  contesti  ostili  o  poco  ricettivi  alle  proprie  idee  senza  perdersi  d'animo  o  demotivarsi  eccessivamente  di  fronte  alle  difficoltà  comunicative  e  relazionali)."
+        text: "(Positivo: attitudine all'adattamento flessibile in contesti ostili, capacità di preservare l'integrità delle proprie idee evitando scontri frontali logoranti e improduttivi) (Negativo: percezione di impotenza relazionale e frustrazione, mancanza di assertività persuasiva, rischio di rinuncia sistematica all'influenza sociale)."
       }
     ],
     softSkill: "Negoziazione, ComunicazioneEfficace",
@@ -91,19 +91,19 @@ export const questions31to35: Question[] = [
     options: [
       {
         value: "Indipendente da Adolescente",
-        text: "(Positivo: massima autonomia precoce e spirito di iniziativa, approccio proattivo e orientato all'autosufficienza economica da subito, persona percepita forte e indipendente fin da giovane età) (Negativo: potenziale \"bruciatura\" tappe adolescenziali e mancanza esperienze formative tipiche, rischio distacco familiare precoce e non pieno supporto genitoriale in fase delicata, approccio non sempre ottimizzato per benessere psicologico ed equilibrio crescita personale oltre dimensione economica)."
+        text: "(Positivo: precocità nell'assunzione di responsabilità e forte orientamento all'autonomia ('early-bloomer'), spirito d'iniziativa eccezionale e resilienza economica) (Negativo: potenziale accelerazione forzata dei processi maturativi con sacrificio di fasi esplorative, rischio di eccessiva focalizzazione sulla dimensione utilitaristica)."
       },
       {
         value: "Indipendente da Giovane",
-        text: "(Positivo: indipendenza economica in età giovanile \"canonica\", rispetto tappe sociali e rassicurazione sociale per aver fatto \"le cose per bene\", approccio equilibrato che concilia autonomia e integrazione sociale) (Negativo: potenziale conformismo e mancanza originalità scelte di vita, rischio percorso troppo convenzionale senza osare scelte personali e creative, approccio non sempre ottimizzato per massima realizzazione personale e valorizzazione potenziale unico anche uscendo da schemi predefiniti)."
+        text: "(Positivo: allineamento ottimale alle tappe evolutive sociali e corretto bilanciamento tra formazione e autonomia, integrazione fluida nel mondo del lavoro) (Negativo: rischio di eccessivo conformismo ai percorsi standardizzati, potenziale mancanza di sperimentazione fuori dagli schemi convenzionali)."
       },
       {
         value: "Indipendente da Adulto ",
-        text: "(Positivo: crescita graduale senza forzature, consolidamento autonomia economica con tempi personali e senza fretta, approccio ponderato che valorizza maturazione graduale e solidità basi per indipendenza futura) (Negativo: potenziale ritardo in autonomia economica e prolungata dipendenza famiglia, rischio rinuncia esperienze precoci indipendenza e autonomia decisionale, approccio non sempre ottimizzato per velocità acquisizione autonomia e capacità di gestire destino economico rapidamente)."
+        text: "(Positivo: approccio ponderato e consolidamento delle competenze prima del salto nell'autonomia totale, crescita strutturata e metodica delle risorse personali) (Negativo: potenziale ritardo nell'acquisizione di piena ownership decisionale, rischio di dipendenza prolungata da sistemi di supporto esterni)."
       },
       {
         value: "Indipendente Tardi",
-        text: "(Negativo: indipendenza tardiva e potenziale dipendenza prolungata famiglia oltre età \"normale\", percezione di \"ritardo\" rispetto a tappe sociali e potenziale inadeguatezza, non raggiungimento indipendenza economica in tempi \"ottimali\") (Positivo: potenziale maturazione più completa prima indipendenza economica, acquisizione competenze più solide e base sicura per affrontare indipendenza futura, approccio prudente che valorizza solidità e sicurezza nel lungo periodo, approccio più adatto a contesti che premiano solidità e preparazione accurata piuttosto che velocità autonomia economica)."
+        text: "(Positivo: focalizzazione estrema sulla preparazione e sulla solidità delle basi prima dell'indipendenza, maturazione profonda dei processi interni) (Negativo: vulnerabilità prolungata e possibile percezione di inadeguatezza sociale, mancanza di esperienza diretta nella gestione proattiva del rischio economico in giovane età)."
       }
     ],
     softSkill: "Autodisciplina, Autocritica",
@@ -127,19 +127,19 @@ export const questions31to35: Question[] = [
     options: [
       {
         value: "Rimando a Domani",
-        text: "(Negativo:  massima procrastinazione e  tendenza a rimandare  compiti  percepiti come  sgradevoli o  noiosi,  scarsa gestione della noia e  bassa  tolleranza  verso  attività  ripetitive  o  poco  stimolanti,  approccio  evitante  e  non  proattivo  nell' affrontare  le  sfide  e  le  responsabilità  anche  quando  poco  piacevoli  o  gratificanti  immediatamente) (Positivo:  gestione dello stress  immediato  e  ricerca  di  un  momentaneo  sollievo  dalla  noia,  auto-concessione  di  una  pausa  e  tentativo  di  rimandare  il  compito  ad  un  momento  percepito  come  più  propizio  o  meno  sgradevole,  approccio  orientato  all' evitamento  della  sofferenza  e  del  disagio  immediato  anche  a  costo  di  rinviare  la  soluzione  del  problema  o  l' esecuzione  del  compito  sgradevole  a  più  tardi)."
+        text: "(Positivo: capacità di gestire il carico emotivo immediato evitando l'avversione totale verso il compito, flessibilità nella pianificazione del lavoro in base allo stato d'animo) (Negativo: elevata tendenza alla procrastinazione disfunzionale, scarsa tolleranza alla frustrazione operativa, rischio di accumulo di scadenze critiche)."
       },
       {
         value: "Faccio il Compitino e Via",
-        text: "(Positivo:  pragmatismo e  focalizzazione  sull' essenziale  senza  dispersioni  di  energie  inutili,  approccio  minimalista  e  orientato  all' efficienza  nel  fare  il  minimo  indispensabile  per  portare  a  termine  il  compito  senza  sprechi  di  tempo  o  risorse  eccessive,  gestione  oculata  delle  energie  personali  e  concentrazione  sulle  attività  percepite  come  più  importanti  o  gratificanti) (Negativo:  qualità del lavoro  solo  sufficiente  o  mediocre  e  non  orientata  all' eccellenza  o  alla  massima  performance,  rischio  di  non  raggiungere  standard  elevati  e  di  fornire  un  lavoro  di  bassa  qualità  o  non  pienamente  soddisfacente  per  sé  stessi  e  per  gli  altri,  potenziale  insoddisfazione  professionale  e  mancanza  di  stimoli  e  sfide  intrinsecamente  motivanti  e  gratificanti  nel  lungo  periodo)."
+        text: "(Positivo: pragmatismo ed efficienza esecutiva focalizzata sull'essenziale, capacità di chiudere processi noiosi con il minimo dispendio di energia cognitiva) (Negativo: orientamento alla mediocrità prestazionale in compiti non stimolanti, mancanza di attenzione ai dettagli, percezione di disimpegno qualitativo)."
       },
       {
         value: "Mi Distraggo e Cerco di Farlo Passare",
-        text: "(Positivo:  capacità di rendere  meno  sgradevole  un  compito  noioso  attraverso  la  distrazione  e  la  creatività,  gestione  della  noia  e  tentativo  di  evadere  dalla  routine  opprimente  con  strategie  alternative  e  non  convenzionali,  volontà  di  mantenere  alto  il  morale  e  di  non  farsi  sopraffare  dalla  demotivazione  anche  in  situazioni  poco  stimolanti  o  ripetitive) (Negativo:  calo di concentrazione  e  dell' attenzione  e  conseguente  riduzione  dell' efficienza  e  della  produttività,  rischio  di  perdere  il  focus  sul  compito  e  di  commettere  errori  o  imprecisioni  per  distrazione  e  superficialità,  potenziale  riduzione  della  qualità  del  lavoro  e  mancanza  di  un  approccio  pienamente  focalizzato  sulla  massima  performance  e  sull' eccellenza  professionale)."
+        text: "(Positivo: creatività nella gestione del disagio e attitudine al multitasking compensativo per mantenere alto il morale durante la routine) (Negativo: calo drastico della concentrazione e della precisione, rischio elevato di errori dovuti alla superficialità, inefficienza operativa causata dalla frammentazione dell'attenzione)."
       },
       {
         value: "Trovo un Senso Anche nella Noia",
-        text: "(Positivo:  forte autodisciplina  e  capacità  di  trovare  motivazione  intrinseca  anche  in  compiti  noiosi  o  ripetitivi,  approccio  orientato  all' etica  del  lavoro  e  al  senso  del  dovere  anche  quando  il  compito  non  è  intrinsecamente  gratificante  o  stimolante,  trasformazione  della  routine  in  sfida  personale  e  opportunità  di  crescita  attraverso  la  disciplina  e  la  perseveranza) (Negativo:  eccessiva rigidità  e  inflessibilità  e  potenziale  difficoltà  a  riconoscere  i  limiti  dei  compiti  eccessivamente  ripetitivi  o  demotivanti,  rischio  di  stress  eccessivo  e  burnout  per  eccessiva  autodisciplina  e  iper-impegno  anche  in  attività  poco  significative  o  gratificanti  nel  lungo  periodo,  percezione  di  approccio  forse  non  sempre  ottimizzato  per  il  benessere  psicofisico  e  per  una  gestione  equilibrata  del  tempo  e  delle  energie  personali  che  tenga  conto  anche  della  necessità  di  svolgere  attività  intrinsecamente  motivanti  e  gratificanti  per  mantenere  alto  l' entusiasmo  e  la  soddisfazione  professionale  nel  lungo  termine)."
+        text: "(Positivo: autodisciplina superiore e forte etica del dovere ('conscientiousness'), capacità di trasformare la routine in un esercizio di precisione e padronanza) (Negativo: rischio di eccessiva rigidità e perfezionismo improduttivo, potenziale stress da iper-responsabilizzazione in attività a basso valore aggiunto)."
       }
     ],
     softSkill: "Autodisciplina, PianificazioneEOrganizzazione",
@@ -163,19 +163,19 @@ export const questions31to35: Question[] = [
     options: [
       {
         value: "Non a Me",
-        text: "(Negativo: eccessiva autostima e chiusura al feedback, arroganza percepita, rischio di non migliorare per mancanza autocritica, persona percepita troppo sicura e poco umile) (Positivo: forte autostima e resilienza a critiche ingiuste, capacità di mantenere fiducia in sé, approccio indipendente da giudizio altrui e focalizzato su autovalutazione)."
+        text: "(Positivo: incrollabile fiducia in sé e resilienza ai giudizi ingiusti, capacità di mantenere un'immagine di sé integra nonostante le pressioni esterne negative) (Negativo: potenziale cecità verso il feedback correttivo, rischio di arroganza percepita, chiusura verso il miglioramento continuo)."
       },
       {
         value: "Ok, Avanti il Prossimo",
-        text: "(Positivo: capacità elaborare rapidamente critiche e non destabilizzarsi, approccio pragmatico e orientato all'azione senza perdersi in rimuginazioni, volontà di andare avanti senza scoraggiarsi) (Negativo: potenziale superficialità elaborazione feedback e rischio non cogliere spunti utili miglioramento, mancanza approfondimento e riflessione critica su feedback ricevuto, approccio non sempre ottimizzato per massima crescita personale che richiede ascolto attivo feedback)."
+        text: "(Positivo: eccellente pragmatismo emotivo e rapidità di elaborazione del feedback, attitudine a superare i conflitti senza rimuginazioni improduttive) (Negativo: rischio di superficialità nell'analisi delle proprie aree di miglioramento, potenziale percezione di indifferenza o scarsa sensibilità relazionale)."
       },
       {
         value: "Ci Penso Su",
-        text: "(Positivo: apertura al feedback e volontà miglioramento continuo, approccio riflessivo e orientato a crescita personale tramite analisi critica feedback, volontà di imparare da errori e critiche per migliorare performance) (Negativo: potenziale rimuginazione eccessiva su critiche e rischio farsi condizionare troppo da giudizio esterno, rischio perdere sicurezza di sé per eccessiva preoccupazione di non essere all'altezza, approccio non sempre ottimizzato per massima resilienza emotiva e gestione stress da giudizio altrui)."
+        text: "(Positivo: alta capacità riflessiva e orientamento alla crescita personale attraverso l'autocritica costruttiva, umiltà e apertura all'apprendimento) (Negativo: vulnerabilità alla rimuginazione eccessiva e perdita di sicurezza di sé per sovraccarico analitico, rischio di farsi condizionare troppo dal giudizio altrui)."
       },
       {
         value: "Mi Distruggono",
-        text: "(Negativo: estrema vulnerabilità alla critica e bassa autostima, ipersensibilità al giudizio altrui, approccio emotivamente fragile e poco resiliente, persona percepita emotivamente sensibile ma eccessivamente vulnerabile) (Positivo: potenziale autoconsapevolezza profonda e desiderio intenso di miglioramento, approccio iper-sensibile alle critiche indice di umanità e forte senso responsabilità, *ma positivo solo in ottica di estrema sensibilità emotiva e non sempre funzionale in contesti che richiedono maggiore resilienza emotiva*)."
+        text: "(Positivo: estrema sensibilità interpersonale e desiderio profondo di armonia e riconoscimento, attitudine a vivere con intensità le dinamiche relazionali) (Negativo: fragilità emotiva critica e bassa resilienza, paralisi operativa di fronte al giudizio negativo, dipendenza totale dall'approvazione esterna per l'equilibrio psicologico)."
       }
     ],
     softSkill: "Resilienza, Autocritica",

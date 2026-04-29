@@ -15,23 +15,22 @@ export const questions116to120: Question[] = [
       "Carezza Veloce",
       "Pergamena Sigillata",
       "Pilastri Portanti"
-    ],
-    options: [
+    ],    options: [
       {
         value: "Disco Rotto",
-        text: "(Negativo: inefficacia rassicurazione e mancanza concretezza, percezione inaffidabilità e approccio standardizzato e superficiale) (Positivo: efficienza immediata e minimo sforzo, semplicità e velocità, approccio sbrigativo e senza fronzoli)."
+        text: "(Positivo: massima coerenza nel messaggio e difesa dei termini contrattuali standard senza deviazioni o incertezze) (Negativo: inefficacia rassicurativa dovuta alla mancanza di empatia e personalizzazione, rischio di essere percepito come ripetitivo e poco attento ai bisogni reali)."
       },
       {
         value: "Carezza Veloce",
-        text: "(Negativo: rassicurazioni vaghe e mancanza impegno tangibile, percezione superficialità e non affronta a fondo la paura del cliente, rischio di non convincere) (Positivo: informalità e rassicurazione di base, velocità interazione e costo minimo, tentativo di creare clima positivo, approccio leggero e rassicurante senza eccessivo formalismo)."
+        text: "(Positivo: abilità nel gestire la tensione relazionale con leggerezza e informalità, mantenendo un clima disteso e non conflittuale) (Negativo: rischio di sminuire la percezione di serietà dell'impegno assunto, rassicurazione superficiale che non affronta le preoccupazioni strutturali del cliente)."
       },
       {
         value: "Pergamena Sigillata",
-        text: "(Positivo: concretezza delle prove e dimostrazione affidabilità con fatti, costruzione credibilità tramite terzi, rassicurazione più convincente delle sole parole, approccio oggettivo e basato su dati) (Negativo: potenziale impersonalità percepita e non sempre tailored, richiede tempo presentazione prove, percezione di formalismo e burocrazia, approccio forse non sempre caldo e empatico)."
+        text: "(Positivo: straordinaria capacità di fornire prove di valore oggettive e documentate, consolidando la fiducia attraverso la trasparenza dei fatti) (Negativo: rischio di percezione di freddezza burocratica, approccio che potrebbe non soddisfare il bisogno di connessione emotiva dell'interlocutore)."
       },
       {
         value: "Pilastri Portanti",
-        text: "(Positivo: massimo impegno e garanzie forti e personalizzate, costruzione fiducia solida e duratura, offerta tailored e attenzione massima al cliente, percezione di massima serietà, affidabilità e solidità dell'offerta) (Negativo: alto investimento risorse e problema di scalabilità potenziale, rischio percepito di promesse eccessive, complessità gestionale, approccio forse non sempre sostenibile per tutti i clienti e poco agile in termini di velocità e semplificazione del processo di vendita)."
+        text: "(Positivo: eccellente orientamento alla costruzione di una partnership solida e personalizzata basata su impegni reciproci a lungo termine) (Negativo: elevato investimento di tempo e risorse per singola negoziazione, potenziale rigidità nel gestire cambiamenti rapidi o necessità di agilità commerciale)."
       }
     ],
     softSkill: "GestioneDelleObiezioni, FidelizzazioneDelCliente",
@@ -55,19 +54,19 @@ export const questions116to120: Question[] = [
     options: [
       {
         value: "Mano in Avanti",
-        text: "(Positivo: massima integrità etica e chiarezza dei confini professionali, nessuna ambiguità o fraintendimento, approccio inequivocabilmente corretto e trasparente, persona percepita come integra e affidabile sul piano etico e professionale) (Negativo: potenziale perdita dell'affare e mancata conversione del cliente, percezione di eccessiva rigidità etica e mancanza di flessibilità commerciale, approccio forse non sempre ottimizzato per la performance commerciale pura)."
+        text: "(Positivo: suprema integrità deontologica e assoluta chiarezza nella definizione dei confini professionali, tutela preventiva della reputazione aziendale) (Negativo: potenziale frizione relazionale immediata, rischio di essere percepito come scostante o privo di intelligenza emotiva in contesti informali)."
       },
       {
         value: "Mano Tesa",
-        text: "(Positivo: tentativo di mantenere aperta la porta alla vendita e di non chiudere completamente la relazione con il cliente e approccio cauto e non rigido, flessibilità moderata e non eccessiva) (Negativo: ambiguità del messaggio e rischio di fraintendimenti, confine etico non chiaro, percezione di approccio attendista e non pienamente trasparente o diretto)."
+        text: "(Positivo: approccio equilibrato volto a mantenere la professionalità senza umiliare l'interlocutore, gestione diplomatica della vicinanza fisica) (Negativo: rischio di inviare messaggi ambigui sui confini relazionali, potenziale esposizione a successive pressioni improprie per mancanza di fermezza iniziale)."
       },
       {
         value: "Subisci il saluto",
-        text: "(Negativo: alto rischio etico e confine labile e pericoloso, potenziale fraintendimento grave e danno reputazionale e all'etica professionale, percezione di approccio manipolatorio, scorretto e potenzialmente molesto) (Positivo: tentativo di creare una connessione personale con il cliente senza scoprirsi troppo e approccio astuto e abile nel gestire la relazione in modo ambiguo e velato, potenziale vantaggio competitivo in termini di manipolazione sottile della relazione, *ma positivo da valutare eticamente*)."
+        text: "(Positivo: spiccata adattabilità situazionale finalizzata a non compromettere il closing commerciale a scapito del comfort personale) (Negativo: grave indebolimento della postura autorevole e rischio di compromettere l'integrità professionale, vulnerabilità a dinamiche manipolatorie)."
       },
       {
         value: "Ricambi con affetto",
-        text: "(Negativo: violazione etica e superamento del confine professionale, approccio non etico e danno reputazionale, percezione di persona priva di scrupoli etici e pronta a tutto per il denaro) (Positivo: massimizzazione delle probabilità di closing immediato e raggiungimento dell'obiettivo economico a breve termine senza se e senza ma, approccio iper-focalizzato sul risultato immediato e massima determinazione nel chiudere l'affare a qualunque costo, *ma positivo solo in ottica di performance economica spregiudicata e non etica*)."
+        text: "(Positivo: massimizzazione immediata della connessione empatica e abbattimento di ogni barriera per il raggiungimento degli obiettivi di vendita) (Negativo: totale collasso dell'etica professionale e violazione dei protocolli di condotta, grave danno potenziale all'immagine e alla serietà professionale)."
       }
     ],
     softSkill: "GestioneDelleObiezioni, RelazioniImproprie",
@@ -91,19 +90,19 @@ export const questions116to120: Question[] = [
     options: [
       {
         value: "Seme Rinsecchito",
-        text: "(Negativo: bassa resilienza e scoraggiamento facile, evitamento ostacoli e mancanza di perseveranza, opportunità di crescita mancate, percezione di fragilità e scarsa tenacia) (Positivo: evitamento frustrazione e approccio pragmatico di resa di fronte a ostacoli insormontabili, non accanimento inutile e gestione dello stress da fallimento potenziale, accettazione dei limiti apparenti)."
+        text: "(Positivo: realismo operativo e capacità di riconoscere tempestivamente i limiti gerarchici per evitare inutili sprechi di energia emotiva) (Negativo: totale assenza di resilienza e abbandono immediato dell'iniziativa personale, percezione di passività e mancanza di spirito propositivo)."
       },
       {
         value: "Balla di Fieno",
-        text: "(Positivo: resilienza iniziale e volontà di riprovare nonostante le difficoltà, capacità di reagire allo scoraggiamento iniziale, approccio tenace anche se non immediatamente vincente, persona percepita come non molla subito e prova a rialzarsi) (Negativo: crescita lenta e faticosa e potenziale arresto di fronte a ostacoli maggiori, percezione di resilienza moderata e non sempre sufficiente, approccio forse non sempre ottimizzato per superare obiezioni persistenti e complesse)."
+        text: "(Positivo: resilienza adattiva iniziale e capacità di mantenere una spinta residua verso l'obiettivo nonostante i feedback negativi reiterati) (Negativo: crescita faticosa e vulnerabilità agli ostacoli persistenti, rischio di stagnazione per mancanza di una strategia solida di superamento delle obiezioni)."
       },
       {
         value: "Terreno Arido",
-        text: "(Positivo: consapevolezza dei propri limiti e ricerca di aiuto esterno per superarli, valorizzazione del supporto e della guida altrui, approccio collaborativo alla crescita personale, persona percepita come intelligente che sa chiedere aiuto e valorizzare le competenze altrui per il proprio sviluppo) (Negativo: potenziale dipendenza da supporto esterno e rischio di non sviluppare piena autonomia nel superamento ostacoli, percezione di non completa autosufficienza nella crescita personale e nel superamento autonomo delle obiezioni, approccio forse non sempre ottimizzato per l'indipendenza e l'auto-apprendimento autonomo)."
+        text: "(Positivo: intelligenza relazionale nella ricerca di supporto esperto e mentoring per navigare i vincoli aziendali in modo strategico) (Negativo: rischio di dipendenza eccessiva dal supporto altrui, limitata autonomia nello sviluppo di soluzioni originali per gestire i conflitti gerarchici)."
       },
       {
         value: "Albero Solitario",
-        text: "(Positivo: massima resilienza e autonomia nel superamento delle difficoltà, forte fiducia nelle proprie risorse personali, approccio self-made e indipendente, persona percepita come forte, autonoma e indipendente e con grande forza interiore) (Negativo: potenziale eccessivo individualismo e rischio di non valorizzare il supporto altrui, percezione di eccessiva sicurezza di sé e autosufficienza, mancanza di apertura alla collaborazione e al mentoring come risorse preziose per la crescita, approccio forse non sempre ottimizzato per la crescita collaborativa e il teamwork come moltiplicatori del potenziale di sviluppo personale e professionale)."
+        text: "(Positivo: massima auto-efficacia e determinazione ferrea nel perseguire la propria visione indipendentemente dalle resistenze esterne) (Negativo: potenziale isolamento professionale per eccessiva autoreferenzialità, rischio di non valorizzare la saggezza collettiva o i vincoli organizzativi legittimi)."
       }
     ],
     softSkill: "SviluppoPersonale, GestioneDelleObiezioni",
@@ -127,19 +126,19 @@ export const questions116to120: Question[] = [
     options: [
       {
         value: "Coltivo Fiori",
-        text: "(Positivo: massima attenzione allo sviluppo personale e ricerca della bellezza e dell'espressione individuale, valorizzazione del talento personale unico e originale, approccio artistico e individualista, persona percepita come creativa e originale) (Negativo: potenziale ego-centrismo e mancanza di orientamento al servizio o al bene comune, rischio di isolamento e percezione di eccessivo individualismo o narcisismo, sviluppo personale fine a sé stesso)."
+        text: "(Positivo: straordinario investimento nella realizzazione del proprio potenziale unico e nell'eccellenza creativa individuale) (Negativo: rischio di deriva narcisistica e scarsa attenzione alla generazione di valore tangibile per il sistema o per il mercato)."
       },
       {
         value: "Coltivo Alberi da Frutta",
-        text: "(Positivo: equilibrio armonioso tra crescita personale e contributo per gli altri, integrazione tra realizzazione individuale e responsabilità sociale, approccio umanistico e olistico, persona percepita come equilibrata e responsabile) (Negativo: potenziale limitazione della crescita personale massima e rischio di non raggiungere il picco della auto-realizzazione individuale, percezione di ambizione personale moderata, approccio forse non sempre ottimizzato per la massima performance individuale pura e ego-centrica)."
+        text: "(Positivo: eccellente integrazione tra auto-realizzazione personale e responsabilità sociale, garantendo uno sviluppo equilibrato e sostenibile) (Negativo: ambizione mediata dalla ricerca di armonia, potenziale mancanza di focalizzazione estrema su un singolo obiettivo di performance)."
       },
       {
         value: "Coltivo Ortaggi",
-        text: "(Positivo: forte orientamento al servizio e al beneficio altrui, sviluppo personale finalizzato a generare valore per la comunità, approccio altruista e dedicato agli altri, persona percepita come generosa e profondamente orientata al servizio e al bene comune) (Negativo: potenziale rischio di burnout per eccessivo dono di sé e sacrificio eccessivo dei bisogni personali, percezione di squilibrio tra dare e ricevere, approccio forse non sempre sostenibile nel lungo periodo in termini di benessere personale e auto-cura)."
+        text: "(Positivo: spiccata vocazione al servizio e dedizione altruistica alla creazione di valore immediato e concreto per la collettività) (Negativo: elevato rischio di trascurare il proprio benessere e la propria evoluzione specialistica per un eccessivo orientamento alle necessità altrui)."
       },
       {
         value: "Coltivo Cereali",
-        text: "(Positivo: massima visione a lungo termine e pianificazione strategica orientata al futuro, sacrificio del presente per un beneficio futuro maggiore per la comunità, approccio previdente e progettuale, persona percepita come visionaria e strategica) (Negativo: potenziale sacrificio eccessivo del presente e rischio di rimandare sempre la gratificazione personale, percezione di eccessiva serietà e orientamento al dovere e sacrificio, approccio forse non sempre equilibrato tra oggi e domani e tra realizzazione personale immediata e beneficio collettivo futuro)."
+        text: "(Positivo: visione strategica lungimirante e capacità di investire il presente nella costruzione di un futuro solido e generoso per tutti) (Negativo: potenziale sacrificio eccessivo della gratificazione immediata e rischio di vivere in una costante tensione verso il dovere futuro)."
       }
     ],
     softSkill: "SviluppoPersonale, OrientamentoAlCliente",
@@ -163,19 +162,19 @@ export const questions116to120: Question[] = [
     options: [
       {
         value: "Non Vedo, Non Sento, Non Parlo",
-        text: "(Negativo: omissione di soccorso e mancanza di supporto alla vittima, perpetuazione di un clima di tolleranza verso molestie, percezione di persona indifferente, egoista e non affidabile) (Positivo: evitamento conflitto diretto e massimizzazione sicurezza personale, non coinvolgimento in rogne, approccio prudente e non rischioso per sé stesso, mantenimento neutralità formale)."
+        text: "(Positivo: massima neutralità formale e protezione della propria serenità operativa evitando coinvolgimenti in dinamiche di conflitto terze) (Negativo: grave complicità tacita nella perpetuazione di un clima tossico e mancanza di senso civico e di responsabilità sociale aziendale)."
       },
       {
         value: "Tosse Imbarazzata",
-        text: "(Negativo: inefficacia nel fermare il comportamento inappropriato e segnalazione debole e ambigua, mancanza di supporto chiaro alla vittima, percezione di persona timida, indecisa e non pienamente coraggiosa) (Positivo: approccio non confrontazionale e diplomatico, tentativo di sensibilizzazione soft, minimo segnale di disapprovazione senza scontro aperto, volontà di non ignorare completamente il problema)."
+        text: "(Positivo: diplomazia relazionale volta a segnalare un disagio senza innescare un'escalation aggressiva, tentativo di ripristinare il decoro) (Negativo: inefficacia operativa nel fermare la condotta lesiva e rischio di essere percepito come debole o eccessivamente cauto di fronte a una violazione etica)."
       },
       {
         value: "Bicchiere d'Acqua",
-        text: "(Positivo: supporto concreto e immediato alla vittima e solidarietà femminile ed empatia, approccio umano e compassionevole, persona percepita come sensibile, attenta e solidale) (Negativo: azione non risolutiva del problema alla radice e mancanza di intervento diretto sul molestatore, rischio di non fermare il comportamento inappropriato, percezione di approccio limitato all'aiuto individuale e non sempre sufficiente a livello collettivo e sistemico)."
+        text: "(Positivo: eccellente alleanza empatica e supporto umano immediato volto alla riparazione emotiva della vittima, solidarietà attiva) (Negativo: approccio puramente riparativo che non agisce sulla causa sistemica del problema, mancando di confrontare l'autore del comportamento)."
       },
       {
         value: "Cavaliere Bianco",
-        text: "(Positivo: intervento diretto e coraggioso contro le molestie e difesa attiva della vittima, affermazione di valori etici e di rispetto e leadership morale e azione risolutiva e protettiva verso la vittima, persona percepita come coraggiosa, integra, assertiva e paladina della giustizia) (Negativo: potenziale escalation del conflitto e rischio di creare tensione nel team, percezione di approccio eccessivamente aggressivo o giustizialista e mancanza di diplomazia e mediazione, approccio forse non sempre ottimale in contesti che richiederebbero maggiore negoziazione e mediazione)."
+        text: "(Positivo: leadership morale e coraggio nel difendere l'integrità del clima aziendale attraverso un'azione diretta e risolutiva contro le molestie) (Negativo: rischio di essere percepito come eccessivamente assertivo o giustizialista, potenziale inasprimento del conflitto per mancanza di mediazione)."
       }
     ],
     softSkill: "RelazioniImproprie, TematicheSociali",

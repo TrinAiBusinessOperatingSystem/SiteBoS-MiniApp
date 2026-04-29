@@ -19,19 +19,19 @@ export const questions131to135: Question[] = [
     options: [
       {
         value: "Voce Unica",
-        text: "(Negativo: esclusione della diversità e visione mono-culturale, mancanza di rappresentanza plurale, percezione di approccio non inclusivo e poco attento all'equità, omogeneizzazione forzata del palco) (Positivo: semplificazione scelta e messaggio univoco e coerente, massimizzazione linearità e omogeneità comunicativa, approccio diretto e senza complicazioni, apparente chiarezza e semplicità della linea dell'evento)."
+        text: "(Positivo: massima coerenza stilistica e garanzia di un messaggio lineare e facilmente decodificabile per il target di riferimento) (Negativo: grave esclusività monoculturale e mancanza di rappresentanza plurale, rischio di alienare segmenti di pubblico diversificati)."
       },
       {
         value: "Goccia di Colore",
-        text: "(Negativo: inclusione di facciata e non sostanziale e rischio di tokenismo e sfruttamento simbolico della diversità, mancanza di reale equità e rappresentanza paritaria, percezione di approccio superficiale e opportunistico e non pienamente autentico o sincero nell'impegno per l'inclusione vera) (Positivo: minimo segnale di apertura alla diversità e approccio cauto e graduale verso l'inclusione controllata, tentativo di conciliazione tra inclusione e tradizione, rassicurazione formale di apertura alla diversità senza eccessi, gestione moderata e non dirompente dell'inclusione)."
+        text: "(Positivo: approccio prudente e graduale verso l'integrazione della diversità, garantendo una transizione morbida dai modelli tradizionali) (Negativo: rischio di tokenismo superficiale e inclusione puramente simbolica, percepita come non autentica o opportunistica)."
       },
       {
         value: "Coro Polifonico",
-        text: "(Positivo: massima inclusione e rappresentanza autentica e paritaria della diversità e valorizzazione della pluralità di voci e prospettive, approccio autenticamente inclusivo e orientato all'equità, percezione di evento ricco e variegato e davvero rappresentativo della società multiculturale) (Negativo: potenziale complessità gestionale di un palco plurale e rischio di messaggio meno univoco e lineare, percezione di evento meno semplice o immediatamente decodificabile rispetto a format più omogenei e tradizionali, approccio forse non sempre ottimizzato per la massima semplicità e linearità comunicativa a tutti i costi)."
+        text: "(Positivo: eccellente valorizzazione della pluralità e promozione di una rappresentanza autentica e paritaria delle diverse identità sociali) (Negativo: elevata complessità nella gestione dei flussi comunicativi, potenziale frammentazione del messaggio centrale dell'evento)."
       },
       {
         value: "Testimonianze Personali",
-        text: "(Positivo: massima priorità all'equità sostanziale e azione riparatoria e redistributiva per dare voce a chi è tradizionalmente escluso, approccio militante e attivista per la diversità e l'inclusione vera e radicale, persona percepita come impegnata e coraggiosa) (Negativo: potenziale polarizzazione del dibattito e rischio di non intercettare pienamente il gusto del pubblico mainstream, percezione di approccio ideologico o partigiano, non sempre neutro o equilibrato, formato evento forse non sempre ottimizzato per la massima fruibilità e godibilità da parte di un pubblico eterogeneo)."
+        text: "(Positivo: suprema leadership inclusiva orientata all'equità sostanziale e all'empowerment di voci tradizionalmente marginalizzate) (Negativo: rischio di polarizzazione del dibattito e potenziale percezione di eccessivo attivismo a scapito dell'equilibrio istituzionale)."
       }
     ],
     softSkill: "DiversitaEInclusione, Equita",
@@ -55,19 +55,19 @@ export const questions131to135: Question[] = [
     options: [
       {
         value: "Mi spiace, non Posso",
-        text: "(Positivo: massima integrità etica e coerenza con i propri valori, affermazione di principi non negoziabili, tutela della propria reputazione e affidabilità morale a lungo termine, persona percepita come integra e affidabile) (Negativo: rischio di perdere il cliente e danneggiare la relazione commerciale nel breve termine e percezione di eccessiva rigidità o poca flessibilità e non sempre orientato al cliente a tutti i costi)."
+        text: "(Positivo: suprema integrità deontologica e tutela rigorosa degli asset reputazionali attraverso la difesa di confini etici non negoziabili) (Negativo: rischio di frizione relazionale immediata con l'interlocutore, potenziale percezione di eccessiva rigidità burocratica)."
       },
       {
         value: "Lo Conosco, Dai ",
-        text: "(Positivo: tentativo di mediazione tra etica e fidelizzazione del cliente e approccio pragmatico che cerca un compromesso sostenibile, volontà di non perdere il cliente senza rinunciare completamente all'etica, persona percepita come flessibile e negoziatrice) (Negativo: rischio di danno reputazionale a lungo termine per compromesso etico e percezione di ambiguità o non piena trasparenza, soluzione non pienamente soddisfacente né sul piano etico né su quello della massima fidelizzazione, approccio potenzialmente fragile e non pienamente convincente)."
+        text: "(Positivo: pragmatismo relazionale volto a preservare il clima di collaborazione interna attraverso una flessibilità controllata) (Negativo: grave incrinatura della postura etica e rischio di esposizione a successivi dilemmi morali per mancanza di fermezza iniziale)."
       },
       {
         value: "Ci Devo Pensare",
-        text: "(Positivo: approccio ponderato che valuta le diverse implicazioni e ricerca di un equilibrio tra etica e vantaggio commerciale, volontà di prendere una decisione consapevole e non impulsiva, persona percepita come razionale e analitica) (Negativo: rischio di apparire esitante e poco affidabile sul piano etico e percezione di approccio calcolatore e opportunista, mancanza di spontaneità e autenticità percepita, potenziale danno alla fiducia del cliente a lungo termine se percepisce esitazione e compromesso eccessivo sull'etica)."
+        text: "(Positivo: approccio analitico e prudente volto a valutare le implicazioni sistemiche di una scelta delicata prima di agire) (Negativo: percezione di esitazione etica e potenziale perdita di autorevolezza, rischio di apparire calcolatori piuttosto che integri)."
       },
       {
         value: "Ci Sentiamo Dopo",
-        text: "(Negativo: compromesso etico totale e scelta non etica inequivocabile, danno potenziale alla propria integrità morale e alla reputazione a lungo termine, approccio moralmente inaccettabile in contesti etici rigorosi, percezione di persona priva di scrupoli etici e opportunista) (Positivo: massimizzazione della fidelizzazione immediata e approccio iper-customer-centric e totalmente orientato al cliente, massima flessibilità e disponibilità percepita verso le esigenze del cliente a tutti i costi, persona percepita come estremamente dedicata al cliente e pronta a tutto per accontentarlo e mantenerlo fedele nel breve periodo, *ma positivo solo in ottica strettamente commerciale e non etica*)."
+        text: "(Positivo: massima dedizione alla soddisfazione delle richieste del team e orientamento totale al supporto operativo immediato) (Negativo: totale collasso della condotta etica e violazione dei protocolli di riservatezza, grave danno alla credibilità professionale a lungo termine)."
       }
     ],
     softSkill: "EticaProfessionale, FidelizzazioneDelCliente",
@@ -91,19 +91,19 @@ export const questions131to135: Question[] = [
     options: [
       {
         value: "Mi Ribello",
-        text: "(Negativo: bassa tolleranza al cambiamento improvviso e reazione emotiva negativa e distruttiva, mancanza di flessibilità e adattabilità, percezione di ingiustizia e caos, approccio rigido e non costruttivo di fronte all'imprevisto) (Positivo: reazione assertiva e non passiva, affermazione netta del proprio disappunto, non sottomissione al cambiamento imposto, approccio non remissivo e non attendista, reazione forte anche se negativa e non costruttiva)."
+        text: "(Positivo: spiccata assertività e difesa del valore del lavoro pregresso contro alterazioni arbitrarie o non pianificate) (Negativo: grave incapacità di gestire l'imprevisto e resistenza distruttiva al cambiamento, rischio di paralisi operativa per reazione emotiva)."
       },
       {
         value: "Riorganizzo i Pezzi",
-        text: "(Positivo: adattabilità di base al cambiamento e volontà di non arrendersi e trovare una soluzione pur in condizioni di incertezza e stress, approccio volenteroso e non completamente passivo, impegno a riorganizzarsi pur in una situazione scomoda e non ideale) (Negativo: stress e ansia percepiti e adattamento faticoso e non pienamente naturale o fluido, percezione di sforzo e disagio, fiducia in sé stessi non piena o incrinata di fronte all'imprevisto, approccio reattivo e non proattivo o entusiasta di fronte al cambiamento inatteso)."
+        text: "(Positivo: resilienza operativa di base e volontà di ripristinare l'ordine per garantire la continuità del progetto nonostante le avversità) (Negativo: adattamento faticoso e reattivo che potrebbe risentire dello stress accumulato, mancanza di una visione proattiva sulla sfida)."
       },
       {
         value: "Nuova Strategia",
-        text: "(Positivo: resilienza attiva e proattiva e adattamento strategico e flessibile, cambiamento percepito come sfida positiva e stimolante, approccio problem-solving e challenge-oriented, persona percepita come dinamica e adattabile) (Negativo: potenziale minimizzazione delle difficoltà altrui e rischio di apparire superficiale o eccessivamente entusiasta di fronte a situazioni che possono generare reale disagio o difficoltà negli altri, percezione di approccio forse non sempre pienamente empatico o sensibile alle emozioni altrui di fronte al cambiamento imposto)."
+        text: "(Positivo: eccellente flessibilità cognitiva e capacità di riformulare istantaneamente la tattica in funzione dei nuovi vincoli ambientali) (Negativo: rischio di trascurare l'analisi critica delle ragioni del cambiamento per eccessivo orientamento alla soluzione immediata)."
       },
       {
         value: "Propongo Nuovo Gioco",
-        text: "(Positivo: massima fiducia in sé stessi e nel cambiamento e entusiasmo contagioso e proattivo verso la novità, visione del cambiamento come opportunità e sfida positiva, approccio dinamico e innovativo e future-oriented, persona percepita come carismatica e visionaria) (Negativo: potenziale sottovalutazione difficoltà concrete del cambiamento e rischio di apparire eccessivamente ottimista o idealista, percezione di approccio non sempre realista o pragmatico, mancanza di attenzione alle resistenze e paure altrui di fronte al cambiamento imposto o non desiderato)."
+        text: "(Positivo: straordinaria leadership innovativa e visione orientata al futuro, trasformando l'instabilità in un volano per la disruption positiva) (Negativo: potenziale distacco dalla realtà dei vincoli attuali, rischio di proporre cambiamenti troppo radicali per essere assorbiti dal team)."
       }
     ],
     softSkill: "FiduciaInSeStessi, GestioneDelCambiamento",
@@ -127,19 +127,19 @@ export const questions131to135: Question[] = [
     options: [
       {
         value: "Ti Serve, Fidati",
-        text: "(Negativo: mancanza di ascolto attivo e rifiuto feedback cliente, non gestione obiezioni e perdita opportunità di miglioramento, percezione di chiusura e non volontà di capire il punto di vista altrui) (Positivo: massima sicurezza delle proprie convinzioni e evitamento dubbi e crisi, approccio assertivo negativamente e non influenzabilità dal feedback negativo, mantenimento integrità delle proprie certezze, *ma positivo solo in ottica di rigidità e chiusura e non di crescita e miglioramento*)."
+        text: "(Positivo: ferma convinzione nel valore della propria offerta e determinazione nel difendere la bontà tecnica della soluzione proposta) (Negativo: totale assenza di ascolto attivo e cecità rispetto ai bisogni reali del cliente, approccio percepito come arrogante e autoreferenziale)."
       },
       {
         value: "Pensavo ti Servisse",
-        text: "(Negativo: mancanza di ascolto attivo reale e approccio contro-argomentativo che non crea un dialogo costruttivo, rischio di alienare il cliente e non risolvere l'obiezione, percezione di persona poco empatica e non orientata al cliente) (Positivo: massima velocità di reazione e approccio reattivo e pronto alla difesa, affermazione immediata della propria posizione, non si lascia incalzare dalle obiezioni, persona percepita come pronta e reattiva, *ma positivo solo in ottica di prontezza difensiva e non di costruttività e dialogo*)."
+        text: "(Positivo: reattività immediata e tentativo di giustificare razionalmente l'operato per proteggere la propria credibilità professionale) (Negativo: approccio difensivo e giustificatorio che impedisce l'apertura a un dialogo riparativo, rischio di alienare l'interlocutore)."
       },
       {
         value: "Spiegami Per Favore",
-        text: "(Positivo: massimo ascolto attivo e vera attenzione al cliente e approccio empatico e orientato alla comprensione profonda delle ragioni altrui, volontà di capire prima di replicare, persona percepita come attenta e curiosa) (Negativo: richiede tempo per l'ascolto attivo e risposta non immediata, potenziale percezione di lentezza nella reazione difensiva, approccio forse non sempre ottimizzato per la velocità e l'immediatezza della contro-replica, priorità all'ascolto e alla comprensione profonda prima di reagire velocemente)."
+        text: "(Positivo: eccellente ascolto attivo analitico e umiltà professionale volta alla comprensione profonda della prospettiva dell'altro) (Negativo: potenziale percezione di eccessiva passività o mancanza di una solida convinzione iniziale, rischio di rallentare il processo decisionale)."
       },
       {
         value: "Provalo, Usalo, Casomai lo Riprendo",
-        text: "(Positivo: massima efficacia nella gestione dell'obiezione e superamento della resistenza del cliente, conversione dell'obiezione in opportunità di vendita, dimostrazione di competenza consulenziale superiore, creazione di valore aggiunto per il cliente oltre il prodotto) (Negativo: richiede alta competenza consulenziale non sempre replicabile e potenziale minore scalabilità per obiezioni standard, investimento di tempo e risorse maggiore, percezione di approccio non sempre ottimizzato per la velocità e la scalabilità massiva del processo di vendita standardizzato)."
+        text: "(Positivo: straordinaria padronanza nella gestione delle obiezioni attraverso una strategia di risk-reversal volta alla conversione del feedback) (Negativo: elevato investimento di risorse e rischio di creare aspettative di assistenza non scalabili o eccessivamente onerose)."
       }
     ],
     softSkill: "AscoltoAttivo, GestioneDelleObiezioni",
@@ -163,19 +163,19 @@ export const questions131to135: Question[] = [
     options: [
       {
         value: "Anima nel Sacrificio",
-        text: "(Positivo: massima valorizzazione autenticità e unicità del tratto manuale e focus sull'espressività artistica pura e non mediata dalla tecnologia, approccio romantico e nostalgico che celebra la vera arte artigianale, persona percepita come tradizionalista e purista) (Negativo: potenziale chiusura all'innovazione digitale e rischio di rigidità e immobilismo, percezione di approccio superato o non al passo coi tempi, mancanza di apertura verso le opportunità offerte dal digitale in ambito artistico e creativo)."
+        text: "(Positivo: profonda valorizzazione dell'autenticità e dell'espressività pura del capitale umano non mediata dalla tecnologia) (Negativo: rischio di obsolescenza e chiusura verso le potenzialità abilitanti dell'innovazione digitale, limitazione della scalabilità creativa)."
       },
       {
         value: "Cuore e Cervello",
-        text: "(Positivo: approccio ibrido e versatile che unisce anima della tradizione e forza dell'innovazione, ricerca di un equilibrio tra passato e futuro, valorizzazione sia della manualità che del digitale, persona percepita come equilibrata e pragmatica) (Negativo: potenziale mancanza di radicalità e profondità in nessuna delle due direzioni e rischio di approccio moderato che non eccelle né nell'uno né nell'altro, percezione di tiepidezza o mancanza di slancio verso un approccio estremo e non convenzionale in nessuna direzione, approccio forse non sempre ottimizzato per la massima specializzazione e distintività in un campo specifico estremo)."
+        text: "(Positivo: approccio olistico e versatile volto all'integrazione armonica tra patrimonio tradizionale e avanguardia tecnologica) (Negativo: potenziale mancanza di una specializzazione estrema in uno dei due ambiti, rischio di un posizionamento di mercato generalista)."
       },
       {
         value: "Precisione Vettoriale",
-        text: "(Positivo: massima valorizzazione di precisione e nitidezza e versatilità del digitale e approccio moderno e orientato all'efficienza e alla chiarezza comunicativa, massimizzazione della pulizia formale e della scalabilità e adattabilità del prodotto digitale, persona percepita come moderna ed efficiente) (Negativo: potenziale mancanza di calore umano e emotività e rischio di approccio percepito come freddo o eccessivamente razionale e distaccato, mancanza di imperfezione artistica voluta e ricercata come valore aggiunto espressivo e autentico, approccio forse non sempre ottimizzato per la massima espressività emotiva e artistica pura e non mediata dalla freddezza della tecnologia vettoriale)."
+        text: "(Positivo: eccellente orientamento all'efficienza e alla perfezione formale garantita dalla padronanza degli strumenti digitali avanzati) (Negativo: rischio di una percezione di eccessiva razionalità o freddezza esecutiva, potenziale perdita del calore e dell'unicità del tocco umano)."
       },
       {
         value: "Oltre i Limiti Umani",
-        text: "(Positivo: massima apertura all'innovazione radicale e visione futurista e senza limiti, entusiasmo per le nuove frontiere del digitale e superamento dei vincoli del passato, approccio avanguardista e visionario, persona percepita come coraggiosa e innovativa) (Negativo: potenziale distacco dalla tradizione artistica manuale e rischio di eccessivo entusiasmo acritico per la tecnologia fine a sé stessa, percezione di approccio non radicato in una storia artistica personale e autentica, mancanza di calore umano e profondità emotiva potenzialmente sacrificate sull'altare dell'innovazione tecnologica pura e fredda)."
+        text: "(Positivo: straordinaria visione avanguardista e determinazione nell'esplorare le nuove frontiere del possibile attraverso la disruption digitale) (Negativo: potenziale distacco dalle basi storiche e artigianali della disciplina, rischio di inseguire la tecnologia come fine anziché come mezzo)."
       }
     ],
     softSkill: "Innovazione, MenteAperta",
