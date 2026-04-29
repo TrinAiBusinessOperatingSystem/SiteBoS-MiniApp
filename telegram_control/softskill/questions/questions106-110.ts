@@ -1,6 +1,6 @@
 import { Question } from "../types";
 
-export const questions106to110: Question[] = [
+export const questions: Question[] = [
   {
     num: 106,
     scenario: "Immagina che suoni l'allarme antincendio in ufficio. Qual è la tua reazione immediata?",
@@ -15,7 +15,8 @@ export const questions106to110: Question[] = [
       "Guida gli Altri",
       "Verifica Prima di Uscire",
       "Resto al Mio Posto"
-    ],    options: [
+    ],
+    options: [
       {
         value: "Fuga Organizzata",
         text: "(Positivo: eccellente conformità procedurale e capacità di mantenere la disciplina operativa in situazioni di emergenza) (Negativo: potenziale carenza di iniziativa autonoma e tendenza a un comportamento gregario, limitata leadership situazionale in contesti imprevisti)."

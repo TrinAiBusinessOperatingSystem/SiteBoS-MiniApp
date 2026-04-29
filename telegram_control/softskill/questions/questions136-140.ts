@@ -1,6 +1,6 @@
 import { Question } from "../types";
 
-export const questions136to140: Question[] = [
+export const questions: Question[] = [
   {
     num: 136,
     scenario: "Sei in gruppo con amici, ti allontani un attimo e Trovi una Banconota. Come la dividi?",
@@ -15,7 +15,8 @@ export const questions136to140: Question[] = [
       "A Tutti una Parte Uguale",
       "La Spendo per Tutti",
       "La Dono in Beneficenza"
-      options: [
+    ],
+    options: [
       {
         value: "Prendo Tutto Io",
         text: "(Positivo: massima efficacia nella cattura immediata del valore in contesti competitivi e determinazione nel perseguire il profitto individuale) (Negativo: totale assenza di etica della reciprocità e grave danno al capitale relazionale, percezione di inaffidabilità cronica)."

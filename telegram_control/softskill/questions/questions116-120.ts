@@ -1,6 +1,6 @@
 import { Question } from "../types";
 
-export const questions116to120: Question[] = [
+export const questions: Question[] = [
   {
     num: 116,
     scenario: "Il tuo partner ha paura che in futuro il vostro rapporto finisca, questo come ti fa sentire?",
@@ -15,7 +15,8 @@ export const questions116to120: Question[] = [
       "Carezza Veloce",
       "Pergamena Sigillata",
       "Pilastri Portanti"
-    ],    options: [
+    ],
+    options: [
       {
         value: "Disco Rotto",
         text: "(Positivo: massima coerenza nel messaggio e difesa dei termini contrattuali standard senza deviazioni o incertezze) (Negativo: inefficacia rassicurativa dovuta alla mancanza di empatia e personalizzazione, rischio di essere percepito come ripetitivo e poco attento ai bisogni reali)."

@@ -1,6 +1,6 @@
 import { Question } from "../types";
 
-export const questions146to150: Question[] = [
+export const questions: Question[] = [
   {
     num: 146,
     scenario: "Dopo una lunga attesa allo sportelo, ti accorgi che hai sbagliato fila, che fai?",
@@ -15,7 +15,8 @@ export const questions146to150: Question[] = [
       "Chiedo Se Sono il Prossimo nella Fila Giusta",
       "Cambio Fila Pazienza",
       "Vado Via, Ritorno Domani"
-    ],    options: [
+    ],
+    options: [
       {
         value: "Chiedo Un Eccezione al Commesso",
         text: "(Positivo: spiccata intraprendenza nel ricercare scorciatoie operative e determinazione nell'ottenere il risultato desiderato oltre i vincoli standard) (Negativo: totale violazione dell'equità procedurale e della deontologia professionale, grave danno alla credibilità etica personale)."

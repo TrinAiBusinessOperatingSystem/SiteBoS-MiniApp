@@ -14,7 +14,9 @@ export const questions81to85: Question[] = [
       "Cristallo di Verità",
       "Verità con Onde",
       "Caleidoscopio di Verità",
-      "Mago Illusionista    options: [
+      "Mago Illusionista"
+    ],
+    options: [
       {
         value: "Cristallo di Verità",
         text: "(Positivo: massima integrità comunicativa e affidabilità totale dei fatti riportati, approccio iper-fattuale che garantisce trasparenza assoluta) (Negativo: potenziale scarsa efficacia narrativa e mancanza di coinvolgimento emotivo, rischio di risultare eccessivamente formali o pedanti nella narrazione)."

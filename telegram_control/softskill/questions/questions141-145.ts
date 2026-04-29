@@ -1,6 +1,6 @@
 import { Question } from "../types";
 
-export const questions141to145: Question[] = [
+export const questions: Question[] = [
   {
     num: 141,
     scenario: "Devi comprare un elettrodomestico nuovo ma è rimasto solo quello in esposizione, Come reagisci?",

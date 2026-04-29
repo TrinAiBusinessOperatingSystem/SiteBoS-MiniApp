@@ -1,6 +1,6 @@
 import { Question } from "../types";
 
-export const questions131to135: Question[] = [
+export const questions: Question[] = [
   {
     num: 131,
     scenario: "Devi scegliere chi far \"salire sul palco\" ad un evento per speaker. Come ti orienti?",

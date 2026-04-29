@@ -1,6 +1,6 @@
 import { Question } from "../types";
 
-export const questions121to125: Question[] = [
+export const questions: Question[] = [
   {
     num: 121,
     scenario: "Rifiutano qualcosa che ti eri impegnato a fare con tanto impegno, cosa vedi?",
@@ -15,7 +15,8 @@ export const questions121to125: Question[] = [
       "Vaso Crepato",
       "Vaso Scheggiato",
       "Vaso Intatto"
-    ],    options: [
+    ],
+    options: [
       {
         value: "Vaso Rotto",
         text: "(Positivo: profonda onestà emotiva e capacità di elaborare autenticamente l'impatto del fallimento senza negazioni superficiali) (Negativo: grave crollo della resilienza cognitiva e paralisi operativa di fronte al rifiuto, difficoltà nel ripristinare l'auto-efficacia professionale)."

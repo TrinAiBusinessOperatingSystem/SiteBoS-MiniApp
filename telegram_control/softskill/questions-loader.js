@@ -1,5 +1,5 @@
 // Questions Loader - Carica direttamente i file TypeScript
-// Nessuna conversione necessaria!
+// Nessuna conversione necessaria grazie al parsing dinamico!
 
 let allQuestions = [];
 
@@ -12,7 +12,7 @@ const questionFiles = [
   'questions21-25.ts',
   'questions26-30.ts',
   'questions31-35.ts',
-  'questions36-40.ts',
+  'question36-40.ts',
   'questions41-45.ts',
   'questions46-50.ts',
   'questions51-55.ts',
@@ -43,29 +43,30 @@ const questionFiles = [
 async function loadQuestionFile(filename) {
   try {
     const response = await fetch(`questions/${filename}`);
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const tsContent = await response.text();
     
     // Estrae l'array questions dal file TypeScript
+    // Supporta sia 'export const questions' che 'export const questionsXXX'
     const match = tsContent.match(/export const questions.*?=\s*(\[[\s\S]*?\]);/m);
     if (!match) {
       console.warn(`⚠️ Nessuna question trovata in ${filename}`);
       return [];
     }
     
-    let arrayString = match[1];
+    const arrayString = match[1];
     
-    // Converti TypeScript in JSON valido
-    // Rimuove trailing commas
-    arrayString = arrayString.replace(/,\s*]/g, ']');
-    arrayString = arrayString.replace(/,\s*}/g, '}');
-    
-    // Wrappa le chiavi tra virgolette se non lo sono già
-    arrayString = arrayString.replace(/(\w+):/g, '"$1":');
-    
-    // Parse del JSON
-    const questions = JSON.parse(arrayString);
-    console.log(`✅ ${filename}: ${questions.length} domande caricate`);
-    return questions;
+    try {
+      // Metodo robusto: Valuta la stringa come un letterale JS
+      // new Function è più affidabile di JSON.parse per oggetti con single quotes e chiavi non quotate
+      const questions = new Function(`return ${arrayString}`)();
+      console.log(`✅ ${filename}: ${questions.length} domande caricate`);
+      return questions;
+    } catch (parseError) {
+      console.error(`❌ Errore di parsing in ${filename}:`, parseError);
+      // Tenta fallback se necessario, ma new Function dovrebbe coprire tutto se la sintassi TS è corretta
+      return [];
+    }
     
   } catch (error) {
     console.error(`❌ Errore caricando ${filename}:`, error);
@@ -85,7 +86,22 @@ async function loadAllQuestions() {
     allQuestions.push(...questions);
   }
   
-  console.log(`✨ Totale: ${allQuestions.length} domande caricate!`);
+  // Rimuove eventuali duplicati basati sul numero della domanda
+  const uniqueQuestions = [];
+  const seenNums = new Set();
+  
+  for (const q of allQuestions) {
+    if (!seenNums.has(q.num)) {
+      uniqueQuestions.push(q);
+      seenNums.add(q.num);
+    } else {
+      console.warn(`⚠️ Domanda duplicata saltata: ${q.num}`);
+    }
+  }
+  
+  allQuestions = uniqueQuestions.sort((a, b) => a.num - b.num);
+  
+  console.log(`✨ Totale: ${allQuestions.length} domande uniche caricate!`);
   return allQuestions;
 }
 
