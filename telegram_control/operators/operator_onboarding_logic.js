@@ -30,8 +30,9 @@ const i18n = {
         step_identity: "Identità", step_profile: "Profilo",
         h_identity: "Informativa & Sicurezza", sub_identity: "Consensi, Sicurezza e Informativa Sistemi AI.",
         h_profile: "Profilo Professionale", sub_profile: "Competenze e esperienza lavorativa.",
-        legal_privacy: "Informativa Trattamento Dati e Sistemi AI", legal_terms: "Accetto Termini di Servizio", 
-        legal_ai: "Accetto l'analisi delle competenze tramite AI (AI Act Reg. UE 2024/1689)",
+        legal_privacy: "Informativa <a href='legal.html#privacy' class='legal-link'>Trattamento Dati e Sistemi AI</a>", 
+        legal_terms: "Accetto <a href='legal.html#terms' class='legal-link'>Termini di Servizio</a>", 
+        legal_ai: "Accetto l'analisi delle competenze tramite AI (<a href='legal.html#ai-act' class='legal-link'>AI Act Reg. UE 2024/1689</a>)",
         byok_note: "La tua chiave personale, nessuno la vedrà.",
         lbl_name: "Nome", lbl_surname: "Cognome", lbl_fiscal: "Codice Fiscale", lbl_email: "Email", lbl_phone: "Telefono",
         section_address: "Indirizzo", section_education: "Formazione", section_work: "Esperienza Lavorativa", section_skills: "Competenze Tecniche",
@@ -53,8 +54,9 @@ const i18n = {
         step_identity: "Identity", step_profile: "Profile",
         h_identity: "Disclosure & Security", sub_identity: "Consents, Security and AI Systems Disclosure.",
         h_profile: "Professional Profile", sub_profile: "Skills and work experience.",
-        legal_privacy: "Personal Data & AI Systems Disclosure", legal_terms: "I accept Terms of Service", 
-        legal_ai: "I accept skills analysis via AI (AI Act Reg. UE 2024/1689)",
+        legal_privacy: "<a href='legal.html#privacy' class='legal-link'>Personal Data & AI Systems Disclosure</a>", 
+        legal_terms: "I accept <a href='legal.html#terms' class='legal-link'>Terms of Service</a>", 
+        legal_ai: "I accept skills analysis via AI (<a href='legal.html#ai-act' class='legal-link'>AI Act Reg. UE 2024/1689</a>)",
         byok_note: "Your personal key, nobody will see it.",
         lbl_name: "Name", lbl_surname: "Surname", lbl_fiscal: "Fiscal Code", lbl_email: "Email", lbl_phone: "Phone",
         section_address: "Address", section_education: "Education", section_work: "Work Experience", section_skills: "Technical Skills",
@@ -79,7 +81,7 @@ const t = i18n[lang] || i18n['en'];
 
 function applyTranslations() {
     document.querySelectorAll('[data-i18n]').forEach(el => {
-        el.innerText = t[el.getAttribute('data-i18n')];
+        el.innerHTML = t[el.getAttribute('data-i18n')];
     });
 }
 applyTranslations();
@@ -186,9 +188,20 @@ async function validateInvitation() {
                 })
             });
             const data = await res.json();
-            if (res.ok && data.company_name) {
-                ownerCompanyName = data.company_name;
+            const owner = data.owner_data || data; // Handle both direct and wrapped structures
+            
+            if (res.ok && (owner.ragione_sociale || owner.company_name)) {
+                ownerCompanyName = owner.ragione_sociale || owner.company_name;
                 document.getElementById('company-name-display').innerText = ownerCompanyName;
+                
+                // Extra details
+                if (owner.vat_number || owner.indirizzo) {
+                    const extra = document.getElementById('company-details-extra');
+                    extra.style.display = 'block';
+                    if (owner.vat_number) document.getElementById('company-vat-display').innerText = owner.vat_number;
+                    if (owner.indirizzo) document.getElementById('company-address-display').innerText = owner.indirizzo;
+                }
+                
                 if (data.chat_id) chatId = data.chat_id;
             }
         } catch (e) {
@@ -216,10 +229,21 @@ async function validateInvitation() {
         });
         
         const data = await res.json();
+        const owner = data.owner_data || data;
         
-        if (res.ok && data.valid) {
-            ownerCompanyName = data.company_name || "l'azienda";
+        if (res.ok && (data.valid || owner.ragione_sociale)) {
+            ownerCompanyName = owner.ragione_sociale || owner.company_name || "l'azienda";
             document.getElementById('company-name-display').innerText = ownerCompanyName;
+            
+            // Extra details
+            if (owner.vat_number || owner.indirizzo) {
+                const extra = document.getElementById('company-details-extra');
+                if (extra) {
+                    extra.style.display = 'block';
+                    if (owner.vat_number) document.getElementById('company-vat-display').innerText = owner.vat_number;
+                    if (owner.indirizzo) document.getElementById('company-address-display').innerText = owner.indirizzo;
+                }
+            }
             
             document.getElementById('loader').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
