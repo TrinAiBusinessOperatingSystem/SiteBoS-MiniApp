@@ -275,18 +275,76 @@ function goToStep(step) {
     currentStep = step;
 }
 
-// VALIDATION STEP 1
+// VERIFY GEMINI KEY
+window.verifyGeminiKey = async function() {
+    const key = document.getElementById('gemini_key').value.trim();
+    const btn = document.getElementById('btn-verify-key');
+    const status = document.getElementById('gemini-status');
+    
+    if (!key) {
+        status.innerText = 'Inserisci una chiave';
+        status.style.color = 'var(--danger)';
+        return;
+    }
+    
+    btn.disabled = true;
+    const originalText = btn.innerText;
+    btn.innerText = '...';
+    status.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verificando...';
+    status.style.color = '#64748b';
+    
+    try {
+        const res = await fetch(ONBOARDING_API, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                action: 'verify_gemini_key',
+                chat_id: chatId,
+                gemini_key: key
+            })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok && data.success) {
+            const tier = data['gemini key'] || data.tier || (data.success ? 'Valid' : 'Invalid');
+            status.innerText = tier;
+            
+            if (tier === 'Paid Tier') {
+                status.style.color = '#10b981'; // Success
+                tg.HapticFeedback.notificationOccurred('success');
+            } else if (tier === 'Free Tier') {
+                status.style.color = '#f59e0b'; // Warning
+                tg.HapticFeedback.notificationOccurred('warning');
+            } else {
+                status.style.color = '#10b981';
+            }
+        } else {
+            status.innerText = 'Chiave non valida';
+            status.style.color = 'var(--danger)';
+            tg.HapticFeedback.notificationOccurred('error');
+        }
+    } catch (e) {
+        console.error(e);
+        status.innerText = 'Errore verifica';
+        status.style.color = 'var(--danger)';
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
+}
+
+// VALIDATE STEP 1
 function validateStep1() {
     const chkPrivacy = document.getElementById('chk_privacy').checked;
     const chkTerms = document.getElementById('chk_terms').checked;
     const chkAi = document.getElementById('chk_ai').checked;
-    const geminiKey = document.getElementById('gemini_key').value.trim();
     const name = document.getElementById('name').value.trim();
     const surname = document.getElementById('surname').value.trim();
     const email = document.getElementById('email').value.trim();
     const phone = document.getElementById('phone').value.trim();
     
-    return chkPrivacy && chkTerms && chkAi && geminiKey && name && surname && email && phone;
+    return chkPrivacy && chkTerms && chkAi && name && surname && email && phone;
 }
 
 function checkStep1() {
