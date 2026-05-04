@@ -81,7 +81,7 @@ async function loadQuestions() {
 // 🔥 Funzione che prova png, jpg, jpeg in ordine
 function tryImageFormats(questionNum, optionIndex) {
     const formats = ['png', 'jpg', 'jpeg'];
-    const basePath = `../images/softskill/question${questionNum}/${optionIndex + 1}`;
+    const basePath = `../../images/softskill/question${questionNum}/${optionIndex + 1}`;
     
     return formats.map(ext => `${basePath}.${ext}`);
 }
