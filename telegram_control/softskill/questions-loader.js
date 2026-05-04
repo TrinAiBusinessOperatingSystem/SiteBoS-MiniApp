@@ -58,7 +58,7 @@ async function loadQuestionFile(filename) {
     const tsContent = await response.text();
     
     // Estrae l'array questions dal file TypeScript
-    const match = tsContent.match(/export const questions.*?=\s*(\[[\s\S]*?\]);\s*$/m);
+    const match = tsContent.match(/export const questions.*?=\s*(\[[\s\S]*\]);\s*$/);
     if (!match) {
       console.warn(`⚠️ Nessuna question trovata in ${filename}`);
       return [];

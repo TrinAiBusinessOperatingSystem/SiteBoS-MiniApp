@@ -68,10 +68,12 @@
       const url = new URL(window.location.href);
       const ash = url.searchParams.get('ash');
       const msgId = url.searchParams.get('msg_id');
+      const moduleParam = url.searchParams.get('module');
       
       const params = new URLSearchParams();
       if (ash) params.set('ash', ash);
       if (msgId) params.set('msg_id', msgId);
+      if (moduleParam) params.set('module', moduleParam);
 
       const nextUrl = `${url.pathname}${params.toString() ? `?${params.toString()}` : ''}${url.hash || ''}`;
       window.history.replaceState({}, '', nextUrl);
