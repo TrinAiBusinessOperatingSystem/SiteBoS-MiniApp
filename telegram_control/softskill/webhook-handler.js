@@ -51,6 +51,7 @@ class WebhookHandler {
       }
       
       const result = await response.json();
+      
       console.log('✅ Progresso recuperato:', result);
       
       // 🔥 Salva in localStorage come cache (NUOVA STRUTTURA)
@@ -114,6 +115,7 @@ class WebhookHandler {
       }
       
       const result = await response.json();
+      
       console.log('✅ Modulo salvato con successo!', result);
       
       // 🔥 SALVA LA NUOVA STRUTTURA CON EVALUATION IN LOCALSTORAGE
