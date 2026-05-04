@@ -16,12 +16,6 @@ const CONFIG = {
 const urlParams = new URLSearchParams(window.location.search);
 
 const STATE = {
-    vatNumber: urlParams.get('vat'),
-    accessToken: urlParams.get('token'),
-    ownerId: urlParams.get('owner'),
-    operatorId: urlParams.get('operator_id'),
-    role: urlParams.get('role'),
-    companyName: urlParams.get('ragione_sociale'),
     ash: urlParams.get('ash'),
     msgId: urlParams.get('msg_id'),
     currentLang: 'it',
@@ -84,17 +78,10 @@ const Api = {
     async getProfile() {
         const payload = {
             action: 'get_single_operator',
-            vat_number: STATE.vatNumber,
-            access_token: STATE.accessToken,
-            owner_id: STATE.ownerId,
-            role: STATE.role,
             ash: STATE.ash,
             msg_id: STATE.msgId,
             _auth: _auth
         };
-        if (STATE.role === 'operator' && STATE.operatorId) {
-            payload.operator_id = STATE.operatorId;
-        }
         const response = await fetch(CONFIG.WEBHOOK_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -427,17 +414,17 @@ const UI = {
 // ==========================================
 const App = {
     init: async () => {
-        if (!STATE.vatNumber || !STATE.accessToken || !STATE.role) {
-            document.body.innerHTML = `<h2 style="color:white;text-align:center;margin-top:50px;">Accesso Negato</h2>`;
+        if (!STATE.ash || !STATE.msgId) {
+            document.body.innerHTML = `<h2 style="color:#000;text-align:center;margin-top:50px;">Accesso Negato: Parametri mancanti</h2>`;
             return;
         }
-
-        STATE.isOwner = (STATE.role === 'owner');
 
         try {
             const response = await Api.getProfile();
             if (response.success && response.data) {
                 STATE.profileData = response.data;
+                // Ricava se è owner dal ruolo ritornato dal backend
+                STATE.isOwner = (response.data.role === 'owner');
             } else {
                 throw new Error('Invalid response');
             }
