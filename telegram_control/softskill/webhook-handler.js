@@ -62,8 +62,13 @@ class WebhookHandler {
       return result;
       
     } catch (error) {
-      console.warn('⚠️ Errore recupero progresso, uso localStorage:', error);
-      // Fallback: usa localStorage
+      console.error('⚠️ Errore recupero progresso:', error);
+      // Se è un errore del server (4xx, 5xx), NON usiamo il fallback locale ma blocchiamo
+      if (error.message.includes('Errore Server') || error.message.includes('Webhook failed')) {
+        throw error;
+      }
+      
+      // Fallback: usa localStorage solo se è un errore di rete puro
       return {
         modules_completed: this.loadModulesData(),
         completion_percentage: this.getCompletionPercentage()
