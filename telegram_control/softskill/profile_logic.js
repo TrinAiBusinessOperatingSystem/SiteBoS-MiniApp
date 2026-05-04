@@ -22,6 +22,8 @@ const STATE = {
     operatorId: urlParams.get('operator_id'),
     role: urlParams.get('role'),
     companyName: urlParams.get('ragione_sociale'),
+    ash: urlParams.get('ash'),
+    msgId: urlParams.get('msg_id'),
     currentLang: 'it',
     profileData: {},
     isOwner: false
@@ -67,13 +69,11 @@ const DOM = {
     softskillsModules: document.getElementById('softskills-modules'),
     
     // SOCIAL
-    socialLinks: document.getElementById('social-links'),
-    
-    // BUTTONS
-    btnBack: document.getElementById('btn-back')
+    socialLinks: document.getElementById('social-links')
 };
 
 const tg = window.Telegram.WebApp;
+const _auth = tg?.initData || '';
 tg.ready();
 tg.expand();
 
@@ -87,7 +87,10 @@ const Api = {
             vat_number: STATE.vatNumber,
             access_token: STATE.accessToken,
             owner_id: STATE.ownerId,
-            role: STATE.role
+            role: STATE.role,
+            ash: STATE.ash,
+            msg_id: STATE.msgId,
+            _auth: _auth
         };
         if (STATE.role === 'operator' && STATE.operatorId) {
             payload.operator_id = STATE.operatorId;
@@ -158,6 +161,16 @@ const UI = {
         const validModules = modulesCompleted.filter(m => m.evaluation);
         UI.renderSoftSkills(validModules, softSkillsAssessment.completed_count || 0, softSkillsAssessment.total_modules || 4);
 
+        if (STATE.isOwner) {
+            const btnStartTest = document.getElementById('btn-start-test');
+            if (btnStartTest) {
+                btnStartTest.style.display = 'block';
+                btnStartTest.addEventListener('click', () => {
+                    window.location.href = `test.html${window.location.search}`;
+                });
+            }
+        }
+
         // SOCIAL
         UI.renderSocialLinks(social);
     },
@@ -208,7 +221,7 @@ const UI = {
                 <div class="knowledge-card" data-learning-index="${index}">
                     <div class="card-header" style="cursor: pointer;">
                         <h3 style="display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15px;">
-                            <i class="fas fa-play-circle" style="color: var(--primary);"></i>
+                            <i class="fas fa-play-circle" style="color: #000;"></i>
                             ${item.video_title || 'Video di Formazione'}
                         </h3>
                         <div style="display: flex; align-items: center; gap: 12px;">
@@ -218,8 +231,8 @@ const UI = {
                     </div>
                     <div class="card-content">
                         ${item.reflection_summary ? `
-                            <div style="background: rgba(91, 111, 237, 0.1); border-left: 3px solid var(--primary); border-radius: 8px; padding: 12px 15px; margin-bottom: 12px; font-size: 13px; line-height: 1.6;">
-                                <strong style="color: var(--primary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">✍️ Riflessione</strong><br>
+                            <div style="background: #f8fafc; border-left: 3px solid #000; border-radius: 8px; padding: 12px 15px; margin-bottom: 12px; font-size: 13px; line-height: 1.6;">
+                                <strong style="color: #000; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">✍️ Riflessione</strong><br>
                                 ${item.reflection_summary}
                             </div>
                         ` : ''}
@@ -256,8 +269,8 @@ const UI = {
         const signals = reputation.credibility_signals || [];
         
         let sentimentColor = '#999';
-        if (sentiment === 'positive') sentimentColor = '#4cd964';
-        if (sentiment === 'negative') sentimentColor = '#ff3b30';
+        if (sentiment === 'positive') sentimentColor = '#000';
+        if (sentiment === 'negative') sentimentColor = '#666';
         
         DOM.reputationContainer.innerHTML = `
             <div style="margin-bottom: 10px;">
@@ -343,8 +356,8 @@ const UI = {
                 </div>
                 ${statusBadge}
             </div>
-            <div style="background: rgba(255,255,255,0.1); height: 10px; border-radius: 5px; overflow: hidden;">
-                <div style="background: linear-gradient(90deg, #5b6fed, #4cd964); height: 100%; width: ${percentage}%; transition: width 0.5s ease; border-radius: 5px;"></div>
+            <div style="background: rgba(0,0,0,0.1); height: 10px; border-radius: 5px; overflow: hidden;">
+                <div style="background: #000; height: 100%; width: ${percentage}%; transition: width 0.5s ease; border-radius: 5px;"></div>
             </div>
         `;
 
@@ -391,15 +404,15 @@ const UI = {
                     ` : ''}
 
                     ${evaluation.Impatto_Business ? `
-                        <div class="analysis-block" style="border-left-color: var(--warning);">
-                            <div class="analysis-title" style="color: var(--warning);"><i class="fas fa-chart-line"></i> Impatto Business</div>
+                        <div class="analysis-block" style="border-left-color: #000;">
+                            <div class="analysis-title" style="color: #000;"><i class="fas fa-chart-line"></i> Impatto Business</div>
                             <div class="analysis-text">${evaluation.Impatto_Business}</div>
                         </div>
                     ` : ''}
 
                     ${evaluation.Consigli_Operativi && evaluation.Consigli_Operativi.length > 0 ? `
                         <div style="margin-top: 15px;">
-                            <div class="analysis-title" style="color: var(--warning); margin-bottom: 10px;"><i class="fas fa-tasks"></i> Consigli Operativi</div>
+                            <div class="analysis-title" style="color: #000; margin-bottom: 10px;"><i class="fas fa-tasks"></i> Consigli Operativi</div>
                             ${evaluation.Consigli_Operativi.map(c => `<div class="recommendation-item">• ${c}</div>`).join('')}
                         </div>
                     ` : ''}
@@ -446,16 +459,6 @@ const App = {
             if (e.target.closest('.card-header') && !e.target.closest('#learning-history-container')) {
                 e.target.closest('.card-header').parentElement.classList.toggle('open');
             }
-        });
-
-        // BACK BUTTON
-        DOM.btnBack.addEventListener('click', () => {
-            const params = new URLSearchParams();
-            if (STATE.vatNumber) params.set('vat', STATE.vatNumber);
-            if (STATE.accessToken) params.set('token', STATE.accessToken);
-            if (STATE.ownerId) params.set('owner', STATE.ownerId);
-            if (STATE.companyName) params.set('ragione_sociale', STATE.companyName);
-            window.location.href = `team.html?${params.toString()}`;
         });
     }
 };
