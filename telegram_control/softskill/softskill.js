@@ -49,6 +49,18 @@ async function loadQuestions() {
         
         console.log(`✅ ${questions.length} domande pronte!`);
         
+        // 🔥 Aggiorna header dinamico con info modulo
+        const titleEl = document.getElementById('quizTitle');
+        const subtitleEl = document.getElementById('quizSubtitle');
+        if (moduleId !== 'complete' && MODULE_MAPPING[moduleId]) {
+            const mod = MODULE_MAPPING[moduleId];
+            if (titleEl) titleEl.textContent = mod.name;
+            if (subtitleEl) subtitleEl.textContent = `${mod.icon} ${questions.length} domande • ~${Math.ceil(questions.length / 3)} minuti`;
+        } else {
+            if (titleEl) titleEl.textContent = 'Soft Skill Selector';
+            if (subtitleEl) subtitleEl.textContent = `Scopri le tue competenze attraverso ${questions.length} scenari`;
+        }
+        
         // Salva tempo inizio
         startTime = Date.now();
         
