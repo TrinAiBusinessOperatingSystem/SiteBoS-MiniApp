@@ -205,10 +205,10 @@ const UI = {
             const engagementClass = engagementClasses[engagementLevel] || 'impact-standard';
 
             return `
-                <div class="knowledge-card" data-learning-index="${index}">
+                <div class="card-noir" data-learning-index="${index}">
                     <div class="card-header" style="cursor: pointer;">
                         <h3 style="display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15px;">
-                            <i class="fas fa-play-circle" style="color: #000;"></i>
+                            <div class="icon-box w-6 h-6 text-xs"><i class="fas fa-play"></i></div>
                             ${item.video_title || 'Video di Formazione'}
                         </h3>
                         <div style="display: flex; align-items: center; gap: 12px;">
