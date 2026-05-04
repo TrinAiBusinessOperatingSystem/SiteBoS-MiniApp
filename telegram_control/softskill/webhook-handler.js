@@ -40,7 +40,14 @@ class WebhookHandler {
       });
 
       if (!response.ok) {
-        throw new Error(`Webhook failed: ${response.status}`);
+        let errorMsg = `Webhook failed: ${response.status}`;
+        try {
+          const errorBody = await response.json();
+          if (errorBody && errorBody.error) {
+            errorMsg = `Errore Server: ${errorBody.error}`;
+          }
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
       
       const result = await response.json();
@@ -91,7 +98,14 @@ class WebhookHandler {
       });
 
       if (!response.ok) {
-        throw new Error(`Webhook failed: ${response.status} ${response.statusText}`);
+        let errorMsg = `Webhook failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorBody = await response.json();
+          if (errorBody && errorBody.error) {
+            errorMsg = `Errore Server: ${errorBody.error}`;
+          }
+        } catch (e) {}
+        throw new Error(errorMsg);
       }
       
       const result = await response.json();

@@ -719,13 +719,21 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         action: "get_analysis",
-                        vat: webhook.vat,
-                        user_id: webhook.userId,
+                        ash: webhook.ash,
+                        msg_id: webhook.msgId,
+                        _auth: webhook._auth,
                         timestamp: new Date().toISOString()
                     })
                 });
 
-                if (!response.ok) throw new Error(`Webhook failed: ${response.status}`);
+                if (!response.ok) {
+                    let errorMsg = `Webhook failed: ${response.status}`;
+                    try {
+                        const errData = await response.json();
+                        if (errData && errData.error) errorMsg = errData.error;
+                    } catch(e) {}
+                    throw new Error(errorMsg);
+                }
 
                 const result = await response.json();
                 const analysisData = Array.isArray(result) ? result[0] : result;
