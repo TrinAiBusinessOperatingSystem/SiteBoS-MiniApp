@@ -10,7 +10,7 @@
 // 1. CONFIGURATION & STATE
 // ==========================================
 const CONFIG = {
-    WEBHOOK_URL: "https://trinai.api.workflow.dcmake.it/webhook/502d2019-b5ee-4c9b-a14d-8d6545fbb05e"
+    WEBHOOK_URL: "https://prod.workflow.trinai.it/webhook/80d663ea-be4b-4d42-8cc1-05f4ada52ced"
 };
 
 const urlParams = new URLSearchParams(window.location.search);
