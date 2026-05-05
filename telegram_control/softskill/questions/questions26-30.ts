@@ -4,7 +4,7 @@ import { Question } from "../types";
 export const questions26to30: Question[] = [
   {
     num: 26,
-    scenario: "Ripensa alle occasioni che hai avuto nella vita.",
+    scenario: "Guardando al tuo percorso fino ad oggi, come descriveresti le occasioni che hai incontrato?",
     instructions: [
       "Immagine di una porta chiusa.",
       "Immagine di una porta socchiusa.",
@@ -16,7 +16,7 @@ export const questions26to30: Question[] = [
       "Pochi Spiragli",
       "Porte Aperte",
       "Molte Opportunità"
-    ],    options: [
+    ],    options: [
       {
         value: "Porte Chiuse",
         text: "(Positivo: alta resilienza psicologica e capacità di sviluppare 'grit' (tenacia) in contesti avversi, attitudine al superamento degli ostacoli attraverso la forza di volontà individuale) (Negativo: rischio di deriva verso il vittimismo e un locus of control esterno, percezione limitante delle opportunità che può generare immobilismo e rassegnazione)."
@@ -75,7 +75,7 @@ export const questions26to30: Question[] = [
   },
   {
     num: 28,
-    scenario: "Quanto ti senti apprezzato/a e riconosciuto/a per quello che fai?",
+    scenario: "Quanto senti che gli altri, riconoscano davvero il tuo impegno?",
     instructions: [
       "Immagine di un Piatto stellato di alta cucina",
       "Immagine di un Piatto casalingo di lasagna.",
@@ -99,7 +99,7 @@ export const questions26to30: Question[] = [
       },
       {
         value: "Poco Apprezzato",
-        text: "(Positivo: resilienza superiore e motivazione intrinseca, capacità di perseverare negli obiettivi nonostante la mancanza di feedback positivi, indipendenza dal giudizio altrui) (Negativo: frustrazione accumulata e potenziale calo della motivazione estrinseca, rischio di isolamento professionale e percezione di ingiustizia)."
+        text: "(Positivo: resilienza superiore e motivazione intrinseca, capacità di perseverarse negli obiettivi nonostante la mancanza di feedback positivi, indipendenza dal giudizio altrui) (Negativo: frustrazione accumulata e potenziale calo della motivazione estrinseca, rischio di isolamento professionale e percezione di ingiustizia)."
       },
       {
         value: "Invisibile",
@@ -111,7 +111,7 @@ export const questions26to30: Question[] = [
   },
   {
     num: 29,
-    scenario: "Non sei tu il responsabile del team ma il lavoro non procede.  Tu come ti comporti?",
+    scenario: "Il lavoro è bloccato ma tu non sei il responsabile. Qual è la tua reazione istintiva per sbloccare la situazione?",
     instructions: [
       "Immagine di un fiume che scorre placido e tranquillo",
       "Immagine qualcuno che se prepara a fare rafting sul fiume.",
@@ -119,14 +119,14 @@ export const questions26to30: Question[] = [
       "Immagine di una diga enorme."
     ],
     captions: [
-      "Non Sono il Responsabile",
+      "Aspetto e Rispetto i Ruoli",
       "Ogni Tanto Do una Spinta",
       "Mi Carico del Lavoro degli Altri",
       "Faccio Tutto da Solo"
     ],
     options: [
       {
-        value: "Non Sono il Responsabile",
+        value: "Aspetto e Rispetto i Ruoli",
         text: "(Positivo: rigoroso rispetto della gerarchia e dei ruoli formali, fiducia nei processi di delega e attesa dell'intervento dell'autorità preposta per non generare caos organizzativo) (Negativo: passività operativa e mancanza di leadership informale, rischio di indifferenza verso il fallimento collettivo per eccessivo ossequio burocratico)."
       },
       {
@@ -147,7 +147,7 @@ export const questions26to30: Question[] = [
   },
   {
     num: 30,
-    scenario: "Come ti comporti di solito quando parli con le persone, in generale?",
+    scenario: "Come ti comporti di solito quando parli con le persone?",
     instructions: [
       "Immagine di un trombone che suona a festa.",
       "Immagine di un equalizzatore grafico con cursori bilanciati.",
@@ -180,5 +180,7 @@ export const questions26to30: Question[] = [
     ],
     softSkill: "ComunicazioneEfficace, Empatia",
     characteristics: "Stile di Comunicazione, Sensibilità, Evitamento del Conflitto"
+  }
+];omunicazione, Sensibilità, Evitamento del Conflitto"
   }
 ];

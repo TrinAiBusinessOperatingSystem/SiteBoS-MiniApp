@@ -3,7 +3,7 @@ import { Question } from "../types";
 export const questions61to65: Question[] = [
   {
     num: 61,
-    scenario: "Pensa agli oggetti che non usi più.",
+    scenario: "Come ti comporti con ciò che appartiene al tuo passato, ma che oggi non ha più un'utilità pratica?",
     instructions: [
       "Immagine di un baule antico, chiuso ma elegante, simbolo di ricordi preziosi conservati.",
       "Immagine di una soffitta piena di oggetti impolverati,  un po' disordinata ma con potenziale.",
@@ -14,7 +14,7 @@ export const questions61to65: Question[] = [
       "Custode di Ricordi",
       "Soffitta dei Ricordi",
       "Pronto a Lasciare Andare",
-      "Tabula Rasa"
+      "Butto tutto, Tabula Rasa"
     ],
     options: [
       {
@@ -30,7 +30,7 @@ export const questions61to65: Question[] = [
         text: "(Positivo: eccellente pragmatismo e orientamento all'efficienza funzionale, capacità di semplificare i processi e focalizzarsi sul valore attuale) (Negativo: potenziale scarsa valorizzazione dell'esperienza passata, rischio di eccessivo distacco emotivo che può apparire freddezza)."
       },
       {
-        value: "Tabula Rasa",
+        value: "Butto tutto, Tabula Rasa",
         text: "(Positivo: massima proiezione verso il futuro e attitudine al rinnovamento radicale, agilità nel liberarsi di vincoli del passato per abbracciare il nuovo) (Negativo: rischio di perdita della memoria storica e di ripetizione di errori passati, potenziale sradicamento identitario per eccesso di rimozione)."
       }
     ],
@@ -75,7 +75,7 @@ export const questions61to65: Question[] = [
   },
   {
     num: 63,
-    scenario: "Sei in ascensore con altri colleghi, e qualcuno fà dei \"rumori indesiderati\". Qual è la tua reazione?",
+    scenario: "Sei in ascensore con altri colleghi, e qualcuno \"ne molla una\". Qual è la tua reazione?",
     instructions: [
       "Immagine di una statua di marmo impassibile e fredda,  totale distacco emotivo.",
       "Immagine di una persona che alza gli occhi al cielo con un sorriso forzato,  leggera disapprovazione ma auto-controllo.",
@@ -153,7 +153,14 @@ export const questions61to65: Question[] = [
       "Immagine di una strada di campagna tortuosa che si allontana dal percorso principale,  via \"obliqua\" che compromette un po' l'integrità.",
       "Immagine di un sentiero di montagna in salita,  direzione \"pulita\" ma più faticosa e lenta.",
       "Immagine di una scalata alpinistica su una parete rocciosa verticale,  integrità assoluta ma massima difficoltà e lentezza."
-    ],    options: [
+    ],
+    captions: [
+      "Scorciatoia",
+      "Sentiero",
+      "Salita",
+      "Scalata"
+    ],
+    options: [
       {
         value: "Scorciatoia",
         text: "(Positivo: massima efficienza operativa e orientamento al risultato immediato, attitudine a risolvere criticità urgenti con pragmatismo) (Negativo: rischio di compromesso etico e opportunismo, potenziale erosione della reputazione e dell'integrità a lungo termine)."

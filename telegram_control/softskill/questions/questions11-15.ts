@@ -3,7 +3,7 @@ import { Question } from "../types";
 export const questions: Question[] = [
   {
     num: 11,
-    scenario: "Un cliente si lamenta per un piccolo errore, subito risolto, ma è comunque arrabbiato. Cosa fai per calmarlo?",
+    scenario: "Un cliente si lamenta per un piccolo errore, subito risolto, ma è ancora irritato. Cosa fai per calmarlo?",
     instructions: [
       "Immagine di un giudice che sentenzia dall'alto di un trono.",
       "Immagine di un cameriere che porge sbrigativamente uno scontrino senza guardare il cliente negli occhi.",
@@ -11,13 +11,13 @@ export const questions: Question[] = [
       "Immagine di un tappeto rosso srotolato fino ai piedi del cliente, con tanto di valletto che porge un cuscino di velluto."
     ],
     captions: [
-      "Tutti possiamo sbagliare",
+      "Niente, Tutti possiamo sbagliare",
       "Porgi le tue Scuse",
       "Mi Scuso, Spiego e Rassicuro",
       "Super-Scuse e Omaggio"
-    ],    options: [
+    ],    options: [
       {
-        value: "Tutti possiamo sbagliare",
+        value: "Niente, Tutti possiamo sbagliare",
         text: "(Positivo: eccellente assertività professionale e mantenimento dell'autostima operativa, approccio basato sul realismo che evita l'autocolpevolizzazione tossica, rassicurazione pragmatica sulla risoluzione del problema) (Negativo: rischio di distacco empatico percepito come indifferenza, potenziale alienazione del cliente per mancanza di validazione emotiva, scarsa attitudine al 'service recovery' relazionale)."
       },
       {
@@ -38,7 +38,7 @@ export const questions: Question[] = [
   },
   {
     num: 12,
-    scenario: "Pensa al tuo lavoro e alla tua carriera. ",
+    scenario: "Guardando al tuo percorso professionale, quale di queste visioni descrive meglio la tua ambizione per i prossimi anni?",
     instructions: [
       "Immagine di uno in ufficio, tranquillo e sistemato.",
       "Immagine di un trasloco ben Organizzato.",
@@ -49,7 +49,7 @@ export const questions: Question[] = [
       "Nello Stesso Posto Tutta la Vita",
       "Un Posto Fisso anche con un Cambiamento",
       "Mi Impegno per Fare Qualcosa di Mio",
-      "Mi Lancio Senza Paura"
+      "Mi Lancio in nuove avventure Senza Paura"
     ],
     options: [
       {
@@ -61,11 +61,11 @@ export const questions: Question[] = [
         text: "(Positivo: approccio equilibrato tra sicurezza contrattuale e mobilità professionale, gestione prudente e pianificata della carriera, capacità di conciliare stabilità e adattamento ambientale) (Negativo: potenziale eccesso di cautela che frena la realizzazione del pieno potenziale, rischio di rimanere in una 'comfort zone' limitante, possibile timore del rischio calcolato)."
       },
       {
-        value: "Provo a Fare Qualcosa di Mio",
+        value: "Mi Impegno per Fare Qualcosa di Mio",
         text: "(Positivo: spirito imprenditoriale bilanciato e realismo strategico, capacità di esplorare nuove strade mantenendo una base di sicurezza, orientamento alla costruzione graduale di valore autonomo) (Negativo: potenziale lentezza nel distaccarsi da situazioni consolidate, rischio di dispersione di energie tra due fronti, ambizione imprenditoriale che potrebbe mancare di audacia estrema in momenti critici)."
       },
       {
-        value: "Mi Lancio Senza Paura",
+        value: "Mi Lancio in nuove avventure Senza Paura",
         text: "(Positivo: audacia imprenditoriale superiore e orientamento al successo radicale, forte propensione al rischio strategico e determinazione nel perseguire l'autonomia totale, dinamismo estremo) (Negativo: rischio elevato di instabilità finanziaria per decisioni impulsive, mancanza di prudenza e pianificazione difensiva, potenziale sovrastima delle proprie risorse in contesti volatili)."
       }
     ],
@@ -74,7 +74,7 @@ export const questions: Question[] = [
   },
   {
     num: 13,
-    scenario: "Un cliente ti spiega cosa vuole, cosa fai per capirlo bene?",
+    scenario: "Un cliente ti espone le sue necessità in modo dettagliato. Qual è il tuo metodo per assicurarti di aver compreso tutto?",
     instructions: [
       "Immagine di un blocco notes e una penna abbandonati su una scrivania deserta.",
       "Immagine di un binocolo puntato verso un orizzonte nebbioso e indistinto.",
@@ -82,26 +82,26 @@ export const questions: Question[] = [
       "Immagine di una stanza illuminata da una lampada puntata su un soggetto \"sotto torchio\"."
     ],
     captions: [
-      "Annuisco e Scrivo Tutto, Cerchero di Capire Dopo.",
-      "Contestualizzo le Richieste e Cerco di Capire.",
+      "Annuisco e Scrivo Tutto, Capirò Dopo",
+      "Contestualizzo e Cerco di Capire Subito",
       "Chiedo Documentazioni e Spiegazioni.",
-      "Lo Interrogo, Devo Capire per Aiutare il Cliente"
+      "Molte domande, Devo Capire per Aiutare"
     ],
     options: [
       {
-        value: "Annuisco e Scrivo Tutto, Cerchero di Capire Dopo.",
+        value: "Annuisco e Scrivo Tutto, Capirò Dopo",
         text: "(Positivo: pragmatismo operativo immediato ed evitamento di attriti in fase di briefing, capacità di utilizzare il team come risorsa di decodifica successiva, mantenimento del flusso comunicativo) (Negativo: scarso impegno cognitivo iniziale e rischio di omissione di dati critici, mancanza di 'ownership' nella comprensione immediata, percezione di scarsa competenza analitica)."
       },
       {
-        value: "Contestualizzo le Richieste e Cerco di Capire.",
+        value: "Contestualizzo e Cerco di Capire Subito",
         text: "(Positivo: rapidità di sintesi e orientamento alla comprensione dell'essenziale, approccio pragmatico che privilegia la velocità operativa senza rallentare il cliente, attitudine all'azione rapida) (Negativo: rischio di comprensione superficiale o imprecisa dei dettagli tecnici, potenziale trascuratezza di clausole complesse per eccessiva focalizzazione sulla visione d'insieme)."
       },
       {
         value: "Chiedo Documentazioni e Spiegazioni.",
-        text: "(Positivo: coscienziosità superiore e rigore metodologico nella raccolta dati, impegno concreto per la qualità dell'output finale attraverso la chiarezza totale, orientamento alla precisione) (Negativo: potenziale rallentamento del processo decisionale per eccesso di burocratizzazione, rischio di focalizzarsi su dettagli non prioritari, possibile inefficienza in contesti che richiedono agilità immediata)."
+        text: "(Positivo: coscienziosità superiore e rigore metodologico nella raccolta dati, impegno concreto per la qualità dell'output finale attraverso la chiarezza totale, orientamento alla precisione) (Negativo: potenziale rallentamento del processo decisionale per eccesso di burocratizzazione, rischio di focalizzarsi su dettagli non prioritari, possibile inefficacia in contesti che richiedono agilità immediata)."
       },
       {
-        value: "Lo Interrogo, Devo Capire per Aiutare il Cliente",
+        value: "Molte domande, Devo Capire per Aiutare",
         text: "(Positivo: massima accuratezza analitica e ricerca della verità operativa, impegno totale per l'eccellenza comunicativa ed eliminazione di ogni ambiguità, forte senso di responsabilità verso il cliente) (Negativo: rischio di percezione di aggressività o pedanteria, potenziale paralisi da analisi per eccessivo rigore informativo, inefficacia in contesti che premiano la sintesi e la rapidità esecutiva)."
       }
     ],
@@ -110,7 +110,7 @@ export const questions: Question[] = [
   },
   {
     num: 14,
-    scenario: "Come usi di solito la bilancia del giudizio?",
+    scenario: "Sulla tua \"bilancia\" delle decisioni, quale di questi piatti ha solitamente il peso maggiore?",
     instructions: [
       "Immagine di una bilancia, che pende dal lato delle persone multietniche.",
       "Immagine di una bilancia, che pende dal lato dei divertimenti, un parco divertimenti sopra il piatto.",
@@ -118,26 +118,26 @@ export const questions: Question[] = [
       "Immagine di una bilancia, che pende dal lato degli sport."
     ],
     captions: [
-      "Pesano di Più i Rapporti Umani",
-      "Pesano di Più i Divertimenti",
-      "Pesano di Più le Responsabilità",
-      "Pesa di Più il mio Benessere"
+      "I Rapporti Umani",
+      "I Divertimenti",
+      "Le Responsabilità",
+      "Il mio Benessere"
     ],
     options: [
       {
-        value: "Pesano di Più i Rapporti Umani",
+        value: "I Rapporti Umani",
         text: "(Positivo: spiccata intelligenza emotiva e orientamento umanistico, capacità di costruire relazioni solide e leali come base per ogni successo professionale, empatia profonda) (Negativo: rischio di parzialità nel giudizio dovuta al coinvolgimento emotivo, potenziale difficoltà nel prendere decisioni impopolari o puramente razionali, vulnerabilità alle dinamiche relazionali)."
       },
       {
-        value: "Pesano di Più i Divertimenti",
+        value: "I Divertimenti",
         text: "(Positivo: ottimismo contagioso e capacità di 'stress management' attraverso la leggerezza, approccio creativo e non convenzionale alla vita, alta reattività emotiva positiva) (Negativo: rischio di scarsa affidabilità in contesti ad alta pressione e responsabilità, potenziale superficialità gestionale, mancanza di focus sugli obiettivi di lungo periodo)."
       },
       {
-        value: "Pesano di Più le Responsabilità",
+        value: "Le Responsabilità",
         text: "(Positivo: affidabilità granitica e forte senso del dovere professionale, orientamento all'impegno costante e alla consegna dei risultati, lealtà istituzionale superiore) (Negativo: rischio elevato di stress da sovraccarico e burnout, potenziale rigidità relazionale per eccesso di rigore, difficoltà a delegare e a concedersi spazi di recupero necessari)."
       },
       {
-        value: "Pesa di Più il mio Benessere",
+        value: "Il mio Benessere",
         text: "(Positivo: eccellente gestione dell'equilibrio vita-lavoro e sostenibilità della performance nel tempo, approccio consapevole che preserva le risorse personali come asset strategico) (Negativo: potenziale percezione di scarsa dedizione o ambizione in contesti 'high-performance', rischio di non rispondere adeguatamente a picchi di lavoro straordinari)."
       }
     ],
@@ -146,7 +146,7 @@ export const questions: Question[] = [
   },
   {
     num: 15,
-    scenario: "Pensa al futuro. Come ti senti di solito quando pensi a cosa ti aspetta?",
+    scenario: "Pensa al futuro, qual è la sensazione che provi più spesso?",
     instructions: [
       "Immagine di qualcuno che cammina dritto senza paura.",
       "Immagine di uno zaino in spalla, pronto a partire.",
@@ -156,12 +156,12 @@ export const questions: Question[] = [
     captions: [
       "Futuro? Zero Problemi",
       "Pronto ad Ogni Caso",
-      "Boh, Chi lo Sa?",
+      "Boh e Chi lo Sa",
       "Futuro? Panico Totale"
     ],
     options: [
       {
-        value: "Futuro? Zero Paranoie",
+        value: "Futuro? Zero Problemi",
         text: "(Positivo: ottimismo resiliente superiore e fiducia proattiva nel proprio futuro, approccio privo di freni inibitori verso l'innovazione e l'ignoto, coraggio operativo spiccato) (Negativo: rischio di imprudenza strategica e sottovalutazione dei rischi sistemici, potenziale mancanza di piani di emergenza per eccesso di sicurezza, scarsa propensione alla pianificazione difensiva)."
       },
       {
@@ -169,7 +169,7 @@ export const questions: Question[] = [
         text: "(Positivo: eccellente capacità di previsione e gestione proattiva del rischio, approccio metodico alla pianificazione del futuro che garantisce sicurezza e controllo in ogni scenario) (Negativo: rischio di ansia anticipatoria e iper-controllo paralizzante, potenziale perdita di spontaneità operativa, eccessivo dispendio di energie cognitive nella preparazione di scenari improbabili)."
       },
       {
-        value: "Boh, Chi lo Sa?",
+        value: "Boh e Chi lo Sa",
         text: "(Positivo: massima flessibilità adattiva e orientamento al presente ('mindfulness'), capacità di navigare nell'incertezza senza stress eccessivo, apertura alla serendipità e alla creatività) (Negativo: imprevidenza gestionale e mancanza di obiettivi di lungo termine, rischio di subire passivamente il cambiamento invece di guidarlo, percezione di scarsa affidabilità strategica)."
       },
       {
@@ -179,5 +179,7 @@ export const questions: Question[] = [
     ],
     softSkill: "PianificazioneEOrganizzazione, GestioneDelloStress",
     characteristics: "Livelli di Ansia, Proattività, Orientamento al Futuro"
+  }
+];cs: "Livelli di Ansia, Proattività, Orientamento al Futuro"
   },
 ];

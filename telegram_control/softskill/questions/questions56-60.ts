@@ -3,7 +3,7 @@ import { Question } from "../types";
 export const questions56to60: Question[] = [
   {
     num: 56,
-    scenario: "Lavori sotto gli occhi degli altri.",
+    scenario: "Come cambia il tuo modo di lavorare e la tua concentrazione quando sai di essere osservato da colleghi o superiori?",
     instructions: [
       "Immagine di un artista che si esibisce sicuro sul palco,  ama essere al centro dell'attenzione.",
       "Immagine di una persona concentrata al microscopio,  ignora totalmente chi la guarda,  focus totale.",
@@ -11,26 +11,26 @@ export const questions56to60: Question[] = [
       "Immagine di una persona che si copre il volto con le mani,  esasperata dagli sguardi,  forte disagio."
     ],
     captions: [
-      "Palcoscenico Naturale",
-      "Focus Indisturbato",
-      "Leggero Fastidio",
-      "Sguardi Insopportabili"
+      "Mi Sento Stimolato",
+      "Resto Indifferente",
+      "Mi Sento Sotto Esame",
+      "Perdo il Focus"
     ],
     options: [
       {
-        value: "Palcoscenico Naturale",
+        value: "Mi Sento Stimolato",
         text: "(Positivo: carisma naturale e propensione alla leadership visibile, capacità di capitalizzare l'attenzione esterna per motivare e influenzare il team) (Negativo: rischio di egocentrismo e dipendenza eccessiva dal consenso pubblico, potenziale percezione di scarsa autenticità o teatralità)."
       },
       {
-        value: "Focus Indisturbato",
+        value: "Resto Indifferente",
         text: "(Positivo: eccezionale capacità di concentrazione e impermeabilità alle distrazioni ambientali, alta efficienza operativa in contesti ad alta densità sociale) (Negativo: rischio di isolamento relazionale e scarsa ricettività ai feedback esterni, percezione di distacco o mancanza di spirito di squadra)."
       },
       {
-        value: "Leggero Fastidio",
+        value: "Mi Sento Sotto Esame",
         text: "(Positivo: sensibilità sociale equilibrata che permette di mantenere alti standard di performance pur restando vigili sul contesto esterno) (Negativo: potenziale calo di efficacia in situazioni di stress espositivo prolungato, insicurezza latente che può frenare l'assertività pubblica)."
       },
       {
-        value: "Sguardi Insopportabili",
+        value: "Perdo il Focus",
         text: "(Positivo: forte attitudine al lavoro di analisi 'dietro le quinte' e alla tutela rigorosa della privacy, ricerca di ambienti protetti ad alta concentrazione) (Negativo: vulnerabilità critica allo stress espositivo e ansia sociale paralizzante, incapacità di gestire ruoli che richiedano visibilità o rappresentanza)."
       }
     ],
@@ -155,26 +155,26 @@ export const questions56to60: Question[] = [
       "Immagine di semi sparsi al vento,  condivisione totale e aperta."
     ],
     captions: [
-      "Seme Geloso",
-      "Seme Prudente",
-      "Seme In Vaso",
-      "Seme al Vento"
+      "Segreto Strategico",
+      "Solo a Pochi Fidati",
+      "Condivisione Mirata",
+      "Diffusione Aperta"
     ],
     options: [
       {
-        value: "Seme Geloso",
+        value: "Segreto Strategico",
         text: "(Positivo: massima tutela della riservatezza e della proprietà intellettuale individuale, controllo totale sullo sviluppo e la qualità degli output) (Negativo: isolamento professionale e chiusura autoreferenziale, rinuncia ai benefici del confronto e della contaminazione creativa del team)."
       },
       {
-        value: "Seme Prudente",
+        value: "Solo a Pochi Fidati",
         text: "(Positivo: condivisione strategica e selettiva volta a costruire relazioni di fiducia e lealtà con collaboratori scelti, protezione del valore dell'idea) (Negativo: limitazione del potenziale di diffusione e rallentamento dell'innovazione per eccessiva cautela nella circolazione delle informazioni)."
       },
       {
-        value: "Seme In Vaso",
+        value: "Condivisione Mirata",
         text: "(Positivo: approccio equilibrato tra protezione e apertura, attitudine a scegliere i contesti e i tempi più appropriati per massimizzare l'impatto dell'idea) (Negativo: potenziale perdita di opportunità di networking spontaneo o virale per eccessiva selettività o moderazione nella condivisione)."
       },
       {
-        value: "Seme al Vento",
+        value: "Diffusione Aperta",
         text: "(Positivo: massima apertura alla collaborazione e allo scambio di idee indiscriminato, attitudine a favorire l'innovazione aperta e il progresso collettivo) (Negativo: rischio di perdita del controllo sulla paternità dell'idea e potenziale sfruttamento altrui, mancanza di riservatezza strategica su concetti sensibili)."
       }
     ],

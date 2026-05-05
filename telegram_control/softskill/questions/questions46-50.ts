@@ -39,7 +39,7 @@ export const questions46to50: Question[] = [
   },
   {
     num: 47,
-    scenario: "Come la vivi il percorso per andare al lavoro tutti i giorni?",
+    scenario: "Pensa al tragitto che compi ogni giorno per andare al lavoro. Come vivi abitualmente quel tempo di spostamento?",
     instructions: [
       "Immagine di una persona che medita pacificamente su un treno con un paesaggio rilassante che scorre fuori dal finestrino.",
       "Immagine di una persona che pedala con costanza su una bicicletta lungo una strada dritta e infinita.",
@@ -75,7 +75,7 @@ export const questions46to50: Question[] = [
   },
   {
     num: 48,
-    scenario: "Ti offrono il lavoro della tua vita,  ma devi cambiare città e prendere meno soldi.  Che fai?",
+    scenario: "Ti offrono il lavoro della tua vita, ma devi cambiare città e prendere meno soldi. Che fai?",
     instructions: [
       "Immagine di una fortezza inamovibile e ben difesa.",
       "Immagine di una bussola che indica direzioni diverse in modo incerto.",
@@ -86,7 +86,7 @@ export const questions46to50: Question[] = [
       "Resto",
       "Ci Penso",
       "Parto",
-      "Il Mondo - Casa Mia"
+      "Nessun confine mi ferma"
     ],
     options: [
       {
@@ -102,7 +102,7 @@ export const questions46to50: Question[] = [
         text: "(Positivo: forte orientamento all'autorealizzazione e coraggio nel perseguire la propria missione professionale, adattabilità superiore e spirito d'iniziativa) (Negativo: rischio di squilibrio vita-lavoro, potenziale sradicamento affettivo forzato e stress da ricollocamento in contesti con minore stabilità finanziaria immediata)."
       },
       {
-        value: "Il Mondo - Casa Mia",
+        value: "Nessun confine mi ferma",
         text: "(Positivo: mentalità cosmopolita e apertura globale senza confini, estrema flessibilità e visione 'world-wide' della propria carriera e identità) (Negativo: mancanza di radici e stabilità territoriale, rischio di superficialità nelle relazioni a lungo termine, percezione di un nomadismo professionale potenzialmente alienante)."
       }
     ],
@@ -111,7 +111,7 @@ export const questions46to50: Question[] = [
   },
   {
     num: 49,
-    scenario: "Un nuovo collega di diversa cultura entra nel team. Come lo accogli di solito?",
+    scenario: "Un nuovo collega di diversa cultura entra nel team. Come lo accogli?",
     instructions: [
       "Immagine di un muro di mattoni che separa due spazi.",
       "Immagine di una stretta di mano frettolosa e distaccata.",
@@ -119,26 +119,26 @@ export const questions46to50: Question[] = [
       "Immagine di un cerchio di persone che si tengono per mano, includendo una nuova persona nel cerchio."
     ],
     captions: [
-      "Si Adatti",
-      "Saluto Formale",
-      "Presentazioni e Spiegazioni",
-      "Integrazione Totale"
+      "Deve rispettare le nostre abitudini",
+      "Mantengo un rapporto formale",
+      "Lo guido nei primi passi tecnici",
+      "Lo aiuto a sentirsi uno di noi"
     ],
     options: [
       {
-        value: "Si Adatti",
+        value: "Deve rispettare le nostre abitudini",
         text: "(Positivo: massima tutela delle procedure e delle routine consolidate del team, orientamento al mantenimento dell'efficienza senza deviazioni esterne) (Negativo: chiusura culturale critica e mancanza di inclusività, approccio etnocentrico che ostacola l'integrazione e demotiva i nuovi talenti internazionali)."
       },
       {
-        value: "Saluto Formale",
+        value: "Mantengo un rapporto formale",
         text: "(Positivo: rispetto delle norme di cortesia professionale con un approccio non invasivo che lascia autonomia al nuovo arrivato, neutralità operativa) (Negativo: accoglienza superficiale e freddezza relazionale, rischio di mancata integrazione profonda, incapacità di cogliere il valore aggiunto della diversità culturale)."
       },
       {
-        value: "Presentazioni e Spiegazioni",
+        value: "Lo guido nei primi passi tecnici",
         text: "(Positivo: proattività nell'onboarding e sensibilità verso le necessità di orientamento del nuovo collega, attitudine collaborativa e inclusiva) (Negativo: rischio di fermarsi a un livello di integrazione puramente tecnico-informativo senza approfondire la comprensione delle specificità culturali individuali)."
       },
       {
-        value: "Integrazione Totale",
+        value: "Lo aiuto a sentirsi uno di noi",
         text: "(Positivo: eccellente intelligenza culturale (CQ) e impegno attivo nella costruzione di un team autenticamente inclusivo, valorizzazione della diversità come risorsa strategica) (Negativo: potenziale eccesso di attenzione alla dimensione relazionale a scapito dell'operatività immediata, rischio di forzare l'integrazione in modo non spontaneo)."
       }
     ],
@@ -147,7 +147,7 @@ export const questions46to50: Question[] = [
   },
   {
     num: 50,
-    scenario: "In riunione, un collega fa una battuta razzista. Come reagisci?",
+    scenario: "Durante una riunione, un collega fa una battuta chiaramente razzista. Qual è la tua reazione immediata?",
     instructions: [
       "Immagine di una maschera che ride, nascondendo la vera reazione.",
       "Immagine di una statua di sale che si scioglie lentamente.",
@@ -155,14 +155,14 @@ export const questions46to50: Question[] = [
       "Immagine di un megafono che amplifica una voce decisa e ferma."
     ],
     captions: [
-      "Risata Educata",
+      "Risata di Circostanza",
       "Silenzio Imbarazzato",
       "Cambio Discorso, Evito Problemi",
-      "Non lo sopporto,  Lo Dico Chiaro e Tondo"
+      "Non lo sopporto, Lo Dico Chiaro e Tondo"
     ],
     options: [
       {
-        value: "Risata Educata",
+        value: "Risata di Circostanza",
         text: "(Positivo: preservazione formale dell'armonia superficiale del gruppo ed evitamento dello scontro diretto in contesti pubblici) (Negativo: collusione implicita con comportamenti discriminatori, mancanza totale di coraggio civile e integrità etica, percezione di debolezza di carattere)."
       },
       {
@@ -174,8 +174,9 @@ export const questions46to50: Question[] = [
         text: "(Positivo: diplomazia comunicativa volta a neutralizzare la tensione e riportare il focus sull'operatività professionale, mediazione cauta) (Negativo: inefficacia nel contrastare il comportamento scorretto alla radice, rischio di legittimare indirettamente l'offesa per mancanza di una condanna esplicita)."
       },
       {
-        value: "Non lo sopporto,  Lo Dico Chiaro e Tondo",
+        value: "Non lo sopporto, Lo Dico Chiaro e Tondo",
         text: "(Positivo: integrità morale superiore e coraggio civile, difesa attiva dei valori di rispetto e inclusione senza compromessi, leadership etica assertiva) (Negativo: rischio di innescare conflitti frontali polarizzanti, potenziale percezione di rigidità moralizzatrice se non gestita con estrema intelligenza emotiva)."
+      }
     ],
     softSkill: "DiversitaEInclusione, CoraggioCivile",
     characteristics: "Consapevolezza Diversità, Condotta Etica, Assertività"

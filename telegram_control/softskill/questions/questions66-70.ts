@@ -3,7 +3,7 @@ import { Question } from "../types";
 export const questions66to70: Question[] = [
   {
     num: 66,
-    scenario: "Come percepiscono il tuo sguardo?",
+    scenario: "Secondo te, Come percepiscono il tuo sguardo?",
     instructions: [
       "Immagine di una maschera bianca, completamente neutra e inespressiva,  sguardo assente.",
       "Immagine di un raggio di sole caldo e accogliente,  sguardo amichevole e aperto,  non seduttivo.",
@@ -39,7 +39,7 @@ export const questions66to70: Question[] = [
   },
   {
     num: 67,
-    scenario: "Quanto sei esigente con te stesso:  \"accontentarsi\" o \"puntare al massimo\"?",
+    scenario: "Che tipo di pressione eserciti su te stesso per raggiungere i tuoi traguardi?",
     instructions: [
       "Immagine di una nuvola che fluttua leggera nel cielo,  senza sforzo,  nessuna pressione.",
       "Immagine di una freccia che punta al centro di un bersaglio,  mirare al risultato \"buono\",  senza eccessi.",

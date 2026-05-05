@@ -3,7 +3,7 @@ import { Question } from "../types";
 export const questions: Question[] = [
   {
     num: 36,
-    scenario: "Pensa a come ti organizzi di solito,  Quanto sei orinato/a, di solito?",
+    scenario: "Osserva il tuo spazio di lavoro o il modo in cui pianifichi la tua giornata: quale di questi scenari ti descrive meglio?",
     instructions: [
       "Immagine di una scrivania nel caos totale.",
       "Immagine di una scrivania un po' in disordine.",
@@ -11,26 +11,26 @@ export const questions: Question[] = [
       "Immagine di un'agenda perfetta."
     ],
     captions: [
-      "Caos Totale",
-      "Organizzato? Forse",
-      "Organizzato",
-      "Organizzazione Perfetta"
+      "Non è Disordine è Caos Creativo",
+      "Approssimativo? io ho il mio Metodo",
+      "Organizzato Sempre",
+      "Metodo Millimetrico"
     ],
     options: [
       {
-        value: "Caos Totale",
+        value: "Non è Disordine è Caos Creativo",
         text: "(Positivo: alta propensione alla spontaneità e flessibilità operativa, capacità di gestire l'imprevisto con creatività e 'thinking outside the box' in situazioni di emergenza) (Negativo: criticità nella pianificazione metodica e disorganizzazione cronica, rischio di inefficienza esecutiva e stress da perdita di controllo sui flussi di lavoro)."
       },
       {
-        value: "Organizzato? Forse",
+        value: "Approssimativo? io ho il mio Metodo",
         text: "(Positivo: approccio ibrido che bilancia ordine e creatività, capacità di adattarsi a diversi gradi di strutturazione del lavoro senza rigidità eccessiva) (Negativo: potenziale incostanza nel mantenimento degli standard organizzativi, rischio di inaffidabilità in processi che richiedono rigore metodologico assoluto)."
       },
       {
-        value: "Organizzato",
+        value: "Organizzato Sempre",
         text: "(Positivo: eccellente organizzazione funzionale e pragmatica, capacità di ottimizzare tempi e risorse attraverso una pianificazione metodica e affidabile, equilibrio tra controllo e flessibilità) (Negativo: potenziale mancanza di attenzione verso i dettagli micro-organizzativi estremi, rischio di sottovalutazione della complessità in contesti iper-strutturati)."
       },
       {
-        value: "Organizzazione Perfetta",
+        value: "Metodo Millimetrico",
         text: "(Positivo: massima efficienza operativa e controllo totale sui processi, precisione millimetrica nella pianificazione e affidabilità assoluta nell'esecuzione di progetti complessi) (Negativo: elevato rischio di rigidità cognitiva e stress da controllo, potenziale difficoltà nel gestire cambiamenti repentini non pianificati, percezione di mancanza di spontaneità)."
       }
     ],
@@ -39,7 +39,7 @@ export const questions: Question[] = [
   },
   {
     num: 37,
-    scenario: "Com'è di solito la \"temperatura\" delle tue relazioni?",
+    scenario: "Quando interagisci con gli altri, come descriveresti il \"clima\" abituale delle tue relazioni?",
     instructions: [
       "Immagine di un paesaggio zen con pietre perfettamente bilanciate e acqua calma.",
       "Immagine di un cielo sereno con qualche nuvola bianca sparsa.",
@@ -75,7 +75,7 @@ export const questions: Question[] = [
   },
   {
     num: 38,
-    scenario: "Pensa alla tua carriera,  Quanto in alto vuoi arrivare?",
+    scenario: "Pensando al tuo percorso di carriera, qual è il traguardo che desideri davvero raggiungere?",
     instructions: [
       "Immagine di una comoda poltrona in un angolo accogliente di una stanza.",
       "Immagine di una scala che sale gradualmente, senza essere ripida.",
@@ -119,26 +119,26 @@ export const questions: Question[] = [
       "Immagine di una fontana zampillante che spruzza acqua abbondantemente in tutte le direzioni, simbolo di generosità."
     ],
     captions: [
-      "Premi, Solo coi Risultati",
-      "Premi Misti, Ma Contano i Fatti",
-      "Premi Soprattutto per l'Impegno",
-      "Premi a Pioggia, Fiducia Totale"
+      "Solo per i Risultati",
+      "Merito e Fatti, Ma Contano i Fatti",
+      "Soprattutto per l'Impegno",
+      "Premi a Pioggia, Migliorano il lavoro"
     ],
     options: [
       {
-        value: "Premi, Solo coi Risultati",
+        value: "Solo per i Risultati",
         text: "(Positivo: rigorosa meritocrazia orientata agli output e massima trasparenza nei criteri di premiazione, forte incentivo all'efficienza e al raggiungimento di KPI ambiziosi) (Negativo: rischio di demotivazione per chi si impegna in processi complessi senza risultati immediati, clima eccessivamente competitivo e calcolatore, mancanza di visione sul potenziale futuro)."
       },
       {
-        value: "Premi Misti, Ma Contano i Fatti",
+        value: "Merito e Fatti, Ma Contano i Fatti",
         text: "(Positivo: approccio pragmatico e bilanciato che riconosce sia il valore del risultato che la qualità del processo, flessibilità manageriale orientata a un'equità sistemica) (Negativo: potenziale ambiguità nella percezione dei criteri di premiazione, rischio di generare confusione se non supportato da una comunicazione estremamente chiara)."
       },
       {
-        value: "Premi Soprattutto per l'Impegno",
+        value: "Soprattutto per l'Impegno",
         text: "(Positivo: forte orientamento allo sviluppo delle persone e alla valorizzazione della motivazione intrinseca, creazione di un clima di sicurezza psicologica che favorisce l'apprendimento) (Negativo: rischio di tollerare performance mediocri o inefficienti, potenziale calo degli standard qualitativi finali, disincentivo per i 'high performers' orientati ai risultati)."
       },
       {
-        value: "Premi a Pioggia, Fiducia Totale",
+        value: "Premi a Pioggia, Migliorano il lavoro",
         text: "(Positivo: massima enfasi sulla coesione del team e sul clima positivo, leadership basata sulla fiducia incondizionata e sul supporto psicologico collettivo) (Negativo: totale assenza di meritocrazia differenziata, rischio di premiare il disimpegno, potenziale frustrazione dei collaboratori più produttivi che non vedono riconosciuto il loro surplus di valore)."
       }
     ],
@@ -147,7 +147,7 @@ export const questions: Question[] = [
   },
   {
     num: 40,
-    scenario: "Devi fare un lavoro importante, e ci sono mille distrazioni intorno,  Quanto riesci a concentrarti di solito?",
+    scenario: "Stai svolgendo un compito critico, ma intorno a te ci sono continui rumori e interruzioni. Come reagisce la tua mente?",
     instructions: [
       "Immagine di un faro potente che proietta un fascio di luce attraverso una fitta nebbia.",
       "Immagine di una candela la cui fiamma oscilla leggermente a causa di una leggera brezza.",

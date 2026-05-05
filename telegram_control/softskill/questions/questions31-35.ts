@@ -3,7 +3,7 @@ import { Question } from "../types";
 export const questions31to35: Question[] = [
   {
     num: 31,
-    scenario: "Immagina di essere al centro dell'attenzione.  Come ti senti di solito in queste situazioni?",
+    scenario: "Immagina di essere al centro dell'attenzione. Come ti senti di solito in queste situazioni?",
     instructions: [
       "Immagine di un attore che si gode il palco.",
       "Immagine di un oratore che parla davanti a un pubblico.",
@@ -13,7 +13,7 @@ export const questions31to35: Question[] = [
     captions: [
       "Star del Palco",
       "Attenzione ok, Ma Non Troppa",
-      "Un Poco a Disagio",
+      "Un Poco di Imbarazzo",
       "Panico da Palcoscenico"
     ],
     options: [
@@ -26,7 +26,7 @@ export const questions31to35: Question[] = [
         text: "(Positivo: equilibrio ottimale tra presenza scenica e sobrietà professionale, capacità di gestire la visibilità con misura senza bisogno di protagonismo, affidabilità riconosciuta) (Negativo: potenziale sottoutilizzo del proprio potenziale di influenza su grandi gruppi, rischio di rimanere in ombra in contesti iper-competitivi)."
       },
       {
-        value: "Un Poco a Disagio",
+        value: "Un Poco di Imbarazzo",
         text: "(Positivo: orientamento alla sostanza e al contenuto piuttosto che alla forma, umiltà intellettuale e preferenza per profili operativi concreti e non autoreferenziali) (Negativo: rischio di auto-limitazione della carriera per evitamento delle occasioni di visibilità, potenziale difficoltà nella comunicazione persuasiva pubblica)."
       },
       {
@@ -39,7 +39,7 @@ export const questions31to35: Question[] = [
   },
   {
     num: 32,
-    scenario: "Quanto è facile di solito fare accettare le tue idee agli altri?",
+    scenario: "Quando proponi una nuova idea o un cambiamento, quanto è facile per te ottenere il consenso degli altri?",
     instructions: [
       "Immagine di semi di tarassaco che volano leggeri nel vento.",
       "Immagine di una mano che accoglie delicatamente un uccellino.",
@@ -71,11 +71,11 @@ export const questions31to35: Question[] = [
       }
     ],
     softSkill: "Negoziazione, ComunicazioneEfficace",
-    characteristics: "Capacità di Persuasione, Influenza, Efficacia Comunicativa"
+    characteristics: "Capacità di Persuasione, Influence, Efficacia Comunicativa"
   },
   {
     num: 33,
-    scenario: "Quando sei diventato/a indipendente economicamente, senza l'aiuto dei tuoi genitori?",
+    scenario: "A che punto della tua vita hai raggiunto la piena indipendenza economica, senza più contare sull'aiuto della tua famiglia?",
     instructions: [
       "Immagine di un ragazzino che cammina sicuro.",
       "Immagine di un giovane adulto che sorride.",
@@ -83,26 +83,26 @@ export const questions31to35: Question[] = [
       "Immagine di una persona anziana che guarda lontano."
     ],
     captions: [
-      "Indipendente da Adolescente",
-      "Indipendente da Giovane",
-      "Indipendente da Adulto ",
-      "Indipendente Tardi"
+      "Adolescente",
+      "Giovane",
+      "Adulto ",
+      "Troppo Tardi"
     ],
     options: [
       {
-        value: "Indipendente da Adolescente",
+        value: "Adolescente",
         text: "(Positivo: precocità nell'assunzione di responsabilità e forte orientamento all'autonomia ('early-bloomer'), spirito d'iniziativa eccezionale e resilienza economica) (Negativo: potenziale accelerazione forzata dei processi maturativi con sacrificio di fasi esplorative, rischio di eccessiva focalizzazione sulla dimensione utilitaristica)."
       },
       {
-        value: "Indipendente da Giovane",
+        value: "Giovane",
         text: "(Positivo: allineamento ottimale alle tappe evolutive sociali e corretto bilanciamento tra formazione e autonomia, integrazione fluida nel mondo del lavoro) (Negativo: rischio di eccessivo conformismo ai percorsi standardizzati, potenziale mancanza di sperimentazione fuori dagli schemi convenzionali)."
       },
       {
-        value: "Indipendente da Adulto ",
+        value: "Adulto ",
         text: "(Positivo: approccio ponderato e consolidamento delle competenze prima del salto nell'autonomia totale, crescita strutturata e metodica delle risorse personali) (Negativo: potenziale ritardo nell'acquisizione di piena ownership decisionale, rischio di dipendenza prolungata da sistemi di supporto esterni)."
       },
       {
-        value: "Indipendente Tardi",
+        value: "Troppo Tardi",
         text: "(Positivo: focalizzazione estrema sulla preparazione e sulla solidità delle basi prima dell'indipendenza, maturazione profonda dei processi interni) (Negativo: vulnerabilità prolungata e possibile percezione di inadeguatezza sociale, mancanza di esperienza diretta nella gestione proattiva del rischio economico in giovane età)."
       }
     ],
@@ -111,7 +111,7 @@ export const questions31to35: Question[] = [
   },
   {
     num: 34,
-    scenario: "Devi svolgere un lavoro che ti annoia molto. Come ti comporti di solito per portare a termine il compito?",
+    scenario: "Ti viene assegnato un compito estremamente noioso e ripetitivo. Qual è la tua strategia per portarlo a termine?",
     instructions: [
       "Immagine di una sedia vuota davanti a una scrivania ingombra di scartoffie.",
       "Immagine di una catena di montaggio veloce e ripetitiva",
@@ -126,7 +126,7 @@ export const questions31to35: Question[] = [
     ],
     options: [
       {
-        value: "Rimando a Domani",
+        value: "Rimando a Domani ",
         text: "(Positivo: capacità di gestire il carico emotivo immediato evitando l'avversione totale verso il compito, flessibilità nella pianificazione del lavoro in base allo stato d'animo) (Negativo: elevata tendenza alla procrastinazione disfunzionale, scarsa tolleranza alla frustrazione operativa, rischio di accumulo di scadenze critiche)."
       },
       {
@@ -147,7 +147,7 @@ export const questions31to35: Question[] = [
   },
   {
     num: 35,
-    scenario: "Ti fanno una critica, che non meriti. Come reagisci?",
+    scenario: "Ricevi una critica dura che ritieni profondamente ingiusta e non meritata. Qual è la tua reazione interiore?",
     instructions: [
       "Immagine di un diamante splendente e intatto.",
       "Immagine di un fiume che scorre placido e continua il suo corso.",
@@ -155,30 +155,32 @@ export const questions31to35: Question[] = [
       "Immagine di una scultura di vetro fragile che si frantuma in mille pezzi."
     ],
     captions: [
-      "Non a Me",
-      "Ok, Avanti il Prossimo",
-      "Ci Penso Su",
-      "Mi Distruggono"
+      "Non Mi Tocca Proprio",
+      "Non me ne curo e Passo Oltre",
+      "Ci Penso Su, Rifletto e Analizzo",
+      "Mi Sento Ferito e mi Infrango"
     ],
     options: [
       {
-        value: "Non a Me",
+        value: "Non Mi Tocca Proprio",
         text: "(Positivo: incrollabile fiducia in sé e resilienza ai giudizi ingiusti, capacità di mantenere un'immagine di sé integra nonostante le pressioni esterne negative) (Negativo: potenziale cecità verso il feedback correttivo, rischio di arroganza percepita, chiusura verso il miglioramento continuo)."
       },
       {
-        value: "Ok, Avanti il Prossimo",
+        value: "Non me ne curo e Passo Oltre",
         text: "(Positivo: eccellente pragmatismo emotivo e rapidità di elaborazione del feedback, attitudine a superare i conflitti senza rimuginazioni improduttive) (Negativo: rischio di superficialità nell'analisi delle proprie aree di miglioramento, potenziale percezione di indifferenza o scarsa sensibilità relazionale)."
       },
       {
-        value: "Ci Penso Su",
+        value: "Ci Penso Su, Rifletto e Analizzo",
         text: "(Positivo: alta capacità riflessiva e orientamento alla crescita personale attraverso l'autocritica costruttiva, umiltà e apertura all'apprendimento) (Negativo: vulnerabilità alla rimuginazione eccessiva e perdita di sicurezza di sé per sovraccarico analitico, rischio di farsi condizionare troppo dal giudizio altrui)."
       },
       {
-        value: "Mi Distruggono",
+        value: "Mi Sento Ferito e mi Infrango",
         text: "(Positivo: estrema sensibilità interpersonale e desiderio profondo di armonia e riconoscimento, attitudine a vivere con intensità le dinamiche relazionali) (Negativo: fragilità emotiva critica e bassa resilienza, paralisi operativa di fronte al giudizio negativo, dipendenza totale dall'approvazione esterna per l'equilibrio psicologico)."
       }
     ],
     softSkill: "Resilienza, Autocritica",
     characteristics: "Resilienza Emotiva, Sensibilità alla Critica, Autostima"
+  }
+];tiva, Sensibilità alla Critica, Autostima"
   }
 ];

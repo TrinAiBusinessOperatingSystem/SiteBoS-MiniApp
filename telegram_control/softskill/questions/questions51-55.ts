@@ -39,7 +39,7 @@ export const questions51to55: Question[] = [
   },
   {
     num: 52,
-    scenario: " Una collega subisce molestie verbali pesanti da un altro collega. Come reagisci?",
+    scenario: "Una collega subisce molestie verbali pesanti da un altro collega. Come reagisci?",
     instructions: [
       "Immagine di una mano tesa, pronta ad afferrare un'altra mano in difficoltà.",
       "Immagine di una mano che porge una spazzola per \"spazzare via\" lo sporco, minimizzando il problema.",
@@ -66,7 +66,7 @@ export const questions51to55: Question[] = [
         text: "(Positivo: attitudine alla mediazione diplomatica volta a risolvere il conflitto con discrezione e rapidità, ricerca di armonia relazionale) (Negativo: rischio di inefficacia protettiva per la vittima, potenziale sottovalutazione della gravità oggettiva delle molestie per eccesso di prudenza)."
       },
       {
-        value: "Segnalo Subito all'HR",
+        value: "Scelgo la Segnalazione Formale",
         text: "(Positivo: massimo rispetto delle procedure di 'compliance' e tolleranza zero verso le condotte improprie, attivazione dei protocolli di tutela professionale) (Negativo: potenziale irrigidimento delle relazioni interne, rischio di essere percepiti come eccessivamente burocratici se non accompagnato da supporto umano)."
       }
     ],

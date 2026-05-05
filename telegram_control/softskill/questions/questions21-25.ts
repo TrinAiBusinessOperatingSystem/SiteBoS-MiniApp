@@ -3,7 +3,7 @@ import { Question } from "../types";
 export const questions21to25: Question[] = [
   {
     num: 21,
-    scenario: "Vedi una persona che fa qualcosa di strano.  Cosa pensi di solito?",
+    scenario: "Quando osservi un comportamento fuori dagli schemi o bizzarro, qual è il tuo primo pensiero?",
     instructions: [
       "Immagine di un camaleonte che cambia colore per adattarsi all'ambiente.",
       "Immagine di una bilancia della giustizia perfettamente in equilibrio.",
@@ -15,7 +15,8 @@ export const questions21to25: Question[] = [
       "Cerco di Essere Logico",
       "A Volte Non Capisco",
       "Ma Che Gli Salta in Mente?"
-    ],    options: [
+    ],
+    options: [
       {
         value: "Cerco di Capire Sempre Tutti",
         text: "(Positivo: eccellente apertura mentale e attitudine all'inclusione radicale, capacità di sospendere il giudizio immediato per favorire la comprensione delle diversità comportamentali) (Negativo: rischio di eccessiva giustificazione di condotte disfunzionali, potenziale mancanza di rigore critico, tendenza al 'buonismo' che può compromettere l'obiettività valutativa)."
@@ -38,7 +39,7 @@ export const questions21to25: Question[] = [
   },
   {
     num: 22,
-    scenario: "Pensa ai tuoi soldi. Quanta parte di quello che guadagni metti via per il futuro?",
+    scenario: "Quanta parte di quello che guadagni metti via per il futuro?",
     instructions: [
       "Immagine di un deserto arido e senza vita.",
       "Immagine di un piccolo germoglio che spunta dalla terra.",
@@ -74,7 +75,7 @@ export const questions21to25: Question[] = [
   },
   {
     num: 23,
-    scenario: "Come ti comporti quando devi dire le cose chiare a qualcuno, senza giri di parole?",
+    scenario: "Quando la situazione richiede di essere schietti e diretti, come la affronti?",
     instructions: [
       "Immagine di un Leone.",
       "Immagine di un Gufo",
@@ -82,14 +83,14 @@ export const questions21to25: Question[] = [
       "Immagine di un Pesce."
     ],
     captions: [
-      "Parlo Chiaro e Forte",
+      "Schietto e Diretto Sempre",
       "Chiaro, ma con Cautela",
-      "Non Voglio Essere Diretto",
-      "Muto"
+      "Evito di Essere Diretto",
+      "Resto in Silenzio"
     ],
     options: [
       {
-        value: "Parlo Chiaro e Forte",
+        value: "Schietto e Diretto Sempre",
         text: "(Positivo: comunicazione ultra-diretta e trasparenza assoluta, efficienza nella trasmissione di messaggi critici senza ambiguità, franchezza che favorisce la risoluzione immediata dei problemi) (Negativo: rischio elevato di aggressività percepita e danno relazionale, mancanza di tatto diplomatico, potenziale isolamento per eccessiva durezza espressiva)."
       },
       {
@@ -97,11 +98,11 @@ export const questions21to25: Question[] = [
         text: "(Positivo: eccellente equilibrio tra assertività e diplomazia, capacità di comunicare verità scomode preservando l'integrità della relazione, approccio professionale e rispettoso) (Negativo: rischio di diluire eccessivamente il messaggio per timore della reazione altrui, potenziale perdita di incisività in situazioni che richiederebbero una fermezza assoluta)."
       },
       {
-        value: "Non Voglio Essere Diretto",
+        value: "Evito di Essere Diretto",
         text: "(Positivo: orientamento alla preservazione dell'armonia del team e sensibilità verso i sentimenti altrui, approccio non conflittuale che favorisce un clima rilassato) (Negativo: inefficacia nel problem-solving comunicativo e ambiguità informativa, rischio di accumulare malintesi che possono degenerare, mancanza di assertività necessaria)."
       },
       {
-        value: "Muto",
+        value: "Resto in Silenzio",
         text: "(Positivo: massima prudenza comunicativa in situazioni ad alto rischio, capacità di esercitare il silenzio come forma di autoprotezione e controllo dell'impulsività verbale) (Negativo: passività totale di fronte alla necessità di feedback, rinuncia alla leadership comunicativa, percezione di inaffidabilità o disimpegno relazionale)."
       }
     ],
@@ -110,7 +111,7 @@ export const questions21to25: Question[] = [
   },
   {
     num: 24,
-    scenario: "Come ti poni di solito quando devi dare indicazioni o guidare gli altri?",
+    scenario: "Quando devi dare direttive o guidare il lavoro di altre persone, Qual è il tuo stile?",
     instructions: [
       "Immagine di un Parlamento Democratico",
       "Immagine di una biblioteca",
@@ -130,7 +131,7 @@ export const questions21to25: Question[] = [
       },
       {
         value: "Suggerisco, Non Comando",
-        text: "(Positivo: approccio non direttivo che favorisce l'autonomia e la responsabilizzazione dei collaboratori, leadership ispirazionale basata sulla stima e non sull'autorità formale) (Negativo: potenziale mancanza di incisività e guida incerta, rischio di dispersione operativa in assenza di confini chiari, percezione di un'autorità troppo blanda)."
+        text: "(Positivo: approccio non direttivo che favorisce l'autonomia e la responsabilizzazione dei collaboratori, leadership ispirazionale basata sulla stima e non sull'autorità formale) (Negativo: potenziale mancanza di incisività e guida incerta, rischio di dispersione operativa in assenza di conﬁni chiari, percezione di un'autorità troppo blanda)."
       },
       {
         value: "Guido con Gentilezza",
@@ -146,7 +147,7 @@ export const questions21to25: Question[] = [
   },
   {
     num: 25,
-    scenario: "Secondo te, quanto riesci a influenzare gli altri con il tuo modo di essere?",
+    scenario: "Quanto pensi che il tuo modo di fare sia d'ispirazione per gli altri?",
     instructions: [
       "Immagine di un manichino di alta moda con un abito unico e originale in un atelier vuoto.",
       "Immagine di una persona che si guarda allo specchio e vede riflessa una figura con un abbigliamento simile ma non identico, \"ispirato\".",
@@ -156,7 +157,7 @@ export const questions21to25: Question[] = [
     captions: [
       "Stile Unico, Nessuno Mi Copia",
       "Qualcuno Mi Copia un Po'",
-      "Mi Imitano Abbastanza",
+      "Mi Imitano Spesso",
       "Tutti Vogliono Essere Come Me"
     ],
     options: [
@@ -169,7 +170,7 @@ export const questions21to25: Question[] = [
         text: "(Positivo: influenza sottile e misurata in cerchie ristrette, stile personale riconoscibile ma non ostentato, equilibrio tra distinzione e integrazione sociale) (Negativo: potenziale mancanza di ambizione nell'espandere il proprio raggio d'influenza, leadership circoscritta a contesti informali, influenza non massimizzata)."
       },
       {
-        value: "Mi Imitano Abbastanza",
+        value: "Mi Imitano Spesso",
         text: "(Positivo: capacità naturale di fungere da 'role model' per molti, leadership d'opinione consolidata e carisma socialmente riconosciuto, forte capacità di influenzare tendenze e decisioni altrui) (Negativo: rischio di eccessivo focus sulla propria immagine pubblica e ricerca di convalida esterna, potenziale dipendenza dal riconoscimento sociale per alimentare l'autostima)."
       },
       {

@@ -4,7 +4,7 @@ import { Question } from "../types";
 export const questions: Question[] = [
   {
     num: 6,
-    scenario: "Un collega spiega una cosa complicata, ma non si capisce niente. Tu che fai?",
+    scenario: "Un collega sta spiegando un concetto complicato in modo confuso. Tu che fai?",
     instructions: [
       "Immagine di qualcuno che annuisce.",
       "Immagine di qualcuno che ascolta educatamente ma pensa ad altro.",
@@ -19,7 +19,7 @@ export const questions: Question[] = [
     ],
     options: [
       {
-        value: "Va Bene, non Capisco, Me lo Spiega Qualcun Altro.",
+        value: "Va Bene, non Capisco, Me lo Spiega Qualcun Altro",
         text: "(Positivo: eccellente orientamento alla diplomazia relazionale e preservazione del clima di gruppo, capacità di filtrare le inefficienze comunicative altrui senza generare attriti immediati) (Negativo: approccio passivo che compromette l'accuratezza operativa, rischio elevato di errori esecutivi per mancata verifica delle informazioni, rinuncia alla proattività comunicativa)."
       },
       {
@@ -40,7 +40,7 @@ export const questions: Question[] = [
   },
   {
     num: 7,
-    scenario: "Ti hanno chiesto di portare a termine alcuni compiti in azienda, hai carta bianca tu che fai?",
+    scenario: "Ti viene affidata la responsabilità di un progetto importante con totale libertà decisionale. Qual è il tuo primo istinto?",
     instructions: [
       "Immagine di manager che ascolta una presentazione di un collega",
       "Immagine di un team che fa brainstorming.",
@@ -51,7 +51,7 @@ export const questions: Question[] = [
       "Relax, ci pensa la mia squadra",
       "Divido il Carico con i colleghi",
       "Mi Prendo la Guida del Gruppo",
-      "Io Devo Finire il Lavoro, Punto"
+      "lo affronto da solo, Devo Finire il Lavoro"
     ],
     options: [
       {
@@ -67,7 +67,7 @@ export const questions: Question[] = [
         text: "(Positivo: forte assunzione di responsabilità e leadership carismatica, orientamento all'azione guidata dall'esempio, capacità di supervisione attiva e controllo di qualità diretto sui processi) (Negativo: rischio di micromanagement e soffocamento dell'autonomia altrui, potenziale limitazione della crescita professionale dei collaboratori, tendenza all'accentramento decisionale)."
       },
       {
-        value: "Io Devo Finire il Lavoro, Punto",
+        value: "lo affronto da solo, Devo Finire il Lavoro",
         text: "(Positivo: dedizione estrema al dovere e affidabilità operativa totale, senso di responsabilità ipertrofico che garantisce la consegna dei risultati anche in condizioni avverse) (Negativo: rischio elevatissimo di burnout e scarsa scalabilità della leadership, incapacità di delega che crea colli di bottiglia, potenziale compromissione della salute e del clima di team a lungo termine)."
       }
     ],
@@ -76,7 +76,7 @@ export const questions: Question[] = [
   },
   {
     num: 8,
-    scenario: "Ti accorgi per primo di un problema da risolvere. che fai?",
+    scenario: "Ti accorgi per primo di un problema critico che potrebbe bloccare il lavoroo. Qual è la tua mossa immediata?",
     instructions: [
       "Immagine di qualcuno che chiede aiuto.",
       "Immagine di una squadra di tiro alla fune.",
@@ -86,7 +86,7 @@ export const questions: Question[] = [
     captions: [
       "Lo faccio notare ad un responsabile",
       "Chiedo aiuto ai colleghi",
-      "Se c'è un problema, io la scalo anche da solo",
+      "Se c'è un problema, io lo scalo anche da solo",
       "Lo Affronto, Io Proteggo il mio Team"
     ],
     options: [
@@ -99,11 +99,11 @@ export const questions: Question[] = [
         text: "(Positivo: orientamento alla risoluzione collettiva e al supporto reciproco, valorizzazione dell'intelligenza collettiva per affrontare la complessità, promozione di un clima collaborativo) (Negativo: rischio di diluizione della tempestività operativa, potenziale mancanza di leadership individuale risolutiva, tendenza a dipendere dal consenso del gruppo anche per problemi tecnici semplici)."
       },
       {
-        value: "Affrontare qualsiasi problema",
+        value: "Se c'è un problema, io lo scalo anche da solo",
         text: "(Positivo: proattività assoluta e 'ownership' totale dei problemi, massima autonomia decisionale e orientamento al risultato immediato, percezione di competenza e coraggio operativo) (Negativo: rischio di isolamento e mancata condivisione di 'lesson learned', sovraccarico cognitivo individuale, potenziale arroganza nel non riconoscere il valore del supporto altrui)."
       },
       {
-        value: "E' Dovere Risolvere",
+        value: "Lo Affronto, Io Proteggo il mio Team",
         text: "(Positivo: spirito di servizio e altruismo professionale orientato alla protezione del team, leadership naturale basata sulla cura e sul supporto proattivo, alta affidabilità etica) (Negativo: rischio di farsi carico di responsabilità improprie, potenziale esposizione al burnout per eccesso di generosità, possibile creazione di dipendenza nel team che smette di crescere autonomamente)."
       }
     ],
@@ -112,7 +112,7 @@ export const questions: Question[] = [
   },
   {
     num: 9,
-    scenario: "Pensa ai tuoi obiettivi top, quelli che ti stanno più a cuore. Quanto ti pesa raggiungerli?",
+    scenario: "Pensando ai tuoi traguardi professionali più ambiziosi, quelli che ti stanno più a cuore. Quanto ti pesa raggiungerli?",
     instructions: [
       "Immagine di una piuma che vola leggera.",
       "Immagine di qualcuno che cammina in salita.",
@@ -123,7 +123,7 @@ export const questions: Question[] = [
       "Non sono affaticato",
       "Mi Impegno",
       "Faccio Fatica",
-      "Un Muro Invalicabile"
+      "Sembrano un Muro"
     ],
     options: [
       {
@@ -139,7 +139,7 @@ export const questions: Question[] = [
         text: "(Positivo: perseveranza eroica e tenacia incrollabile di fronte alle avversità, capacità di operare in condizioni di sforzo estremo senza desistere, forte orientamento al sacrificio per l'obiettivo) (Negativo: elevato rischio di stress cronico e calo della qualità della vita, mancata ottimizzazione del percorso per eccessiva focalizzazione sulla fatica, percezione di una scalata non sostenibile nel lungo periodo)."
       },
       {
-        value: "Un Muro Invalicabile",
+        value: "Sembrano un Muro",
         text: "(Positivo: pragmatismo nell'identificare limiti oggettivi e istinto di autoprotezione contro sforzi infruttuosi, onestà intellettuale nel riconoscere la necessità di nuove risorse o competenze) (Negativo: bassa autostima e locus of control esterno, tendenza alla rinuncia precoce e alla paralisi decisionale, rischio di vittimismo e mancanza di proattività nel cercare alternative)."
       }
     ],
@@ -148,7 +148,7 @@ export const questions: Question[] = [
   },
   {
     num: 10,
-    scenario: "Quale di queste immagini ti piace di più?",
+    scenario: "Se dovessi associare il tuo ambiente di lavoro ideale a un paesaggio, in quale di questi ti ritroveresti di più?",
     instructions: [
       "Immagine di una strada trafficata di città.",
       "Immagine di una montagna serena.",

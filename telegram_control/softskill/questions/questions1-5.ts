@@ -4,7 +4,7 @@ import { Question } from "../types";
 export const questions: Question[] = [
   {
     num: 1,
-    scenario: "Cosa pensi sia meglio tra attendere per un grosso risultato o una gratifica immediata?",
+    scenario: "Quando punti a un traguardo importante, come gestisci la scelta tra avere un vantaggio subito o costruire nel tempo?",
     instructions: [
       "Immagine di un seme che viene piantato.",
       "Immagine di una bilancia in equilibrio",
@@ -14,7 +14,7 @@ export const questions: Question[] = [
     captions: [
       "Investimento",
       "Compromesso",
-      "Presente",
+      "Breve Termine",
       "Ricompensa Immediata"
     ],
     options: [
@@ -27,8 +27,8 @@ export const questions: Question[] = [
         text: "(Positivo: equilibrio pragmatico tra visione futura e godimento del presente, alta flessibilità adattiva e capacità di mediazione tra diverse priorità temporali, approccio versatile orientato al realismo operativo) (Negativo: rischio di mediocrità prestazionale non eccellendo in nessuna delle due direzioni, potenziale percezione di mancanza di visione radicale o di indecisione strategica)."
       },
       {
-        value: "Presente",
-        text: "(Positivo: massima capacità di cogliere opportunità immediate e 'carpe diem', forte intelligenza emotiva orientata al benessere presente, entusiasmo e spontaneità che favoriscono la reattività immediata) (Negativo: scarsa visione prospettica e imprevidenza gestionale, rischio di trascurare le conseguenze sistemiche a lungo termine, percezione di instabilità e bassa affidabilità in progetti complessi)."
+        value: "Breve Termine",
+        text: "(Positivo: massima capacità di cogliere opportunità immediate e 'carpe diem', forte intelligenza emotiva orientata al benessere presente, entusiasmo e spontaneità che favoriscono la reattività immediata) (Negativo: scarsa visione prospettica e imprevidenza gestionale, rischio di trascuratezza delle conseguenze sistemiche a lungo termine, percezione di instabilità e bassa affidabilità in progetti complessi)."
       },
       {
         value: "Ricompensa Immediata",
@@ -40,7 +40,7 @@ export const questions: Question[] = [
   },
   {
     num: 2,
-    scenario: "Come ti vedi quando le persone ti causano stress o preoccupazioni?",
+    scenario: "Quando le persone o l'ambiente di lavoro generano forte stress, quale parola descrive meglio la tua reazione?",
     instructions: [
       "Immagine di un uomo in meditazione in un lago paradisiaco",
       "Immagine di una barca a largo con un cielo leggermente nuvoloso.",
@@ -76,7 +76,7 @@ export const questions: Question[] = [
   },
   {
     num: 3,
-    scenario: "In una riunione di team, una collega fa una proposta che ti sembra interessante, ma un collega uomo la liquida con un commento sprezzante. Come reagisci?",
+    scenario: "Assisti a una scena in cui una valida proposta di una collega donna viene sminuita con sufficienza da un collega uomo. Qual è la tua reazione?",
     instructions: [
       "Immagine di un placido fiume.",
       "Immagine di qualcuno che fa \"un like\" su un social",
@@ -85,7 +85,7 @@ export const questions: Question[] = [
     ],
     captions: [
       "Faccio Finta di Niente",
-      "Le dò un Like e vado avanti",
+      "Le dò un Like veloce",
       "Riprendo l'Idea e Apro la Discussione",
       "Difendo la Collega e Condanno il Gesto"
     ],
@@ -95,12 +95,12 @@ export const questions: Question[] = [
         text: "(Positivo: massima conservazione dell'energia personale ed evitamento del conflitto diretto, mantenimento di un'apparente neutralità diplomatica in contesti rischiosi) (Negativo: collusione passiva con dinamiche tossiche o discriminatorie, mancanza di assunzione di responsabilità sociale, percezione di persona poco integra o indifferente ai valori dell'equità)."
       },
       {
-        value: "Le dò un Like e vado avanti",
+        value: "Le dò un Like veloce",
         text: "(Positivo: supporto diplomatico moderato e tentativo di validazione senza escalation del conflitto, approccio cauto orientato alla preservazione del clima lavorativo) (Negativo: supporto insufficiente per cambiare dinamiche strutturali, rischio di apparire tiepido o inefficace di fronte a ingiustizie manifeste, mancata presa di posizione netta contro il sessismo)."
       },
       {
         value: "Riprendo l'Idea e Apro la Discussione",
-        text: "(Positivo: promozione attiva dell'inclusione e del merito, capacità di reindirizzare il focus sul valore professionale ignorando le provocazioni personali, leadership orientata al team) (Negativo: mancata denuncia diretta del comportamento irrispettoso (approccio indiretto), rischio di non fermare definitivamente la dinamica patriarcale alla radice, percezione di eccessiva diplomazia)."
+        text: "(Positivo: promozione attiva dell'inclusione e del merito, capacità di reindirizzare il focus sul valore professionale ignorando le provocazioni personali, leadership orientata al team) (Negativo: mancata denuncia diretta del comportamento irrispettoso (approccio indiretto), rischio di non fare definitiva la dinamica patriarcale alla radice, percezione di eccessiva diplomazia)."
       },
       {
         value: "Difendo la Collega e Condanno il Gesto",
@@ -120,14 +120,14 @@ export const questions: Question[] = [
       "Immagine di uno leader politico in un comizio."
     ],
     captions: [
-      "Impongo la mia Filosofia",
+      "Impongo le scelte Aziendali",
       "Io Vado Avanti da Solo",
       "Cerco di Spiegargli",
-      "Faccio da Portavoce"
+      "Portavoce del Dissenso"
     ],
     options: [
       {
-        value: "Impongo la mia Filosofia",
+        value: "Impongo le scelte Aziendali",
         text: "(Positivo: decisionismo incisivo e rapidità operativa in situazioni di crisi, leadership direttiva capace di imporre una direzione chiara quando il tempo è critico) (Negativo: rischio di autoritarismo e alienazione del team, mancanza di ascolto che genera resistenza passiva, possibile danno irreparabile alla cultura collaborativa aziendale)."
       },
       {
@@ -139,7 +139,7 @@ export const questions: Question[] = [
         text: "(Positivo: leadership supportiva e attenzione al benessere del team durante le transizioni, approccio rassicurante che mira a minimizzare lo stress da cambiamento) (Negativo: potenziale lentezza decisionale e dispersione di energie nel cercare il consenso, rischio di inefficienza operativa se il cambiamento richiede tempi stretti e azioni risolutive)."
       },
       {
-        value: "Faccio da Portavoce",
+        value: "Portavoce del Dissenso",
         text: "(Positivo: promozione della democrazia partecipativa e ricerca di soluzioni condivise, massima valorizzazione del feedback del team e della coesione di gruppo) (Negativo: rischio di paralisi decisionale per eccesso di democrazia, compromessi al ribasso che annacquano l'efficacia del cambiamento, percezione di leadership debole di fronte alle sfide strategiche)."
       }
     ],
@@ -148,7 +148,7 @@ export const questions: Question[] = [
   },
   {
     num: 5,
-    scenario: "Hai continue discussioni con un collega che la vuole sempre vinta. Come reagisci di solito?",
+    scenario: "Ti scontri spesso con un collega che vuole avere sempre ragione a tutti i costi. Come reagisci per non farti logorare?",
     instructions: [
       "Immagine di una bandiera bianca.",
       "Immagine di una persona che si allontana sbuffando.",
@@ -156,14 +156,14 @@ export const questions: Question[] = [
       "Immagine di una macchina da F1 che sfreccia via."
     ],
     captions: [
-      "Mollo Subito",
+      "Lo Ignoro",
       "Mi lamento, ma evito lo scontro",
       "Testa Bassa e Vado Avanti",
-      "Riparto alla Grande"
+      "Imparo e Riparto"
     ],
     options: [
       {
-        value: "Mollo Subito",
+        value: "Lo Ignoro",
         text: "(Positivo: economia delle energie e preservazione dello stress personale, pragmatismo nell'evitare battaglie improduttive o ego-riferite) (Negativo: scarsa resilienza e tendenza alla fuga di fronte alle sfide interpersonali, percezione di fragilità caratteriale e mancanza di assertività nella difesa delle proprie idee)."
       },
       {
@@ -175,11 +175,13 @@ export const questions: Question[] = [
         text: "(Positivo: perseveranza incrollabile e determinazione nel raggiungere gli obiettivi nonostante le ostilità, alta tolleranza allo stress relazionale e tenacia operativa) (Negativo: rischio elevato di burnout e cecità relazionale, tendenza alla rigidità che impedisce di trovare soluzioni win-win, percezione di eccessiva durezza o mancanza di intelligenza emotiva)."
       },
       {
-        value: "Riparto alla Grande",
+        value: "Imparo e Riparto",
         text: "(Positivo: resilienza costruttiva e capacità di apprendimento dai conflitti, orientamento alla crescita personale e alla trasformazione degli ostacoli in opportunità) (Negativo: focus eccessivo sulla performance individuale a discapito della cura della relazione, rischio di apparire autocentrati o di ignorare l'impatto emotivo del conflitto sul clima di team)."
       }
     ],
     softSkill: "Resilienza, GestioneDelloStress",
     characteristics: "Resilienza, Perseveranza, Ottimismo, Approccio alla Risoluzione dei Problemi"
+  }
+];imismo, Approccio alla Risoluzione dei Problemi"
   }
 ];
