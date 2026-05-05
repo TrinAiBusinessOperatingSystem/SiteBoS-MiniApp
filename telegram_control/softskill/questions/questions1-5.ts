@@ -1,4 +1,3 @@
-
 import { Question } from "../types";
 
 export const questions: Question[] = [
@@ -181,7 +180,5 @@ export const questions: Question[] = [
     ],
     softSkill: "Resilienza, GestioneDelloStress",
     characteristics: "Resilienza, Perseveranza, Ottimismo, Approccio alla Risoluzione dei Problemi"
-  }
-];imismo, Approccio alla Risoluzione dei Problemi"
   }
 ];

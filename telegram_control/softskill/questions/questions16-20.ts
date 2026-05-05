@@ -181,6 +181,4 @@ export const questions16to20: Question[] = [
     softSkill: "RelazioniInterpersonali, ComunicazioneEfficace",
     characteristics: "Introversione vs. Estroversione, Comfort Sociale, Apertura"
   }
-];one vs. Estroversione, Comfort Sociale, Apertura"
-  }
 ];

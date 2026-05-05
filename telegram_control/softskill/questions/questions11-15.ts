@@ -180,6 +180,4 @@ export const questions: Question[] = [
     softSkill: "PianificazioneEOrganizzazione, GestioneDelloStress",
     characteristics: "Livelli di Ansia, Proattività, Orientamento al Futuro"
   }
-];cs: "Livelli di Ansia, Proattività, Orientamento al Futuro"
-  },
 ];

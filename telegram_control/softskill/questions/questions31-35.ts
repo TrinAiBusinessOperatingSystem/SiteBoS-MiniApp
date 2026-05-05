@@ -181,6 +181,4 @@ export const questions31to35: Question[] = [
     softSkill: "Resilienza, Autocritica",
     characteristics: "Resilienza Emotiva, Sensibilità alla Critica, Autostima"
   }
-];tiva, Sensibilità alla Critica, Autostima"
-  }
 ];

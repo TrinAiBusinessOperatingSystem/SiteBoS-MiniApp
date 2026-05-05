@@ -181,6 +181,4 @@ export const questions41to45: Question[] = [
     softSkill: "GestioneDelTeam, Leadership",
     characteristics: "Assertività, Proattività, Stile di Gestione del Team"
   }
-];tà, Proattività, Stile di Gestione del Team"
-  }
 ];

@@ -181,6 +181,4 @@ export const questions26to30: Question[] = [
     softSkill: "ComunicazioneEfficace, Empatia",
     characteristics: "Stile di Comunicazione, Sensibilità, Evitamento del Conflitto"
   }
-];omunicazione, Sensibilità, Evitamento del Conflitto"
-  }
 ];
