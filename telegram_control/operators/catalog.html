@@ -168,11 +168,28 @@
                     body: JSON.stringify({ action: "get_catalog", _auth: tg.initData, ash: ash, msg: msg })
                 });
                 const raw = await res.json();
-                const data = Array.isArray(raw) ? raw[0] : (raw.catalog || raw);
-                fullCatalog = data.categories || data.catalog?.categories || [];
+                
+                // Parser più flessibile per n8n
+                if (Array.isArray(raw)) {
+                    if (raw.length > 0 && raw[0].categories) {
+                        fullCatalog = raw[0].categories;
+                    } else if (raw.length > 0 && raw[0].catalog && raw[0].catalog.categories) {
+                        fullCatalog = raw[0].catalog.categories;
+                    } else if (raw.length > 0 && raw[0].macrocategories) {
+                        // l'array stesso contiene le categorie
+                        fullCatalog = raw;
+                    } else {
+                        fullCatalog = raw; // fallback array
+                    }
+                } else {
+                    fullCatalog = raw.categories || raw.catalog?.categories || raw;
+                    if (!Array.isArray(fullCatalog)) fullCatalog = [];
+                }
+                
                 renderCatalog();
             } catch (e) {
                 console.error("Load Error:", e);
+                tg.showAlert("Errore di caricamento dati: " + e.message);
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error");
             } finally {
                 loader.classList.add('hidden');
@@ -196,15 +213,22 @@
         function renderCatalog() {
             const container = document.getElementById("catalog-list");
             container.innerHTML = "";
+            
+            if (!Array.isArray(fullCatalog)) {
+                console.warn("fullCatalog is not an array:", fullCatalog);
+                document.getElementById("empty-state").classList.remove('hidden');
+                return;
+            }
+
             const filtered = fullCatalog.filter(c => c.macrocategories === currentMacro);
 
             let activeTotal = 0;
             let hasContent = false;
 
             filtered.forEach(cat => {
-                const subcats = cat.subcategories || [];
-                // ONLY SHOW ACTIVE
-                const activeSubcats = subcats.filter(p => p.blueprint_ready);
+                const subcats = cat.subcategories || cat.products || [];
+                // ONLY SHOW ACTIVE: strictly filter by blueprint_ready
+                const activeSubcats = subcats.filter(p => p.blueprint_ready === true || p.blueprint_ready === "true");
                 
                 if (activeSubcats.length === 0) return; // Skip categories without active items
                 hasContent = true;
