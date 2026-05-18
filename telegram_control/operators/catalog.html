@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Operator Catalog | SiteBoS</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* SiteBoS Architect Alignment */
+        body {
+            background-color: #fafafa !important;
+            color: #000000 !important;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card-noir {
+            background: white !important;
+            border: 1px solid #eeeeee !important;
+            border-radius: 1.5rem;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #000;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .prod-status-active {
+            border-left: 3px solid #000000;
+            background: #fcfcfc;
+        }
+
+        .macro-btn.active {
+            background-color: #000 !important;
+            color: #fff !important;
+        }
+
+        .macro-btn {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Touch target enhancement */
+        .btn-touch {
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body class="bg-bg text-black pb-10 overflow-x-hidden">
+
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4">
+        <div class="spinner"></div>
+        <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Loading Data...</p>
+    </div>
+
+    <div id="app-content" class="max-w-md mx-auto p-5 space-y-6 hidden">
+
+        <!-- HEADER -->
+        <header class="flex justify-between items-start pt-2 fade-in-up">
+            <div>
+                <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1 italic">
+                    Operator Hub
+                </div>
+                <h1 class="text-xl font-black tracking-tighter uppercase leading-none">Gestione Operativa</h1>
+            </div>
+            <button class="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center text-black shadow-sm active:scale-90 transition" onclick="loadCatalog(true)">
+                <i class="fas fa-sync-alt text-xs"></i>
+            </button>
+        </header>
+
+        <!-- MACRO SELECTOR -->
+        <nav class="flex bg-gray-100 p-1 rounded-2xl gap-1 fade-in-up">
+            <button onclick="setMacro('SOP')" id="btn-SOP" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest active">Procedure</button>
+            <button onclick="setMacro('SER')" id="btn-SER" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400">Servizi</button>
+            <button onclick="setMacro('PRO')" id="btn-PRO" class="macro-btn flex-1 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-400">Prodotti</button>
+        </nav>
+
+        <!-- STATS -->
+        <div class="fade-in-up">
+            <div class="card-noir p-4 flex items-center gap-3 w-full justify-center">
+                <div id="count-active" class="w-8 h-8 bg-black rounded-lg flex items-center justify-center font-black text-xs text-white">0</div>
+                <div class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Protocolli Attivi</div>
+            </div>
+        </div>
+
+        <!-- LISTA CATEGORIE -->
+        <div id="catalog-list" class="space-y-4 fade-in-up"></div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-20">
+            <i class="fas fa-box-open text-4xl text-gray-100 mb-4"></i>
+            <p class="text-[10px] font-black uppercase text-gray-300 tracking-widest">Nessun protocollo attivo trovato</p>
+        </div>
+    </div>
+
+    <script>
+        'use strict';
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0cedacd4-f0d3-49b6-b113-fa503b5993f4";
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let ash = urlParams.get('ash');
+        let msg = urlParams.get('msg');
+
+        // Robust parsing for dirty ash: TOKEN?msg=ID
+        if (ash && ash.includes('?msg=')) {
+            const parts = ash.split('?msg=');
+            ash = parts[0];
+            if (!msg) msg = parts[1];
+        }
+
+        let fullCatalog = [], currentMacro = 'SOP';
+
+        async function loadCatalog(force = false) {
+            const loader = document.getElementById('loader');
+            const content = document.getElementById('app-content');
+            if (force) loader.classList.remove('hidden');
+
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "get_catalog", _auth: tg.initData, ash: ash, msg: msg })
+                });
+                const raw = await res.json();
+                const data = Array.isArray(raw) ? raw[0] : (raw.catalog || raw);
+                fullCatalog = data.categories || data.catalog?.categories || [];
+                renderCatalog();
+            } catch (e) {
+                console.error("Load Error:", e);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error");
+            } finally {
+                loader.classList.add('hidden');
+                content.classList.remove('hidden');
+            }
+        }
+
+        function setMacro(macro) {
+            currentMacro = macro;
+            document.querySelectorAll('.macro-btn').forEach(b => {
+                b.classList.remove('active', 'text-white');
+                b.classList.add('text-gray-400');
+            });
+            const activeBtn = document.getElementById('btn-' + macro);
+            activeBtn.classList.add('active', 'text-white');
+            activeBtn.classList.remove('text-gray-400');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            renderCatalog();
+        }
+
+        function renderCatalog() {
+            const container = document.getElementById("catalog-list");
+            container.innerHTML = "";
+            const filtered = fullCatalog.filter(c => c.macrocategories === currentMacro);
+
+            let activeTotal = 0;
+            let hasContent = false;
+
+            filtered.forEach(cat => {
+                const subcats = cat.subcategories || [];
+                // ONLY SHOW ACTIVE
+                const activeSubcats = subcats.filter(p => p.blueprint_ready);
+                
+                if (activeSubcats.length === 0) return; // Skip categories without active items
+                hasContent = true;
+
+                const catEl = document.createElement("div");
+                catEl.className = "card-noir overflow-hidden transition-all fade-in-up";
+
+                catEl.innerHTML = `
+                <div class="p-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition" onclick="toggleCat(this)">
+                    <div class="flex items-center gap-3">
+                        <div class="w-7 h-7 bg-black text-white rounded-lg flex items-center justify-center font-black text-[10px]">${activeSubcats.length}</div>
+                        <div class="flex flex-col">
+                            <span class="font-black text-xs uppercase tracking-tight">${cat.short_name || cat.name}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2"> 
+                        <i class="fas fa-chevron-down text-[10px] text-gray-200 transition-transform ml-1 mr-2"></i>
+                    </div>
+                </div>
+                <div class="cat-body border-t border-gray-50 hidden">
+                    <div class="prod-list"></div>
+                </div>`;
+
+                const prodList = catEl.querySelector(".prod-list");
+                activeSubcats.forEach(prod => {
+                    activeTotal++;
+                    const pEl = document.createElement("div");
+                    pEl.className = "flex justify-between items-center p-4 border-b border-gray-50 last:border-b-0 prod-status-active";
+                    pEl.innerHTML = `
+                    <div class="flex-1 pr-4">
+                        <p class="font-bold text-[11px] uppercase tracking-tight leading-tight">${prod.short_name || prod.name}</p>
+                        <p class="text-[7px] font-medium text-gray-400 uppercase tracking-widest mt-0.5">Attivo</p>
+                    </div>
+                    <div class="flex gap-3 items-center">
+                        <button class="px-5 h-10 bg-black text-white rounded-xl text-[8px] font-black uppercase tracking-widest active:scale-90 transition shadow-sm" onclick="openSupervisorHub('${prod.callback_data}')">
+                            Gestisci
+                        </button>
+                    </div>`;
+                    prodList.appendChild(pEl);
+                });
+                container.appendChild(catEl);
+            });
+
+            document.getElementById('count-active').innerText = activeTotal;
+
+            if (!hasContent) {
+                document.getElementById("empty-state").classList.remove('hidden');
+            } else {
+                document.getElementById("empty-state").classList.add('hidden');
+            }
+        }
+
+        function toggleCat(el) {
+            const body = el.nextElementSibling;
+            const icon = el.querySelector('.fa-chevron-down');
+            const isOpen = !body.classList.contains('hidden');
+            document.querySelectorAll('.cat-body').forEach(b => b.classList.add('hidden'));
+            document.querySelectorAll('.fa-chevron-down').forEach(i => i.classList.remove('rotate-180'));
+            if (!isOpen) { body.classList.remove('hidden'); icon.classList.add('rotate-180'); }
+        }
+
+        window.openSupervisorHub = (pId) => {
+            location.href = `supervisor_hub.html?ash=${ash}&msg=${msg || ''}&sop_id=${pId}`;
+        };
+
+        if (!ash) {
+            document.getElementById('loader').innerHTML = `<div class="font-black text-red-500">ASH MISSING</div>`;
+        } else {
+            document.addEventListener("DOMContentLoaded", () => loadCatalog());
+        }
+    </script>
+</body>
+
+</html>
