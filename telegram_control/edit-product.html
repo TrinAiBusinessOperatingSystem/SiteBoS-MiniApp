@@ -1170,8 +1170,18 @@
         const ASYNC_AI_WEBHOOK = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
 
         async function runAdvancedDraftingProcess() {
-            // 1. Mostra l'overlay nativo di Telegram per la conferma dell'utente
-            tg.showConfirm(
+            // Helper sicuro per la conferma compatibile sia con Telegram che con browser standard
+            const showConfirm = (message, callback) => {
+                if (tg && typeof tg.showConfirm === 'function') {
+                    tg.showConfirm(message, callback);
+                } else {
+                    const res = window.confirm(message);
+                    callback(res);
+                }
+            };
+
+            // 1. Mostra l'overlay nativo di Telegram o fallback browser
+            showConfirm(
                 "Confermi l'avvio della generazione? Riceverai una notifica su Telegram appena la proposta è pronta.",
                 async (confirm) => {
                     if (!confirm) return; // L'utente annulla, interrompiamo il flusso
@@ -1214,8 +1224,14 @@
                     } catch (err) {
                         console.error("Errore di rete durante la chiamata asincrona:", err);
                     } finally {
-                        // 4. Chiudiamo l'applicazione SOLO dopo che la chiamata è stata trasmessa
-                        tg.close();
+                        // 4. Chiudiamo l'applicazione con un ritardo di 2 secondi dopo che la chiamata è stata trasmessa
+                        setTimeout(() => {
+                            if (tg && typeof tg.close === 'function') {
+                                tg.close();
+                            } else {
+                                window.close();
+                            }
+                        }, 2000);
                     }
                 }
             );
