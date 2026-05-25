@@ -74,9 +74,13 @@
 </head>
 <body class="bg-bg text-black pb-10">
 
+    <!-- LOADER SCREEN WITH FALLBACK CLOSE BUTTON -->
     <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4">
         <div class="spinner"></div>
         <div id="loaderText" data-i18n="loading" class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-500">Caricamento...</div>
+        <button type="button" id="manualCloseBtn" onclick="forceCloseApp()" class="hidden px-5 py-3 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded-xl active:scale-95 transition">
+            Chiudi Finestra
+        </button>
     </div>
 
     <div class="hidden max-w-md mx-auto p-5" id="app-content">
@@ -243,7 +247,7 @@
                 
                 <!-- PROMPT / ISTRUZIONI OPERATIVE -->
                 <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Linee Guida / Vincoli per l'AI</label>
+                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Linee Guiva / Vincoli per l'AI</label>
                     <textarea id="draftInstructions" rows="3" class="w-full bg-gray-50 border border-border rounded-xl p-3 text-xs outline-none focus:border-black resize-none" placeholder="Es: 'Usa solo ingredienti biologici', 'Disponiamo già di un'impastatrice a spirale Testo', 'Includi la firma del GDPR obbligatoria'"></textarea>
                 </div>
 
@@ -949,10 +953,6 @@
             openQuickEditor(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=${sid}`, "Modifica Semilavorato");
         }
 
-        function addBomItem() { bomItems.push({ semi_id: '', qty: 1 }); renderBom(); checkDirty(); }
-        function updateBomItem(index, field, value) { bomItems[index][field] = field==='qty'?parseFloat(value)||0:value; checkDirty(); }
-        function removeBomItem(index) { bomItems.splice(index, 1); renderBom(); checkDirty(); }
-
         // --- ASSET WIDGET ---
         function renderAssets() {
             const container = document.getElementById('assetContainer');
@@ -1284,16 +1284,41 @@
                         console.error("Errore durante la preparazione dei dati:", err);
                     }
 
-                    // Chiusura dell'applicazione esattamente dopo 2 secondi dall'invio della richiesta
+                    // Chiusura o visualizzazione pulsante di chiusura manuale dopo 2 secondi
                     setTimeout(() => {
+                        // Tenta la chiusura automatica nativa
                         if (tg && typeof tg.close === 'function') {
                             tg.close();
-                        } else {
-                            window.close();
                         }
+                        window.close();
+
+                        // Se l'app è ancora aperta (es. Telegram Desktop che ignora la chiusura), aggiorna il loader
+                        const spinner = document.querySelector('#loader .spinner');
+                        if (spinner) spinner.classList.add('hidden');
+                        
+                        const loaderText = document.getElementById('loaderText');
+                        if (loaderText) loaderText.innerText = "Richiesta inviata con successo!";
+                        
+                        const closeBtn = document.getElementById('manualCloseBtn');
+                        if (closeBtn) closeBtn.classList.remove('hidden');
                     }, 2000);
                 }
             );
+        }
+
+        // Chiusura manuale forzata per desktop/ambienti in cui tg.close() viene ignorato
+        function forceCloseApp() {
+            if (tg && typeof tg.close === 'function') {
+                tg.close();
+            }
+            window.close();
+            
+            // In caso estremo in cui la finestra persista, avvisa l'utente di poter chiudere manualmente
+            const loaderText = document.getElementById('loaderText');
+            if (loaderText) loaderText.innerText = "Puoi chiudere questa scheda premendo la 'X' in alto a destra.";
+            
+            const closeBtn = document.getElementById('manualCloseBtn');
+            if (closeBtn) closeBtn.classList.add('hidden');
         }
 
         function triggerZoneFileSelect(zone) {
