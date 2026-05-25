@@ -249,22 +249,58 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     <textarea id="draftInstructions" rows="3" class="w-full bg-gray-50 border border-border rounded-xl p-3 text-xs outline-none focus:border-black resize-none" placeholder="Es: 'Usa solo ingredienti biologici', 'Disponiamo già di un'impastatrice a spirale Testo', 'Includi la firma del GDPR obbligatoria'"></textarea>
                 </div>
 
-                <!-- VISION GROUNDING / CARICAMENTO FILE -->
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Documenti di Supporto (Fatture, Ricette, Foto Asset)</label>
-                    <div onclick="triggerDraftFileSelect()" class="upload-box rounded-xl p-6 text-center border-2 border-dashed border-gray-100 bg-gray-50/40 cursor-pointer hover:border-black/20 transition-all">
-                        <i class="fas fa-file-invoice text-xl text-gray-300 mb-1.5"></i>
-                        <p class="text-[8px] font-black uppercase tracking-widest text-gray-400">Allega o Scatta (Max 4 immagini/PDF)</p>
-                        <input type="file" id="draftFilesInput" class="hidden" accept="image/*,application/pdf" multiple onchange="handleDraftFilesSelection(this)">
+                <!-- GRIGLIA CARICAMENTO FILE SUDDIVISA PER CATEGORIA -->
+                <div class="space-y-2">
+                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Documenti di Supporto (Max 1 per categoria)</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        
+                        <!-- FORNITORI -->
+                        <div id="zone-suppliers" onclick="triggerZoneFileSelect('suppliers')" class="upload-box rounded-xl p-4 text-center border border-gray-100 bg-gray-50/40 cursor-pointer hover:border-black/10 transition-all flex flex-col items-center justify-center min-h-[96px] relative">
+                            <div class="zone-prompt space-y-1">
+                                <i class="fas fa-file-invoice text-base text-gray-300"></i>
+                                <p class="text-[7px] font-black uppercase tracking-wider text-gray-400">Fornitori / Fattura</p>
+                            </div>
+                            <div class="zone-preview hidden w-full h-full flex flex-col items-center justify-center"></div>
+                            <input type="file" id="file-suppliers" class="hidden" accept="image/*,application/pdf" onchange="handleZoneFile(this, 'suppliers')">
+                        </div>
+
+                        <!-- SEMILAVORATI -->
+                        <div id="zone-bom" onclick="triggerZoneFileSelect('bom')" class="upload-box rounded-xl p-4 text-center border border-gray-100 bg-gray-50/40 cursor-pointer hover:border-black/10 transition-all flex flex-col items-center justify-center min-h-[96px] relative">
+                            <div class="zone-prompt space-y-1">
+                                <i class="fas fa-receipt text-base text-gray-300"></i>
+                                <p class="text-[7px] font-black uppercase tracking-wider text-gray-400">Semilavorati / Ricetta</p>
+                            </div>
+                            <div class="zone-preview hidden w-full h-full flex flex-col items-center justify-center"></div>
+                            <input type="file" id="file-bom" class="hidden" accept="image/*,application/pdf" onchange="handleZoneFile(this, 'bom')">
+                        </div>
+
+                        <!-- LOGISTICA -->
+                        <div id="zone-locations" onclick="triggerZoneFileSelect('locations')" class="upload-box rounded-xl p-4 text-center border border-gray-100 bg-gray-50/40 cursor-pointer hover:border-black/10 transition-all flex flex-col items-center justify-center min-h-[96px] relative">
+                            <div class="zone-prompt space-y-1">
+                                <i class="fas fa-map-marked-alt text-base text-gray-300"></i>
+                                <p class="text-[7px] font-black uppercase tracking-wider text-gray-400">Logistica / Aree</p>
+                            </div>
+                            <div class="zone-preview hidden w-full h-full flex flex-col items-center justify-center"></div>
+                            <input type="file" id="file-locations" class="hidden" accept="image/*,application/pdf" onchange="handleZoneFile(this, 'locations')">
+                        </div>
+
+                        <!-- ATTREZZATURE -->
+                        <div id="zone-assets" onclick="triggerZoneFileSelect('assets')" class="upload-box rounded-xl p-4 text-center border border-gray-100 bg-gray-50/40 cursor-pointer hover:border-black/10 transition-all flex flex-col items-center justify-center min-h-[96px] relative">
+                            <div class="zone-prompt space-y-1">
+                                <i class="fas fa-tools text-base text-gray-300"></i>
+                                <p class="text-[7px] font-black uppercase tracking-wider text-gray-400">Asset / Macchinari</p>
+                            </div>
+                            <div class="zone-preview hidden w-full h-full flex flex-col items-center justify-center"></div>
+                            <input type="file" id="file-assets" class="hidden" accept="image/*,application/pdf" onchange="handleZoneFile(this, 'assets')">
+                        </div>
+
                     </div>
-                    <!-- Lista Anteprima File Caricati -->
-                    <div id="draftFilesPreview" class="flex flex-wrap gap-2 mt-2"></div>
                 </div>
             </div>
 
             <!-- Pulsante di Esecuzione -->
             <button type="button" onclick="runAdvancedDraftingProcess()" class="w-full py-5 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-all">
-                <i class="fas fa-wand-magic-sparkles"></i> Genera Infrastruttura con AI
+                <i class="fas fa-wand-magic-sparkles"></i> Genera Infrastruttura
             </button>
         </div>
 
@@ -1138,85 +1174,101 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         }
 
         // --- ASYNC AI DRAFTING ---
-        let uploadedDraftFiles = []; // Array temporaneo dei file in Base64
+        let uploadedDraftFilesByZone = {
+            suppliers: null,
+            bom: null,
+            locations: null,
+            assets: null
+        };
+
         const ASYNC_AI_WEBHOOK = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
 
         async function runAdvancedDraftingProcess() {
-            // 1. Estrazione dei dati e delle configurazioni attuali dell'interfaccia
             const currentFormState = collectDataFromForm();
             const promptText = document.getElementById('draftInstructions').value.trim();
             
-            // Recupero delle variabili necessarie per l'autenticazione ed il tracciamento
             const ash = urlParams.get('ash');
             const messageId = urlParams.get('message_id') || urlParams.get('msg_id');
 
             const payload = {
-                _auth: tg.initData, // Stringa nativa di Telegram
-                ash: ash,           // Token di sicurezza ASH
+                _auth: tg.initData,
+                ash: ash,
                 message_id: messageId,
                 action: 'GENERATE_ADVANCED_DRAFT',
                 sop_id: sopId,
                 product_state: currentFormState,
                 user_instructions: promptText,
-                grounded_files: uploadedDraftFiles
+                grounded_files: uploadedDraftFilesByZone // Mappa divisa per categoria
             };
 
-            // 2. Chiamata asincrona non bloccante (Fire and Forget)
+            // Chiamata asincrona (Fire and Forget)
             fetch(ASYNC_AI_WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             }).catch(err => console.error("Processo avviato in background:", err));
 
-            // 3. Feedback immediato e CHIUSURA FORZATA della Mini App
+            // Notifica e chiusura forzata dell'App
             tg.showAlert(
-                "✨ Generazione avviata!\n\nIl motore AI sta analizzando i documenti e i vincoli inseriti per progettare l'infrastruttura di questo processo. Riceverai una notifica qui su Telegram non appena la bozza sarà pronta per la tua revisione.", 
+                "✨ Generazione avviata!\n\nIl motore AI sta analizzando i documenti ed i vincoli inseriti per progettare l'infrastruttura di questo processo. Riceverai una notifica qui su Telegram non appena la bozza sarà pronta per la tua revisione.", 
                 () => {
-                    // Chiusura immediata della mini app
                     tg.close();
                 }
             );
         }
 
-        // Helper per la selezione e preview geometrica dei file
-        function triggerDraftFileSelect() {
-            document.getElementById('draftFilesInput').click();
+        function triggerZoneFileSelect(zone) {
+            // Evita di riaprire se c'è già un file caricato nella categoria
+            if (uploadedDraftFilesByZone[zone]) return;
+            document.getElementById(`file-${zone}`).click();
         }
 
-        async function handleDraftFilesSelection(input) {
-            const files = Array.from(input.files);
-            if (files.length + uploadedDraftFiles.length > 4) {
-                tg.showAlert("È possibile allegare un massimo di 4 file.");
-                return;
-            }
-            const previewContainer = document.getElementById('draftFilesPreview');
+        async function handleZoneFile(input, zone) {
+            const file = input.files[0];
+            if (!file) return;
 
-            for (let file of files) {
-                try {
-                    const base64Data = await convertFileToBase64(file);
-                    uploadedDraftFiles.push({
-                        name: file.name,
-                        type: file.type,
-                        data: base64Data.split(',')[1]
-                    });
+            try {
+                const base64Data = await convertFileToBase64(file);
+                uploadedDraftFilesByZone[zone] = {
+                    name: file.name,
+                    type: file.type,
+                    data: base64Data.split(',')[1]
+                };
 
-                    const thumb = document.createElement('div');
-                    thumb.className = 'relative w-12 h-12 rounded-lg border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden text-[8px] font-black text-gray-400 uppercase tracking-tighter';
-                    thumb.innerHTML = `
-                        ${file.type.startsWith('image/') ? `<img src="${base64Data}" class="w-full h-full object-cover">` : '<i class="fas fa-file-pdf text-lg"></i>'}
-                        <button type="button" onclick="removeDraftFile(${uploadedDraftFiles.length - 1}, this)" class="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 text-white flex items-center justify-center text-[7px]"><i class="fas fa-times"></i></button>
-                    `;
-                    previewContainer.appendChild(thumb);
-                } catch (err) {
-                    console.error(err);
-                }
+                const zoneEl = document.getElementById(`zone-${zone}`);
+                const promptEl = zoneEl.querySelector('.zone-prompt');
+                const previewEl = zoneEl.querySelector('.zone-preview');
+
+                promptEl.classList.add('hidden');
+                previewEl.classList.remove('hidden');
+
+                previewEl.innerHTML = `
+                    <div class="w-full h-12 rounded-lg overflow-hidden flex items-center justify-center bg-white border border-gray-100">
+                        ${file.type.startsWith('image/') ? `<img src="${base64Data}" class="w-full h-full object-cover">` : '<i class="fas fa-file-pdf text-base text-red-500"></i>'}
+                    </div>
+                    <button type="button" onclick="removeZoneFile(event, '${zone}')" class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[7px] border border-white active:scale-90 transition">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+
+            } catch (err) {
+                console.error(err);
+                tg.showAlert("Errore durante la lettura del file.");
             }
             input.value = '';
         }
 
-        function removeDraftFile(index, btnElement) {
-            uploadedDraftFiles.splice(index, 1);
-            btnElement.parentElement.remove();
+        function removeZoneFile(event, zone) {
+            event.stopPropagation(); // Evita l'attivazione automatica del trigger d'upload al clic su cancella
+            uploadedDraftFilesByZone[zone] = null;
+
+            const zoneEl = document.getElementById(`zone-${zone}`);
+            const promptEl = zoneEl.querySelector('.zone-prompt');
+            const previewEl = zoneEl.querySelector('.zone-preview');
+
+            previewEl.innerHTML = '';
+            previewEl.classList.add('hidden');
+            promptEl.classList.remove('hidden');
         }
 
         function convertFileToBase64(file) {
