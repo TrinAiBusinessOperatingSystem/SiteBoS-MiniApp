@@ -816,7 +816,7 @@
                 openQuickEditor(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=NEW`, "Nuovo Luogo");
             } else if (val === 'SCAN') {
                 currentVisionContext = 'LOCATION';
-                document.getElementById('visionFileInput').click();
+                triggerVision();
                 renderLocations();
             } else {
                 locationItems[index].loc_id = val;
@@ -970,13 +970,18 @@
                 openQuickEditor(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=NEW`, "Nuovo Asset");
             } else if (val === 'SCAN') {
                 currentVisionContext = 'ASSET';
-                document.getElementById('visionFileInput').click();
+                triggerVision();
                 renderAssets();
             } else {
                 assetItems[index].asset_id = val;
                 renderAssets();
                 checkDirty();
             }
+        }
+
+        function triggerVision() {
+            const input = document.getElementById('visionFileInput');
+            if (input) input.click();
         }
 
         async function handleVisionFiles(input) {
@@ -1169,70 +1174,87 @@
 
         const ASYNC_AI_WEBHOOK = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
 
-        async function runAdvancedDraftingProcess() {
+        function runAdvancedDraftingProcess() {
             // Helper sicuro per la conferma compatibile sia con Telegram che con browser standard
             const showConfirm = (message, callback) => {
-                if (tg && typeof tg.showConfirm === 'function') {
-                    tg.showConfirm(message, callback);
-                } else {
+                try {
+                    if (tg && typeof tg.showConfirm === 'function') {
+                        tg.showConfirm(message, callback);
+                    } else if (tg && typeof tg.showPopup === 'function') {
+                        tg.showPopup({
+                            title: 'Conferma',
+                            message: message,
+                            buttons: [
+                                {id: 'ok', type: 'ok', text: 'OK'},
+                                {id: 'cancel', type: 'cancel', text: 'Annulla'}
+                            ]
+                        }, (buttonId) => {
+                            callback(buttonId === 'ok');
+                        });
+                    } else {
+                        const res = window.confirm(message);
+                        callback(res);
+                    }
+                } catch (err) {
+                    console.error("Errore durante l'apertura della conferma:", err);
                     const res = window.confirm(message);
                     callback(res);
                 }
             };
 
-            // 1. Mostra l'overlay nativo di Telegram o fallback browser
+            // 1. Mostra l'overlay nativo o fallback browser
             showConfirm(
                 "Confermi l'avvio della generazione? Riceverai una notifica su Telegram appena la proposta è pronta.",
-                async (confirm) => {
+                (confirm) => {
                     if (!confirm) return; // L'utente annulla, interrompiamo il flusso
 
                     // Mostriamo un feedback visivo di caricamento durante l'invio
                     dom.loader.classList.remove('hidden');
                     document.getElementById('loaderText').innerText = "Invio richiesta all'AI...";
 
-                    // 2. Estrazione dello stato attuale dell'interfaccia
-                    const currentFormState = collectDataFromForm();
-                    const promptText = document.getElementById('draftInstructions').value.trim();
-                    
-                    const ash = urlParams.get('ash');
-                    
-                    // Recupero prioritario del parametro &msg= dalla query string
-                    const messageId = urlParams.get('msg') || urlParams.get('msg_id') || urlParams.get('message_id');
+                    // Esecuzione asincrona del flusso di rete isolata in un blocco sicuro
+                    (async () => {
+                        try {
+                            // 2. Estrazione dello stato attuale dell'interfaccia
+                            const currentFormState = collectDataFromForm();
+                            const promptText = document.getElementById('draftInstructions').value.trim();
+                            const ash = urlParams.get('ash');
+                            const activeMessageId = urlParams.get('msg') || urlParams.get('msg_id') || urlParams.get('message_id') || messageId;
 
-                    const payload = {
-                        _auth: tg.initData,
-                        ash: ash,
-                        message_id: messageId,
-                        action: 'GENERATE_ADVANCED_DRAFT',
-                        sop_id: sopId,
-                        product_state: currentFormState,
-                        user_instructions: promptText,
-                        grounded_files: uploadedDraftFilesByZone // File suddivisi ordinatamente per zona
-                    };
+                            const payload = {
+                                _auth: tg.initData,
+                                ash: ash,
+                                message_id: activeMessageId,
+                                action: 'GENERATE_ADVANCED_DRAFT',
+                                sop_id: sopId,
+                                product_state: currentFormState,
+                                user_instructions: promptText,
+                                grounded_files: uploadedDraftFilesByZone // File suddivisi ordinatamente per zona
+                            };
 
-                    try {
-                        // 3. Attendiamo (await) che la chiamata di rete venga trasmessa con successo
-                        const response = await fetch(ASYNC_AI_WEBHOOK, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(payload)
-                        });
+                            // 3. Attendiamo che la chiamata di rete venga trasmessa con successo
+                            const response = await fetch(ASYNC_AI_WEBHOOK, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
 
-                        if (!response.ok) {
-                            console.error("Errore risposta server:", response.statusText);
-                        }
-                    } catch (err) {
-                        console.error("Errore di rete durante la chiamata asincrona:", err);
-                    } finally {
-                        // 4. Chiudiamo l'applicazione con un ritardo di 2 secondi dopo che la chiamata è stata trasmessa
-                        setTimeout(() => {
-                            if (tg && typeof tg.close === 'function') {
-                                tg.close();
-                            } else {
-                                window.close();
+                            if (!response.ok) {
+                                console.error("Errore risposta server:", response.statusText);
                             }
-                        }, 2000);
-                    }
+                        } catch (err) {
+                            console.error("Errore di rete durante la chiamata asincrona:", err);
+                        } finally {
+                            // 4. Chiudiamo l'applicazione con un ritardo di 2 secondi dopo che la chiamata è stata gestita
+                            setTimeout(() => {
+                                if (tg && typeof tg.close === 'function') {
+                                    tg.close();
+                                } else {
+                                    window.close();
+                                }
+                            }, 2000);
+                        }
+                    })();
                 }
             );
         }
