@@ -1184,34 +1184,40 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         const ASYNC_AI_WEBHOOK = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
 
         async function runAdvancedDraftingProcess() {
-            const currentFormState = collectDataFromForm();
-            const promptText = document.getElementById('draftInstructions').value.trim();
-            
-            const ash = urlParams.get('ash');
-            const messageId = urlParams.get('message_id') || urlParams.get('msg_id');
+            // 1. Mostra l'overlay nativo di Telegram per la conferma dell'utente
+            tg.showConfirm(
+                "Confermi l'avvio della generazione? Riceverai una notifica su Telegram appena la proposta è pronta.",
+                async (confirm) => {
+                    if (!confirm) return; // L'utente annulla, interrompiamo il flusso
 
-            const payload = {
-                _auth: tg.initData,
-                ash: ash,
-                message_id: messageId,
-                action: 'GENERATE_ADVANCED_DRAFT',
-                sop_id: sopId,
-                product_state: currentFormState,
-                user_instructions: promptText,
-                grounded_files: uploadedDraftFilesByZone // Mappa divisa per categoria
-            };
+                    // 2. Estrazione dello stato attuale dell'interfaccia
+                    const currentFormState = collectDataFromForm();
+                    const promptText = document.getElementById('draftInstructions').value.trim();
+                    
+                    const ash = urlParams.get('ash');
+                    
+                    // Recupero prioritario del parametro &msg= dalla query string
+                    const messageId = urlParams.get('msg') || urlParams.get('msg_id') || urlParams.get('message_id');
 
-            // Chiamata asincrona (Fire and Forget)
-            fetch(ASYNC_AI_WEBHOOK, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).catch(err => console.error("Processo avviato in background:", err));
+                    const payload = {
+                        _auth: tg.initData,
+                        ash: ash,
+                        message_id: messageId,
+                        action: 'GENERATE_ADVANCED_DRAFT',
+                        sop_id: sopId,
+                        product_state: currentFormState,
+                        user_instructions: promptText,
+                        grounded_files: uploadedDraftFilesByZone // File suddivisi ordinatamente per zona
+                    };
 
-            // Notifica e chiusura forzata dell'App
-            tg.showAlert(
-                "✨ Generazione avviata!\n\nIl motore AI sta analizzando i documenti ed i vincoli inseriti per progettare l'infrastruttura di questo processo. Riceverai una notifica qui su Telegram non appena la bozza sarà pronta per la tua revisione.", 
-                () => {
+                    // 3. Chiamata asincrona non bloccante (Fire and Forget)
+                    fetch(ASYNC_AI_WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    }).catch(err => console.error("Processo asincrono avviato:", err));
+
+                    // 4. Chiusura immediata dell'applicazione
                     tg.close();
                 }
             );
