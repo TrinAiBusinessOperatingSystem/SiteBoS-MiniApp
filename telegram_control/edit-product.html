@@ -380,7 +380,7 @@
         </div>
     </div>
 
-    <!-- CUSTOM CONFIRMATION MODAL (FALLBACK PER REFFERAL E BUG BRIDGE TG) -->
+    <!-- CUSTOM CONFIRMATION MODAL -->
     <div id="custom-confirm-modal" class="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
         <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 border border-border shadow-2xl scale-95 transition-transform duration-200" id="confirm-modal-box">
             <div class="text-center space-y-2">
@@ -1203,7 +1203,7 @@
 
         const ASYNC_AI_WEBHOOK = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
 
-        // GESTIONE DIALOGO DI CONFERMA CROSS-PLATFORM (Sostituisce bug native in TG desktop/mobile)
+        // GESTIONE DIALOGO DI CONFERMA CROSS-PLATFORM
         function showCustomConfirm(title, message, onConfirm) {
             const modal = document.getElementById('custom-confirm-modal');
             const box = document.getElementById('confirm-modal-box');
@@ -1256,46 +1256,42 @@
                     dom.loader.classList.remove('hidden');
                     document.getElementById('loaderText').innerText = "Invio richiesta all'AI...";
 
-                    // Esecuzione asincrona del flusso isolata per evitare interferenze
-                    (async () => {
-                        try {
-                            const currentFormState = collectDataFromForm();
-                            const promptText = document.getElementById('draftInstructions').value.trim();
-                            const ash = urlParams.get('ash');
-                            const activeMessageId = urlParams.get('msg') || urlParams.get('msg_id') || urlParams.get('message_id') || messageId;
+                    try {
+                        const currentFormState = collectDataFromForm();
+                        const promptText = document.getElementById('draftInstructions').value.trim();
+                        const ash = urlParams.get('ash');
+                        const activeMessageId = urlParams.get('msg') || urlParams.get('msg_id') || urlParams.get('message_id') || messageId;
 
-                            const payload = {
-                                _auth: tg.initData,
-                                ash: ash,
-                                message_id: activeMessageId,
-                                action: 'GENERATE_ADVANCED_DRAFT',
-                                sop_id: sopId,
-                                product_state: currentFormState,
-                                user_instructions: promptText,
-                                grounded_files: uploadedDraftFilesByZone
-                            };
+                        const payload = {
+                            _auth: tg.initData,
+                            ash: ash,
+                            message_id: activeMessageId,
+                            action: 'GENERATE_ADVANCED_DRAFT',
+                            sop_id: sopId,
+                            product_state: currentFormState,
+                            user_instructions: promptText,
+                            grounded_files: uploadedDraftFilesByZone
+                        };
 
-                            const response = await fetch(ASYNC_AI_WEBHOOK, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
+                        // Chiamata HTTP asincrona non bloccante (fire-and-forget)
+                        fetch(ASYNC_AI_WEBHOOK, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        }).catch(err => console.error("Errore durante l'invio della richiesta:", err));
 
-                            if (!response.ok) {
-                                console.error("Errore risposta server:", response.statusText);
-                            }
-                        } catch (err) {
-                            console.error("Errore durante la chiamata asincrona:", err);
-                        } finally {
-                            setTimeout(() => {
-                                if (tg && typeof tg.close === 'function') {
-                                    tg.close();
-                                } else {
-                                    window.close();
-                                }
-                            }, 2000);
+                    } catch (err) {
+                        console.error("Errore durante la preparazione dei dati:", err);
+                    }
+
+                    // Chiusura dell'applicazione esattamente dopo 2 secondi dall'invio della richiesta
+                    setTimeout(() => {
+                        if (tg && typeof tg.close === 'function') {
+                            tg.close();
+                        } else {
+                            window.close();
                         }
-                    })();
+                    }, 2000);
                 }
             );
         }
