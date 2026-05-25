@@ -380,6 +380,25 @@
         </div>
     </div>
 
+    <!-- CUSTOM CONFIRMATION MODAL (FALLBACK PER REFFERAL E BUG BRIDGE TG) -->
+    <div id="custom-confirm-modal" class="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 border border-border shadow-2xl scale-95 transition-transform duration-200" id="confirm-modal-box">
+            <div class="text-center space-y-2">
+                <span class="text-2xl">⚡</span>
+                <h3 id="confirm-modal-title" class="text-xs font-black uppercase tracking-tight leading-tight">Conferma</h3>
+                <p id="confirm-modal-desc" class="text-[10px] text-gray-500 font-bold uppercase tracking-wide leading-relaxed">Sei sicuro di voler procedere?</p>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" id="confirm-cancel-btn" class="flex-1 py-3 bg-gray-50 text-black border border-border rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                    Annulla
+                </button>
+                <button type="button" id="confirm-ok-btn" class="flex-1 py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                    Conferma
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- HIDDEN FILE INPUT FOR VISION AI -->
     <input type="file" id="visionFileInput" multiple accept="image/*,application/pdf" class="hidden" onchange="handleVisionFiles(this)">
 
@@ -886,9 +905,11 @@
         
         function checkUnsavedAndRedirect(url) {
             if (!dom.saveBtn.disabled) {
-                tg.showConfirm("Attenzione: hai modifiche non salvate in questa pagina. Vuoi uscire comunque senza salvare?", (conf) => {
-                    if(conf) window.location.href = url;
-                });
+                showCustomConfirm(
+                    "Modifiche non salvate",
+                    "Attenzione: hai modifiche non salvate in questa pagina. Vuoi uscire comunque senza salvare?",
+                    (conf) => { if(conf) window.location.href = url; }
+                );
             } else {
                 window.location.href = url;
             }
@@ -898,19 +919,23 @@
             if(val === 'NEW') {
                 openQuickEditor(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=NEW`, "Nuovo Semilavorato");
             } else if (val === 'SCAN') {
-                tg.showConfirm("Vuoi avviare la creazione intelligente (Smart Draft) per questo semilavorato e la sua ricetta?", (conf) => {
-                    if (conf) {
-                        fetch(WEBHOOK_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                _auth: tg.initData, 
-                                action: 'SMART_DRAFT_BOM', 
-                                sop_id: sopId 
-                            })
-                        }).then(() => tg.showAlert("Richiesta Smart Draft inviata!"));
+                showCustomConfirm(
+                    "Smart Draft",
+                    "Vuoi avviare la creazione intelligente (Smart Draft) per questo semilavorato e la sua ricetta?",
+                    (conf) => {
+                        if (conf) {
+                            fetch(WEBHOOK_URL, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    _auth: tg.initData, 
+                                    action: 'SMART_DRAFT_BOM', 
+                                    sop_id: sopId 
+                                })
+                            }).then(() => tg.showAlert("Richiesta Smart Draft inviata!"));
+                        }
                     }
-                });
+                );
                 renderBom();
             } else {
                 bomItems[index].semi_id = val;
@@ -1077,12 +1102,16 @@
             const name = document.getElementById(`suppFormName_${index}`).value.trim();
             if(!name) { tg.showAlert("Inserisci prima il nome del fornitore"); return; }
             
-            tg.showConfirm("Generare un nuovo Codice Invito per questo fornitore?", async (ok) => {
-                if(!ok) return;
-                const code = "INV-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-                document.getElementById(`suppFormInv_${index}`).value = code;
-                if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            });
+            showCustomConfirm(
+                "Genera Codice",
+                "Generare un nuovo Codice Invito per questo fornitore?",
+                (ok) => {
+                    if(!ok) return;
+                    const code = "INV-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+                    document.getElementById(`suppFormInv_${index}`).value = code;
+                    if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                }
+            );
         }
 
         async function openAdvancedDrawer() {
@@ -1174,48 +1203,62 @@
 
         const ASYNC_AI_WEBHOOK = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
 
-        function runAdvancedDraftingProcess() {
-            // Helper sicuro per la conferma compatibile sia con Telegram che con browser standard
-            const showConfirm = (message, callback) => {
-                try {
-                    if (tg && typeof tg.showConfirm === 'function') {
-                        tg.showConfirm(message, callback);
-                    } else if (tg && typeof tg.showPopup === 'function') {
-                        tg.showPopup({
-                            title: 'Conferma',
-                            message: message,
-                            buttons: [
-                                {id: 'ok', type: 'ok', text: 'OK'},
-                                {id: 'cancel', type: 'cancel', text: 'Annulla'}
-                            ]
-                        }, (buttonId) => {
-                            callback(buttonId === 'ok');
-                        });
-                    } else {
-                        const res = window.confirm(message);
-                        callback(res);
-                    }
-                } catch (err) {
-                    console.error("Errore durante l'apertura della conferma:", err);
-                    const res = window.confirm(message);
-                    callback(res);
-                }
+        // GESTIONE DIALOGO DI CONFERMA CROSS-PLATFORM (Sostituisce bug native in TG desktop/mobile)
+        function showCustomConfirm(title, message, onConfirm) {
+            const modal = document.getElementById('custom-confirm-modal');
+            const box = document.getElementById('confirm-modal-box');
+            const titleEl = document.getElementById('confirm-modal-title');
+            const descEl = document.getElementById('confirm-modal-desc');
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+            
+            if (titleEl) titleEl.innerText = title;
+            if (descEl) descEl.innerText = message;
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                box.classList.remove('scale-95');
+            }, 10);
+            
+            const handleOk = () => {
+                closeModal();
+                onConfirm(true);
             };
+            
+            const handleCancel = () => {
+                closeModal();
+                onConfirm(false);
+            };
+            
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                box.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 200);
+                okBtn.removeEventListener('click', handleOk);
+                cancelBtn.removeEventListener('click', handleCancel);
+            };
+            
+            okBtn.addEventListener('click', handleOk);
+            cancelBtn.addEventListener('click', handleCancel);
+        }
 
-            // 1. Mostra l'overlay nativo o fallback browser
-            showConfirm(
+        function runAdvancedDraftingProcess() {
+            showCustomConfirm(
+                "Conferma Generazione",
                 "Confermi l'avvio della generazione? Riceverai una notifica su Telegram appena la proposta è pronta.",
                 (confirm) => {
-                    if (!confirm) return; // L'utente annulla, interrompiamo il flusso
+                    if (!confirm) return;
 
                     // Mostriamo un feedback visivo di caricamento durante l'invio
                     dom.loader.classList.remove('hidden');
                     document.getElementById('loaderText').innerText = "Invio richiesta all'AI...";
 
-                    // Esecuzione asincrona del flusso di rete isolata in un blocco sicuro
+                    // Esecuzione asincrona del flusso isolata per evitare interferenze
                     (async () => {
                         try {
-                            // 2. Estrazione dello stato attuale dell'interfaccia
                             const currentFormState = collectDataFromForm();
                             const promptText = document.getElementById('draftInstructions').value.trim();
                             const ash = urlParams.get('ash');
@@ -1229,10 +1272,9 @@
                                 sop_id: sopId,
                                 product_state: currentFormState,
                                 user_instructions: promptText,
-                                grounded_files: uploadedDraftFilesByZone // File suddivisi ordinatamente per zona
+                                grounded_files: uploadedDraftFilesByZone
                             };
 
-                            // 3. Attendiamo che la chiamata di rete venga trasmessa con successo
                             const response = await fetch(ASYNC_AI_WEBHOOK, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
@@ -1243,9 +1285,8 @@
                                 console.error("Errore risposta server:", response.statusText);
                             }
                         } catch (err) {
-                            console.error("Errore di rete durante la chiamata asincrona:", err);
+                            console.error("Errore durante la chiamata asincrona:", err);
                         } finally {
-                            // 4. Chiudiamo l'applicazione con un ritardo di 2 secondi dopo che la chiamata è stata gestita
                             setTimeout(() => {
                                 if (tg && typeof tg.close === 'function') {
                                     tg.close();
