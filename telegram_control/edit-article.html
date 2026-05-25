@@ -6,6 +6,20 @@
     <title>Article Editor | SiteBoS</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        (function() {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `
+                <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                    <div>
+                        <h1 class="text-6xl mb-4">🚫</h1>
+                        <h2 class="text-xl font-bold uppercase tracking-widest">Accesso Proibito</h2>
+                    </div>
+                </body>`;
+                window.stop();
+            }
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -23,14 +37,25 @@
     </script>
 
     <style>
-        body { background-color: #fafafa !important; color: #000000 !important; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        .card { background: white !important; border: 1px solid #eeeeee !important; }
-        input:focus, select:focus { border-color: #000000 !important; outline: none !important; }
-        .bg-black { background-color: #000000 !important; color: #ffffff !important; }
-        .spinner { border: 2px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .upload-box { border: 2px dashed #eeeeee; transition: all 0.2s; }
-        .upload-box:active { border-color: #000; background: #f9f9f9; }
+/* SiteBoS Architect Alignment */
+body { background-color: #fafafa !important; color: #000000 !important; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+.card, .section-card, .dark-card, .upload-box { 
+    background: white !important; 
+    border: 1px solid #eeeeee !important; 
+    box-shadow: none !important; 
+}
+input:focus, textarea:focus, select:focus { 
+    border-color: #000000 !important; 
+    box-shadow: none !important; 
+    outline: none !important;
+}
+.text-primary, .text-black, .text-blue-600, .text-black { color: #000000 !important; }
+.bg-primary, .bg-black, .bg-black, .bg-black { background-color: #000000 !important; color: #ffffff !important; }
+.border-primary, .border-black, .border-blue-600, .border-black { border-color: #000000 !important; }
+.spinner { border: 2px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+/* Forza icone pesanti */
+.fas, .far, .fal { font-weight: 900 !important; font-family: "Font Awesome 6 Free" !important; }
     </style>
 </head>
 <body class="p-5">
@@ -167,6 +192,9 @@
             if(!name) { tg.showAlert("Nome obbligatorio"); return; }
             
             showLoader();
+            const tempId = 'art_' + Date.now();
+            const priceVal = parseFloat(document.getElementById('artPrice').value) || 0;
+
             const payload = {
                 _auth: tg.initData,
                 action: 'SAVE_ARTICLE',
@@ -175,7 +203,7 @@
                     name,
                     brand: document.getElementById('artBrand').value,
                     sku: document.getElementById('artSku').value,
-                    price: parseFloat(document.getElementById('artPrice').value) || 0,
+                    price: priceVal,
                     uom: document.getElementById('artUom').value,
                     category: document.getElementById('artCat').value,
                     supplier_id: supplierId
@@ -188,9 +216,22 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 tg.showAlert("Articolo aggiunto all'anagrafica!");
-                tg.close();
+                
+                // Sincronizzazione ed emissione evento verso finestra madre
+                if (window.parent) {
+                    window.parent.postMessage({
+                        action: 'ENTITY_CREATED',
+                        type: 'ARTICLE',
+                        entity: {
+                            id: tempId,
+                            name: name,
+                            cost: priceVal
+                        }
+                    }, '*');
+                }
             } catch (e) {
                 tg.showAlert("Errore durante il salvataggio.");
             } finally {
