@@ -21,27 +21,25 @@
     </script>
 
     <style>
-
-/* SiteBoS Architect Alignment */
-body { background-color: #fafafa !important; color: #000000 !important; }
-.card, .section-card, .dark-card, .upload-box { 
-    background: white !important; 
-    border: 1px solid #eeeeee !important; 
-    box-shadow: none !important; 
-}
-input:focus, textarea:focus, select:focus { 
-    border-color: #000000 !important; 
-    box-shadow: none !important; 
-    outline: none !important;
-}
-.text-primary, .text-black, .text-blue-600, .text-black { color: #000000 !important; }
-.bg-primary, .bg-black, .bg-black, .bg-black { background-color: #000000 !important; color: #ffffff !important; }
-.border-primary, .border-black, .border-blue-600, .border-black { border-color: #000000 !important; }
-.spinner { border-top-color: #000 !important; }
-input[type="checkbox"]:checked { background-color: #000 !important; border-color: #000 !important; }
-/* Forza icone pesanti */
-.fas, .far, .fal { font-weight: 900 !important; font-family: "Font Awesome 6 Free" !important; }
-
+        /* SiteBoS Architect Alignment */
+        body { background-color: #fafafa !important; color: #000000 !important; }
+        .card, .section-card, .dark-card, .upload-box { 
+            background: white !important; 
+            border: 1px solid #eeeeee !important; 
+            box-shadow: none !important; 
+        }
+        input:focus, textarea:focus, select:focus { 
+            border-color: #000000 !important; 
+            box-shadow: none !important; 
+            outline: none !important;
+        }
+        .text-primary, .text-black, .text-blue-600, .text-black { color: #000000 !important; }
+        .bg-primary, .bg-black, .bg-black, .bg-black { background-color: #000000 !important; color: #ffffff !important; }
+        .border-primary, .border-black, .border-blue-600, .border-black { border-color: #000000 !important; }
+        .spinner { border-top-color: #000 !important; }
+        input[type="checkbox"]:checked { background-color: #000 !important; border-color: #000 !important; }
+        /* Forza icone pesanti */
+        .fas, .far, .fal { font-weight: 900 !important; font-family: "Font Awesome 6 Free" !important; }
 
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         input[type="checkbox"] {
@@ -832,6 +830,11 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             openQuickEditor(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=${sid}`, "Modifica Luogo");
         }
 
+        // --- CORE ASSET UTILITIES ---
+        function addAssetItem() { assetItems.push({ asset_id: '', notes: '' }); renderAssets(); checkDirty(); }
+        function updateAssetNotes(index, value) { assetItems[index].notes = value; checkDirty(); }
+        function removeAssetItem(index) { assetItems.splice(index, 1); renderAssets(); checkDirty(); }
+
         function addLocationItem() { locationItems.push({ loc_id: '', temperature: '' }); renderLocations(); checkDirty(); }
         function updateLocationNotes(index, value) { locationItems[index].temperature = value; checkDirty(); }
         function removeLocationItem(index) { locationItems.splice(index, 1); renderLocations(); checkDirty(); }
@@ -895,7 +898,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             if(val === 'NEW') {
                 openQuickEditor(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=NEW`, "Nuovo Semilavorato");
             } else if (val === 'SCAN') {
-                // SMART DRAFT PER SEMILAVORATI
                 tg.showConfirm("Vuoi avviare la creazione intelligente (Smart Draft) per questo semilavorato e la sua ricetta?", (conf) => {
                     if (conf) {
                         fetch(WEBHOOK_URL, {
@@ -967,7 +969,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             if(val === 'NEW') {
                 openQuickEditor(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=NEW`, "Nuovo Asset");
             } else if (val === 'SCAN') {
-                // VISION AI PER ASSET (FOTO/PDF)
                 currentVisionContext = 'ASSET';
                 document.getElementById('visionFileInput').click();
                 renderAssets();
@@ -1031,10 +1032,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             openQuickEditor(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=${sid}`, "Modifica Asset");
         }
 
-        function addAssetItem() { assetItems.push({ asset_id: '', notes: '' }); renderAssets(); checkDirty(); }
-        function updateAssetNotes(index, value) { assetItems[index].notes = value; checkDirty(); }
-        function removeAssetItem(index) { assetItems.splice(index, 1); renderAssets(); checkDirty(); }
-
         // --- QUICK EDITOR LOGIC ---
         function openQuickEditor(url, title) {
             document.getElementById('quickEditorTitle').innerText = title;
@@ -1050,7 +1047,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             document.getElementById('quick-editor-drawer').classList.add('translate-y-full');
             document.getElementById('quickEditorFrame').src = 'about:blank';
             
-            // Verifichiamo se il drawer avanzato è ancora aperto (non ha la classe translate-y-full)
             const isAdvancedOpen = !document.getElementById('advanced-drawer').classList.contains('translate-y-full');
             
             if (isAdvancedOpen) {
@@ -1078,7 +1074,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             
             tg.showConfirm("Generare un nuovo Codice Invito per questo fornitore?", async (ok) => {
                 if(!ok) return;
-                // Qui n8n restituirà il codice. Per ora mockiamo.
                 const code = "INV-" + Math.random().toString(36).substr(2, 9).toUpperCase();
                 document.getElementById(`suppFormInv_${index}`).value = code;
                 if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
@@ -1086,15 +1081,12 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         }
 
         async function openAdvancedDrawer() {
-            // Gestione retrocompatibilità: assenza di chiave = false
             const isAdvancedReady = currentData?.ui_node_draft?.advanced_ready === true;
 
             if (!isAdvancedReady) {
-                // CASO A: Configurazione vuota o assente. Mostra il pannello di preparazione del draft
                 document.getElementById('draft-assistant-view').classList.remove('hidden');
                 document.getElementById('advanced-drawer-content-fields').classList.add('hidden');
                 
-                // Apertura Drawer Fisico
                 document.getElementById('advanced-drawer').classList.remove('translate-y-full');
                 document.body.style.overflow = 'hidden';
                 if (tg.BackButton) {
@@ -1102,7 +1094,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     tg.BackButton.onClick(closeAdvancedDrawer);
                 }
             } else {
-                // CASO B: Configurazione già esistente. Recupero sincrono del documento dal DB
                 dom.loader.classList.remove('hidden');
                 document.getElementById('loaderText').innerText = "Recupero dettagli infrastruttura...";
 
@@ -1133,7 +1124,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                         renderAssets();
                     }
                     
-                    // Visualizzazione campi standard ed esclusione del pannello di preparazione del draft
                     document.getElementById('draft-assistant-view').classList.add('hidden');
                     document.getElementById('advanced-drawer-content-fields').classList.remove('hidden');
                     showStaticAdvancedDrawer();
@@ -1180,19 +1170,15 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         const ASYNC_AI_WEBHOOK = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
 
         async function runAdvancedDraftingProcess() {
-            // 1. Mostra l'overlay nativo di Telegram per la conferma dell'utente
             tg.showConfirm(
                 "Confermi l'avvio della generazione? Riceverai una notifica su Telegram appena la proposta è pronta.",
                 async (confirm) => {
-                    if (!confirm) return; // L'utente annulla, interrompiamo il flusso
+                    if (!confirm) return;
 
-                    // 2. Estrazione dello stato attuale dell'interfaccia
                     const currentFormState = collectDataFromForm();
                     const promptText = document.getElementById('draftInstructions').value.trim();
                     
                     const ash = urlParams.get('ash');
-                    
-                    // Recupero prioritario del parametro &msg= dalla query string
                     const messageId = urlParams.get('msg') || urlParams.get('msg_id') || urlParams.get('message_id');
 
                     const payload = {
@@ -1203,24 +1189,21 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                         sop_id: sopId,
                         product_state: currentFormState,
                         user_instructions: promptText,
-                        grounded_files: uploadedDraftFilesByZone // File suddivisi ordinatamente per zona
+                        grounded_files: uploadedDraftFilesByZone
                     };
 
-                    // 3. Chiamata asincrona non bloccante (Fire and Forget)
                     fetch(ASYNC_AI_WEBHOOK, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     }).catch(err => console.error("Processo asincrono avviato:", err));
 
-                    // 4. Chiusura immediata dell'applicazione
                     tg.close();
                 }
             );
         }
 
         function triggerZoneFileSelect(zone) {
-            // Evita di riaprire se c'è già un file caricato nella categoria
             if (uploadedDraftFilesByZone[zone]) return;
             document.getElementById(`file-${zone}`).click();
         }
@@ -1261,7 +1244,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         }
 
         function removeZoneFile(event, zone) {
-            event.stopPropagation(); // Evita l'attivazione automatica del trigger d'upload al clic su cancella
+            event.stopPropagation();
             uploadedDraftFilesByZone[zone] = null;
 
             const zoneEl = document.getElementById(`zone-${zone}`);
@@ -1280,6 +1263,65 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = error => reject(error);
             });
+        }
+
+        // --- PARENT-CHILD COMMUNICATION LISTENER ---
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            if (data && data.action === 'ENTITY_CREATED') {
+                handleExternalEntityCreation(data.type, data.entity);
+            }
+        });
+
+        function handleExternalEntityCreation(type, entity) {
+            if (type === 'ARTICLE') {
+                if (!globalArticles.find(a => a.id === entity.id)) {
+                    globalArticles.push({ id: entity.id, name: entity.name, cost: entity.cost });
+                }
+                const emptyIdx = supplierItems.findIndex(item => !item.item_id);
+                if (emptyIdx > -1) {
+                    supplierItems[emptyIdx].item_id = entity.id;
+                    supplierItems[emptyIdx].cost = entity.cost;
+                } else {
+                    supplierItems.push({ item_id: entity.id, cost: entity.cost, usage: 1 });
+                }
+                renderSuppliers();
+            } else if (type === 'ASSET') {
+                if (!globalAssets.find(a => a.id === entity._id)) {
+                    globalAssets.push({ id: entity._id, name: entity.identity.name });
+                }
+                const emptyIdx = assetItems.findIndex(item => !item.asset_id);
+                if (emptyIdx > -1) {
+                    assetItems[emptyIdx].asset_id = entity._id;
+                } else {
+                    assetItems.push({ asset_id: entity._id, notes: '' });
+                }
+                renderAssets();
+            } else if (type === 'LOCATION') {
+                if (!globalLocations.find(l => l.id === entity._id)) {
+                    globalLocations.push({ id: entity._id, name: entity.identity.name });
+                }
+                const emptyIdx = locationItems.findIndex(item => !item.loc_id);
+                if (emptyIdx > -1) {
+                    locationItems[emptyIdx].loc_id = entity._id;
+                } else {
+                    locationItems.push({ loc_id: entity._id, temperature: '' });
+                }
+                renderLocations();
+            } else if (type === 'SEMI') {
+                if (!globalSemis.find(s => s.id === entity._id)) {
+                    globalSemis.push({ id: entity._id, name: entity.identity.name });
+                }
+                const emptyIdx = bomItems.findIndex(item => !item.semi_id);
+                if (emptyIdx > -1) {
+                    bomItems[emptyIdx].semi_id = entity._id;
+                } else {
+                    bomItems.push({ semi_id: entity._id, usage: 1 });
+                }
+                renderBom();
+            }
+            checkDirty();
+            closeQuickEditor();
         }
 
         // --------------------------
