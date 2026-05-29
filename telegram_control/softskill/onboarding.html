@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onboarding - Soft Skill Analysis</title>
+    <title>Onboarding - Mappatura Competenze</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -26,7 +26,7 @@
         h2 {
             font-weight: 900;
             text-transform: uppercase;
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 20px;
             letter-spacing: -0.02em;
         }
@@ -80,26 +80,15 @@
             opacity: 0.5;
             cursor: not-allowed;
         }
-        .info-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 6px;
-            line-height: 1.4;
-        }
     </style>
 </head>
 <body>
     <div class="form-container">
-        <h2>🚀 Mini Onboarding</h2>
+        <h2>📋 Configurazione Iniziale</h2>
         <form id="onboardingForm">
             <div class="input-group">
                 <label for="name">Nome</label>
                 <input type="text" id="name" required placeholder="Inserisci il tuo nome">
-            </div>
-            
-            <div class="input-group">
-                <label for="surname">Cognome</label>
-                <input type="text" id="surname" required placeholder="Inserisci il tuo cognome">
             </div>
 
             <div class="input-group">
@@ -118,14 +107,8 @@
             </div>
 
             <div class="input-group">
-                <label for="company_context">Contesto Aziendale / Mission</label>
-                <textarea id="company_context" rows="3" required placeholder="Cosa fa la tua azienda/attività? Descrivilo brevemente..."></textarea>
-            </div>
-
-            <div class="input-group">
-                <label for="gemini_key">Chiave API Gemini (Opzionale)</label>
-                <input type="password" id="gemini_key" placeholder="AI-Key personalizzata...">
-                <p class="info-text">Se lasciata vuota, verrà utilizzata una chiave di sistema predefinita.</p>
+                <label for="company_context">Contesto Aziendale / Attività</label>
+                <textarea id="company_context" rows="3" required placeholder="Di cosa si occupa la tua attività? Descrivilo brevemente..."></textarea>
             </div>
 
             <button type="submit" class="btn-submit" id="submitBtn">
@@ -141,14 +124,14 @@
             tg.expand();
         }
 
+        // Recupero dei parametri dall'URL di avvio
         const urlParams = new URLSearchParams(window.location.search);
         const ash = urlParams.get('ash');
         const msgId = urlParams.get('msg_id');
         
-        // Pre-popola Nome e Cognome dai dati utente di Telegram se disponibili
+        // Popolamento automatico del Nome tramite i dati dell'utente Telegram
         if (tg?.initDataUnsafe?.user) {
             document.getElementById('name').value = tg.initDataUnsafe.user.first_name || '';
-            document.getElementById('surname').value = tg.initDataUnsafe.user.last_name || '';
         }
 
         document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
@@ -159,21 +142,18 @@
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvataggio...';
 
             const payload = {
-                action: "save_onboarding",
+                action: "save_stakeholder",
                 ash: ash,
                 msg_id: msgId,
                 _auth: tg?.initData || '',
                 onboarding_data: {
                     name: document.getElementById('name').value.trim(),
-                    surname: document.getElementById('surname').value.trim(),
                     role: document.getElementById('role').value.trim(),
                     team_size: document.getElementById('team_size').value,
-                    company_context: document.getElementById('company_context').value.trim(),
-                    gemini_key: document.getElementById('gemini_key').value.trim()
+                    company_context: document.getElementById('company_context').value.trim()
                 }
             };
 
-            // Il webhook secondario corretto (lo stesso impostato nel webhook-handler)
             const webhookUrl = 'https://prod.workflow.trinai.it/webhook/e34e22de-0725-4410-a882-75e87e359376';
 
             try {
@@ -187,10 +167,10 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    // Reindirizza alla dashboard principale propagando i parametri
+                    // Reindirizzamento alla dashboard con propagazione parametri e flag standalone
                     window.location.href = `index.html?ash=${encodeURIComponent(ash)}&msg_id=${msgId}&alone=true`;
                 } else {
-                    alert('Errore: ' + (result.error || 'Impossibile completare l\'onboarding'));
+                    alert('Errore: ' + (result.error || 'Impossibile completare la configurazione'));
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = 'Completa e Inizia <i class="fas fa-arrow-right"></i>';
                 }
