@@ -41,6 +41,7 @@
             letter-spacing: 0.05em;
             color: #a3a3a3;
             margin-bottom: 8px;
+            line-height: 1.4;
         }
         input, select, textarea {
             width: 100%;
@@ -87,18 +88,19 @@
         <h2>📋 Configurazione Iniziale</h2>
         <form id="onboardingForm">
             <div class="input-group">
-                <label for="name">Nome</label>
+                <label for="name">Nome *</label>
                 <input type="text" id="name" required placeholder="Inserisci il tuo nome">
             </div>
 
             <div class="input-group">
-                <label for="role">Il tuo Ruolo Professionale</label>
+                <label for="role">Il tuo Ruolo Professionale *</label>
                 <input type="text" id="role" required placeholder="Es. Manager, Consulente, Developer">
             </div>
 
             <div class="input-group">
-                <label for="team_size">Dimensione del Team</label>
-                <select id="team_size">
+                <label for="team_size">Dimensione del Team *</label>
+                <select id="team_size" required>
+                    <option value="" disabled selected>Seleziona dimensione team...</option>
                     <option value="Single Proprietor">Lavoro da Solo (Freelance)</option>
                     <option value="1-5">Piccolo Team (1-5 persone)</option>
                     <option value="5-20">Medio Team (5-20 persone)</option>
@@ -107,8 +109,8 @@
             </div>
 
             <div class="input-group">
-                <label for="company_context">Contesto Aziendale / Attività</label>
-                <textarea id="company_context" rows="3" required placeholder="Di cosa si occupa la tua attività? Descrivilo brevemente..."></textarea>
+                <label for="company_context">Di cosa si occupa l'attività per cui vuoi specializzare le tue competenze? *</label>
+                <textarea id="company_context" rows="3" required placeholder="Es. Consulenza aziendale, e-commerce, sviluppo software, agenzia di servizi..."></textarea>
             </div>
 
             <button type="submit" class="btn-submit" id="submitBtn">
@@ -137,6 +139,17 @@
         document.getElementById('onboardingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
+            const name = document.getElementById('name').value.trim();
+            const role = document.getElementById('role').value.trim();
+            const teamSize = document.getElementById('team_size').value;
+            const companyContext = document.getElementById('company_context').value.trim();
+
+            // Validazione aggiuntiva lato logica
+            if (!name || !role || !teamSize || !companyContext) {
+                alert('Tutti i campi contrassegnati con l\'asterisco (*) sono obbligatori per procedere.');
+                return;
+            }
+
             const submitBtn = document.getElementById('submitBtn');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvataggio...';
@@ -147,10 +160,10 @@
                 msg_id: msgId,
                 _auth: tg?.initData || '',
                 onboarding_data: {
-                    name: document.getElementById('name').value.trim(),
-                    role: document.getElementById('role').value.trim(),
-                    team_size: document.getElementById('team_size').value,
-                    company_context: document.getElementById('company_context').value.trim()
+                    name: name,
+                    role: role,
+                    team_size: teamSize,
+                    company_context: companyContext
                 }
             };
 
