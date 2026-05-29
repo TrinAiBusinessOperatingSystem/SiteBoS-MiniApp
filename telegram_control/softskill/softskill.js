@@ -312,7 +312,7 @@ function closeEvaluationOverlay() {
     }
 }
 
-// 🔥 AGGIORNATO: Invia risposte e gestisce overlay
+// 🔥 AGGIORNATO: Invia risposte e gestisce overlay con redirezione standalone
 async function finishQuiz() {
     const completionTime = Math.floor((Date.now() - startTime) / 1000);
     
@@ -357,16 +357,19 @@ async function finishQuiz() {
         // 🔥 CHIUDI OVERLAY
         closeEvaluationOverlay();
         
-        // 🔥 REDIRECT AUTOMATICO SENZA ALERT
+        // 🔥 REDIRECT AUTOMATICO SU INDEX.HTML CON PARAMETRI STANDALONE
         setTimeout(() => {
             const urlParams = new URLSearchParams(window.location.search);
             const params = new URLSearchParams();
             
+            // Propagazione parametri standalone per superare i TWA Guard
+            if (urlParams.get('ash')) params.set('ash', urlParams.get('ash'));
+            if (urlParams.get('msg_id')) params.set('msg_id', urlParams.get('msg_id'));
+            if (urlParams.get('alone')) params.set('alone', urlParams.get('alone'));
+            
+            // Fallback per vecchi parametri legacy
             if (urlParams.get('vat')) params.set('vat', urlParams.get('vat'));
             if (urlParams.get('user_id')) params.set('user_id', urlParams.get('user_id'));
-            if (urlParams.get('token')) params.set('token', urlParams.get('token'));
-            if (urlParams.get('owner')) params.set('owner', urlParams.get('owner'));
-            if (urlParams.get('ragione_sociale')) params.set('ragione_sociale', urlParams.get('ragione_sociale'));
             
             window.location.href = `index.html?${params.toString()}`;
         }, 800);
@@ -383,16 +386,19 @@ async function finishQuiz() {
     }
 }
 
-// Ricomincia il quiz
+// Ricomincia il quiz tornando alla dashboard standalone index.html
 function restartQuiz() {
     const urlParams = new URLSearchParams(window.location.search);
     const params = new URLSearchParams();
     
+    // Propagazione parametri standalone
+    if (urlParams.get('ash')) params.set('ash', urlParams.get('ash'));
+    if (urlParams.get('msg_id')) params.set('msg_id', urlParams.get('msg_id'));
+    if (urlParams.get('alone')) params.set('alone', urlParams.get('alone'));
+    
+    // Fallback parametri legacy
     if (urlParams.get('vat')) params.set('vat', urlParams.get('vat'));
     if (urlParams.get('user_id')) params.set('user_id', urlParams.get('user_id'));
-    if (urlParams.get('token')) params.set('token', urlParams.get('token'));
-    if (urlParams.get('owner')) params.set('owner', urlParams.get('owner'));
-    if (urlParams.get('ragione_sociale')) params.set('ragione_sociale', urlParams.get('ragione_sociale'));
     
     window.location.href = `index.html?${params.toString()}`;
 }
