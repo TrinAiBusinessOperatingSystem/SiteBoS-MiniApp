@@ -3,7 +3,12 @@
 
 class WebhookHandler {
   constructor() {
-    this.webhookUrl = 'https://prod.workflow.trinai.it/webhook/80d663ea-be4b-4d42-8cc1-05f4ada52ced';
+    const alone = this.getUrlParam('alone');
+    if (alone === 'true') {
+      this.webhookUrl = 'https://prod.workflow.trinai.it/webhook/e34e22de-0725-4410-a882-75e87e359376';
+    } else {
+      this.webhookUrl = 'https://prod.workflow.trinai.it/webhook/80d663ea-be4b-4d42-8cc1-05f4ada52ced';
+    }
     this.ash = this.getUrlParam('ash');
     this.msgId = this.getUrlParam('msg_id');
     this._auth = window.Telegram?.WebApp?.initData || '';
