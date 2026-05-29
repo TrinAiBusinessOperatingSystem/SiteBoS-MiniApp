@@ -368,7 +368,7 @@ async function finishQuiz() {
             if (urlParams.get('owner')) params.set('owner', urlParams.get('owner'));
             if (urlParams.get('ragione_sociale')) params.set('ragione_sociale', urlParams.get('ragione_sociale'));
             
-            window.location.href = `dashboard.html?${params.toString()}`;
+            window.location.href = `index.html?${params.toString()}`;
         }, 800);
         
     } catch (error) {
@@ -394,7 +394,7 @@ function restartQuiz() {
     if (urlParams.get('owner')) params.set('owner', urlParams.get('owner'));
     if (urlParams.get('ragione_sociale')) params.set('ragione_sociale', urlParams.get('ragione_sociale'));
     
-    window.location.href = `dashboard.html?${params.toString()}`;
+    window.location.href = `index.html?${params.toString()}`;
 }
 
 // Inizializza al caricamento della pagina
