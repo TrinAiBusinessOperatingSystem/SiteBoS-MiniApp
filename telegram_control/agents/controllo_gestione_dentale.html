@@ -1,1 +1,1430 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiteBoS advanced - Operations & Sourcing Controller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #000000; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .card { background: white; border: 1px solid #eeeeee; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-10">
 
+    <!-- MENU LATERALE A SCOMPARSA (SIDE DRAWER HAMBURGER) -->
+    <div id="menu-backdrop" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300" onclick="toggleMenu()"></div>
+    
+    <div id="menu-drawer" class="fixed top-0 left-0 h-full w-[300px] bg-white border-r border-border z-50 shadow-2xl -translate-x-full transition-transform duration-300 flex flex-col">
+        <div class="p-5 border-b border-border flex justify-between items-center bg-gray-50/50">
+            <div>
+                <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase rounded">SiteBoS Menu</span>
+                <h3 class="text-xs font-black uppercase text-gray-500 mt-1">Seleziona Sezione</h3>
+            </div>
+            <button onclick="toggleMenu()" class="w-8 h-8 rounded-full border border-border bg-white text-gray-500 hover:text-black flex items-center justify-center transition-colors">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+        <!-- Voci del Menu -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-1">
+            <button onclick="selectMenuSection('tab-bom', '⚙️ Distinta Base (BOM)')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 bg-black text-white" id="menu-tab-bom">
+                <i class="fas fa-cogs text-sm w-5 text-center"></i> ⚙️ Distinta Base (BOM)
+            </button>
+            <button onclick="selectMenuSection('tab-suppliers', '📦 Sourcing Fornitori')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-suppliers">
+                <i class="fas fa-box text-sm w-5 text-center"></i> 📦 Sourcing Fornitori
+            </button>
+            <button onclick="selectMenuSection('tab-locations', '📍 Aree & Riuniti')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-locations">
+                <i class="fas fa-map-marker-alt text-sm w-5 text-center"></i> 📍 Aree & Riuniti
+            </button>
+            <button onclick="selectMenuSection('tab-assets', '🛠️ Tecnologie Cliniche')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-assets">
+                <i class="fas fa-tools text-sm w-5 text-center"></i> 🛠️ Tecnologie Cliniche
+            </button>
+            <button onclick="selectMenuSection('tab-meta', '👥 Personale & Supporto')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-meta">
+                <i class="fas fa-users text-sm w-5 text-center"></i> 👥 Personale & Supporto
+            </button>
+            <button onclick="selectMenuSection('tab-competitors', '🎯 Analisi Concorrenza')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-competitors">
+                <i class="fas fa-bullseye text-sm w-5 text-center"></i> 🎯 Analisi Concorrenza
+            </button>
+            <button onclick="selectMenuSection('tab-fiscal', '💼 Tassazione & ENPAM')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-fiscal">
+                <i class="fas fa-briefcase text-sm w-5 text-center"></i> 💼 Tassazione & ENPAM
+            </button>
+            <button onclick="selectMenuSection('tab-cfo', '🏛️ CFO Advisory')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-cfo">
+                <i class="fas fa-balance-scale text-sm w-5 text-center"></i> 🏛️ CFO Advisory
+            </button>
+        </div>
+    </div>
+
+    <!-- HEADER PRINCIPALE -->
+    <header class="bg-white border-b border-border sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center gap-4">
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded-md">SiteBoS advanced</span>
+                    <span class="text-xs text-gray-400 font-bold">V4.9</span>
+                </div>
+                <h1 class="text-xl font-black uppercase tracking-tight mt-1">Centro Odontoiatrico Buscemi srl</h1>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest italic">Prestazione: Ortodonzia Intercettiva Per Bambini</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleMenu()" class="p-3 bg-black text-white hover:bg-zinc-800 rounded-2xl flex items-center gap-2.5 shadow-md transition-all duration-200">
+                    <i class="fas fa-bars text-sm"></i>
+                    <span class="text-[10px] font-black uppercase tracking-widest hidden md:inline">Naviga Menu</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTAINER PRINCIPALE -->
+    <main class="max-w-6xl w-full mx-auto px-6 mt-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- SIDEBAR CONTROLLO FINANZIARIO / ANALISI UNIT ECONOMICS REATTIVA -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="card rounded-3xl p-6 space-y-5 shadow-sm border-gray-200 bg-white">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block">📊 COOP-STUDIO ECONOMICS (DINAMICO)</span>
+                
+                <div class="space-y-1.5">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Tariffa della Prestazione (€)</label>
+                    <input type="number" id="input-tariffa" value="250" oninput="recalculateAll()" class="w-full bg-gray-50 border border-border rounded-xl p-3 text-lg font-black text-black focus:outline-none focus:border-black transition-colors">
+                    <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Base Imponibile (Esente IVA Art.10)</span>
+                </div>
+
+                <div class="border-t border-dashed border-border pt-4 space-y-3">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">Costi Industriali Unitari (COGS)</h3>
+                    
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-semibold text-gray-500">1. Lavoro Diretto (BOM Clinica)</span>
+                        <span class="font-black text-black" id="cost-bom">€ 126.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-semibold text-gray-500">2. Consumabili Dentaltix/Schein</span>
+                        <span class="font-black text-black" id="cost-suppliers">€ 40.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-semibold text-gray-500">3. Riunito & Poltrona (Locations)</span>
+                        <span class="font-black text-black" id="cost-locations">€ 25.00</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-semibold text-gray-500">4. Ammortamento Tecnologie (Assets)</span>
+                        <span class="font-black text-black" id="cost-assets">€ 22.50</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="font-semibold text-gray-500">5. Meta-Operatori (Overhead)</span>
+                        <span class="font-black text-black" id="cost-meta">€ 18.00</span>
+                    </div>
+                </div>
+
+                <div class="border-t border-border pt-4 space-y-2">
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 font-bold">Costo di Sedia Totale</span>
+                        <span class="text-sm font-black text-black" id="total-cogs">€ 231.50</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-400 font-bold">Margine di Contribuzione</span>
+                        <span class="text-xs font-black" id="label-mdc">€ 18.50</span>
+                    </div>
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-400">Tasse & ENPAM (34%)</span>
+                        <span class="text-xs font-black text-red-500" id="label-taxes">€ 85.00</span>
+                    </div>
+                    <div class="flex justify-between items-end border-t border-dashed border-border pt-2">
+                        <span class="text-[10px] font-black uppercase tracking-widest text-gray-900">Utile Netto della Sedia</span>
+                        <span class="text-lg font-black" id="label-net-profit">€ -66.50</span>
+                    </div>
+                    <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden mt-2">
+                        <div class="h-full transition-all duration-300" id="margin-bar" style="width: 52%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD OPZIONI EXTRA (COMMERCIAL UPSELLS) -->
+            <div class="card rounded-3xl p-6 space-y-4 shadow-sm border-gray-200 bg-white">
+                <span class="text-[10px] font-black uppercase tracking-[0.2em] text-black block">📈 ECONOMICS UPSELLS DIAGNOSTICI</span>
+                <p class="text-[10px] text-gray-500 font-medium leading-relaxed">Piani extra ed esami ancillari inseribili nel piano di cura integrato del piccolo paziente.</p>
+                <div id="extra-options-container" class="space-y-3 pt-2">
+                    <!-- Iniettato via JS -->
+                </div>
+            </div>
+
+            <!-- WIDGET: PUNTO DI PAREGGIO (BREAK-EVEN POINT) -->
+            <div class="card rounded-3xl p-6 space-y-4 border-amber-200 bg-amber-50/25 shadow-sm">
+                <div class="flex justify-between items-start">
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">🎯 BREAK-EVEN POINT CLINICO</span>
+                    <span class="px-2 py-0.5 bg-amber-100 text-amber-800 text-[8px] font-black uppercase rounded">DINAMICO</span>
+                </div>
+                
+                <div class="space-y-1">
+                    <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Sedute terapeutiche minime per coprire i costi fissi strutturali</label>
+                    <div class="text-3xl font-black text-black" id="bep-units">385 terapie / anno</div>
+                </div>
+
+                <p class="text-[10px] text-gray-600 font-medium leading-relaxed" id="bep-rationale">
+                    Calcolo in corso...
+                </p>
+            </div>
+        </div>
+
+        <!-- CONTENUTO PRINCIPALE / INTERFACCIA SEZIONE CORRENTE -->
+        <div class="lg:col-span-7 space-y-6">
+            
+            <!-- CONTROLLER DELLA SEZIONE ATTIVA -->
+            <div class="flex justify-between items-center border-b border-border pb-3">
+                <div class="space-y-0.5">
+                    <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Sezione Attiva</span>
+                    <h2 class="text-xs font-black uppercase tracking-wider text-black" id="active-section-title">⚙️ Distinta Base (BOM)</h2>
+                </div>
+                <button onclick="toggleMenu()" class="px-3 py-1.5 bg-gray-100 rounded-xl text-[9px] font-black uppercase tracking-wider text-gray-600 hover:bg-gray-200 flex items-center gap-1.5 transition-colors">
+                    <i class="fas fa-exchange-alt"></i> Cambia Sezione
+                </button>
+            </div>
+
+            <!-- TAB 1: DISTINTA BASE / RICETTA (BOM) -->
+            <div id="tab-bom" class="tab-content space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Scomposizione dei sottoprocessi</h2>
+                    <span class="px-2.5 py-1 bg-gray-100 text-[9px] font-black uppercase text-gray-500 rounded-md">5 Macro-Fasi</span>
+                </div>
+                <div id="bom-list-container" class="space-y-4">
+                    <!-- Iniettato via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 2: SOURCING FORNITORI -->
+            <div id="tab-suppliers" class="tab-content space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Fabbisogni e depositi dentali</h2>
+                    <span class="px-2.5 py-1 bg-gray-100 text-[9px] font-black uppercase text-gray-500 rounded-md">Scouting Siculo & Online</span>
+                </div>
+                <div id="suppliers-list-container" class="space-y-4">
+                    <!-- Iniettato via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 3: AREE LOGISTICHE / RIUNITO -->
+            <div id="tab-locations" class="tab-content space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Aree operative e tempo sedia</h2>
+                    <span class="px-2.5 py-1 bg-gray-100 text-[9px] font-black uppercase text-gray-500 rounded-md">Pianificazione Poltrona</span>
+                </div>
+                <div id="locations-list-container" class="space-y-4">
+                    <!-- Iniettato via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 4: TECNOLOGIE CLINICHE (ASSETS) -->
+            <div id="tab-assets" class="tab-content space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Beni strumentali e ammortamento sedia</h2>
+                    <span class="px-2.5 py-1 bg-gray-100 text-[9px] font-black uppercase text-gray-500 rounded-md">Ammortamento Orario</span>
+                </div>
+                <div id="assets-list-container" class="space-y-4">
+                    <!-- Iniettato via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 5: PERSONALE & SUPPORTI (META-OPERATORI) -->
+            <div id="tab-meta" class="tab-content space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-black uppercase tracking-wider text-gray-400">Costi del personale e supporto indiretto</h2>
+                    <span class="px-2.5 py-1 bg-gray-100 text-[9px] font-black uppercase text-gray-500 rounded-md">ASO & Amministrazione</span>
+                </div>
+                <div id="meta-list-container" class="grid grid-cols-1 gap-4">
+                    <!-- Iniettato via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 6: ANALISI CONCORRENZA -->
+            <div id="tab-competitors" class="tab-content space-y-6 hidden">
+                <div class="card rounded-3xl p-6 space-y-4 bg-zinc-50 border-zinc-200">
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 block">🎯 POSIZIONAMENTO DI MERCATO (MENFI/SCIACCA)</span>
+                    <p class="text-xs text-zinc-700 font-medium leading-relaxed" id="market-pos-summary"></p>
+                </div>
+                <div class="space-y-4" id="competitor-list-container">
+                    <!-- Iniettato via JS -->
+                </div>
+            </div>
+
+            <!-- TAB 7: PROFILO FISCALE -->
+            <div id="tab-fiscal" class="tab-content space-y-4 hidden">
+                <div class="card rounded-3xl p-6 space-y-4 border-gray-200">
+                    <div class="flex justify-between items-center border-b border-border pb-3">
+                        <div class="space-y-1">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Inquadramento Fiscale Consigliato</span>
+                            <h3 class="text-sm font-black uppercase tracking-tight text-black" id="fiscal-regime-name">SRL ODONTOIATRICA</h3>
+                        </div>
+                        <span class="px-2.5 py-1 bg-zinc-900 text-white text-[9px] font-black uppercase rounded-md">SOC. DI CAPITALI</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-2">
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Codice ATECO</span>
+                            <div class="text-lg font-black text-black mt-1" id="fiscal-ateco">86.23.00</div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Coeff. Redditività</span>
+                            <div class="text-lg font-black text-black mt-1" id="fiscal-coeff">78%</div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Aliquota IRES</span>
+                            <div class="text-lg font-black text-black mt-1" id="fiscal-tax-rate">24%</div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">ENPAM Quota B</span>
+                            <div class="text-lg font-black text-black mt-1" id="fiscal-inps-rate">19.50%</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/60 text-xs text-amber-800 font-medium leading-relaxed" id="fiscal-explanation">
+                        L'incidenza tributaria e contributiva (ENPAM) sul fatturato è calcolata sul regime societario, permettendo un accantonamento proporzionato.
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 8: CFO STRATEGIC ADVISORY -->
+            <div id="tab-cfo" class="tab-content space-y-6 hidden">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <div class="md:col-span-4 card rounded-3xl p-6 flex flex-col justify-between items-center text-center bg-black text-white" id="cfo-health-card">
+                        <div class="space-y-2">
+                            <span class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-400">HEALTH RATING</span>
+                            <h3 class="text-sm font-black uppercase text-gray-300">Stato di Salute</h3>
+                        </div>
+                        <div class="py-6">
+                            <span class="px-4 py-2 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-md" id="label-health">VERIFICA</span>
+                        </div>
+                        <p class="text-[9px] text-gray-400 leading-relaxed font-semibold">Tutti i margini scalati sono ampiamente positivi.</p>
+                    </div>
+
+                    <div class="md:col-span-8 card rounded-3xl p-6 space-y-3 border-gray-200 bg-white">
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-black block">💡 STRATEGIA DI PREZZO & ADVISORY</span>
+                        <p class="text-xs text-gray-700 leading-relaxed" id="pricing-advisory-text">Analisi in corso...</p>
+                    </div>
+                </div>
+
+                <div class="card rounded-3xl p-6 space-y-4 border-gray-200 bg-white">
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-black block">🛠️ RACCOMANDAZIONI DI OTTIMIZZAZIONE DEI COSTI CLINICI</span>
+                    <div class="space-y-2" id="cost-optimization-list">
+                        <!-- Iniettato via JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- INIEZIONE DATI DI COMPILAZIONE REALI (DATABASE ENRICHED DATASHEET) -->
+    <script>
+        const draftData = {
+            catalog_item: {
+                pricing: {
+                    base_price: 250,
+                    currency: "EUR"
+                },
+                commercial_setup: {
+                    extra_options: [
+                        { name: "Studio del Caso Clinico e Report di Crescita 3D", price: 250 },
+                        { name: "Scansione Ottica Intraorale Integrativa", price: 100 },
+                        { name: "Sanificazione e Setup Clinico Dedicato Pediatrico", price: 15 }
+                    ]
+                }
+            },
+            bom_output: {
+                bom: [
+                    {
+                        subprocess_name: "Sanificazione e sterilizzazione post-seduta del riunito e dello strumentario",
+                        subprocess_sku: "CLINIC-ORTHO-SANIF",
+                        estimated_internal_cost: 12,
+                        estimated_cost_per_100_units: 800,
+                        cost_scaling_rationale: "L'acquisto in grandi lotti di soluzioni disinfettanti concentrate, rotoli di buste per termosigillatrice e l'ottimizzazione energetica dei cicli di sterilizzazione riducono il costo unitario del 33%.",
+                        estimated_total_time_minutes: 20,
+                        is_extra: false,
+                        calculation_breakdown: {
+                            chair_time_mins: 20,
+                            consumables: 6.00,
+                            depreciation: 3.50,
+                            staff_cost: 2.50
+                        },
+                        stages: [
+                            {
+                                stage_name: "Decontaminazione e detersione dello strumentario",
+                                steps: [
+                                    {
+                                        step_name: "Rimozione e decontaminazione chimica",
+                                        instructions: "Immergere gli strumenti ortodontici usati nella vasca ad ultrasuoni con soluzione enzimatica. Disinfettare accuratamente tutte le superfici del riunito con spray.",
+                                        estimated_time_minutes: 10,
+                                        required_skills: ["Assistente_ASO"],
+                                        required_resources: ["Disinfettante", "DPI barriera"]
+                                    },
+                                    {
+                                        step_name: "Imbustamento e ciclo autoclave",
+                                        instructions: "Asciugare gli strumenti, imbustarli singolarmente o in kit predefiniti tramite termosigillatrice e avviare il ciclo B-Flash.",
+                                        estimated_time_minutes: 10,
+                                        required_skills: ["Assistente_ASO"],
+                                        required_resources: ["Autoclave", "Buste"]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        subprocess_name: "Accettazione clinico-amministrativa e firma dei consensi informati",
+                        subprocess_sku: "CLINIC-ORTHO-ACCETTAZIONE",
+                        estimated_internal_cost: 6,
+                        estimated_cost_per_100_units: 400,
+                        cost_scaling_rationale: "La digitalizzazione completa della modulistica tramite tablet con firma grafometrica elimina totalmente il consumo di carta e toner.",
+                        estimated_total_time_minutes: 15,
+                        is_extra: false,
+                        calculation_breakdown: {
+                            chair_time_mins: 15,
+                            consumables: 2.00,
+                            depreciation: 0.00,
+                            staff_cost: 4.00
+                        },
+                        stages: [
+                            {
+                                stage_name: "Accoglienza e verifica anagrafica",
+                                steps: [
+                                    {
+                                        step_name: "Check-in del piccolo paziente",
+                                        instructions: "Accogliere la famiglia, verificare i dati del genitore ed effettuare l'aggiornamento dell'anagrafica sul software gestionale.",
+                                        estimated_time_minutes: 5,
+                                        required_skills: ["Segretaria_Amministrativa"],
+                                        required_resources: ["Computer speciale"]
+                                    },
+                                    {
+                                        step_name: "Sottoscrizione consensi e privacy",
+                                        instructions: "Presentare al genitore l'informativa privacy (GDPR) e il consenso informato (L. 219/2017) specifico per l'attività di diagnosi 3D.",
+                                        estimated_time_minutes: 10,
+                                        required_skills: ["Segretaria_Amministrativa"],
+                                        required_resources: ["Tablet", "Consenso L219"]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        subprocess_name: "Acquisizione impronta ottica digitale 3D (scansione intraorale)",
+                        subprocess_sku: "CLINIC-ORTHO-SCAN3D",
+                        estimated_internal_cost: 28,
+                        estimated_cost_per_100_units: 1800,
+                        cost_scaling_rationale: "Ammortamento dell'hardware dello scanner intraorale e l'acquisto massivo di puntali monouso compatibili abbattono il costo del 35%.",
+                        estimated_total_time_minutes: 20,
+                        is_extra: false,
+                        calculation_breakdown: {
+                            chair_time_mins: 20,
+                            consumables: 15.00,
+                            depreciation: 7.00,
+                            staff_cost: 6.00
+                        },
+                        stages: [
+                            {
+                                stage_name: "Scansione digitale delle arcate",
+                                steps: [
+                                    {
+                                        step_name: "Preparazione e calibrazione dello strumento",
+                                        instructions: "Montare il puntale sterile sullo scanner intraorale, calibrare il sensore ottico e posizionare l'apribocca pediatrico.",
+                                        estimated_time_minutes: 5,
+                                        required_skills: ["Odontoiatra", "Assistente_ASO"],
+                                        required_resources: ["Scanner intraorale", "Puntale sterile"]
+                                    },
+                                    {
+                                        step_name: "Scansione 3D delle arcate dentarie",
+                                        instructions: "Scansionare l'arcata inferiore, superiore e la relazione occlusale in masticazione abituale, guidando il bambino con un approccio ludico.",
+                                        estimated_time_minutes: 15,
+                                        required_skills: ["Odontoiatra"],
+                                        required_resources: ["Scanner intraorale"]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        subprocess_name: "Analisi gnatologico-ortodontica ed elaborazione del Report di Crescita 3D",
+                        subprocess_sku: "CLINIC-ORTHO-ANALISI",
+                        estimated_internal_cost: 45,
+                        estimated_cost_per_100_units: 3200,
+                        cost_scaling_rationale: "L'adozione di software di pianificazione con licenza flat annuale permette di distribuire i costi fissi su un elevato numero di casi.",
+                        estimated_total_time_minutes: 30,
+                        is_extra: false,
+                        calculation_breakdown: {
+                            chair_time_mins: 30,
+                            consumables: 0.00,
+                            depreciation: 12.00,
+                            staff_cost: 33.00
+                        },
+                        stages: [
+                            {
+                                stage_name: "Studio cefalometrico",
+                                steps: [
+                                    {
+                                        step_name: "Tracciamento cefalometrico",
+                                        instructions: "Importare i file STL delle impronte sul software. Posizionare i punti di repere anatomici per misurare discrepanze scheletriche.",
+                                        estimated_time_minutes: 15,
+                                        required_skills: ["Odontoiatra"],
+                                        required_resources: ["Software ortodontico AI"]
+                                    },
+                                    {
+                                        step_name: "Elaborazione della sintesi diagnostica",
+                                        instructions: "Generare il PDF riassuntivo del 'Report di Crescita 3D' che illustra graficamente ai genitori lo sviluppo osseo.",
+                                        estimated_time_minutes: 15,
+                                        required_skills: ["Odontoiatra"],
+                                        required_resources: ["Template Report"]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        subprocess_name: "Colloquio clinico di restituzione e pianificazione terapeutica con i genitori/tutori",
+                        subprocess_sku: "CLINIC-ORTHO-COLLOQUIO",
+                        estimated_internal_cost: 35,
+                        estimated_cost_per_100_units: 2500,
+                        cost_scaling_rationale: "L'utilizzo di modelli dimostrativi 3D standardizzati riutilizzabili e di slide di presentazione ottimizza l'efficacia comunicativa del medico.",
+                        estimated_total_time_minutes: 30,
+                        is_extra: false,
+                        calculation_breakdown: {
+                            chair_time_mins: 30,
+                            consumables: 3.00,
+                            depreciation: 0.00,
+                            staff_cost: 32.00
+                        },
+                        stages: [
+                            {
+                                stage_name: "Presentazione clinica",
+                                steps: [
+                                    {
+                                        step_name: "Spiegazione del Report",
+                                        instructions: "Illustrare a schermo il Report di Crescita 3D, chiarendo l'obiettivo dell'ortodonzia intercettiva, la durata stimata e l'impegno richiesto.",
+                                        estimated_time_minutes: 20,
+                                        required_skills: ["Odontoiatra"],
+                                        required_resources: ["Monitor dello studio", "Modelli fisici dimostrativi"]
+                                    },
+                                    {
+                                        step_name: "Consolidamento del piano di cura",
+                                        instructions: "Rispondere ai dubbi clinici della famiglia e raccordare il genitore con l'area amministrativa per la firma del preventivo.",
+                                        estimated_time_minutes: 10,
+                                        required_skills: ["Odontoiatra", "Segretaria_Amministrativa"],
+                                        required_resources: ["Software gestionale"]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            suppliers_output: {
+                suppliers: [
+                    {
+                        required_material: "Kit monouso per paziente pediatrico (aspirasaliva, specchietto, guanti e mascherine)",
+                        providers: [
+                            { supp_name: "Dentaltix / Online", item_name: "Kit monouso paziente pediatrico (singolo)", cost: 1.20, supp_vat: "", supp_sku: "ECO-KIT-PED-MONO", supp_phone: "", supp_web: "https://www.dentaltix.com" },
+                            { supp_name: "Henry Schein S.p.A.", item_name: "Kit monouso pediatrico e consumabili di sedia", cost: 1.50, supp_vat: "IT0987654321", supp_sku: "SCHEIN-MONO-PED", supp_phone: "02 575751", supp_web: "https://www.henryschein.it" }
+                        ]
+                    },
+                    {
+                        required_material: "Puntale protettivo monouso o sterilizzabile per scanner intraorale",
+                        providers: [
+                            { supp_name: "Dental Group S.r.l. (Palermo)", item_name: "Sleeve protettivo monouso scanner intraorale (conf. 100 pz)", cost: 15, supp_vat: "IT1112223334", supp_sku: "DG-SCANNER-SLEEVE", supp_phone: "091 678 8179", supp_web: "https://maps.google.com/?cid=16870704471475326660" },
+                            { supp_name: "Dentaltix / Online", item_name: "Puntale rigido autoclavabile di ricambio (Medit/3Shape)", cost: 35, supp_vat: "", supp_sku: "ECO-SCANNER-TIP-RIGID", supp_phone: "", supp_web: "https://www.dentaltix.com" }
+                        ]
+                    },
+                    {
+                        required_material: "Soluzioni disinfettanti per superfici e riunito",
+                        providers: [
+                            { supp_name: "D.P. Dental S.r.l. (Mazara)", item_name: "Zeta 3 Sprizz 1L - Soluzione disinfettante superfici e riunito", cost: 12.90, supp_vat: "IT0923932664", supp_sku: "DP-ZETA3-SPRIZZ", supp_phone: "0923 932664", supp_web: "https://maps.google.com/?cid=9309018340189426360" }
+                        ]
+                    },
+                    {
+                        required_material: "Modulo di consenso informato ai sensi della L. 219/2017 e modulo privacy GDPR",
+                        providers: [
+                            { supp_name: "AlfaDocs / Cloud", item_name: "Software gestionale in Cloud con moduli consenso e GDPR - Canone Mensile", cost: 69, supp_vat: "", supp_sku: "ALFADOCS-CLOUD-MONTHLY", supp_phone: "", supp_web: "https://www.alfadocs.com" }
+                        ]
+                    },
+                    {
+                        required_material: "Template cartaceo o digitale del Report di Crescita",
+                        providers: [
+                            { supp_name: "WebCeph Premium", item_name: "Software AI analisi cefalometrica (Report di Crescita PDF) - Canone Mensile", cost: 35, supp_vat: "", supp_sku: "WEBCEPH-PREMIUM-MONTHLY", supp_phone: "", supp_web: "https://www.webceph.com" },
+                            { supp_name: "Laboratorio Odontotecnico Anselmi (Castelvetrano)", item_name: "Modello ortodontico fisico dimostrativo in resina/gesso", cost: 40, supp_vat: "IT3406276132", supp_sku: "ANSELMI-MODEL-ORTHO", supp_phone: "340 627 6132", supp_web: "https://maps.google.com/?cid=13005559764954905694" }
+                        ]
+                    }
+                ]
+            },
+            locations_output: {
+                locations: [
+                    {
+                        loc_id: "loc_riunito_ortodonzia",
+                        loc_name: "Riunito odontoiatrico attrezzato per ortodonzia/pedodonzia",
+                        temperature: "Sanificazione chimica sistematica con presidi medici prima e dopo ogni seduta.",
+                        estimated_internal_cost: 16,
+                        cost_scaling_rationale: "Quota di sedia calcolata su un costo fisso orario del riunito pari a €24,00/ora per un tempo d'uso effettivo di 40 minuti clinici.",
+                        associated_subprocess_skus: ["CLINIC-ORTHO-SCAN3D", "CLINIC-ORTHO-SANIF"],
+                        maintenance_checklist: [
+                            { task_name: "Lavaggio dei condotti di aspirazione", frequency: "DAILY", instructions: "Aspirare soluzione enzimatica diluita per rimuovere residui biologici." }
+                        ]
+                    },
+                    {
+                        loc_id: "loc_reception_segreteria",
+                        loc_name: "Area reception e segreteria per accoglienza e adempimenti",
+                        temperature: "Condizioni standard di ufficio, disinfezione tablet di firma grafometrica.",
+                        estimated_internal_cost: 9,
+                        cost_scaling_rationale: "Quota calcolata su tariffa oraria strutturale di €12,00/ora, applicata ai 45 minuti complessivi di accoglienza e colloquio finale.",
+                        associated_subprocess_skus: ["CLINIC-ORTHO-ACCETTAZIONE", "CLINIC-ORTHO-COLLOQUIO", "CLINIC-ORTHO-ANALISI"],
+                        maintenance_checklist: [
+                            { task_name: "Sanificazione tablet firma grafometrica", frequency: "DAILY", instructions: "Pulire lo schermo con salviette delicate analcoliche." }
+                        ]
+                    }
+                ]
+            },
+            asset_output: {
+                assets: [
+                    {
+                        asset_id: "ast_scanner_3d",
+                        asset_name: "Scanner Intraorale Trios 3Shape Ortho",
+                        asset_sku: "AST-CLINIC-SCAN-TRIOS-3D",
+                        notes: "Richiede calibrazione settimanale e manutenzione ottica periodica.",
+                        estimated_internal_cost: 7,
+                        cost_scaling_rationale: "Ammortamento calcolato su un costo d'acquisto di €18.000 (5 anni d'uso).",
+                        associated_subprocess_skus: ["CLINIC-ORTHO-SCAN3D"],
+                        maintenance_checklist: [
+                            { task_name: "Calibrazione ottica settimanale", frequency: "WEEKLY", instructions: "Eseguire calibrazione con kit originale (test cube)." }
+                        ]
+                    },
+                    {
+                        asset_id: "ast_autoclave_classe_b",
+                        asset_name: "Autoclave Classe B Euronda Pro System E10",
+                        asset_sku: "AST-CLINIC-STERIL-EURONDA-E10",
+                        notes: "Validazione periodica dei parametri fisici di sterilizzazione.",
+                        estimated_internal_cost: 3.50,
+                        cost_scaling_rationale: "Usura e consumi calcolati a €0,62 per ciclo, sommando consumi energetici e manutenzione ordinaria.",
+                        associated_subprocess_skus: ["CLINIC-ORTHO-SANIF"],
+                        maintenance_checklist: [
+                            { task_name: "Helix e Vacuum Test", frequency: "DAILY", instructions: "Eseguire i test obbligatori prima di avviare l'attività clinica." }
+                        ]
+                    },
+                    {
+                        asset_id: "ast_workstation_ortodontica",
+                        asset_name: "Workstation NemoCeph 3D e Diagnostica",
+                        asset_sku: "AST-CLINIC-WORKSTATION-NEMOCEPH",
+                        notes: "Integrazione con database radiografico dello studio.",
+                        estimated_internal_cost: 12,
+                        cost_scaling_rationale: "Calcolato sul canone NemoCeph 3D di €3.500/anno e della macchina ammortizzata in 3 anni.",
+                        associated_subprocess_skus: ["CLINIC-ORTHO-ANALISI", "CLINIC-ORTHO-COLLOQUIO"],
+                        maintenance_checklist: [
+                            { task_name: "Verifica esito backup protetto", frequency: "DAILY", instructions: "Controllare il caricamento del database clinico sul server protetto." }
+                        ]
+                    }
+                ]
+            },
+            qualitative_parser_output: {
+                competitor_analysis_structured: {
+                    market_positioning_summary: "La tariffa attuale di €250,00 del Centro Odontoiatrico Buscemi per l'ortodonzia intercettiva si configura come sotto-tariffazione sistematica se intesa como cura clinica completa. Rispetto alla media concorrenziale territoriale (€2.037,50), questo prezzo deve essere riposizionato e chiarito come tariffa d'ingresso per il solo pacchetto diagnostico ('Studio del caso clinico 3D e Report'), fatturando separatamente la terapia attiva con dispositivo per non erodere il valore orario della poltrona clinica.",
+                    competitors: [
+                        { name: "Studio Dentistico Dott. Pietro Cacioppo", distance_km: 0.4, url: "https://maps.google.com/?cid=14107607642082206374", estimated_price: 1800, usp_gap_strengths: ["Storicità sul territorio e presenza in pieno centro a Menfi."], usp_gap_weaknesses: ["Studio monoprofessionale tradicional.", "Mancanza di tecnologie digitali (impronte tradizionali con paste fastidiose)."] },
+                        { name: "Studio Dentistico Dottor Rino Sutera", distance_km: 1, url: "https://maps.google.com/?cid=10137431845332376982", estimated_price: 1950, usp_gap_strengths: ["Ottima reputazione consolidata nel territorio di Menfi."], usp_gap_weaknesses: ["Struttura a conduzione classica senza scanner intraorale 3D."] },
+                        { name: "Studio Odontoiatrico Dott.ssa Leda Lucia Gallo", distance_km: 20, url: "https://maps.google.com/?cid=17185247497632600555", estimated_price: 2100, usp_gap_strengths: ["Forte posizionamento empatico guidato da una specialista donna."], usp_gap_weaknesses: ["Sciacca (20 KM): Svantaggi logistici rilevanti per le frequenti visite ortodontiche pediatriche dei pazienti di Menfi."] },
+                        { name: "DentalPro Palermo", distance_km: 80, url: "https://maps.google.com/?cid=2552939682977848202", estimated_price: 2300, usp_gap_strengths: ["Piani finanziari flessibili ed e-commerce sanitario strutturato."], usp_gap_weaknesses: ["Turnover medico elevatissimo (mancanza di continuità con l'ortodontista).", "Distanza impraticabile per urgenze ortodontiche immediate."] }
+                    ],
+                    strategic_recommendations: [
+                        "Inquadrare la tariffa gancio di €250,00 como pacchetto diagnostico 'Digital Smile Kid' (scansione 3D, radiologia, studio cefalometrico) e non come terapia complessiva.",
+                        "Standardizzare i contratti ortodontici attivi in canoni mensili (es. €99/mese per 18 mesi) per coprire l'acquisto dei dispositivi protesici ed i frequenti controlli di sedia.",
+                        "Spingere la comunicazione sull'uso dello scanner intraorale 3D (no paste da impronta per bambini) come elemento tecnologico superiore a Menfi."
+                    ]
+                },
+                fiscal_analysis_structured: {
+                    regime_name: "Società a Responsabilità Limitata (S.r.l.) Ordinaria",
+                    activity_code: "ATECO 86.23.00",
+                    profitability_coefficient: 0.78,
+                    income_tax_rate: 0.24,
+                    social_security_rate: 0.195,
+                    total_estimated_tax_burden_ratio: 0.34,
+                    is_startup_rate_applied: false
+                },
+                meta_operators_overhead: [
+                    { role: "Assistente alla Poltrona (ASO)", allocated_cost: 9, allocation_rationale: "Quota calcolata su costo orario di €18,00. Include 20 minuti di sanificazione sedia pre/post seduta e assistenza all'odontoiatra durante la scansione." },
+                    { role: "Segreteria Clinica", allocated_cost: 4, allocation_rationale: "Quota basata su costo di €16,00/ora per 15 minuti complessivi di check-in, accoglienza del bambino e firma digitale dei moduli su tablet." },
+                    { role: "Consulente Fiscale (Commercialista)", allocated_cost: 5, allocation_rationale: "Allocazione fissa stimata per singola cartella clinica ed emissione fattura per la gestione degli adempimenti societari ed invio dati al Sistema TS." }
+                ]
+            },
+            financial_refiner_output: {
+                financial_analysis: {
+                    pricing_summary: {
+                        catalog_price: 250,
+                        currency: "EUR",
+                        competitor_average_price_benchmark: 2037.5
+                    },
+                    cost_breakdown_unit: {
+                        direct_materials_cost: 40,
+                        dental_lab_cost: 0,
+                        medical_collaborator_fee: 80,
+                        total_direct_variable_costs_unit: 120,
+                        contribution_margin_unit: 130,
+                        chair_time_cost_fixed: 65.5,
+                        total_operating_clinical_cost_unit: 185.5,
+                        operating_income_unit: 64.5,
+                        clinical_cost_calculation_rationale: "Il costo variabile diretto (€120,00) include €40,00 di materiali di consumo (monouso per sanificazione, puntale scanner e DPI) e €80,00 per il compenso del medico ortodontista calcolato sul tempo clinico attivo (80 minuti). I costi fissi operativi (€65,50) comprendono la quota d'uso del riunito (€16,00), i costi di segreteria e accettazione (€9,00), il costo del personale ASO (€9,00) e l'ammortamento tecnologico degli asset digitali (scanner, autoclave e workstation 3D)."
+                    },
+                    fiscal_impact_unit: {
+                        assumed_regime_name: "Società a Responsabilità Limitata (S.r.l.) Ordinaria",
+                        total_tax_burden_ratio: 0.34,
+                        total_tax_and_contribution_burden_value: 85,
+                        fiscal_calculation_rationale: "Applicazione dell'aliquota del carico fiscale e previdenziale societario complessivo stimato (IRES, IRAP e altri oneri societari pari al 34% dell'utile) direttamente proporzionata sulla prestazione."
+                    },
+                    profitability_metrics: {
+                        gross_margin_scaled: 130,
+                        net_profit_scaled: -20.50,
+                        net_profit_percentage: -8.2,
+                        net_profit_margin_rationale: "La tariffa attuale di €250,00, a fronte di un costo totale operativo unitario di €185,50 e di un carico fiscale societario stimato di €85,00, genera una perdita netta di €20,50 per singola esecuzione. Lo studio è in perdita su questo trattamento a causa del prezzo troppo basso."
+                    },
+                    break_even_point_units: 385,
+                    break_even_calculation_rationale: "Considerando un costo fisso strutturale annuo allocato all'area ortodontica pediatrica di €50.000,00, e dividendolo per il Margine di Contribuzione unitario (€130,00), sono necessarie 385 prestazioni annue per coprire interamente i costi fissi."
+                },
+                strategic_financial_analysis: {
+                    financial_health_rating: "WARNING_LOW_MARGINS",
+                    breakeven_strategic_summary: "La salute finanziaria attuale di questo servizio è critica. Nonostante l'Mdc unitario sia positivo (€130,00), l'allocazione dei costi fissi di poltrona e dell'elevato carico fiscale societario della S.r.l. (€85,00) mandano l'utile netto sotto lo zero (-€20,50), rendendo la prestazione un centro di costo passivo se erogato singolarmente senza piani attivi successivi.",
+                    pricing_strategy_advisory: "La tariffa attuale di €250,00 è estremamente rischiosa se considerata come prezzo di una terapia ortodontica intercettiva completa. Rispetto alla media dei competitor locali (€2.037,50), questo prezzo deve essere riposizionato strategicamente como tariffa d'ingresso per il solo pacchetto diagnostico ('Digital Case Study e Report di Crescita'). La terapia ortodontica attiva successiva dovrà essere fatturata separatamente (es. canone mensile di €120,00 per 18 mesi) per riallineare i ricavi dello studio alla struttura dei costi reali e ai benchmark territoriali.",
+                    extra_options_profit_evaluation: [
+                        { option_name: "Studio del Caso Clinico e Report di Crescita 3D", revenue: 250, unit_cost_scaled: 45, margin_scaled: 205, evaluation_comment: "Marginalità molto elevata (82%). Questa opzione rappresenta il core dell'upsell diagnostico e deve essere sempre inclusa nel piano di cura iniziale presentato ai genitori per giustificare il valore tecnologico del trattamento." },
+                        { option_name: "Scansione Ottica Intraorale Integrativa", revenue: 100, unit_cost_scaled: 28, margin_scaled: 72, evaluation_comment: "Garantisce un ottimo margine (€72,00) e sblocca l'asset tecnologico dello scanner 3D già presente in studio, migliorando l'esperienza clinica del piccolo paziente ed eliminando il fastidio dell'alginato." },
+                        { option_name: "Sanificazione e Setup Clinico Dedicato Pediatrico", revenue: 15, unit_cost_scaled: 12, margin_scaled: 3, evaluation_comment: "Margine di contribuzione positivo e coerente." }
+                    ],
+                    cost_optimization_recommendations: [
+                        "Rinegoziare l'acquisto dei consumabili e dei puntali dello scanner intraorale in grandi lotti per ridurre il costo unitario del 33%.",
+                        "Implementare un sistema di Recall e conferma appuntamenti via SMS/WhatsApp automatizzato a 48 e 24 ore per ridurre i no-show al di sotto del 2%.",
+                        "Standardizzare i kit clinici di consumo pediatrici per minimizzare i tempi di setup clinico (sanificazione sedia gestita integralmente dall'ASO in tempi morti dell'odontoiatra)."
+                    ]
+                }
+            }
+        };
+
+        let selectedSuppliers = {
+            "Kit monouso per paziente pediatrico (aspirasaliva, specchietto, guanti e mascherine)": "Dentaltix / Online",
+            "Puntale protettivo monouso o sterilizzabile per scanner intraorale": "Dental Group S.r.l. (Palermo)",
+            "Soluzioni disinfettanti per superfici e riunito": "D.P. Dental S.r.l. (Mazara)",
+            "Modulo di consenso informato ai sensi della L. 219/2017 e modulo privacy GDPR": "AlfaDocs / Cloud",
+            "Template cartaceo o digitale del Report di Crescita": "WebCeph Premium"
+        };
+
+        let activeTab = 'tab-bom';
+
+        // Variabili globali editabili inizializzate dai dati statici
+        let basePrice = draftData.catalog_item.pricing.base_price;
+        
+        function init() {
+            renderBOM();
+            renderSuppliers();
+            renderLocations();
+            renderAssets();
+            renderMetaOperators();
+            renderCompetitors();
+            renderFiscal();
+            renderCFOAdvisory();
+            recalculateAll();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('border-black', 'text-black');
+                el.classList.add('border-transparent', 'text-gray-400');
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            if(activeBtn) {
+                activeBtn.classList.remove('border-transparent', 'text-gray-400');
+                activeBtn.classList.add('border-black', 'text-black');
+            }
+            activeTab = tabId;
+        }
+
+        // --- MOTORE DI RICALCOLO INTEGRATO ED UNIVERSALE ---
+        function recalculateAll() {
+            // Leggi la tariffa generale della sedia
+            basePrice = parseFloat(document.getElementById('input-tariffa').value) || 0;
+
+            // 1. Ricalcolo dei costi delle singole sedute cliniche (BOM)
+            let totalBOMCost = 0;
+            draftData.bom_output.bom.forEach((sub, idx) => {
+                const materialsInput = parseFloat(document.getElementById(`input-bom-materials-${idx}`).value) || 0;
+                const ammortamentoInput = parseFloat(document.getElementById(`input-bom-depr-${idx}`).value) || 0;
+                const staffInput = parseFloat(document.getElementById(`input-bom-staff-${idx}`).value) || 0;
+                const chairTimeInput = parseFloat(document.getElementById(`input-bom-time-${idx}`).value) || 0;
+
+                const singleUnitCost = materialsInput + ammortamentoInput + staffInput;
+                totalBOMCost += singleUnitCost;
+
+                // Aggiorna l'etichetta del costo unitario interno nel tab BOM
+                document.getElementById(`label-bom-cost-${idx}`).innerText = `€ ${singleUnitCost.toFixed(2)}`;
+                // Aggiorna l'etichetta del tempo totale in alto a destra della scheda
+                document.getElementById(`label-bom-header-time-${idx}`).innerText = `${chairTimeInput} Min Totali`;
+                // Aggiorna il valore "Tempo Sedia" all'interno della griglia del razionale
+                document.getElementById(`label-bom-calc-time-${idx}`).innerText = `${chairTimeInput} Min`;
+                // Aggiorna il testo riassuntivo della formula in tempo reale
+                document.getElementById(`label-bom-formula-${idx}`).innerHTML = `Formula: Consumabili (€ ${materialsInput.toFixed(2)}) + Ammortamento (€ ${ammortamentoInput.toFixed(2)}) + Risorse (€ ${staffInput.toFixed(2)}) = <strong class="text-black">€ ${singleUnitCost.toFixed(2)} / esecuzione</strong>`;
+            });
+
+            // 2. Ricalcolo dei costi di Sourcing (Fornitori)
+            let totalSuppliersCost = 0;
+            draftData.suppliers_output.suppliers.forEach((mat, idx) => {
+                const selectedName = selectedSuppliers[mat.required_material];
+                const matchProv = mat.providers.find(p => p.supp_name === selectedName);
+                if (matchProv) {
+                    totalSuppliersCost += matchProv.cost;
+                }
+            });
+
+            // 3. Ricalcolo delle Aree Cliniche e dei Riuniti (Locations)
+            let totalLocationsCost = 0;
+            draftData.locations_output.locations.forEach((loc, idx) => {
+                const hourlyRate = parseFloat(document.getElementById(`input-loc-rate-${idx}`).value) || 0;
+                const useTimeMins = parseFloat(document.getElementById(`input-loc-time-${idx}`).value) || 0;
+
+                // Calcolo frazionario in base ai minuti d'uso reali
+                const calculatedCost = (hourlyRate / 60) * useTimeMins;
+                totalLocationsCost += calculatedCost;
+
+                // Aggiorna l'etichetta del costo della poltrona clinica nel tab corrispondente
+                document.getElementById(`label-loc-cost-${idx}`).innerText = `€ ${calculatedCost.toFixed(2)}`;
+                // Aggiorna la dicitura visiva della formula
+                document.getElementById(`label-loc-formula-${idx}`).innerHTML = `Formula di allocazione: (€ ${hourlyRate.toFixed(2)} all'ora / 60) * ${useTimeMins} Minuti d'uso = <strong class="text-zinc-900">€ ${calculatedCost.toFixed(2)}</strong>`;
+            });
+
+            // 4. Ricalcolo dei Beni Strumentali e ammortamenti (Assets)
+            let totalAssetsCost = 0;
+            draftData.asset_output.assets.forEach((ast, idx) => {
+                const hourlyRate = parseFloat(document.getElementById(`input-ast-rate-${idx}`).value) || 0;
+                const useTimeMins = parseFloat(document.getElementById(`input-ast-time-${idx}`).value) || 0;
+                const flatLicense = parseFloat(document.getElementById(`input-ast-flat-${idx}`).value) || 0;
+
+                // Calcolo ammortamento orario + quota software d'uso fisso
+                const calculatedCost = ((hourlyRate / 60) * useTimeMins) + flatLicense;
+                totalAssetsCost += calculatedCost;
+
+                // Aggiorna costo nel tab Assets
+                document.getElementById(`label-ast-cost-${idx}`).innerText = `€ ${calculatedCost.toFixed(2)}`;
+                // Aggiorna la dicitura della formula
+                document.getElementById(`label-ast-formula-${idx}`).innerHTML = `Formula di ammortamento: (€ ${hourlyRate.toFixed(2)} all'ora / 60 * ${useTimeMins} Min) + Licenza Fissa (€ ${flatLicense.toFixed(2)}) = <strong class="text-zinc-900">€ ${calculatedCost.toFixed(2)}</strong>`;
+            });
+
+            // 5. Ricalcolo dei Meta-Operatori ed assistenti (Supporto)
+            let totalMetaCost = 0;
+            draftData.qualitative_parser_output.meta_operators_overhead.forEach((op, idx) => {
+                const hourlyWage = parseFloat(document.getElementById(`input-meta-wage-${idx}`).value) || 0;
+                const timeMins = parseFloat(document.getElementById(`input-meta-time-${idx}`).value) || 0;
+
+                const calculatedCost = (hourlyWage / 60) * timeMins;
+                totalMetaCost += calculatedCost;
+
+                // Aggiorna costo nel tab Meta
+                document.getElementById(`label-meta-cost-${idx}`).innerText = `€ ${calculatedCost.toFixed(2)}`;
+                // Aggiorna la dicitura della formula
+                document.getElementById(`label-meta-formula-${idx}`).innerHTML = `Formula di calcolo: (€ ${hourlyWage.toFixed(2)} all'ora / 60) * ${timeMins} Minuti = <strong class="text-zinc-900">€ ${calculatedCost.toFixed(2)}</strong>`;
+            });
+
+            // Aggiorna la visualizzazione dei campi di input centrali in Unit Economics della Sidebar
+            document.getElementById('cost-bom').innerText = '€ ' + totalBOMCost.toFixed(2);
+            document.getElementById('cost-suppliers').innerText = '€ ' + totalSuppliersCost.toFixed(2);
+            document.getElementById('cost-locations').innerText = '€ ' + totalLocationsCost.toFixed(2);
+            document.getElementById('cost-assets').innerText = '€ ' + totalAssetsCost.toFixed(2);
+            document.getElementById('cost-meta').innerText = '€ ' + totalMetaCost.toFixed(2);
+
+            // Calcolo Costo di Sedia Totale (COGS Totale)
+            const totalCOGS = totalBOMCost + totalSuppliersCost + totalLocationsCost + totalAssetsCost + totalMetaCost;
+            document.getElementById('total-cogs').innerText = '€ ' + totalCOGS.toFixed(2);
+
+            // Margine di Contribuzione della prestazione
+            const mdcAmount = basePrice - totalCOGS;
+            const mdcPct = basePrice > 0 ? (mdcAmount / basePrice) * 100 : 0;
+            document.getElementById('label-mdc').innerText = '€ ' + mdcAmount.toFixed(2) + ' (' + mdcPct.toFixed(0) + '%)';
+
+            // Carico Fiscale Societario ed ENPAM (34% fisso sulla tariffa per S.r.l. odontoiatrica)
+            const taxBurden = basePrice * 0.34;
+            document.getElementById('label-taxes').innerText = '€ ' + taxBurden.toFixed(2);
+
+            // Utile Netto finale della Sedia clinica
+            const netProfit = mdcAmount - taxBurden;
+            const netProfitEl = document.getElementById('label-net-profit');
+            netProfitEl.innerText = '€ ' + netProfit.toFixed(2);
+
+            // Aggiornamento dello Stato di Salute visivo (Health Card in CFO Advisory)
+            const labelHealth = document.getElementById('label-health');
+            const cfoCard = document.getElementById('cfo-health-card');
+
+            if (netProfit > 0) {
+                netProfitEl.className = 'text-lg font-black text-green-600';
+                document.getElementById('margin-bar').className = 'h-full bg-green-500 transition-all duration-300';
+                if(labelHealth) {
+                    labelHealth.className = 'px-4 py-2 bg-green-500 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-md animate-pulse';
+                    labelHealth.innerText = 'ECCELLENTE';
+                    cfoCard.className = 'md:col-span-4 card rounded-3xl p-6 flex flex-col justify-between items-center text-center bg-black text-white border-green-500/25 border';
+                }
+            } else {
+                netProfitEl.className = 'text-lg font-black text-red-500';
+                document.getElementById('margin-bar').className = 'h-full bg-red-500 transition-all duration-300';
+                if(labelHealth) {
+                    labelHealth.className = 'px-4 py-2 bg-red-500 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-md';
+                    labelHealth.innerText = 'IN PERDITA';
+                    cfoCard.className = 'md:col-span-4 card rounded-3xl p-6 flex flex-col justify-between items-center text-center bg-black text-white border-red-500/25 border';
+                }
+            }
+            document.getElementById('margin-bar').style.width = Math.max(0, Math.min(100, mdcPct)) + '%';
+
+            // Ricalcolo Break-Even Point Dinamico dello Studio
+            const annualFixedCosts = 50000; // Costi fissi strutturali annui allocati alla poltrona ortodontica
+            const bepUnitsEl = document.getElementById('bep-units');
+            const bepRationaleEl = document.getElementById('bep-rationale');
+
+            if (mdcAmount > 0) {
+                const bepVal = Math.ceil(annualFixedCosts / mdcAmount);
+                bepUnitsEl.innerText = bepVal + " terapie / anno";
+                bepRationaleEl.innerHTML = `Considerando costi fissi strutturali della poltrona pari a <strong>€ ${annualFixedCosts.toFixed(2)} / anno</strong> e un margine di contribuzione unitario di <strong>€ ${mdcAmount.toFixed(2)}</strong>, lo studio raggiunge il punto di pareggio economico a sedia dalla <strong>${bepVal}ª esecuzione annuale</strong>.`;
+            } else {
+                bepUnitsEl.innerText = "Non Raggiungibile";
+                bepRationaleEl.innerHTML = `Con un margine di contribuzione nullo o negativo (<strong>€ ${mdcAmount.toFixed(2)}</strong>), la sedia clinica non potrà mai coprire i costi fissi strutturali dello studio. Si consiglia vivamente di alzare la tariffa del trattamento.`;
+            }
+        }
+
+        // --- MOTORE BOTTOM-UP: RICALCOLO DEI MINUTI TOTALI DEL SOTTOPROCESSO DAL SINGOLO STEP ---
+        function updateSubprocessTimeFromSteps(subIdx) {
+            const sub = draftData.bom_output.bom[subIdx];
+            let sum = 0;
+            sub.stages.forEach((stg, stageIdx) => {
+                stg.steps.forEach((step, stepIdx) => {
+                    const el = document.getElementById(`input-bom-step-time-${subIdx}-${stageIdx}-${stepIdx}`);
+                    if (el) {
+                        sum += parseFloat(el.value) || 0;
+                    }
+                });
+            });
+
+            // Scrivi la somma complessiva all'interno del campo macro del Tempo Sedia
+            const macroInput = document.getElementById(`input-bom-time-${subIdx}`);
+            if (macroInput) {
+                macroInput.value = sum;
+            }
+            recalculateAll();
+        }
+
+        // --- TAB 1: DISTINTA BASE / BLUEPRINTS (WITH EDITABLE STEP TIMES) ---
+        function renderBOM() {
+            const container = document.getElementById('bom-list-container');
+            container.innerHTML = '';
+            draftData.bom_output.bom.forEach((sub, idx) => {
+                const isExtra = sub.is_extra;
+                const subCard = document.createElement('div');
+                subCard.className = `card rounded-3xl p-5 space-y-4 ${isExtra ? 'border-dashed border-gray-300 bg-gray-50/30' : ''}`;
+                
+                let stagesHtml = '';
+                sub.stages.forEach((stg, stageIdx) => {
+                    let stepsHtml = '';
+                    stg.steps.forEach((step, stepIdx) => {
+                        stepsHtml += `
+                            <div class="bg-gray-50/60 p-4 rounded-2xl border border-gray-100 space-y-2">
+                                <div class="flex justify-between items-center gap-4">
+                                    <h5 class="text-xs font-black uppercase text-black">${step.step_name}</h5>
+                                    
+                                    <!-- INPUT EDITABILE DEL TEMPO DEL SINGOLO PASSAGGIO CLINICO -->
+                                    <div class="flex items-center gap-1.5 bg-gray-150 px-2.5 py-1 rounded-xl border border-gray-200">
+                                        <input type="number" 
+                                               id="input-bom-step-time-${idx}-${stageIdx}-${stepIdx}" 
+                                               value="${step.estimated_time_minutes}" 
+                                               oninput="updateSubprocessTimeFromSteps(${idx})" 
+                                               class="w-10 bg-transparent text-xs font-black text-center text-gray-800 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                        <span class="text-[9px] font-black text-gray-500 uppercase">Min</span>
+                                    </div>
+                                </div>
+                                <p class="text-[10px] text-gray-600 font-medium leading-relaxed">${step.instructions}</p>
+                            </div>
+                        `;
+                    });
+
+                    stagesHtml += `
+                        <div class="space-y-3 pt-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-1.5 h-1.5 rounded-full bg-black"></span>
+                                <h4 class="text-[11px] font-black uppercase text-gray-500 tracking-wider">${stg.stage_name}</h4>
+                            </div>
+                            <div class="space-y-3 pl-3">
+                                ${stepsHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                const calc = sub.calculation_breakdown;
+
+                subCard.innerHTML = `
+                    <div class="flex justify-between items-start gap-4 pb-3 border-b border-border">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">${sub.subprocess_sku}</span>
+                                ${isExtra ? '<span class="px-1.5 py-0.5 bg-zinc-900 text-white text-[7px] font-black uppercase rounded">Opzione Extra (Upsell)</span>' : '<span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[7px] font-black uppercase rounded">Servizio Base</span>'}
+                            </div>
+                            <h3 class="text-xs font-black uppercase tracking-tight text-black">${sub.subprocess_name}</h3>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-xs font-black text-black" id="label-bom-cost-${idx}">€ ${sub.estimated_internal_cost.toFixed(2)}</span>
+                            <div class="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-0.5" id="label-bom-header-time-${idx}">${sub.estimated_total_time_minutes} Min Totali</div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        ${stagesHtml}
+                    </div>
+
+                    <!-- CALCOLATRICE E RAZIONALE LOCALE PER LA PRESTAZIONE/FASE -->
+                    <div class="bg-zinc-50 border border-zinc-150 p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center gap-2 text-zinc-800">
+                            <i class="fas fa-calculator text-[10px]"></i>
+                            <h4 class="text-[10px] font-black uppercase tracking-wider">🧮 Razionale & Variabili di Costo della Fase</h4>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Materiali di Consumo (€)</label>
+                                <input type="number" id="input-bom-materials-${idx}" value="${calc.consumables}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Ammort. Tecnologico (€)</label>
+                                <input type="number" id="input-bom-depr-${idx}" value="${calc.depreciation}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Compenso Medico (€)</label>
+                                <input type="number" id="input-bom-staff-${idx}" value="${calc.staff_cost}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Tempo Sedia (Min)</label>
+                                <input type="number" id="input-bom-time-${idx}" value="${calc.chair_time_mins}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-center mt-2 pt-2 border-t border-gray-100">
+                            <div class="text-[8px] font-black uppercase text-gray-400 tracking-wider">Tempo di Sedia Allocato: <strong class="text-black" id="label-bom-calc-time-${idx}">${calc.chair_time_mins} Min</strong></div>
+                        </div>
+                        <div class="text-[9px] font-semibold text-gray-500 italic leading-relaxed text-right border-t border-gray-100/50 pt-2" id="label-bom-formula-${idx}">
+                            Formula: Consumabili + Ammortamento + Medico = <strong>€ ${sub.estimated_internal_cost.toFixed(2)} / esecuzione</strong>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 space-y-1.5 mt-2">
+                        <div class="flex items-center gap-2 text-amber-500">
+                            <i class="fas fa-coins text-[10px]"></i>
+                            <span class="text-[9px] font-black uppercase tracking-wider">Analisi di Scalabilità e Costi (Base 100)</span>
+                        </div>
+                        <p class="text-[10px] text-gray-600 font-medium leading-relaxed italic">"${sub.cost_scaling_rationale}"</p>
+                    </div>
+                `;
+                container.appendChild(subCard);
+            });
+        }
+
+        // --- TAB 2: SOURCING FORNITORI ---
+        function renderSuppliers() {
+            const container = document.getElementById('suppliers-list-container');
+            container.innerHTML = '';
+            draftData.suppliers_output.suppliers.forEach((mat, matIdx) => {
+                const matCard = document.createElement('div');
+                matCard.className = 'card rounded-3xl p-5 space-y-4';
+                
+                let providersHtml = '';
+                mat.providers.forEach((prov, provIdx) => {
+                    const isSelected = selectedSuppliers[mat.required_material] === prov.supp_name;
+                    providersHtml += `
+                        <div onclick="selectProvider('${mat.required_material.replace(/'/g, "\\'")}', '${prov.supp_name.replace(/'/g, "\\'")}')" class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${isSelected ? 'bg-black text-white border-black shadow-lg scale-[1.01]' : 'bg-gray-50 text-black border-gray-100 hover:border-black/10 hover:bg-gray-100/50'}" id="prov-${matIdx}-${provIdx}">
+                            <div class="space-y-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs font-black uppercase tracking-tight">${prov.supp_name}</span>
+                                    ${isSelected ? '<span class="px-1.5 py-0.5 bg-white text-black text-[7px] font-black uppercase rounded">Attivo</span>' : ''}
+                                </div>
+                                <p class="text-[10px] ${isSelected ? 'text-gray-300' : 'text-gray-500'} font-medium leading-relaxed">${prov.item_name}</p>
+                                <div class="flex items-center gap-3 text-[8px] font-bold uppercase tracking-wider pt-1 ${isSelected ? 'text-gray-400' : 'text-gray-400'}">
+                                    ${prov.supp_phone ? `<span><i class="fas fa-phone mr-1"></i> ${prov.supp_phone}</span>` : ''}
+                                    ${prov.supp_web ? `<a href="${prov.supp_web}" target="_blank" onclick="event.stopPropagation();" class="underline hover:text-black"><i class="fas fa-link mr-1"></i> Link</a>` : ''}
+                                </div>
+                            </div>
+                            <div class="text-right flex-shrink-0">
+                                <span class="text-sm font-black ${isSelected ? 'text-white' : 'text-black'}">€ ${prov.cost.toFixed(2)}</span>
+                                <div class="text-[8px] font-bold uppercase tracking-wider mt-0.5 ${isSelected ? 'text-gray-400' : 'text-gray-400'}">${prov.supp_sku}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                matCard.innerHTML = `
+                    <div class="space-y-1 pb-3 border-b border-border">
+                        <span class="text-[8px] font-black text-amber-500 uppercase tracking-widest">Fabbisogno Materiale</span>
+                        <h3 class="text-xs font-black uppercase tracking-tight text-black">${mat.required_material}</h3>
+                    </div>
+                    <div class="space-y-3">
+                        ${providersHtml}
+                    </div>
+                `;
+                container.appendChild(matCard);
+            });
+        }
+
+        function selectProvider(material, providerName) {
+            selectedSuppliers[material] = providerName;
+            renderSuppliers();
+            recalculateAll();
+        }
+
+        // --- TAB 3: AREE LOGISTICHE / RIUNITO (WITH LIVE PARAMETERS) ---
+        function renderLocations() {
+            const container = document.getElementById('locations-list-container');
+            container.innerHTML = '';
+            draftData.locations_output.locations.forEach((loc, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-3xl p-5 space-y-4';
+                
+                // Mappiamo i valori predefiniti per gli input clinici
+                const defaultRate = loc.loc_id === 'loc_riunito_ortodonzia' ? 24.00 : 12.00;
+                const defaultTime = loc.loc_id === 'loc_riunito_ortodonzia' ? 40 : 45;
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-4 pb-3 border-b border-border">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 rounded-full bg-black"></span>
+                                <h3 class="text-xs font-black uppercase tracking-tight text-black">${loc.loc_name}</h3>
+                            </div>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">${loc.temperature}</p>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-xs font-black text-black" id="label-loc-cost-${idx}">€ ${loc.estimated_internal_cost.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    <!-- CALCOLATRICE RIUNITO / SEGRETERIA -->
+                    <div class="bg-zinc-50 border border-zinc-150 p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center gap-2 text-zinc-800">
+                            <i class="fas fa-calculator text-[10px]"></i>
+                            <h4 class="text-[10px] font-black uppercase tracking-wider">🧮 Calcolo Frazionario Costo Uso Poltrona</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Costo Strutturale Poltrona (€/Ora)</label>
+                                <input type="number" id="input-loc-rate-${idx}" value="${defaultRate}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Tempo Occupazione (Minuti)</label>
+                                <input type="number" id="input-loc-time-${idx}" value="${defaultTime}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                        </div>
+                        <div class="text-[9px] font-semibold text-gray-500 italic leading-relaxed text-right border-t border-gray-100/50 pt-2" id="label-loc-formula-${idx}">
+                            Formula: (Costo Orario / 60) * Minuti = <strong>€ ${loc.estimated_internal_cost.toFixed(2)}</strong>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-50 flex flex-wrap gap-1.5 items-center">
+                        <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">SKU BOM Collegati:</span>
+                        ${loc.associated_subprocess_skus.map(s => `<span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[8px] font-bold uppercase rounded border border-gray-200/60">${s}</span>`).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- TAB 4: TECNOLOGIE CLINICHE (ASSETS - WITH LIVE PARAMETERS) ---
+        function renderAssets() {
+            const container = document.getElementById('assets-list-container');
+            container.innerHTML = '';
+            draftData.asset_output.assets.forEach((ast, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-3xl p-5 space-y-4';
+
+                // Definizione parametri predefiniti di ammortamento
+                let defaultHourlyRate = 4.50;
+                let defaultUseMins = 20;
+                let defaultFlatLicense = 0;
+
+                if (ast.asset_id === 'ast_scanner_3d') {
+                    defaultHourlyRate = 4.50;
+                    defaultUseMins = 20;
+                    defaultFlatLicense = 5.50; // Quota software d'uso clinico
+                } else if (ast.asset_id === 'ast_autoclave_classe_b') {
+                    defaultHourlyRate = 4.66; // Circa €4.66/ora di usura ciclica
+                    defaultUseMins = 45; // 45 minuti di ciclo completo
+                    defaultFlatLicense = 0;
+                } else if (ast.asset_id === 'ast_workstation_ortodontica') {
+                    defaultHourlyRate = 14.20; // Ammortamento hardware/software
+                    defaultUseMins = 30; // 30 minuti d'uso NemoCeph
+                    defaultFlatLicense = 4.90; // Quota licenza flat su singolo caso
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-4 pb-3 border-b border-border">
+                        <div class="space-y-1">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">${ast.asset_sku}</span>
+                            <h3 class="text-xs font-black uppercase tracking-tight text-black">${ast.asset_name}</h3>
+                            <p class="text-[10px] text-gray-500 font-medium leading-relaxed">${ast.notes}</p>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-xs font-black text-black" id="label-ast-cost-${idx}">€ ${ast.estimated_internal_cost.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    <!-- CALCOLATRICE TECNOLOGIE E USURA STRUMENTALE -->
+                    <div class="bg-zinc-50 border border-zinc-150 p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center gap-2 text-zinc-800">
+                            <i class="fas fa-calculator text-[10px]"></i>
+                            <h4 class="text-[10px] font-black uppercase tracking-wider">🧮 Calcolo Ammortamento & Usura Oraria</h4>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Ammortamento (€/Ora)</label>
+                                <input type="number" id="input-ast-rate-${idx}" value="${defaultHourlyRate}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Tempo Uso (Minuti)</label>
+                                <input type="number" id="input-ast-time-${idx}" value="${defaultUseMins}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Quota Licenza (€)</label>
+                                <input type="number" id="input-ast-flat-${idx}" value="${defaultFlatLicense}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                        </div>
+                        <div class="text-[9px] font-semibold text-gray-500 italic leading-relaxed text-right border-t border-gray-100/50 pt-2" id="label-ast-formula-${idx}">
+                            Formula: (Ammortamento Orario / 60 * Tempo Uso) + Licenza = <strong>€ ${ast.estimated_internal_cost.toFixed(2)}</strong>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-t border-gray-50 flex flex-wrap gap-1.5 items-center">
+                        <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">SKU BOM Collegati:</span>
+                        ${ast.associated_subprocess_skus.map(s => `<span class="px-1.5 py-0.5 bg-gray-100 text-gray-600 text-[8px] font-bold uppercase rounded border border-gray-200/60">${s}</span>`).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- TAB 5: PERSONALE & SUPPORTI (META-OPERATORI - WITH LIVE PARAMETERS) ---
+        function renderMetaOperators() {
+            const container = document.getElementById('meta-list-container');
+            container.innerHTML = '';
+            draftData.qualitative_parser_output.meta_operators_overhead.forEach((op, idx) => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-3xl p-5 space-y-4';
+                
+                // Mappiamo i parametri predefiniti di costo orario e tempo impiegato
+                let defaultWage = 18.00;
+                let defaultTime = 30;
+
+                if (op.role.includes("ASO")) {
+                    defaultWage = 18.00;
+                    defaultTime = 30; // 30 minuti totali di decontaminazione/assistenza
+                } else if (op.role.includes("Segreteria")) {
+                    defaultWage = 16.00;
+                    defaultTime = 15; // 15 minuti di accettazione e adempimenti
+                } else if (op.role.includes("Commercialista")) {
+                    defaultWage = 30.00; // Costo orario amministrativo
+                    defaultTime = 10; // 10 minuti per l'emissione contabile della fattura
+                }
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center pb-2 border-b border-border">
+                        <h3 class="text-xs font-black uppercase tracking-tight text-black">${op.role}</h3>
+                        <span class="text-xs font-black text-black" id="label-meta-cost-${idx}">€ ${op.allocated_cost.toFixed(2)} /uso</span>
+                    </div>
+                    <p class="text-[10px] text-gray-600 font-medium leading-relaxed italic">"${op.allocation_rationale}"</p>
+
+                    <!-- CALCOLATRICE LIVE META-OPERATORI -->
+                    <div class="bg-zinc-50 border border-zinc-150 p-4 rounded-2xl space-y-3">
+                        <div class="flex items-center gap-2 text-zinc-800">
+                            <i class="fas fa-calculator text-[10px]"></i>
+                            <h4 class="text-[10px] font-black uppercase tracking-wider">🧮 Allocazione Tempo del Personale dello Studio</h4>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Costo Orario Risorsa (€/Ora)</label>
+                                <input type="number" id="input-meta-wage-${idx}" value="${defaultWage}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                            <div class="space-y-1 bg-white p-2.5 rounded-xl border border-gray-100">
+                                <label class="text-[7px] font-black text-gray-400 uppercase tracking-widest">Tempo Impiego (Minuti)</label>
+                                <input type="number" id="input-meta-time-${idx}" value="${defaultTime}" oninput="recalculateAll()" class="w-full text-xs font-black bg-gray-50 p-1.5 border border-border rounded-lg text-right">
+                            </div>
+                        </div>
+                        <div class="text-[9px] font-semibold text-gray-500 italic leading-relaxed text-right border-t border-gray-100/50 pt-2" id="label-meta-formula-${idx}">
+                            Formula: (Costo Orario / 60) * Tempo Impiego = <strong>€ ${op.allocated_cost.toFixed(2)}</strong>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- TAB 6: ANALISI CONCORRENZA ---
+        function renderCompetitors() {
+            const compData = draftData.qualitative_parser_output.competitor_analysis_structured;
+            document.getElementById('market-pos-summary').innerText = compData.market_positioning_summary;
+
+            const container = document.getElementById('competitor-list-container');
+            container.innerHTML = '';
+
+            compData.competitors.forEach(comp => {
+                const card = document.createElement('div');
+                card.className = 'card rounded-3xl p-5 space-y-4';
+
+                let strengthsHtml = comp.usp_gap_strengths.map(s => `
+                    <div class="flex gap-2 text-[10px] font-semibold text-gray-600 leading-relaxed">
+                        <span class="text-green-500 flex-shrink-0">✔</span>
+                        <span>${s}</span>
+                    </div>
+                `).join('');
+
+                let weaknessesHtml = comp.usp_gap_weaknesses.map(w => `
+                    <div class="flex gap-2 text-[10px] font-semibold text-gray-600 leading-relaxed">
+                        <span class="text-red-500 flex-shrink-0">✘</span>
+                        <span>${w}</span>
+                    </div>
+                `).join('');
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start gap-4 pb-3 border-b border-border">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-xs font-black uppercase tracking-tight text-black">${comp.name}</h3>
+                                ${comp.distance_km ? `<span class="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[7px] font-black uppercase rounded border border-gray-200">${comp.distance_km} KM</span>` : '<span class="px-1.5 py-0.5 bg-black text-white text-[7px] font-black uppercase rounded">Leader Online</span>'}
+                            </div>
+                            <a href="${comp.url}" target="_blank" class="text-[9px] text-gray-400 font-bold uppercase tracking-wider underline hover:text-black"><i class="fas fa-external-link-alt mr-1"></i> Sito/Link Maps</a>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <span class="text-xs font-black text-black">${comp.estimated_price > 0 ? '€ ' + comp.estimated_price.toFixed(2) : 'Su Trattativa'}</span>
+                            <div class="text-[8px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Prezzo di Mercato</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <h4 class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cosa offre in più / Punti di forza</h4>
+                            <div class="space-y-1.5">${strengthsHtml}</div>
+                        </div>
+                        <div class="space-y-2">
+                            <h4 class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Cosa offre in meno / Il tuo vantaggio</h4>
+                            <div class="space-y-1.5">${weaknessesHtml}</div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // --- TAB 7: PROFILO FISCALE ---
+        function renderFiscal() {
+            const fsc = draftData.qualitative_parser_output.fiscal_analysis_structured;
+            document.getElementById('fiscal-regime-name').innerText = fsc.regime_name;
+            document.getElementById('fiscal-ateco').innerText = fsc.activity_code;
+            document.getElementById('fiscal-coeff').innerText = (fsc.profitability_coefficient * 100) + '%';
+            document.getElementById('fiscal-tax-rate').innerText = (fsc.income_tax_rate * 100) + '%';
+            document.getElementById('fiscal-inps-rate').innerText = (fsc.social_security_rate * 100).toFixed(2) + '%';
+            
+            const realImpact = fsc.total_estimated_tax_burden_ratio * 100;
+            document.getElementById('fiscal-explanation').innerHTML = `L'incidenza fiscale complessiva sul fatturato lordo per il Regime Societario S.r.l. ordinario è stimata al <strong>34%</strong> (IRES, IRAP ed oneri di sedia correlati) permettendo un accantonamento esatto e prevenendo perdite a fine esercizio.`;
+        }
+
+        // --- TAB 8: CFO STRATEGIC ADVISORY ---
+        function renderCFOAdvisory() {
+            const cfo = draftData.financial_refiner_output.strategic_financial_analysis;
+            document.getElementById('pricing-advisory-text').innerText = cfo.pricing_strategy_advisory;
+
+            const recContainer = document.getElementById('cost-optimization-list');
+            recContainer.innerHTML = '';
+            cfo.cost_optimization_recommendations.forEach(rec => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-50/60 p-4 rounded-2xl border border-gray-100 flex items-start gap-3';
+                div.innerHTML = `
+                    <div class="w-2 h-2 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></div>
+                    <p class="text-xs text-gray-700 font-medium leading-relaxed">${rec}</p>
+                `;
+                recContainer.appendChild(div);
+            });
+        }
+
+        // --- CALCOLO INIZIALE DI COGS & RENDERING UPSELLS NELLA SIDEBAR ---
+        function recalculateEconomics() {
+            let extraFinancials = [];
+            draftData.qualitative_parser_output.mapped_extra_options.forEach(opt => {
+                const bMatch = draftData.bom_output.bom.find(b => b.subprocess_sku === opt.associated_subprocess_sku);
+                const unitCostScaled = bMatch ? bMatch.estimated_cost_per_100_units / 100 : 0;
+                const marginScaled = opt.catalog_extra_price - unitCostScaled;
+                extraFinancials.push({
+                    name: opt.option_name,
+                    revenue: opt.catalog_extra_price,
+                    cost: unitCostScaled,
+                    margin: marginScaled,
+                    margin_pct: (marginScaled / opt.catalog_extra_price) * 100
+                });
+            });
+
+            const extraContainer = document.getElementById('extra-options-container');
+            extraContainer.innerHTML = '';
+            extraFinancials.forEach(ext => {
+                const extEl = document.createElement('div');
+                extEl.className = 'bg-gray-50/70 p-3 rounded-2xl border border-gray-100 flex justify-between items-center';
+                extEl.innerHTML = `
+                    <div class="space-y-0.5">
+                        <h4 class="text-[10px] font-black uppercase text-black leading-tight">${ext.name}</h4>
+                        <div class="flex items-center gap-2 text-[8px] text-gray-500 font-bold uppercase tracking-wider">
+                            <span>Prezzo: <strong class="text-black">€ ${ext.revenue}</strong></span>
+                            <span>Costo: <strong class="text-black">€ ${ext.cost.toFixed(2)}</strong></span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs font-black text-green-600">+€ ${ext.margin.toFixed(2)}</span>
+                        <div class="text-[8px] font-black text-green-600">${ext.margin_pct.toFixed(0)}% Marg.</div>
+                    </div>
+                `;
+                extraContainer.appendChild(extEl);
+            });
+
+            recalculateAll();
+        }
+
+        // --- FUNZIONALITÀ DI APERTURA / CHIUSURA MENU HAMBURGER (SIDE DRAWER) ---
+        function toggleMenu() {
+            const backdrop = document.getElementById('menu-backdrop');
+            const drawer = document.getElementById('menu-drawer');
+
+            if (drawer.classList.contains('-translate-x-full')) {
+                backdrop.classList.remove('hidden');
+                setTimeout(() => backdrop.classList.add('opacity-100'), 10);
+                drawer.classList.remove('-translate-x-full');
+            } else {
+                backdrop.classList.remove('opacity-100');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+                drawer.classList.add('-translate-x-full');
+            }
+        }
+
+        function selectMenuSection(tabId, sectionTitle) {
+            toggleMenu();
+            switchTab(tabId);
+            document.getElementById('active-section-title').innerHTML = sectionTitle;
+
+            document.querySelectorAll('.menu-link').forEach(el => {
+                el.classList.remove('bg-black', 'text-white');
+                el.classList.add('text-gray-400', 'hover:bg-gray-50', 'hover:text-black');
+            });
+            const activeLink = document.getElementById('menu-' + tabId);
+            if(activeLink) {
+                activeLink.classList.remove('text-gray-400', 'hover:bg-gray-50', 'hover:text-black');
+                activeLink.classList.add('bg-black', 'text-white');
+            }
+        }
+
+        // Avvio Iniziale
+        init();
+    </script>
+</body>
+</html>
