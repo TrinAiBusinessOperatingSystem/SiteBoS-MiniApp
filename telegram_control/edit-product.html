@@ -305,82 +305,11 @@
                 <i class="fas fa-wand-magic-sparkles"></i> Genera Infrastruttura
             </button>
         </div>
-
-        <div id="advanced-drawer-content-fields" class="flex-1 overflow-y-auto p-5 space-y-8 no-scrollbar pb-24">
-            
-            <!-- SEZIONE FORNITORI -->
-            <div class="space-y-2">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Fornitori e Articoli Forniti</label>
-                    <button type="button" onclick="addSupplierItem()" class="text-[9px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
-                        + Aggiungi
-                    </button>
-                </div>
-                <div id="supplierContainer" class="space-y-2">
-                    <!-- JS injected -->
-                </div>
-            </div>
-
-            <!-- SEZIONE SEMILAVORAZIONI -->
-            <div class="space-y-2 pt-2 border-t border-gray-100 mt-4">
-                <div class="flex items-center justify-between mb-2">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Semilavorazioni</label>
-                    <button type="button" onclick="addBomItem()" class="text-[9px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
-                        + Aggiungi
-                    </button>
-                </div>
-                <div id="bomContainer" class="space-y-2">
-                    <!-- JS injected -->
-                </div>
-            </div>
-
-            <!-- SEZIONE LOGISTICA E ASSET -->
-            <div class="space-y-4 pt-4 border-t border-gray-100 mt-4">
-                <div class="space-y-2 pt-2">
-                    <div class="flex items-center justify-between mb-2">
-                        <label id="lblStorageLoc" class="text-[8px] font-black uppercase tracking-widest text-gray-500">Aree Logistiche / Erogazione</label>
-                        <button type="button" onclick="addLocationItem()" class="text-[8px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
-                            + Aggiungi
-                        </button>
-                    </div>
-                    <div id="locationContainer" class="space-y-2">
-                        <!-- JS injected -->
-                    </div>
-                </div>
-                
-                <div class="space-y-2 pt-2">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="text-[8px] font-black uppercase tracking-widest text-gray-500">Attrezzature / Asset Necessari</label>
-                        <button type="button" onclick="addAssetItem()" class="text-[8px] font-black text-blue-600 uppercase tracking-widest active:scale-95 transition">
-                            + Aggiungi
-                        </button>
-                    </div>
-                    <div id="assetContainer" class="space-y-2">
-                        <!-- JS injected -->
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
         
         <div class="absolute bottom-0 left-0 right-0 p-5 bg-white border-t border-border">
             <button type="button" onclick="closeAdvancedDrawer()" class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all shadow-xl">
                 Chiudi Avanzate
             </button>
-        </div>
-    </div>
-
-    <!-- QUICK EDITOR DRAWER -->
-    <div id="quick-editor-drawer" class="fixed inset-0 bg-white z-[150] transition-transform duration-300 translate-y-full flex flex-col">
-        <header class="flex justify-between items-center p-5 border-b border-gray-100 bg-white">
-            <h2 id="quickEditorTitle" class="text-sm font-black uppercase tracking-tighter italic">Quick Editor</h2>
-            <button type="button" onclick="closeQuickEditor()" class="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg active:scale-95 transition">
-                <i class="fas fa-times text-xs"></i>
-            </button>
-        </header>
-        <div class="flex-1 overflow-hidden">
-            <iframe id="quickEditorFrame" class="w-full h-full border-none"></iframe>
         </div>
     </div>
 
@@ -403,9 +332,6 @@
         </div>
     </div>
 
-    <!-- HIDDEN FILE INPUT FOR VISION AI -->
-    <input type="file" id="visionFileInput" multiple accept="image/*,application/pdf" class="hidden" onchange="handleVisionFiles(this)">
-
     <script>
         'use strict';
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/2c6416b1-32c6-4661-bd8f-b175d24fd035";
@@ -417,32 +343,7 @@
         const messageId = urlParams.get('message_id');
         const langParam = tg.initDataUnsafe?.user?.language_code || 'it';
 
-        let globalSuppliers = [
-            { id: "supp_1", name: "GlobalTech Italia SRL", item: "Scheda Madre AX", vat: "IT0123456789", price: 14.50, sku: "GT-991" },
-            { id: "supp_2", name: "Forniture Rapide SPA", item: "Base Pizza 33cm", vat: "IT9876543210", price: 15.00, sku: "FR-AX2" }
-        ];
-        let globalSemis = [
-            { id: "semi_1", name: "Lotto Legno Premium" },
-            { id: "semi_2", name: "Viti Acciaio Inox" }
-        ];
-        let globalAssets = [
-            { id: "ast_1", name: "Sonda Termica" },
-            { id: "ast_2", name: "Trapano a Colonna" }
-        ];
-        
-        let globalLocations = [
-            { id: "loc_1", name: "Cella Frigo A" },
-            { id: "loc_2", name: "Sala Meeting 1" },
-            { id: "loc_3", name: "Scaffale B2" }
-        ];
-        
-        let globalArticles = [
-            { id: "art_1", name: "Farina Tipo 0", brand: "Molino Rossi", cost: 1.2 },
-            { id: "art_2", name: "Passata Pomodoro", brand: "Cirio", cost: 0.8 }
-        ];
-        
-        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [], locationItems = [], advancedSetupDoc = null;
-        let currentVisionContext = 'ASSET';
+        let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [], locationItems = [];
 
         const i18n = {
             it: { 
@@ -537,46 +438,12 @@
             
             // Drawer fields
             supplierItems = (data.procurement?.suppliers || []).map(s => ({ ...s, usage: s.usage || 1 }));
-            
-            // Legacy conversion
-            if (supplierItems.length === 0 && data.procurement?.supplier_name) {
-                const legacyId = 'supp_legacy_' + Date.now();
-                globalSuppliers.push({
-                    id: legacyId, name: data.procurement.supplier_name,
-                    item: data.procurement.supplier_item_name || '',
-                    vat: data.procurement.supplier_vat || '',
-                    price: data.procurement.cost_of_goods || 0,
-                    sku: data.procurement.supplier_sku || ''
-                });
-                supplierItems.push({
-                    supp_id: legacyId,
-                    item_name: data.procurement.supplier_item_name || '',
-                    cost: data.procurement.cost_of_goods || 0
-                });
-            }
-
-            // Locations fields
             locationItems = data.logistics?.locations || [];
-            
-            // Legacy conversion for locations
-            if (locationItems.length === 0 && data.logistics?.storage_location) {
-                const legacyId = 'loc_legacy_' + Date.now();
-                globalLocations.push({ id: legacyId, name: data.logistics.storage_location });
-                locationItems.push({
-                    loc_id: legacyId,
-                    temperature: data.logistics.storage_temperature || ''
-                });
-            }
-
             bomItems = (data.bom || []).map(b => ({ ...b, usage: b.usage || b.qty || 1 }));
             assetItems = data.assets || [];
 
             renderTags(dom.skillContainer, skillTags);
             renderAddons();
-            renderSuppliers();
-            renderLocations();
-            renderBom();
-            renderAssets();
         }
 
         function renderAddons() {
@@ -629,497 +496,11 @@
 
         // --- IN-PAGE DB & WIDGET LOGIC ---
 
-        // --- SUPPLIERS WIDGET ---
-
-        function renderSuppliers() {
-            const container = document.getElementById('supplierContainer');
-            container.innerHTML = '';
-            if (supplierItems.length === 0) {
-                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-4 border-2 border-dashed border-gray-50 rounded-2xl uppercase tracking-widest font-black">Nessun fornitore collegato</div>`;
-                return;
-            }
-            supplierItems.forEach((item, index) => {
-                let artOptions = `<option value="">-- Seleziona Articolo --</option><option value="NEW">➕ Nuovo</option><option value="SCAN">📸 Scan AI</option>`;
-                globalArticles.forEach(a => {
-                    artOptions += `<option value="${a.id}" ${item.item_id === a.id ? 'selected' : ''}>${a.name}</option>`;
-                });
-
-                let suppOptions = `<option value="">-- Seleziona Fornitore --</option><option value="NEW">➕ Crea Nuovo</option>`;
-                globalSuppliers.forEach(s => {
-                    suppOptions += `<option value="${s.id}" ${item.supp_id === s.id ? 'selected' : ''}>${s.name}</option>`;
-                });
-
-                const row = document.createElement('div');
-                row.className = 'bg-gray-50 p-3 rounded-xl border border-gray-100 tag-anim mb-3';
-                row.innerHTML = `
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="flex-1 space-y-1">
-                            <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Cosa acquisti? (Articolo)</label>
-                            <select onchange="handleArticleSelect(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2.5 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
-                                ${artOptions}
-                            </select>
-                        </div>
-                        <div class="flex flex-col items-center justify-center px-2 pt-4">
-                            <label class="text-[7px] font-black uppercase text-gray-400 mb-1">Intero</label>
-                            <input type="checkbox" ${item.is_whole ? 'checked' : ''} onchange="updateSupplierField(${index}, 'is_whole', this.checked)" class="w-4 h-4 accent-black cursor-pointer">
-                        </div>
-                        <button type="button" onclick="removeSupplierItem(${index})" class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-400 rounded-lg active:scale-95 transition-all mt-4">
-                            <i class="fas fa-trash-alt text-[12px]"></i>
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-2 mb-3">
-                         <div class="space-y-1">
-                            <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Da chi lo compri? (Fornitore)</label>
-                            <select onchange="handleSupplierSelect(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2.5 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
-                                ${suppOptions}
-                            </select>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div class="space-y-1">
-                                <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Costo (€)</label>
-                                <input type="number" step="0.01" placeholder="0" value="${item.cost || 0}" oninput="updateSupplierField(${index}, 'cost', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2.5 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Uso</label>
-                                <input type="number" step="0.01" placeholder="1" value="${item.usage || 1}" oninput="updateSupplierField(${index}, 'usage', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2.5 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="supplierForm_${index}" class="hidden bg-gray-100 p-2 rounded-lg space-y-2 border border-gray-200">
-                        <input type="text" id="suppFormName_${index}" placeholder="Nome Fornitore *" class="w-full p-2 text-[10px] font-bold rounded-lg border-none outline-none focus:border-black">
-                        <input type="text" id="suppFormVat_${index}" placeholder="P.IVA / VAT" class="w-full p-2 text-[10px] font-medium rounded-lg border-none outline-none focus:border-black">
-                        <div class="relative">
-                            <input type="text" id="suppFormInv_${index}" placeholder="Codice Invito" readonly class="w-full p-2 text-[10px] font-black rounded-lg border-none outline-none bg-white pr-24">
-                            <div class="absolute right-1 top-1/2 -translate-y-1/2 flex gap-1">
-                                <button type="button" onclick="generateInviteCode(${index})" class="bg-black text-white text-[7px] font-black px-2 py-1 rounded-md uppercase tracking-widest">Genera</button>
-                                <button type="button" onclick="copyValue('suppFormInv_${index}')" class="text-gray-400 p-1"><i class="fas fa-copy text-[10px]"></i></button>
-                            </div>
-                        </div>
-                        <button type="button" onclick="saveSupplierForm(${index})" class="w-full bg-black text-white text-[9px] font-black uppercase tracking-widest p-2 rounded-lg active:scale-95 transition">Salva Anagrafica Fornitore</button>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function handleSupplierSelect(index, val) {
-            if(val === 'NEW') {
-                document.getElementById(`supplierForm_${index}`).classList.remove('hidden');
-                document.getElementById(`suppFormName_${index}`).value = '';
-                supplierItems[index].supp_id = '';
-            } else if (val === 'SCAN') {
-                const query = prompt("Inserisci nome o parole chiave per cercare il fornitore:");
-                if (query) {
-                    tg.showScanQrPopup({ text: "Ricerca Fornitore in corso..." });
-                    setTimeout(() => tg.closeScanQrPopup(), 2000);
-                    
-                    fetch(WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            _auth: tg.initData, 
-                            action: 'SEARCH_SUPPLIER', 
-                            query: query,
-                            sop_id: sopId 
-                        })
-                    }).then(() => tg.showAlert("Ricerca inviata al backend.")).catch(console.error);
-                }
-                renderSuppliers();
-            } else {
-                supplierItems[index].supp_id = val;
-                const match = globalSuppliers.find(x => x.id === val);
-                if(match) {
-                    if(!supplierItems[index].item_name) supplierItems[index].item_name = match.item || '';
-                    if(!supplierItems[index].cost) supplierItems[index].cost = match.price || 0;
-                }
-                document.getElementById(`supplierForm_${index}`).classList.add('hidden');
-                renderSuppliers();
-                checkDirty();
-            }
-        }
-        
-        function editSupplierItem(index) {
-            const sid = supplierItems[index].supp_id;
-            const match = globalSuppliers.find(x => x.id === sid);
-            document.getElementById(`supplierForm_${index}`).classList.remove('hidden');
-            document.getElementById(`suppFormName_${index}`).value = match ? match.name : sid;
-            document.getElementById(`suppFormVat_${index}`).value = match ? match.vat : '';
-            document.getElementById(`suppFormInv_${index}`).value = match ? match.invite_code : '';
-        }
-
-        function handleArticleSelect(index, val) {
-            const supplierId = supplierItems[index].supp_id;
-            if(val === 'NEW') {
-                openQuickEditor(`edit-article.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&supplier_id=${supplierId}`, "Nuovo Articolo");
-            } else if (val === 'SCAN') {
-                currentVisionContext = 'ARTICLE';
-                triggerVision();
-            } else {
-                supplierItems[index].item_id = val;
-                const match = globalArticles.find(x => x.id === val);
-                if(match) supplierItems[index].cost = match.cost || 0;
-                checkDirty();
-            }
-        }
-        
-        function saveSupplierForm(index) {
-            const name = document.getElementById(`suppFormName_${index}`).value.trim();
-            const vat = document.getElementById(`suppFormVat_${index}`).value.trim();
-            const inv = document.getElementById(`suppFormInv_${index}`).value.trim();
-            if(!name) { tg.showAlert("Nome fornitore obbligatorio"); return; }
-            
-            let sid = supplierItems[index].supp_id;
-            if(!sid) {
-                sid = 'supp_' + Date.now();
-                globalSuppliers.push({ id: sid, name: name, vat: vat, invite_code: inv });
-                supplierItems[index].supp_id = sid;
-            } else {
-                const match = globalSuppliers.find(x => x.id === sid);
-                if(match) { match.name = name; match.vat = vat; match.invite_code = inv; }
-                else globalSuppliers.push({ id: sid, name: name, vat: vat, invite_code: inv });
-            }
-            renderSuppliers();
-            checkDirty();
-        }
-
-        function addSupplierItem() { supplierItems.push({ supp_id: '', item_name: '', cost: 0, usage: 1 }); renderSuppliers(); checkDirty(); }
-        function updateSupplierField(index, field, value) { supplierItems[index][field] = (field==='cost'||field==='usage')?parseFloat(value)||0:value; checkDirty(); }
-        function removeSupplierItem(index) { supplierItems.splice(index, 1); renderSuppliers(); checkDirty(); }
-
-        // --- LOCATIONS WIDGET ---
-        function renderLocations() {
-            const container = document.getElementById('locationContainer');
-            if(!container) return; // Fail-safe
-            container.innerHTML = '';
-            if (locationItems.length === 0) {
-                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-4 border-2 border-dashed border-gray-50 rounded-2xl uppercase tracking-widest font-black">Nessun luogo configurato</div>`;
-                return;
-            }
-            locationItems.forEach((item, index) => {
-                let optionsHtml = `<option value="">-- Seleziona --</option><option value="NEW">➕ Crea Nuovo</option><option value="SCAN">📸 Scan AI</option>`;
-                globalLocations.forEach(s => {
-                    optionsHtml += `<option value="${s.id}" ${item.loc_id === s.id ? 'selected' : ''}>${s.name}</option>`;
-                });
-                if (item.loc_id && !globalLocations.find(x => x.id === item.loc_id)) {
-                    optionsHtml += `<option value="${item.loc_id}" selected>${item.loc_id} (Sconosciuto)</option>`;
-                }
-
-                const row = document.createElement('div');
-                row.className = 'bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim mb-2';
-                row.innerHTML = `
-                    <div class="flex items-center gap-2 mb-1">
-                        <div class="flex-1 space-y-1">
-                            <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Luogo</label>
-                            <select onchange="handleLocationSelect(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
-                                ${optionsHtml}
-                            </select>
-                        </div>
-                        <div class="flex items-end gap-1 pt-4">
-                            <button type="button" onclick="editLocationItem(${index})" class="${item.loc_id ? 'flex' : 'hidden'} w-8 h-8 items-center justify-center bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors">
-                                <i class="fas fa-pencil-alt text-[10px]"></i>
-                            </button>
-                            <button type="button" onclick="removeLocationItem(${index})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-colors">
-                                <i class="fas fa-trash-alt text-[10px]"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="space-y-1 mt-1">
-                        <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Condizioni / Note</label>
-                        <input type="text" placeholder="Es. +4°C, Scaffale A2" value="${item.temperature || ''}" oninput="updateLocationNotes(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-medium outline-none focus:border-black transition-colors">
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function handleLocationSelect(index, val) {
-            if(val === 'NEW') {
-                openQuickEditor(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=NEW`, "Nuovo Luogo");
-            } else if (val === 'SCAN') {
-                currentVisionContext = 'LOCATION';
-                triggerVision();
-                renderLocations();
-            } else {
-                locationItems[index].loc_id = val;
-                renderLocations();
-                checkDirty();
-            }
-        }
-
-        function editLocationItem(index) {
-            const sid = locationItems[index].loc_id;
-            openQuickEditor(`edit-location.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&loc_id=${sid}`, "Modifica Luogo");
-        }
-
-        // --- CORE ASSET UTILITIES ---
-        function addAssetItem() { assetItems.push({ asset_id: '', notes: '' }); renderAssets(); checkDirty(); }
-        function updateAssetNotes(index, value) { assetItems[index].notes = value; checkDirty(); }
-        function removeAssetItem(index) { assetItems.splice(index, 1); renderAssets(); checkDirty(); }
-
-        function addLocationItem() { locationItems.push({ loc_id: '', temperature: '' }); renderLocations(); checkDirty(); }
-        function updateLocationNotes(index, value) { locationItems[index].temperature = value; checkDirty(); }
-        function removeLocationItem(index) { locationItems.splice(index, 1); renderLocations(); checkDirty(); }
-
-        // --- BOM WIDGET ---
-        function renderBom() {
-            const container = document.getElementById('bomContainer');
-            container.innerHTML = '';
-            if (bomItems.length === 0) {
-                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-4 border-2 border-dashed border-gray-50 rounded-2xl uppercase tracking-widest font-black">Nessun semilavorato collegato</div>`;
-                return;
-            }
-            bomItems.forEach((item, index) => {
-                let optionsHtml = `<option value="">-- Seleziona --</option><option value="NEW">➕ Crea Nuovo</option><option value="SCAN">📸 Scan AI</option>`;
-                globalSemis.forEach(s => {
-                    optionsHtml += `<option value="${s.id}" ${item.semi_id === s.id ? 'selected' : ''}>${s.name}</option>`;
-                });
-                if (item.semi_id && !globalSemis.find(x => x.id === item.semi_id)) {
-                    optionsHtml += `<option value="${item.semi_id}" selected>${item.semi_id} (Sconosciuto)</option>`;
-                }
-
-                const row = document.createElement('div');
-                row.className = 'bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim mb-2';
-                row.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <div class="flex-[2] space-y-1">
-                            <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Semilavorato</label>
-                            <select onchange="handleBomSelect(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
-                                ${optionsHtml}
-                            </select>
-                        </div>
-                        <div class="flex-[1] space-y-1">
-                            <label class="text-[7px] font-black uppercase text-gray-400 ml-1">Uso</label>
-                            <input type="number" step="0.01" placeholder="1" value="${item.usage || 1}" oninput="updateBomItem(${index}, 'usage', this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-black outline-none focus:border-black text-center transition-colors">
-                        </div>
-                        <div class="flex items-end gap-1 pt-4">
-                            <button type="button" onclick="editBomItem(${index})" class="${item.semi_id ? 'flex' : 'hidden'} w-8 h-8 items-center justify-center bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors">
-                                <i class="fas fa-pencil-alt text-[10px]"></i>
-                            </button>
-                            <button type="button" onclick="removeBomItem(${index})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-colors">
-                                <i class="fas fa-trash-alt text-[10px]"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
-        
-        function checkUnsavedAndRedirect(url) {
-            if (!dom.saveBtn.disabled) {
-                showCustomConfirm(
-                    "Modifiche non salvate",
-                    "Attenzione: hai modifiche non salvate in questa pagina. Vuoi uscire comunque senza salvare?",
-                    (conf) => { if(conf) window.location.href = url; }
-                );
-            } else {
-                window.location.href = url;
-            }
-        }
-        
-        function handleBomSelect(index, val) {
-            if(val === 'NEW') {
-                openQuickEditor(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=NEW`, "Nuovo Semilavorato");
-            } else if (val === 'SCAN') {
-                showCustomConfirm(
-                    "Smart Draft",
-                    "Vuoi avviare la creazione intelligente (Smart Draft) per questo semilavorato e la sua ricetta?",
-                    (conf) => {
-                        if (conf) {
-                            fetch(WEBHOOK_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    _auth: tg.initData, 
-                                    action: 'SMART_DRAFT_BOM', 
-                                    sop_id: sopId 
-                                })
-                            }).then(() => tg.showAlert("Richiesta Smart Draft inviata!"));
-                        }
-                    }
-                );
-                renderBom();
-            } else {
-                bomItems[index].semi_id = val;
-                renderBom();
-                checkDirty();
-            }
-        }
-        
-        function editBomItem(index) {
-            const sid = bomItems[index].semi_id;
-            openQuickEditor(`edit-semilavorati.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&semi_id=${sid}`, "Modifica Semilavorato");
-        }
-
-        // --- ASSET WIDGET ---
-        function renderAssets() {
-            const container = document.getElementById('assetContainer');
-            container.innerHTML = '';
-            if (assetItems.length === 0) {
-                container.innerHTML = `<div class="text-[8px] text-gray-300 italic text-center py-3 border-2 border-dashed border-gray-50 rounded-xl uppercase tracking-widest font-black">Nessun asset correlato</div>`;
-                return;
-            }
-            assetItems.forEach((item, index) => {
-                let optionsHtml = `<option value="">-- Seleziona --</option><option value="NEW">➕ Crea Nuovo</option><option value="SCAN">📸 Scan AI</option>`;
-                globalAssets.forEach(s => {
-                    optionsHtml += `<option value="${s.id}" ${item.asset_id === s.id ? 'selected' : ''}>${s.name}</option>`;
-                });
-                if (item.asset_id && !globalAssets.find(x => x.id === item.asset_id)) {
-                    optionsHtml += `<option value="${item.asset_id}" selected>${item.asset_id} (Sconosciuto)</option>`;
-                }
-
-                const row = document.createElement('div');
-                row.className = 'bg-gray-50 p-2 rounded-xl border border-gray-100 tag-anim mb-2';
-                row.innerHTML = `
-                    <div class="flex items-center gap-2 mb-2">
-                        <select onchange="handleAssetSelect(${index}, this.value)" class="flex-1 w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-bold outline-none focus:border-black transition-colors appearance-none">
-                            ${optionsHtml}
-                        </select>
-                        <button type="button" onclick="editAssetItem(${index})" class="${item.asset_id ? 'flex' : 'hidden'} w-8 h-8 items-center justify-center bg-gray-100 text-gray-500 rounded-lg hover:bg-gray-200 transition-colors">
-                            <i class="fas fa-pencil-alt text-[10px]"></i>
-                        </button>
-                        <button type="button" onclick="removeAssetItem(${index})" class="w-8 h-8 flex items-center justify-center bg-red-50 text-red-400 rounded-lg hover:bg-red-100 transition-colors">
-                            <i class="fas fa-trash-alt text-[10px]"></i>
-                        </button>
-                    </div>
-                    <input type="text" placeholder="Note operative (es. portarlo carico)" value="${item.notes || ''}" oninput="updateAssetNotes(${index}, this.value)" class="w-full bg-white border border-transparent rounded-lg p-2 text-[10px] font-medium outline-none focus:border-black transition-colors">
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function handleAssetSelect(index, val) {
-            if(val === 'NEW') {
-                openQuickEditor(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=NEW`, "Nuovo Asset");
-            } else if (val === 'SCAN') {
-                currentVisionContext = 'ASSET';
-                triggerVision();
-                renderAssets();
-            } else {
-                assetItems[index].asset_id = val;
-                renderAssets();
-                checkDirty();
-            }
-        }
-
-        function triggerVision() {
-            const input = document.getElementById('visionFileInput');
-            if (input) input.click();
-        }
-
-        async function handleVisionFiles(input) {
-            const files = Array.from(input.files);
-            if (files.length > 4) {
-                tg.showAlert("Massimo 4 file consentiti per lo Scan AI.");
-                input.value = '';
-                return;
-            }
-            if (files.length === 0) return;
-
-            tg.MainButton.setText("CARICAMENTO FILE...").show();
-            
-            try {
-                const base64Files = await Promise.all(files.map(f => convertToBase64(f)));
-                
-                await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        _auth: tg.initData, 
-                        action: `VISION_${currentVisionContext}_ANALYSIS`, 
-                        files: base64Files,
-                        sop_id: sopId 
-                    })
-                });
-                
-                tg.showAlert("File inviati per l'analisi vision. Riceverai i dati a breve.");
-            } catch (err) {
-                console.error(err);
-                tg.showAlert("Errore durante il caricamento dei file.");
-            } finally {
-                tg.MainButton.hide();
-                input.value = '';
-            }
-        }
-
-        function convertToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve({
-                    name: file.name,
-                    type: file.type,
-                    data: reader.result.split(',')[1]
-                });
-                reader.onerror = error => reject(error);
-            });
-        }
-        
-        function editAssetItem(index) {
-            const sid = assetItems[index].asset_id;
-            openQuickEditor(`edit-asset.html?sop_id=${sopId}&ash=${tg.initDataUnsafe?.hash || ''}&asset_id=${sid}`, "Modifica Asset");
-        }
-
-        // --- QUICK EDITOR LOGIC ---
-        function openQuickEditor(url, title) {
-            document.getElementById('quickEditorTitle').innerText = title;
-            document.getElementById('quickEditorFrame').src = url;
-            document.getElementById('quick-editor-drawer').classList.remove('translate-y-full');
-            if(tg.BackButton) {
-                tg.BackButton.show();
-                tg.BackButton.onClick(closeQuickEditor);
-            }
-        }
-
-        function closeQuickEditor() {
-            document.getElementById('quick-editor-drawer').classList.add('translate-y-full');
-            document.getElementById('quickEditorFrame').src = 'about:blank';
-            
-            const isAdvancedOpen = !document.getElementById('advanced-drawer').classList.contains('translate-y-full');
-            
-            if (isAdvancedOpen) {
-                if(tg.BackButton) {
-                    tg.BackButton.show();
-                    tg.BackButton.onClick(closeAdvancedDrawer);
-                }
-            } else {
-                if(tg.BackButton) tg.BackButton.hide();
-            }
-        }
-
-        function copyValue(elementId) {
-            const val = document.getElementById(elementId).value;
-            if(!val) return;
-            navigator.clipboard.writeText(val).then(() => {
-                tg.showAlert("Copiato negli appunti!");
-                if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            });
-        }
-
-        async function generateInviteCode(index) {
-            const name = document.getElementById(`suppFormName_${index}`).value.trim();
-            if(!name) { tg.showAlert("Inserisci prima il nome del fornitore"); return; }
-            
-            showCustomConfirm(
-                "Genera Codice",
-                "Generare un nuovo Codice Invito per questo fornitore?",
-                (ok) => {
-                    if(!ok) return;
-                    const code = "INV-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-                    document.getElementById(`suppFormInv_${index}`).value = code;
-                    if(tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-                }
-            );
-        }
-
         async function openAdvancedDrawer() {
             const isAdvancedReady = currentData?.ui_node_draft?.advanced_ready === true;
 
             if (!isAdvancedReady) {
                 document.getElementById('draft-assistant-view').classList.remove('hidden');
-                document.getElementById('advanced-drawer-content-fields').classList.add('hidden');
                 
                 document.getElementById('advanced-drawer').classList.remove('translate-y-full');
                 document.body.style.overflow = 'hidden';
@@ -1128,62 +509,25 @@
                     tg.BackButton.onClick(closeAdvancedDrawer);
                 }
             } else {
-                dom.loader.classList.remove('hidden');
-                document.getElementById('loaderText').innerText = "Recupero dettagli infrastruttura...";
-
-                try {
-                    const response = await fetch(WEBHOOK_URL, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ 
-                            action: "GET_ADVANCED_SETUP", 
-                            sop_id: sopId, 
-                            _auth: tg.initData 
-                        })
-                    });
-
-                    if (!response.ok) throw new Error("Errore nel recupero della configurazione");
-                    const data = await response.json();
-
-                    if (data) {
-                        advancedSetupDoc = data;
-                        supplierItems = data.suppliers || [];
-                        locationItems = data.locations || [];
-                        bomItems = data.bom || [];
-                        assetItems = data.assets || [];
-
-                        renderSuppliers();
-                        renderLocations();
-                        renderBom();
-                        renderAssets();
-                    }
-                    
-                    document.getElementById('draft-assistant-view').classList.add('hidden');
-                    document.getElementById('advanced-drawer-content-fields').classList.remove('hidden');
-                    showStaticAdvancedDrawer();
-
-                } catch (err) {
-                    console.error(err);
-                    tg.showAlert("Impossibile caricare i dati avanzati.");
-                } finally {
-                    dom.loader.classList.add('hidden');
-                }
+                const targetUrl = `edit-advanced.html?sop_id=${sopId}&ash=${urlParams.get('ash') || ''}&message_id=${messageId || ''}`;
+                checkUnsavedAndRedirect(targetUrl);
             }
         }
 
-        function showStaticAdvancedDrawer() {
-            const itemType = document.getElementById('itemType').value;
-            if (itemType === 'SERVICE') {
-                document.getElementById('lblStorageLoc').innerText = "Luoghi di Erogazione";
+        function checkUnsavedAndRedirect(url) {
+            const isDirty = !dom.saveBtn.disabled;
+            if (isDirty) {
+                showCustomConfirm(
+                    "Dati non salvati",
+                    "Hai delle modifiche non salvate. Vuoi abbandonare la pagina e perdere le modifiche?",
+                    (confirm) => {
+                        if (confirm) {
+                            window.location.href = url;
+                        }
+                    }
+                );
             } else {
-                document.getElementById('lblStorageLoc').innerText = "Aree di Stoccaggio";
-            }
-
-            document.getElementById('advanced-drawer').classList.remove('translate-y-full');
-            document.body.style.overflow = 'hidden';
-            if (tg.BackButton) {
-                tg.BackButton.show();
-                tg.BackButton.onClick(closeAdvancedDrawer);
+                window.location.href = url;
             }
         }
 
@@ -1383,64 +727,7 @@
             });
         }
 
-        // --- PARENT-CHILD COMMUNICATION LISTENER ---
-        window.addEventListener('message', (event) => {
-            const data = event.data;
-            if (data && data.action === 'ENTITY_CREATED') {
-                handleExternalEntityCreation(data.type, data.entity);
-            }
-        });
-
-        function handleExternalEntityCreation(type, entity) {
-            if (type === 'ARTICLE') {
-                if (!globalArticles.find(a => a.id === entity.id)) {
-                    globalArticles.push({ id: entity.id, name: entity.name, cost: entity.cost });
-                }
-                const emptyIdx = supplierItems.findIndex(item => !item.item_id);
-                if (emptyIdx > -1) {
-                    supplierItems[emptyIdx].item_id = entity.id;
-                    supplierItems[emptyIdx].cost = entity.cost;
-                } else {
-                    supplierItems.push({ item_id: entity.id, cost: entity.cost, usage: 1 });
-                }
-                renderSuppliers();
-            } else if (type === 'ASSET') {
-                if (!globalAssets.find(a => a.id === entity._id)) {
-                    globalAssets.push({ id: entity._id, name: entity.identity.name });
-                }
-                const emptyIdx = assetItems.findIndex(item => !item.asset_id);
-                if (emptyIdx > -1) {
-                    assetItems[emptyIdx].asset_id = entity._id;
-                } else {
-                    assetItems.push({ asset_id: entity._id, notes: '' });
-                }
-                renderAssets();
-            } else if (type === 'LOCATION') {
-                if (!globalLocations.find(l => l.id === entity._id)) {
-                    globalLocations.push({ id: entity._id, name: entity.identity.name });
-                }
-                const emptyIdx = locationItems.findIndex(item => !item.loc_id);
-                if (emptyIdx > -1) {
-                    locationItems[emptyIdx].loc_id = entity._id;
-                } else {
-                    locationItems.push({ loc_id: entity._id, temperature: '' });
-                }
-                renderLocations();
-            } else if (type === 'SEMI') {
-                if (!globalSemis.find(s => s.id === entity._id)) {
-                    globalSemis.push({ id: entity._id, name: entity.identity.name });
-                }
-                const emptyIdx = bomItems.findIndex(item => !item.semi_id);
-                if (emptyIdx > -1) {
-                    bomItems[emptyIdx].semi_id = entity._id;
-                } else {
-                    bomItems.push({ semi_id: entity._id, usage: 1 });
-                }
-                renderBom();
-            }
-            checkDirty();
-            closeQuickEditor();
-        }
+        // --- (Obsolete parent-child communication listener removed) ---
 
         // --------------------------
 
