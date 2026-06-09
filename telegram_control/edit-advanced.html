@@ -751,11 +751,15 @@
                 });
             }
 
-            const initialCompenso = totalMedico > 0 ? totalMedico : (costBreakdown?.medical_collaborator_fee || 0);
+            const dbCompenso = costBreakdown?.medical_collaborator_fee;
+            const initialCompenso = (dbCompenso !== undefined && dbCompenso > 0) ? dbCompenso : (totalMedico > 0 ? totalMedico : 0);
+            const dbAso = costBreakdown?.aso_fee;
+            const initialAso = (dbAso !== undefined && dbAso > 0) ? dbAso : (totalASO > 0 ? totalASO : 0);
+
             document.getElementById('in-compenso').value = initialCompenso.toFixed(2);
             const initialTariffa = pricingSummary?.catalog_price || 250;
             document.getElementById('in-compenso-pct').value = initialTariffa > 0 ? ((initialCompenso / initialTariffa) * 100).toFixed(2) : 0;
-            document.getElementById('in-costo-aso').value = totalASO.toFixed(2);
+            document.getElementById('in-costo-aso').value = initialAso.toFixed(2);
             
             document.getElementById('in-materiali').value = (costBreakdown?.direct_materials_cost || 0).toFixed(2);
             document.getElementById('in-lab').value = (costBreakdown?.dental_lab_cost || 0).toFixed(2);
@@ -1747,6 +1751,7 @@
                 currentData.financial_simulations.cost_breakdown_unit = {};
             }
             currentData.financial_simulations.cost_breakdown_unit.medical_collaborator_fee = compenso;
+            currentData.financial_simulations.cost_breakdown_unit.aso_fee = costoAso;
             currentData.financial_simulations.cost_breakdown_unit.direct_materials_cost = materiali;
             currentData.financial_simulations.cost_breakdown_unit.dental_lab_cost = lab;
             currentData.financial_simulations.cost_breakdown_unit.chair_time_cost_fixed = (poltrona / 60) * tempo;
