@@ -165,12 +165,16 @@
                     
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Costo Operatori (%)</label>
+                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Compenso Medico (%)</label>
                             <input type="number" id="in-compenso-pct" oninput="updateCompensoFromPct(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Costo Operatori (€)</label>
+                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Compenso Medico (€)</label>
                             <input type="number" id="in-compenso" oninput="updateCompensoFromEuro(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Costo ASO / Staff (€)</label>
+                            <input type="number" id="in-costo-aso" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
                         </div>
                         <div class="space-y-1">
                             <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Materiali Consumo (€)</label>
@@ -634,11 +638,29 @@
             document.getElementById('in-tariffa').value = pricingSummary?.catalog_price || 250;
             
             const steps = currentData.bill_of_materials?.bom_steps || [];
-            const totalStaff = steps.reduce((sum, step) => sum + (step.calculation_breakdown?.staff_cost || 0), 0);
-            const initialCompenso = totalStaff > 0 ? totalStaff : (costBreakdown?.medical_collaborator_fee || 0);
+            let totalMedico = 0;
+            let totalASO = 0;
+            steps.forEach(sub => {
+                const staff = sub.calculation_breakdown?.staff_cost || 0;
+                const name = (sub.subprocess_name || "").toLowerCase();
+                const sku = (sub.subprocess_sku || "").toLowerCase();
+                const isStaff = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
+                                name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
+                                name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
+                                name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
+                                sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
+                if (isStaff) {
+                    totalASO += staff;
+                } else {
+                    totalMedico += staff;
+                }
+            });
+
+            const initialCompenso = totalMedico > 0 ? totalMedico : (costBreakdown?.medical_collaborator_fee || 0);
             document.getElementById('in-compenso').value = initialCompenso.toFixed(2);
             const initialTariffa = pricingSummary?.catalog_price || 250;
-            document.getElementById('in-compenso-pct').value = initialTariffa > 0 ? ((initialCompenso / initialTariffa) * 100).toFixed(1) : 0;
+            document.getElementById('in-compenso-pct').value = initialTariffa > 0 ? ((initialCompenso / initialTariffa) * 100).toFixed(2) : 0;
+            document.getElementById('in-costo-aso').value = totalASO.toFixed(2);
             
             document.getElementById('in-materiali').value = (costBreakdown?.direct_materials_cost || 0).toFixed(2);
             document.getElementById('in-lab').value = (costBreakdown?.dental_lab_cost || 0).toFixed(2);
@@ -706,19 +728,22 @@
         function updateCompensoFromEuro() {
             unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
             const compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
-            document.getElementById('in-compenso-pct').value = unit_tariffa > 0 ? ((compenso / unit_tariffa) * 100).toFixed(1) : 0;
-            recalculateAll();
+            document.getElementById('in-compenso-pct').value = unit_tariffa > 0 ? ((compenso / unit_tariffa) * 100).toFixed(2) : 0;
+            recalculateAll(true);
         }
 
         // --- MOTORE DI CALCOLO DINAMICO REATTIVO ---
-        function recalculateAll() {
+        function recalculateAll(drivenByEuro = false) {
             unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
             
-            // Il compenso in Euro viene calcolato in base alla percentuale (il driver principale)
-            const pct = parseFloat(document.getElementById('in-compenso-pct').value) || 0;
-            const compenso = (unit_tariffa * pct) / 100;
-            document.getElementById('in-compenso').value = compenso.toFixed(2);
+            let compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
+            if (!drivenByEuro) {
+                const pct = parseFloat(document.getElementById('in-compenso-pct').value) || 0;
+                compenso = (unit_tariffa * pct) / 100;
+                document.getElementById('in-compenso').value = compenso.toFixed(2);
+            }
 
+            const costoAso = parseFloat(document.getElementById('in-costo-aso').value) || 0;
             const materiali = parseFloat(document.getElementById('in-materiali').value) || 0;
             const lab = parseFloat(document.getElementById('in-lab').value) || 0;
             
@@ -730,7 +755,7 @@
             const enpamRate = parseFloat(document.getElementById('select-enpam-rate').value) || 0.0;
             const aliquotaTotale = tasseP + enpamRate;
 
-            const varCosts = compenso + materiali + lab;
+            const varCosts = compenso + costoAso + materiali + lab;
             unit_mdc = unit_tariffa - varCosts;
             unit_costofisso = (costoOra / 60) * tempoSedia;
             const reddito = unit_mdc - unit_costofisso;
@@ -831,7 +856,8 @@
 
         // --- FUNZIONI DI RE-AGGREGAZIONE REATTIVA DAI COMPONENTI (TABS) ---
         function updateBOMFromInputs() {
-            let totalStaff = 0;
+            let totalMedico = 0;
+            let totalASO = 0;
             let totalConsumables = 0;
             let totalChairTime = 0;
 
@@ -871,14 +897,28 @@
                 sub.estimated_internal_cost = singleCost;
                 document.getElementById(`label-bom-cost-${idx}`).innerText = `€ ${singleCost.toFixed(2)}`;
 
-                totalStaff += staff;
+                // Automatic operator classification (Medico vs ASO/Staff)
+                const name = (sub.subprocess_name || "").toLowerCase();
+                const sku = (sub.subprocess_sku || "").toLowerCase();
+                const isStaff = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
+                                name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
+                                name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
+                                name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
+                                sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
+                if (isStaff) {
+                    totalASO += staff;
+                } else {
+                    totalMedico += staff;
+                }
+
                 totalConsumables += consumables;
                 totalChairTime += chairTime; 
             });
 
-            document.getElementById('in-compenso').value = totalStaff.toFixed(2);
+            document.getElementById('in-compenso').value = totalMedico.toFixed(2);
             const currentTariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-            document.getElementById('in-compenso-pct').value = currentTariffa > 0 ? ((totalStaff / currentTariffa) * 100).toFixed(1) : 0;
+            document.getElementById('in-compenso-pct').value = currentTariffa > 0 ? ((totalMedico / currentTariffa) * 100).toFixed(2) : 0;
+            document.getElementById('in-costo-aso').value = totalASO.toFixed(2);
             document.getElementById('in-tempo').value = totalChairTime;
 
             recalculateAll();
@@ -1585,6 +1625,7 @@
             // 1. Sidebar values
             const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
             const compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
+            const costoAso = parseFloat(document.getElementById('in-costo-aso').value) || 0;
             const materiali = parseFloat(document.getElementById('in-materiali').value) || 0;
             const lab = parseFloat(document.getElementById('in-lab').value) || 0;
             const tempo = parseFloat(document.getElementById('in-tempo').value) || 0;
@@ -1608,10 +1649,10 @@
             currentData.financial_simulations.cost_breakdown_unit.direct_materials_cost = materiali;
             currentData.financial_simulations.cost_breakdown_unit.dental_lab_cost = lab;
             currentData.financial_simulations.cost_breakdown_unit.chair_time_cost_fixed = (poltrona / 60) * tempo;
-            currentData.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + materiali + lab;
-            currentData.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + materiali + lab);
-            currentData.financial_simulations.cost_breakdown_unit.total_operating_clinical_cost_unit = (compenso + materiali + lab) + ((poltrona / 60) * tempo);
-            currentData.financial_simulations.cost_breakdown_unit.operating_income_unit = tariffa - ((compenso + materiali + lab) + ((poltrona / 60) * tempo));
+            currentData.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + costoAso + materiali + lab;
+            currentData.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + costoAso + materiali + lab);
+            currentData.financial_simulations.cost_breakdown_unit.total_operating_clinical_cost_unit = (compenso + costoAso + materiali + lab) + ((poltrona / 60) * tempo);
+            currentData.financial_simulations.cost_breakdown_unit.operating_income_unit = tariffa - ((compenso + costoAso + materiali + lab) + ((poltrona / 60) * tempo));
 
             if (!currentData.financial_simulations.fiscal_and_previdential_impact) {
                 currentData.financial_simulations.fiscal_and_previdential_impact = {};
