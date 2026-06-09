@@ -91,8 +91,8 @@
             <button onclick="selectMenuSection('tab-cfo', '🏛️ CFO Advisory')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 bg-black text-white" id="menu-tab-cfo">
                 <i class="fas fa-balance-scale text-sm w-5 text-center"></i> 🏛️ CFO Advisory
             </button>
-            <button onclick="selectMenuSection('tab-bom', '⚙️ Distinta Base (BOM)')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-bom">
-                <i class="fas fa-cogs text-sm w-5 text-center"></i> ⚙️ Distinta Base (BOM)
+            <button onclick="selectMenuSection('tab-bom', '⚙️ Sottoprocessi Operativi')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-bom">
+                <i class="fas fa-cogs text-sm w-5 text-center"></i> ⚙️ Sottoprocessi Operativi
             </button>
             <button onclick="selectMenuSection('tab-competitors', '🎯 Analisi Concorrenza')" class="menu-link w-full text-left p-3.5 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center gap-3 text-gray-400 hover:bg-gray-50 hover:text-black" id="menu-tab-competitors">
                 <i class="fas fa-bullseye text-sm w-5 text-center"></i> 🎯 Analisi Concorrenza
@@ -152,7 +152,7 @@
         <div class="lg:col-span-4 space-y-6">
             <div class="card rounded-3xl p-6 space-y-5 shadow-sm border-gray-200 bg-white sticky top-28">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block">📊 PARAMETRI DI BILANCIO</span>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block">📊 Controllo di Gestione</span>
                     <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-[8px] font-black uppercase rounded">EDITABILI</span>
                 </div>
                 
@@ -565,6 +565,18 @@
         let unit_costofisso = 0;
         let unit_utile = 0;
 
+        function cleanSuppliersArray(arr) {
+            if (!Array.isArray(arr)) return arr;
+            return arr.filter(s => {
+                if (!s || typeof s !== 'object') return false;
+                if (s.supply_scouting_report || s.supply_maps || s.text_content || s.online_pricing_report || s.supply_price || s.content || s.raw_text) {
+                    return false;
+                }
+                const hasKeys = s.required_material || s.supplier_name || s.name || s.providers;
+                return !!hasKeys;
+            });
+        }
+
         async function loadData() {
             if (!sopId) {
                 tg.showAlert("Errore: SOP ID mancante.");
@@ -591,6 +603,20 @@
                 
                 // If data comes wrapped in an array, take first item
                 currentData = Array.isArray(data) ? data[0] : data;
+
+                // Pulizia preventiva dei fornitori da record di scouting spuri
+                if (currentData) {
+                    if (currentData.market_and_fiscal_intelligence && currentData.market_and_fiscal_intelligence.suppliers) {
+                        currentData.market_and_fiscal_intelligence.suppliers = cleanSuppliersArray(currentData.market_and_fiscal_intelligence.suppliers);
+                    }
+                    if (currentData.suppliers_output && currentData.suppliers_output.suppliers) {
+                        currentData.suppliers_output.suppliers = cleanSuppliersArray(currentData.suppliers_output.suppliers);
+                    }
+                    if (currentData.suppliers) {
+                        currentData.suppliers = cleanSuppliersArray(currentData.suppliers);
+                    }
+                }
+
                 originalDataStr = JSON.stringify(currentData);
 
                 // Initialise back button navigation in Telegram WebApp
@@ -624,6 +650,64 @@
             }
         }
 
+        function calculateSubprocessStaffCosts(sub) {
+            const staff = sub.calculation_breakdown?.staff_cost || 0;
+            const stages = sub.stages || [];
+            
+            let hasSteps = false;
+            let medicoCalc = 0;
+            let asoCalc = 0;
+            
+            const rates = currentData.operating_benchmarks?.operators_hourly_rates || {};
+            const defaultRates = {
+                "Medico_Chirurgo_Odontoiatra": 62.4,
+                "Assistente_ASO": 16.9,
+                "Segretaria_Amministrativa": 14.95
+            };
+            
+            stages.forEach(stg => {
+                (stg.steps || []).forEach(step => {
+                    const time = parseFloat(step.estimated_time_minutes) || 0;
+                    if (time > 0) {
+                        const skills = step.required_skills || [];
+                        skills.forEach(skill => {
+                            hasSteps = true;
+                            const rate = parseFloat(rates[skill]) || parseFloat(defaultRates[skill]) || (skill.toLowerCase().includes("medico") || skill.toLowerCase().includes("odontoiatra") ? 62.4 : 16.9);
+                            const cost = (rate / 60) * time;
+                            
+                            if (skill.toLowerCase().includes("medico") || skill.toLowerCase().includes("odontoiatra")) {
+                                medicoCalc += cost;
+                            } else {
+                                asoCalc += cost;
+                            }
+                        });
+                    }
+                });
+            });
+            
+            const totalCalc = medicoCalc + asoCalc;
+            if (hasSteps && totalCalc > 0) {
+                return {
+                    medico: staff * (medicoCalc / totalCalc),
+                    aso: staff * (asoCalc / totalCalc)
+                };
+            }
+            
+            // Fallback to name/sku classification
+            const name = (sub.subprocess_name || "").toLowerCase();
+            const sku = (sub.subprocess_sku || "").toLowerCase();
+            const isStaff = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
+                            name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
+                            name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
+                            name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
+                            sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
+            if (isStaff) {
+                return { medico: 0, aso: staff };
+            } else {
+                return { medico: staff, aso: 0 };
+            }
+        }
+
         function initUI() {
             // 1. Header titles
             document.getElementById('header-title').innerText = currentData.service_identity?.name || currentData.product_identity?.name || 'SiteBoS Advanced';
@@ -641,20 +725,20 @@
             let totalMedico = 0;
             let totalASO = 0;
             steps.forEach(sub => {
-                const staff = sub.calculation_breakdown?.staff_cost || 0;
-                const name = (sub.subprocess_name || "").toLowerCase();
-                const sku = (sub.subprocess_sku || "").toLowerCase();
-                const isStaff = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
-                                name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
-                                name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
-                                name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
-                                sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
-                if (isStaff) {
-                    totalASO += staff;
-                } else {
-                    totalMedico += staff;
-                }
+                const split = calculateSubprocessStaffCosts(sub);
+                totalMedico += split.medico;
+                totalASO += split.aso;
             });
+
+            if (totalASO === 0) {
+                const metaList = currentData.market_and_fiscal_intelligence?.meta_operators_overhead || currentData.qualitative_parser_output?.meta_operators_overhead || [];
+                metaList.forEach(op => {
+                    const role = (op.role || "").toLowerCase();
+                    if (!role.includes("medico") && !role.includes("odontoiatra")) {
+                        totalASO += op.allocated_cost || 0;
+                    }
+                });
+            }
 
             const initialCompenso = totalMedico > 0 ? totalMedico : (costBreakdown?.medical_collaborator_fee || 0);
             document.getElementById('in-compenso').value = initialCompenso.toFixed(2);
@@ -898,22 +982,23 @@
                 document.getElementById(`label-bom-cost-${idx}`).innerText = `€ ${singleCost.toFixed(2)}`;
 
                 // Automatic operator classification (Medico vs ASO/Staff)
-                const name = (sub.subprocess_name || "").toLowerCase();
-                const sku = (sub.subprocess_sku || "").toLowerCase();
-                const isStaff = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
-                                name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
-                                name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
-                                name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
-                                sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
-                if (isStaff) {
-                    totalASO += staff;
-                } else {
-                    totalMedico += staff;
-                }
+                const split = calculateSubprocessStaffCosts(sub);
+                totalMedico += split.medico;
+                totalASO += split.aso;
 
                 totalConsumables += consumables;
                 totalChairTime += chairTime; 
             });
+
+            if (totalASO === 0) {
+                const metaList = currentData.market_and_fiscal_intelligence?.meta_operators_overhead || currentData.qualitative_parser_output?.meta_operators_overhead || [];
+                metaList.forEach(op => {
+                    const role = (op.role || "").toLowerCase();
+                    if (!role.includes("medico") && !role.includes("odontoiatra")) {
+                        totalASO += op.allocated_cost || 0;
+                    }
+                });
+            }
 
             document.getElementById('in-compenso').value = totalMedico.toFixed(2);
             const currentTariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
@@ -1030,6 +1115,20 @@
                 }
                 document.getElementById(`label-meta-cost-${idx}`).innerText = `€ ${op.allocated_cost.toFixed(2)}`;
             });
+
+            // If BOM has no steps/subprocesses or ASO cost is 0, we can update in-costo-aso from metaList
+            const steps = currentData.bill_of_materials?.bom_steps || [];
+            if (steps.length === 0) {
+                let fallbackASO = 0;
+                metaList.forEach(op => {
+                    const role = (op.role || "").toLowerCase();
+                    if (!role.includes("medico") && !role.includes("odontoiatra")) {
+                        fallbackASO += op.allocated_cost || 0;
+                    }
+                });
+                document.getElementById('in-costo-aso').value = fallbackASO.toFixed(2);
+            }
+
             recalculateAll();
             checkDirty();
         }
@@ -1067,7 +1166,7 @@
             
             const steps = currentData.bill_of_materials?.bom_steps || [];
             if (steps.length === 0) {
-                container.innerHTML = `<div class="card rounded-3xl p-5 text-center text-gray-400 italic">Nessun semilavorato o distinta base configurata.</div>`;
+                container.innerHTML = `<div class="card rounded-3xl p-5 text-center text-gray-400 italic">Nessun semilavorato o sottoprocesso operativo configurato.</div>`;
                 return;
             }
 
