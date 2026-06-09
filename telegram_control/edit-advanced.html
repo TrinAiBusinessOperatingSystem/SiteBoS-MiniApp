@@ -628,7 +628,7 @@
                     }
                 }
 
-                originalDataStr = JSON.stringify(currentData);
+                // originalDataStr will be captured AFTER initUI() stabilizes all values
 
                 // Initialise back button navigation in Telegram WebApp
                 initBackButton();
@@ -814,6 +814,16 @@
             
             // 4. Initial calculations
             recalculateAll();
+
+            // 5. Snapshot the stabilized state as the baseline for dirty-checking.
+            // This MUST happen after recalculateAll() so computed values (compenso from %,
+            // chair costs, etc.) are already written into currentData via getPayloadToSave().
+            try {
+                originalDataStr = JSON.stringify(getPayloadToSave());
+            } catch (e) {
+                console.error('Error capturing baseline snapshot:', e);
+                originalDataStr = JSON.stringify(currentData);
+            }
             checkDirty();
         }
 
