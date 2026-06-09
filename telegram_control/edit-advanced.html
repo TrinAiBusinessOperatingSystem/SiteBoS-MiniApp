@@ -390,12 +390,6 @@
             <div id="tab-suppliers" class="tab-content space-y-4 hidden">
                 <div id="suppliers-list-container" class="space-y-4"></div>
                 
-                <!-- Scouting Report Territoriale (Read-Only) -->
-                <div id="scouting-report-container" class="card rounded-3xl p-6 space-y-4 border-gray-200 bg-white shadow-sm hidden">
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-450 block">📦 SCOUTING FORNITORI DI PROSSIMITÀ (SICILIA)</span>
-                    <div id="scouting-report-content" class="text-xs text-gray-700 leading-relaxed space-y-2"></div>
-                </div>
-                
                 <!-- Scouting Report Prezzi Online (Read-Only) -->
                 <div id="online-pricing-report-container" class="card rounded-3xl p-6 space-y-4 border-gray-200 bg-white shadow-sm hidden">
                     <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-450 block">🌐 COMPARAZIONE PREZZI E-COMMERCE</span>
@@ -569,9 +563,26 @@
             if (!Array.isArray(arr)) return arr;
             return arr.filter(s => {
                 if (!s || typeof s !== 'object') return false;
+                
+                // 1. Check if the object contains raw intelligence keys
                 if (s.supply_scouting_report || s.supply_maps || s.text_content || s.online_pricing_report || s.supply_price || s.content || s.raw_text) {
                     return false;
                 }
+                
+                // 2. Check if any key name or its value contains intelligence keywords
+                const keys = Object.keys(s);
+                for (let k of keys) {
+                    const kLower = k.toLowerCase();
+                    if (kLower.includes("scouting") || kLower.includes("maps") || kLower.includes("pricing") || kLower.includes("price") || kLower.includes("report") || kLower.includes("comparison") || kLower.includes("comparazione")) {
+                        return false;
+                    }
+                    
+                    const val = String(s[k] || "").toLowerCase();
+                    if (val.includes("scouting") || val.includes("maps") || val.includes("pricing") || val.includes("price") || val.includes("report") || val.includes("comparison") || val.includes("comparazione") || val.includes("concorrenti") || val.includes("bilancio")) {
+                        return false;
+                    }
+                }
+                
                 const hasKeys = s.required_material || s.supplier_name || s.name || s.providers;
                 return !!hasKeys;
             });
@@ -1544,18 +1555,9 @@
         // Render Sourcing Scouting Reports in Supplier Tab
         function renderScoutingReports() {
             const intelligence = currentData.market_and_fiscal_intelligence || {};
-            const scoutingReport = intelligence.supply_scouting_report || "";
             const onlinePricingReport = intelligence.online_pricing_report || "";
             
-            const scoutingEl = document.getElementById('scouting-report-container');
             const onlinePricingEl = document.getElementById('online-pricing-report-container');
-            
-            if (scoutingReport) {
-                scoutingEl.classList.remove('hidden');
-                document.getElementById('scouting-report-content').innerHTML = formatMarkdownText(scoutingReport);
-            } else {
-                scoutingEl.classList.add('hidden');
-            }
             
             if (onlinePricingReport) {
                 onlinePricingEl.classList.remove('hidden');
