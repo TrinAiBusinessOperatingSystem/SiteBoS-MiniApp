@@ -560,7 +560,7 @@
         let unit_utile = 0;
 
         function cleanSuppliersArray(arr) {
-            if (!Array.isArray(arr)) return arr;
+            if (!Array.isArray(arr)) return [];
             return arr.filter(s => {
                 if (!s || typeof s !== 'object') return false;
                 
@@ -1783,34 +1783,36 @@
 
             // 2. Tab: BOM
             const steps = currentData.bill_of_materials?.bom_steps || [];
-            steps.forEach((sub, idx) => {
-                (sub.stages || []).forEach((stg, stageIdx) => {
-                    (stg.steps || []).forEach((step, stepIdx) => {
-                        const el = document.getElementById(`input-bom-step-time-${idx}-${stageIdx}-${stepIdx}`);
-                        if (el) {
-                            step.estimated_time_minutes = parseFloat(el.value) || 0;
-                        }
+            if (Array.isArray(steps)) {
+                steps.forEach((sub, idx) => {
+                    (sub.stages || []).forEach((stg, stageIdx) => {
+                        (stg.steps || []).forEach((step, stepIdx) => {
+                            const el = document.getElementById(`input-bom-step-time-${idx}-${stageIdx}-${stepIdx}`);
+                            if (el) {
+                                step.estimated_time_minutes = parseFloat(el.value) || 0;
+                            }
+                        });
                     });
+
+                    const consumables = parseFloat(document.getElementById(`input-bom-consumables-${idx}`).value) || 0;
+                    const depr = parseFloat(document.getElementById(`input-bom-depr-${idx}`).value) || 0;
+                    const staff = parseFloat(document.getElementById(`input-bom-staff-${idx}`).value) || 0;
+                    const time = parseFloat(document.getElementById(`input-bom-time-${idx}`).value) || 0;
+                    const chairTime = parseFloat(document.getElementById(`input-bom-chair-time-${idx}`).value) || 0;
+
+                    if (!sub.calculation_breakdown) sub.calculation_breakdown = {};
+                    sub.calculation_breakdown.consumables = consumables;
+                    sub.calculation_breakdown.depreciation = depr;
+                    sub.calculation_breakdown.staff_cost = staff;
+                    sub.calculation_breakdown.chair_time_mins = chairTime;
+                    sub.estimated_total_time_minutes = time;
+                    sub.estimated_internal_cost = consumables + depr + staff;
                 });
-
-                const consumables = parseFloat(document.getElementById(`input-bom-consumables-${idx}`).value) || 0;
-                const depr = parseFloat(document.getElementById(`input-bom-depr-${idx}`).value) || 0;
-                const staff = parseFloat(document.getElementById(`input-bom-staff-${idx}`).value) || 0;
-                const time = parseFloat(document.getElementById(`input-bom-time-${idx}`).value) || 0;
-                const chairTime = parseFloat(document.getElementById(`input-bom-chair-time-${idx}`).value) || 0;
-
-                if (!sub.calculation_breakdown) sub.calculation_breakdown = {};
-                sub.calculation_breakdown.consumables = consumables;
-                sub.calculation_breakdown.depreciation = depr;
-                sub.calculation_breakdown.staff_cost = staff;
-                sub.calculation_breakdown.chair_time_mins = chairTime;
-                sub.estimated_total_time_minutes = time;
-                sub.estimated_internal_cost = consumables + depr + staff;
-            });
+            }
 
             // 3. Tab: Suppliers
             const suppliersList = currentData.market_and_fiscal_intelligence?.suppliers || currentData.suppliers_output?.suppliers || currentData.suppliers || [];
-            if (suppliersList.length > 0) {
+            if (Array.isArray(suppliersList) && suppliersList.length > 0) {
                 // If it is flat structure
                 if (!suppliersList[0].required_material) {
                     suppliersList.forEach((s, idx) => {
@@ -1835,34 +1837,40 @@
 
             // 4. Tab: Locations
             const locations = currentData.environments || [];
-            locations.forEach((loc, idx) => {
-                const rateEl = document.getElementById(`input-loc-rate-${idx}`);
-                const timeEl = document.getElementById(`input-loc-time-${idx}`);
-                if (rateEl && timeEl) {
-                    const rate = parseFloat(rateEl.value) || 0;
-                    const time = parseFloat(timeEl.value) || 0;
-                    loc.estimated_internal_cost_rate = rate;
-                    loc.estimated_internal_cost = (rate / 60) * time;
-                }
-            });
+            if (Array.isArray(locations)) {
+                locations.forEach((loc, idx) => {
+                    const rateEl = document.getElementById(`input-loc-rate-${idx}`);
+                    const timeEl = document.getElementById(`input-loc-time-${idx}`);
+                    if (rateEl && timeEl) {
+                        const rate = parseFloat(rateEl.value) || 0;
+                        const time = parseFloat(timeEl.value) || 0;
+                        loc.estimated_internal_cost_rate = rate;
+                        loc.estimated_internal_cost = (rate / 60) * time;
+                    }
+                });
+            }
 
             // 5. Tab: Assets
             const assets = currentData.assets || [];
-            assets.forEach((ast, idx) => {
-                const el = document.getElementById(`input-ast-cost-${idx}`);
-                if (el) {
-                    ast.estimated_internal_cost = parseFloat(el.value) || 0;
-                }
-            });
+            if (Array.isArray(assets)) {
+                assets.forEach((ast, idx) => {
+                    const el = document.getElementById(`input-ast-cost-${idx}`);
+                    if (el) {
+                        ast.estimated_internal_cost = parseFloat(el.value) || 0;
+                    }
+                });
+            }
 
             // 6. Tab: Meta Operators
             const metaList = currentData.market_and_fiscal_intelligence?.meta_operators_overhead || currentData.qualitative_parser_output?.meta_operators_overhead || [];
-            metaList.forEach((op, idx) => {
-                const el = document.getElementById(`input-meta-cost-${idx}`);
-                if (el) {
-                    op.allocated_cost = parseFloat(el.value) || 0;
-                }
-            });
+            if (Array.isArray(metaList)) {
+                metaList.forEach((op, idx) => {
+                    const el = document.getElementById(`input-meta-cost-${idx}`);
+                    if (el) {
+                        op.allocated_cost = parseFloat(el.value) || 0;
+                    }
+                });
+            }
 
             // 7. Fiscal Analysis regime/tax
             if (currentData.market_and_fiscal_intelligence && currentData.market_and_fiscal_intelligence.fiscal_analysis) {
@@ -1876,7 +1884,12 @@
 
         function isDirty() {
             if (!currentData) return false;
-            return JSON.stringify(getPayloadToSave()) !== originalDataStr;
+            try {
+                return JSON.stringify(getPayloadToSave()) !== originalDataStr;
+            } catch (e) {
+                console.error("Error in isDirty:", e);
+                return false;
+            }
         }
 
         function checkDirty() {
