@@ -450,14 +450,23 @@
                 <div id="competitor-list-container" class="space-y-4"></div>
             </div>
             
-            <!-- TAB TASSI E FISCO CON MODIFICHE DI BILANCIO ED ENPAM SELEZIONABILE -->
+            <!-- TAB TASSI E FISCO CON ADEMPIMENTI E CONGRUENZA ISA -->
             <div id="tab-fiscal" class="tab-content space-y-4 hidden">
                 <div class="card rounded-3xl p-6 space-y-4 border-gray-200 bg-white shadow-sm">
                     <div class="flex justify-between items-center border-b border-border pb-3">
                         <div class="space-y-1">
                             <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Inquadramento Fiscale Consigliato</span>
-                            <h3 class="text-sm font-black uppercase tracking-tight text-black" id="fiscal-regime-name">S.r.l. Ordinaria Commerciale</h3>
+                            <h3 class="text-sm font-black uppercase tracking-tight text-black" id="fiscal-regime-name">Semplificata STP</h3>
                         </div>
+                    </div>
+
+                    <!-- BADGE DI CONGRUENZA ISA (DK21U) -->
+                    <div class="flex items-center justify-between bg-gray-50 border border-gray-150 p-4 rounded-2xl">
+                        <div>
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Affidabilità Fiscale (ISA Modello DK21U)</span>
+                            <h4 class="text-xs font-black uppercase text-black mt-0.5">Stato di Coerenza ed Efficienza</h4>
+                        </div>
+                        <span id="isa-badge" class="px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl transition-colors duration-200">VERIFICA...</span>
                     </div>
 
                     <!-- STRUMENTO MODIFICA CONFIGURAZIONE DI BILANCIO SUL FISCO & ENPAM -->
@@ -481,34 +490,57 @@
                                 <select id="select-bep-allocation" onchange="recalculateAll(); checkDirty();" class="w-full bg-white border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
                                     <option value="0.10">Linea Diagnostica / Prevenzione (10%)</option>
                                     <option value="0.30">Linea Conservativa / Chirurgia Base (30%)</option>
-                                    <option value="0.60">Linea Protesi / Ortodonzia Attiva (60%)</option>
+                                    <option value="0.60">Linea Protesi / Implantologia / Ortodonzia (60%)</option>
                                     <option value="1.00">Intera Struttura / Nessuna (100%)</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    <!-- PARAMETRI STATISTICI -->
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-2">
-                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Codice ATECO</span>
-                            <div class="text-lg font-black text-black mt-1" id="fiscal-ateco">86.23.00</div>
+                    <!-- PARAMETRI STATISTICI ADATTATI (5 COLONNE PER INCLUDERE I RIUNITI) -->
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-3 py-1">
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Codice ATECO</span>
+                            <div class="text-sm font-black text-black mt-1" id="fiscal-ateco">86.23.00</div>
                         </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Coeff. Redditività</span>
-                            <div class="text-lg font-black text-black mt-1" id="fiscal-coeff">78%</div>
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Coeff. Redditività</span>
+                            <div class="text-sm font-black text-black mt-1" id="fiscal-coeff">78%</div>
                         </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">Aliquota Tasse S.r.l.</span>
-                            <div class="text-lg font-black text-black mt-1" id="fiscal-tax-rate">24%</div>
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Tasse Societarie</span>
+                            <div class="text-sm font-black text-black mt-1" id="fiscal-tax-rate">24%</div>
                         </div>
-                        <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
-                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest">ENPAM Societario</span>
-                            <div class="text-lg font-black text-black mt-1" id="fiscal-enpam-label">2.00%</div>
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">ENPAM Società</span>
+                            <div class="text-sm font-black text-black mt-1" id="fiscal-enpam-label">2.00%</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Riuniti Attivi</span>
+                            <div class="text-sm font-black text-black mt-1" id="fiscal-chairs">3</div>
+                        </div>
+                    </div>
+
+                    <!-- ACCORDION DEI BALZELLI LOCALI & CONFORMITÀ TERRITORIALE -->
+                    <div class="bg-gray-50 border border-gray-150 rounded-2xl p-4 space-y-3">
+                        <button onclick="toggleFiscalAccordion()" class="w-full flex justify-between items-center focus:outline-none">
+                            <div class="text-left">
+                                <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Conformità & Tassazione Locale</span>
+                                <span class="text-xs font-black text-black">Balzelli Territoriali Rilevati:</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-black text-red-500" id="local-burden-rate">+ € 0.00 / ora sedia</span>
+                                <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform duration-200" id="fiscal-accordion-arrow"></i>
+                            </div>
+                        </button>
+                        
+                        <!-- LISTA DEI BALZELLI DA POPOLARE DINAMICAMENTE -->
+                        <div id="fiscal-accordion-content" class="hidden border-t border-gray-200 pt-3 space-y-2 text-[10px] text-gray-600 font-medium">
+                            <!-- Popolato da JS -->
                         </div>
                     </div>
                     
-                    <!-- BOX GIALLO RISOLTO E DINAMICO -->
+                    <!-- BOX GIALLO RISOLTO E DINAMICO PER L'ARBITRAGGIO COEFF. REALE VS FORFETTARIO -->
                     <div class="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/60 text-xs text-amber-800 font-medium leading-relaxed" id="fiscal-explanation"></div>
                 </div>
             </div>
@@ -864,14 +896,31 @@
             const enpamRate = parseFloat(document.getElementById('select-enpam-rate').value) || 0.0;
             const aliquotaTotale = tasseP + enpamRate;
 
+            // --- INTEGRAZIONE DEI BALZELLI LOCALI NEL COSTO SEDIA ---
+            const localBurdenHourly = parseFloat(currentData.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
+            const costoSediaTotaleOrario = costoOra + localBurdenHourly;
+
             const varCosts = compenso + costoAso + materiali + lab;
             unit_mdc = unit_tariffa - varCosts;
-            unit_costofisso = (costoOra / 60) * tempoSedia;
+            
+            // Calcolo del costo sedia fisso allocato includendo la quota oraria dei balzelli territoriali
+            unit_costofisso = (costoSediaTotaleOrario / 60) * tempoSedia;
             const reddito = unit_mdc - unit_costofisso;
             
-            const tasseVal = unit_tariffa * (tasseP / 100);
-            const enpamVal = unit_tariffa * (enpamRate / 100);
-            const prelievoTotale = tasseVal + enpamVal;
+            // --- ACCANTONAMENTO FISCALE ANALITICO (S.r.l./STP) o FORFETTARIO ---
+            let prelievoTotale = 0;
+            const regimeLower = (currentData.market_and_fiscal_intelligence?.fiscal_analysis?.regime_name || "").toLowerCase();
+            const isSocietario = regimeLower.includes("s.r.l.") || regimeLower.includes("srl") || regimeLower.includes("stp");
+
+            if (isSocietario) {
+                // S.r.l. STP (Analitico): Tasse (IRES) su Reddito Operativo + ENPAM su Fatturato Lordo
+                const tasseVal = reddito > 0 ? (reddito * (tasseP / 100)) : 0;
+                const enpamVal = unit_tariffa * (enpamRate / 100);
+                prelievoTotale = tasseVal + enpamVal;
+            } else {
+                // Forfettario (Imponibile fittizio): Aliquota applicata sul 78% del fatturato
+                prelievoTotale = (unit_tariffa * 0.78) * (aliquotaTotale / 100);
+            }
             
             unit_utile = reddito - prelievoTotale;
 
@@ -938,22 +987,74 @@
                 healthCard.style.borderColor = '#ef4444';
             }
 
-            // Aggiorna dinamicamente i KPI e la spiegazione nella Tab Tassazione
+            // --- CALCOLO COEFFICIENTE DI REDDITIVITÀ REALE (EBIT Margin / ROS) ---
+            const coeffReale = unit_tariffa > 0 ? ((reddito / unit_tariffa) * 100) : 0;
+            const coeffEl = document.getElementById('fiscal-coeff');
+            
             document.getElementById('fiscal-enpam-label').innerText = enpamRate.toFixed(2) + "%";
             document.getElementById('fiscal-tax-rate').innerText = tasseP.toFixed(1) + "%";
             
-            const regimeName = enpamRate === 2.0 ? "S.r.l. Ordinaria Commerciale" : (enpamRate === 0.5 ? "S.r.l. STP (Società tra Professionisti)" : "Regime Esente");
+            const regimeName = enpamRate === 2.0 ? "S.r.l. Ordinaria Commerciale" : (enpamRate === 0.5 ? "S.r.l. STP" : "Regime Esente");
             document.getElementById('fiscal-regime-name').innerText = regimeName + " (con quota ENPAM " + enpamRate.toFixed(1) + "%)";
 
-            let explanationText = "";
-            if (enpamRate === 2.0) {
-                explanationText = `L'inquadramento come <strong>S.r.l. Ordinaria Commerciale</strong> comporta l'applicazione del contributo di solidarietà <strong>ENPAM al 2,0%</strong> sul fatturato lordo clinico (Legge 205/2017). Questo si somma alla tassazione societaria (IRES + IRAP + adeguamento ISA) stimata al <strong>${tasseP}%</strong>, per un prelievo totale combinato del <strong>${aliquotaTotale.toFixed(1)}%</strong> sul fatturato.`;
-            } else if (enpamRate === 0.5) {
-                explanationText = `L'inquadramento come <strong>Società tra Professionisti (STP)</strong> consente, in particolari condizioni di accreditamento o configurazioni societarie, di ridurre l'incidenza contributiva <strong>ENPAM allo 0,5%</strong>. Abbinato alla tassazione societaria del <strong>${tasseP}%</strong>, riduce la pressione fiscale totale combinata al <strong>${aliquotaTotale.toFixed(1)}%</strong>, aumentando l'utile netto di sedia.`;
-            } else {
-                explanationText = `Il regime configurato prevede l'<strong>esenzione totale dal contributo ENPAM societario (0,0%)</strong>. La pressione fiscale si basa esclusivamente sull'aliquota societaria del <strong>${tasseP}%</strong> impostata nella barra laterale.`;
+            // --- CALCOLO AFFIDABILITÀ FISCALE (ISA MODELLO DK21U) ---
+            const isaBadge = document.getElementById('isa-badge');
+            let isaScore = 5.0; // Baseline insufficiente di partenza
+            
+            if (unit_tariffa > 0) {
+                const ros = reddito / unit_tariffa;
+                if (ros >= 0.40) {
+                    isaScore = 9.2;
+                    if (isaBadge) {
+                        isaBadge.innerText = "CONGRUO (PREMIALE)";
+                        isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-green-100 text-green-700";
+                    }
+                } else if (ros >= 0.25) {
+                    isaScore = 7.8;
+                    if (isaBadge) {
+                        isaBadge.innerText = "CONGRUO (COERENTE)";
+                        isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-amber-100 text-amber-700";
+                    }
+                } else {
+                    isaScore = 4.3;
+                    if (isaBadge) {
+                        isaBadge.innerText = "RISCHIO ACCERTAMENTO";
+                        isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-red-100 text-red-700";
+                    }
+                }
             }
+
+            let explanationText = "";
+            if (isSocietario) {
+                if (coeffEl) {
+                    coeffEl.innerHTML = `<span class="text-green-600 font-bold">${coeffReale.toFixed(1)}%</span><span class="text-[7px] text-gray-400 block font-bold uppercase tracking-wider mt-0.5">Margine Reale (ROS)</span>`;
+                }
+
+                let deltaSpreco = 78.0 - coeffReale;
+                let utileFittizioImposto = unit_tariffa * 0.78;
+                let differenzaImponibileTassabile = utileFittizioImposto - reddito;
+
+                explanationText = `
+                    L'inquadramento come <strong>${regimeName}</strong> ti consente di pagare le imposte societarie sull'utile reale del <strong>${coeffReale.toFixed(1)}%</strong>, deducendo analiticamente tutti i costi di sedia, staff e materiali chirurgici.<br><br>
+                    ⚠️ <strong>Confronto con il Forfettario:</strong> Se utilizzassi il Regime Forfettario ordinario (ATECO 86.23.00), il Fisco applicherebbe un coefficiente legale fisso del <strong>78%</strong>, imponendoti di dichiarare un utile forzato di <strong>${currFmt.format(utileFittizioImposto)}</strong> su questa prestazione clinica.<br>
+                    Così facendo, <strong>pagheresti le tasse su un ${deltaSpreco.toFixed(1)}% di utile fittizio</strong> (pari a <strong>${currFmt.format(differenzaImponibileTassabile)}</strong> di costi effettivi che per il fisco non esistono). La struttura societaria elimina questa inefficienza.
+                `;
+            } else {
+                if (coeffEl) {
+                    coeffEl.innerHTML = `<span>78.0%</span><span class="text-[7px] text-gray-400 block font-bold uppercase tracking-wider mt-0.5">Forfettario Legale</span>`;
+                }
+                explanationText = `
+                    Il regime configurato simula l'applicazione del <strong>Regime Forfettario</strong> con coefficiente legale al <strong>78,0%</strong>. Le imposte e l'ENPAM vengono calcolati su questa base imponibile presunta, ignorando l'incidenza reale dei tuoi costi clinici di sedia o dei consumabili chirurgici.
+                `;
+            }
+            
             document.getElementById('fiscal-explanation').innerHTML = explanationText;
+
+            // Aggiorna l'indicazione dei balzelli territoriali orari
+            const localBurdenRateEl = document.getElementById('local-burden-rate');
+            if (localBurdenRateEl) {
+                localBurdenRateEl.innerText = `+ ${currFmt.format(localBurdenHourly)} / ora sedia`;
+            }
 
             updateSimulation();
         }
@@ -1487,7 +1588,32 @@
             const fiscalAnalysis = currentData.market_and_fiscal_intelligence?.fiscal_analysis;
             if (fiscalAnalysis) {
                 document.getElementById('fiscal-ateco').innerText = fiscalAnalysis.activity_code || '86.23.00';
-                document.getElementById('fiscal-coeff').innerText = (fiscalAnalysis.profitability_coefficient ? fiscalAnalysis.profitability_coefficient * 100 : 78) + '%';
+                
+                // Popolamento del numero di riuniti attivi (default a 3 se non presente)
+                const numChairs = currentData.operating_benchmarks?.number_of_chairs || 3;
+                const chairsEl = document.getElementById('fiscal-chairs');
+                if (chairsEl) {
+                    chairsEl.innerText = numChairs;
+                }
+
+                // Popolamento dinamico dell'accordion dei balzelli locali
+                const accordionContent = document.getElementById('fiscal-accordion-content');
+                if (accordionContent) {
+                    const burdens = fiscalAnalysis.local_compliance_burdens || [];
+                    if (burdens.length === 0) {
+                        accordionContent.innerHTML = `<div class="text-center text-gray-400 italic">Nessun adempimento territoriale speciale registrato.</div>`;
+                    } else {
+                        accordionContent.innerHTML = burdens.map(b => `
+                            <div class="flex justify-between items-start py-1 border-b border-gray-100 last:border-0">
+                                <div>
+                                    <span class="font-bold text-gray-800">${b.name}</span>
+                                    <p class="text-[8px] text-gray-400 leading-normal">${b.description || ''}</p>
+                                </div>
+                                <span class="font-black text-black ml-4 whitespace-nowrap">${currFmt.format(b.value_annual || 0)}/anno</span>
+                            </div>
+                        `).join('');
+                    }
+                }
             }
         }
 
@@ -1997,6 +2123,19 @@
             
             okBtn.addEventListener('click', handleOk);
             cancelBtn.addEventListener('click', handleCancel);
+        }
+
+        function toggleFiscalAccordion() {
+            const content = document.getElementById('fiscal-accordion-content');
+            const arrow = document.getElementById('fiscal-accordion-arrow');
+            
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                if (arrow) arrow.style.transform = 'rotate(180deg)';
+            } else {
+                content.classList.add('hidden');
+                if (arrow) arrow.style.transform = 'rotate(0deg)';
+            }
         }
 
         window.onload = loadData;
