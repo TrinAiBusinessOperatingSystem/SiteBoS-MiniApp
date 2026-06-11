@@ -2021,9 +2021,18 @@
 
         async function saveConfiguration() {
             const saveBtn = document.getElementById('save-btn');
-            saveBtn.disabled = true;
-            const originalText = saveBtn.innerHTML;
-            saveBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-1"></i> Salvataggio...`;
+            if (saveBtn) saveBtn.disabled = true;
+
+            const aiLoader = document.getElementById('ai-loader-modal');
+            const titleEl = document.getElementById('ai-loader-title');
+            const descEl = document.getElementById('ai-loader-desc');
+            if (titleEl) titleEl.innerText = "Salvataggio";
+            if (descEl) descEl.innerText = "Salvataggio della configurazione avanzata in corso...";
+
+            if (aiLoader) {
+                aiLoader.classList.remove('hidden');
+                setTimeout(() => aiLoader.classList.add('opacity-100'), 10);
+            }
 
             try {
                 const payloadToSave = getPayloadToSave();
@@ -2056,15 +2065,26 @@
             } catch (err) {
                 console.error(err);
                 tg.showAlert("❌ Errore durante il salvataggio: " + err.message);
-                saveBtn.disabled = false;
-                saveBtn.innerHTML = originalText;
+                if (saveBtn) saveBtn.disabled = false;
+                
+                if (aiLoader) {
+                    aiLoader.classList.remove('opacity-100');
+                    setTimeout(() => aiLoader.classList.add('hidden'), 200);
+                }
             }
         }
 
         async function triggerAiAdvisoryRecalculation() {
             const aiLoader = document.getElementById('ai-loader-modal');
-            aiLoader.classList.remove('hidden');
-            setTimeout(() => aiLoader.classList.add('opacity-100'), 10);
+            const titleEl = document.getElementById('ai-loader-title');
+            const descEl = document.getElementById('ai-loader-desc');
+            if (titleEl) titleEl.innerText = "Generazione IA";
+            if (descEl) descEl.innerText = "Rielaborazione semantica della strategia di prezzo in corso...";
+
+            if (aiLoader) {
+                aiLoader.classList.remove('hidden');
+                setTimeout(() => aiLoader.classList.add('opacity-100'), 10);
+            }
 
             try {
                 // Estrazione dei parametri correnti modificati dalla sidebar
@@ -2141,8 +2161,10 @@
                 console.error(err);
                 tg.showAlert("❌ Errore IA: " + err.message);
             } finally {
-                aiLoader.classList.remove('opacity-100');
-                setTimeout(() => aiLoader.classList.add('hidden'), 200);
+                if (aiLoader) {
+                    aiLoader.classList.remove('opacity-100');
+                    setTimeout(() => aiLoader.classList.add('hidden'), 200);
+                }
             }
         }
 
@@ -2207,8 +2229,8 @@
         <div class="p-8 bg-white rounded-3xl flex flex-col items-center max-w-xs w-full text-center space-y-4 shadow-2xl border border-border">
             <div class="spinner"></div>
             <div class="space-y-1">
-                <span class="text-[9px] font-black text-black uppercase tracking-[0.2em] block">Generazione IA</span>
-                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-relaxed">Rielaborazione semantica della strategia di prezzo in corso...</p>
+                <span id="ai-loader-title" class="text-[9px] font-black text-black uppercase tracking-[0.2em] block">Generazione IA</span>
+                <p id="ai-loader-desc" class="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-relaxed">Rielaborazione semantica della strategia di prezzo in corso...</p>
             </div>
         </div>
     </div>
