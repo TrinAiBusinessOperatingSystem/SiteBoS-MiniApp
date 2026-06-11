@@ -287,6 +287,9 @@
                     <!-- ADVISORY TESTUALE -->
                     <div class="md:col-span-8 card rounded-3xl p-6 space-y-3 border-gray-200 bg-white">
                         <span class="text-[10px] font-black uppercase tracking-[0.2em] text-black block">💡 STRATEGIA DI PREZZO & ADVISORY</span>
+                        <button id="ai-recalc-btn" onclick="triggerAiAdvisoryRecalculation()" disabled class="w-full py-2.5 mb-3 bg-zinc-100 text-zinc-400 border border-zinc-200 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-200">
+                            <i class="fas fa-magic"></i> Ricalcola Advisory con IA
+                        </button>
                         <p class="text-xs text-gray-700 leading-relaxed" id="pricing-advisory-text"></p>
                     </div>
                 </div>
@@ -2038,12 +2041,22 @@
         function checkDirty() {
             const dirty = isDirty();
             const saveBtn = document.getElementById('save-btn');
+            const aiBtn = document.getElementById('ai-recalc-btn');
+            
+            // Gestione Bottone Salva
             if (saveBtn) {
                 saveBtn.disabled = !dirty;
+                if (dirty) saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                else saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+
+            // Gestione Bottone IA (Si accende quando i dati sono stati modificati)
+            if (aiBtn) {
+                aiBtn.disabled = !dirty;
                 if (dirty) {
-                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    aiBtn.className = "w-full py-2.5 mb-3 bg-black text-white hover:opacity-90 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-200 cursor-pointer shadow-md";
                 } else {
-                    saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    aiBtn.className = "w-full py-2.5 mb-3 bg-zinc-100 text-zinc-400 border border-zinc-200 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all duration-200 cursor-not-allowed";
                 }
             }
         }
@@ -2087,6 +2100,62 @@
                 tg.showAlert("❌ Errore durante il salvataggio: " + err.message);
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = originalText;
+            }
+        }
+
+        async function triggerAiAdvisoryRecalculation() {
+            const aiLoader = document.getElementById('ai-loader-modal');
+            aiLoader.classList.remove('hidden');
+            setTimeout(() => aiLoader.classList.add('opacity-100'), 10);
+
+            try {
+                // Estrazione dei parametri correnti modificati dalla sidebar
+                const payloadFields = {
+                    catalog_price: parseFloat(document.getElementById('in-tariffa').value) || 0,
+                    medical_collaborator_fee: parseFloat(document.getElementById('in-compenso').value) || 0,
+                    aso_fee: parseFloat(document.getElementById('in-costo-aso').value) || 0,
+                    direct_materials_cost: parseFloat(document.getElementById('in-materiali').value) || 0,
+                    dental_lab_cost: parseFloat(document.getElementById('in-lab').value) || 0,
+                    chair_time_mins: parseFloat(document.getElementById('in-tempo').value) || 0,
+                    chair_hourly_rate_consolidated: parseFloat(document.getElementById('in-poltrona').value) || 0,
+                    income_tax_rate: parseFloat(document.getElementById('in-tasse').value) || 0,
+                    allocated_overhead_value: parseFloat(document.getElementById('in-fissi-annui').value) || 50000,
+                    allocated_budget_percentage: parseFloat(document.getElementById('select-bep-allocation').value) || 0.60
+                };
+
+                const response = await fetch(ASYNC_AI_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: 'RECALCULATE_ADVISORY',
+                        sop_id: sopId,
+                        message_id: messageId,
+                        current_financial_inputs: payloadFields
+                    })
+                });
+
+                if (!response.ok) throw new Error("Errore durante l'elaborazione dell'advisory");
+                const result = await response.json();
+
+                if (result && result.pricing_and_tariff_strategy_advisory) {
+                    // Aggiorna l'area di testo dell'advisory qualitativa
+                    document.getElementById('pricing-advisory-text').innerText = result.pricing_and_tariff_strategy_advisory;
+                    // Aggiorna l'oggetto in memoria per non sovrascrivere al successivo salvataggio
+                    if (!currentData.strategic_clinical_analysis) {
+                        currentData.strategic_clinical_analysis = {};
+                    }
+                    currentData.strategic_clinical_analysis.pricing_and_tariff_strategy_advisory = result.pricing_and_tariff_strategy_advisory;
+                    tg.showAlert("✅ Analisi strategica rielaborata dall'IA con successo!");
+                }
+
+            } catch (err) {
+                console.error(err);
+                tg.showAlert("❌ Errore IA: " + err.message);
+            } finally {
+                aiLoader.classList.remove('opacity-100');
+                setTimeout(() => aiLoader.classList.add('hidden'), 200);
             }
         }
 
@@ -2147,5 +2216,14 @@
 
         window.onload = loadData;
     </script>
+    <div id="ai-loader-modal" class="fixed inset-0 bg-black/60 z-[9999] flex flex-col items-center justify-center space-y-4 hidden opacity-0 transition-opacity duration-200">
+        <div class="p-8 bg-white rounded-3xl flex flex-col items-center max-w-xs w-full text-center space-y-4 shadow-2xl border border-border">
+            <div class="spinner"></div>
+            <div class="space-y-1">
+                <span class="text-[9px] font-black text-black uppercase tracking-[0.2em] block">Generazione IA</span>
+                <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-relaxed">Rielaborazione semantica della strategia di prezzo in corso...</p>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
