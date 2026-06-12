@@ -72,6 +72,10 @@ function updateCompensoFromEuro() {
     recalculateAll(true);
 }
 
+function updateENPAMFromSelect() {
+    recalculateAll();
+}
+
 // --- MOTORE DI CALCOLO DINAMICO REATTIVO ---
 function recalculateAll(drivenByEuro = false) {
     unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
@@ -87,50 +91,61 @@ function recalculateAll(drivenByEuro = false) {
     const materiali = parseFloat(document.getElementById('in-materiali').value) || 0;
     const lab = parseFloat(document.getElementById('in-lab').value) || 0;
     
-    const tempoVal = parseFloat(document.getElementById('in-tempo').value) || 0;
-    const costoOra = parseFloat(document.getElementById('in-poltrona').value) || 0;
+    // --- INTEGRATION: Rischio Garanzia/Insuccesso Clinico ---
+    const garanziaEl = document.getElementById('in-garanzia-pct');
+    const garanziaPct = garanziaEl ? parseFloat(garanziaEl.value) : 0;
+    const costoAccantonamentoGaranzia = (unit_tariffa * garanziaPct) / 100;
     
-    // Tassazione & ENPAM divisa e reattiva
+    // --- INTEGRATION: Saturazione Agenda su Costo Orario Sedia ---
+    const costoOraBaseline = parseFloat(document.getElementById('in-poltrona').value) || 0;
+    const saturazioneEl = document.getElementById('in-saturazione-pct');
+    const saturazionePct = saturazioneEl ? parseFloat(saturazioneEl.value) : 100;
+    // Se lo studio è saturo al 70%, il costo orario reale della sedia attiva sale
+    const costoOraSaturata = saturazionePct > 0 ? (costoOraBaseline / (saturazionePct / 100)) : costoOraBaseline;
+    
+    // --- INTEGRATION: Tempo Sedia Lordo (Tempo Clinico + Tempo Setup) ---
+    const tempoClinico = parseFloat(document.getElementById('in-tempo').value) || 0;
+    const setupEl = document.getElementById('in-setup-tempo');
+    const tempoSetup = setupEl ? parseFloat(setupEl.value) : 0;
+    const tempoSediaLordo = tempoClinico + tempoSetup;
+
+    const localBurdenHourly = parseFloat(currentData.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
+    const costoSediaTotaleOrario = costoOraSaturata + localBurdenHourly;
+
+    // Costi Variabili Diretti inclusivi di accantonamento rischio clinico
+    const varCosts = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
+    unit_mdc = unit_tariffa - varCosts;
+    
+    // Costo Fisso sedia allocato calcolato sul Tempo Sedia Lordo
+    unit_costofisso = (costoSediaTotaleOrario / 60) * tempoSediaLordo;
+    const reddito = unit_mdc - unit_costofisso;
+    
+    // Tassazione & ENPAM
     const tasseP = parseFloat(document.getElementById('in-tasse').value) || 0;
     const enpamEl = document.getElementById('select-enpam-rate');
     const enpamRate = enpamEl ? parseFloat(enpamEl.value) : 0.0;
     const aliquotaTotale = tasseP + enpamRate;
 
-    // --- INTEGRAZIONE DEI BALZELLI LOCALI NEL COSTO SEDIA/POSTAZIONE ---
-    const localBurdenHourly = parseFloat(currentData.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
-    const costoSediaTotaleOrario = costoOra + localBurdenHourly;
-
-    const varCosts = compenso + costoAso + materiali + lab;
-    unit_mdc = unit_tariffa - varCosts;
-    
-    // Calcolo del costo sedia fisso allocato includendo la quota oraria dei balzelli territoriali
-    unit_costofisso = (costoSediaTotaleOrario / 60) * tempoVal;
-    const reddito = unit_mdc - unit_costofisso;
-    
-    // --- ACCANTONAMENTO FISCALE ANALITICO (S.r.l./STP) o FORFETTARIO / ORDINARIO ---
     let prelievoTotale = 0;
     const regimeLower = (currentData.market_and_fiscal_intelligence?.fiscal_analysis?.regime_name || "").toLowerCase();
-    
     const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
+    
     if (detectedVertical === 'dental') {
         const isSocietario = regimeLower.includes("s.r.l.") || regimeLower.includes("srl") || regimeLower.includes("stp");
         if (isSocietario) {
-            // S.r.l. STP (Analitico): Tasse (IRES) su Reddito Operativo + ENPAM su Fatturato Lordo
             const tasseVal = reddito > 0 ? (reddito * (tasseP / 100)) : 0;
             const enpamVal = unit_tariffa * (enpamRate / 100);
             prelievoTotale = tasseVal + enpamVal;
         } else {
-            // Forfettario (Imponibile fittizio): Aliquota applicata sul 78% del fatturato
             prelievoTotale = (unit_tariffa * 0.78) * (aliquotaTotale / 100);
         }
     } else {
-        // Regime Ordinario Generico
         prelievoTotale = reddito > 0 ? (reddito * (tasseP / 100)) : 0;
     }
     
     unit_utile = reddito - prelievoTotale;
 
-    // Aggiorna DOM Sidebar
+    // Aggiornamento DOM elementi Sidebar
     document.getElementById('out-ricavi').innerText = currFmt.format(unit_tariffa);
     document.getElementById('out-costi-var').innerText = currFmt.format(varCosts);
     document.getElementById('out-mdc').innerText = currFmt.format(unit_mdc);
@@ -139,11 +154,25 @@ function recalculateAll(drivenByEuro = false) {
     document.getElementById('out-tasse').innerText = currFmt.format(prelievoTotale);
     document.getElementById('out-utile').innerText = currFmt.format(unit_utile);
     
-    // Aggiorna Header
-    document.getElementById('header-mdc').innerText = currFmt.format(unit_mdc);
-    document.getElementById('header-time').innerText = tempoVal + ' min';
+    // Mostra il dettaglio del costo opportunità orario effettivo ricalcolato
+    const localBurdenRateEl = document.getElementById('local-burden-rate');
+    if (localBurdenRateEl) {
+        if (detectedVertical === 'dental') {
+            localBurdenRateEl.innerText = `+ ${currFmt.format(localBurdenHourly)} / h sedia (Saturata: ${currFmt.format(costoSediaTotaleOrario)}/h)`;
+        } else {
+            localBurdenRateEl.innerText = `+ ${currFmt.format(localBurdenHourly)} / ora postazione`;
+        }
+    }
 
-    // Styling Sidebar Utile/Barra
+    // Aggiornamento Header
+    document.getElementById('header-mdc').innerText = currFmt.format(unit_mdc);
+    if (detectedVertical === 'dental') {
+        document.getElementById('header-time').innerText = tempoSediaLordo + ' min (lordi)';
+    } else {
+        document.getElementById('header-time').innerText = tempoClinico + ' min';
+    }
+
+    // Aggiornamento Barra Margine e Indicatori visivi
     const utileEl = document.getElementById('out-utile');
     if (unit_utile < 0) {
         utileEl.className = 'text-xl font-black text-red-500';
@@ -155,12 +184,11 @@ function recalculateAll(drivenByEuro = false) {
     const mdcPct = unit_tariffa > 0 ? (unit_mdc / unit_tariffa) * 100 : 0;
     document.getElementById('margin-bar').style.width = Math.max(0, Math.min(100, mdcPct)) + '%';
 
-    // Costi Fissi Dinamici letti dall'input della Tab Fiscale con attenuazione BEP
+    // Break-Even Point Dinamico
     const fixedCostsInput = parseFloat(document.getElementById('in-fissi-annui').value) || 50000;
     const bepAllocation = parseFloat(document.getElementById('select-bep-allocation').value) || 0.60;
     const allocatedFixedCosts = fixedCostsInput * bepAllocation;
 
-    // Break-Even Point Dinamico
     const bepUnitsEl = document.getElementById('bep-units');
     const bepRationaleEl = document.getElementById('bep-rationale');
     if (unit_mdc > 0) {
@@ -180,130 +208,40 @@ function recalculateAll(drivenByEuro = false) {
         }
     }
 
-    // CFO Advisory Card
+    // Aggiornamento Health Badge
     const healthBadge = document.getElementById('label-health');
     const healthDesc = document.getElementById('label-health-desc');
     const healthCard = document.getElementById('cfo-health-card');
     if (unit_utile > 20) {
         healthBadge.className = 'px-4 py-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
         healthBadge.innerText = 'PROFITTEVOLE';
-        healthDesc.innerText = "Ottimo. La prestazione copre i costi strutturali e garantisce utile.";
+        if (detectedVertical === 'dental') {
+            healthDesc.innerText = "La prestazione copre i costi strutturali sbilanciati sulla reale saturazione d'agenda.";
+        } else {
+            healthDesc.innerText = "Ottimo. La prestazione copre i costi strutturali e garantisce utile.";
+        }
         healthCard.style.borderColor = '#22c55e';
     } else if (unit_utile >= 0) {
         healthBadge.className = 'px-4 py-2 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
         healthBadge.innerText = 'MARGINI BASSI';
-        healthDesc.innerText = "Utile netto risicato. Utilizzare prevalentemente come servizio gancio.";
+        if (detectedVertical === 'dental') {
+            healthDesc.innerText = "Utile netto risicato. Monitorare l'indice di saturazione per non andare in perdita.";
+        } else {
+            healthDesc.innerText = "Utile netto risicato. Utilizzare prevalentemente come servizio gancio.";
+        }
         healthCard.style.borderColor = '#f59e0b';
     } else {
         healthBadge.className = 'px-4 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
         healthBadge.innerText = 'IN PERDITA';
         if (detectedVertical === 'dental') {
-            healthDesc.innerText = "Critico. La tariffa NON sostiene il costo di struttura e il prelievo fiscale/previdenziale.";
+            healthDesc.innerText = "Critico. La tariffa non sostiene il tempo poltrona lordo o risente della scarsa saturazione.";
         } else {
             healthDesc.innerText = "Critico. La tariffa NON sostiene il costo di struttura e il prelievo fiscale.";
         }
         healthCard.style.borderColor = '#ef4444';
     }
 
-    // --- CALCOLO COEFFICIENTE DI REDDITIVITÀ REALE (EBIT Margin / ROS) ---
-    const coeffReale = unit_tariffa > 0 ? ((reddito / unit_tariffa) * 100) : 0;
-    const coeffEl = document.getElementById('fiscal-coeff');
-    
-    const enpamLabelEl = document.getElementById('fiscal-enpam-label');
-    if (enpamLabelEl) {
-        enpamLabelEl.innerText = enpamRate.toFixed(2) + "%";
-    }
-    document.getElementById('fiscal-tax-rate').innerText = tasseP.toFixed(1) + "%";
-    
-    if (detectedVertical === 'dental') {
-        const regimeName = enpamRate === 2.0 ? "S.r.l. Ordinaria Commerciale" : (enpamRate === 0.5 ? "S.r.l. STP" : "Regime Esente");
-        document.getElementById('fiscal-regime-name').innerText = regimeName + " (con quota ENPAM " + enpamRate.toFixed(1) + "%)";
-
-        // --- CALCOLO AFFIDABILITÀ FISCALE (ISA MODELLO DK21U) ---
-        const isaBadge = document.getElementById('isa-badge');
-        if (unit_tariffa > 0) {
-            const ros = reddito / unit_tariffa;
-            if (ros >= 0.40) {
-                if (isaBadge) {
-                    isaBadge.innerText = "CONGRUO (PREMIALE)";
-                    isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-green-100 text-green-700";
-                }
-            } else if (ros >= 0.25) {
-                if (isaBadge) {
-                    isaBadge.innerText = "CONGRUO (COERENTE)";
-                    isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-amber-100 text-amber-700";
-                }
-            } else {
-                if (isaBadge) {
-                    isaBadge.innerText = "RISCHIO ACCERTAMENTO";
-                    isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-red-100 text-red-700";
-                }
-            }
-        }
-
-        let explanationText = "";
-        if (isSocietario) {
-            if (coeffEl) {
-                coeffEl.innerHTML = `<span class="text-green-600 font-bold">${coeffReale.toFixed(1)}%</span><span class="text-[7px] text-gray-400 block font-bold uppercase tracking-wider mt-0.5">Margine Reale (ROS)</span>`;
-            }
-
-            let deltaSpreco = 78.0 - coeffReale;
-            let utileFittizioImposto = unit_tariffa * 0.78;
-            let differenzaImponibileTassabile = utileFittizioImposto - reddito;
-
-            explanationText = `
-                L'inquadramento come <strong>${regimeName}</strong> ti consente di pagare le imposte societarie sull'utile reale del <strong>${coeffReale.toFixed(1)}%</strong>, deducendo analiticamente tutti i costi di sedia, staff e materiali chirurgici.<br><br>
-                ⚠️ <strong>Confronto con il Forfettario:</strong> Se utilizzassi il Regime Forfettario ordinario (ATECO 86.23.00), il Fisco applicherebbe un coefficiente legale fisso del <strong>78%</strong>, imponendoti di dichiarare un utile forzato di <strong>${currFmt.format(utileFittizioImposto)}</strong> su questa prestazione clinica.<br>
-                Così facendo, <strong>pagheresti le tasse su un ${deltaSpreco.toFixed(1)}% di utile fittizio</strong> (pari a <strong>${currFmt.format(differenzaImponibileTassabile)}</strong> di costi effettivi che per il fisco non esistono). La struttura societaria elimina questa inefficienza.
-            `;
-        } else {
-            if (coeffEl) {
-                coeffEl.innerHTML = `<span>78.0%</span><span class="text-[7px] text-gray-400 block font-bold uppercase tracking-wider mt-0.5">Forfettario Legale</span>`;
-            }
-            explanationText = `
-                Il regime configurato simula l'applicazione del <strong>Regime Forfettario</strong> con coefficiente legale al <strong>78,0%</strong>. Le imposte e l'ENPAM vengono calcolati su questa base imponibile presunta, ignorando l'incidenza reale dei tuoi costi clinici di sedia o dei consumabili chirurgici.
-            `;
-        }
-        document.getElementById('fiscal-explanation').innerHTML = explanationText;
-    } else {
-        const regimeName = "Ordinario Societario";
-        document.getElementById('fiscal-regime-name').innerText = regimeName;
-
-        // --- INDICATORE DI SALUTE AZIENDALE (EBITDA / ROS) ---
-        const genericHealthBadge = document.getElementById('isa-badge');
-        if (unit_tariffa > 0) {
-            const ros = reddito / unit_tariffa;
-            if (ros >= 0.30) {
-                if (genericHealthBadge) {
-                    genericHealthBadge.innerText = "ROS ECCELLENTE";
-                    genericHealthBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-green-100 text-green-700";
-                }
-            } else if (ros >= 0.15) {
-                if (genericHealthBadge) {
-                    genericHealthBadge.innerText = "ROS SODDISFACENTE";
-                    genericHealthBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-amber-100 text-amber-700";
-                }
-            } else {
-                if (genericHealthBadge) {
-                    genericHealthBadge.innerText = "ROS DEBOLE";
-                    genericHealthBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-red-100 text-red-700";
-                }
-            }
-        }
-
-        let explanationText = `
-            L'inquadramento ordinario societario consente di pagare le imposte sull'utile reale del <strong>${coeffReale.toFixed(1)}%</strong>, deducendo analiticamente tutti i costi di postazione, staff di supporto e lavorazioni esterne.
-        `;
-        document.getElementById('fiscal-explanation').innerHTML = explanationText;
-    }
-
-    // Aggiorna l'indicazione dei balzelli territoriali orari
-    const localBurdenRateEl = document.getElementById('local-burden-rate');
-    if (localBurdenRateEl) {
-        localBurdenRateEl.innerText = `+ ${currFmt.format(localBurdenHourly)} / ora ${detectedVertical === 'dental' ? 'sedia' : 'postazione'}`;
-    }
-
-    updateSimulation();
+    updateSimulation(costoSediaTotaleOrario, tempoSediaLordo, varCosts);
 }
 
 function recalculateConsolidatedChairRate() {
@@ -519,8 +457,24 @@ function updateLocationsFromInputs() {
         document.getElementById(`label-loc-cost-${idx}`).innerText = `€ ${loc.estimated_internal_cost.toFixed(2)}`;
     });
 
-    // Ricalcola dinamicamente la tariffa oraria consolidata sedia
-    recalculateConsolidatedChairRate();
+    const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
+    if (detectedVertical === 'dental') {
+        // Ricalcola dinamicamente la tariffa oraria consolidata sedia
+        recalculateConsolidatedChairRate();
+    } else {
+        // Average the rates for generic
+        let totalLocRateSum = 0;
+        let count = 0;
+        locations.forEach((loc, idx) => {
+            const inputEl = document.getElementById(`input-loc-rate-${idx}`);
+            const rate = inputEl ? parseFloat(inputEl.value) : (loc.estimated_internal_cost_rate || 0);
+            totalLocRateSum += rate;
+            count++;
+        });
+        if (count > 0) {
+            document.getElementById('in-poltrona').value = (totalLocRateSum / count).toFixed(2);
+        }
+    }
 
     recalculateAll();
     checkDirty();
@@ -536,8 +490,11 @@ function updateAssetsFromInputs() {
         document.getElementById(`label-ast-cost-${idx}`).innerText = `€ ${ast.estimated_internal_cost.toFixed(2)} /h`;
     });
 
-    // Ricalcola dinamicamente la tariffa oraria consolidata sedia
-    recalculateConsolidatedChairRate();
+    const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
+    if (detectedVertical === 'dental') {
+        // Ricalcola dinamicamente la tariffa oraria consolidata sedia
+        recalculateConsolidatedChairRate();
+    }
 
     recalculateAll();
     checkDirty();
@@ -570,7 +527,7 @@ function updateMetaFromInputs() {
     checkDirty();
 }
 
-function updateSimulation() {
+function updateSimulation(costoSediaTotaleOrario, tempoSediaLordo, varCosts) {
     const volume = parseInt(document.getElementById('volume-slider').value);
     document.getElementById('slider-val').innerText = volume;
 
@@ -592,6 +549,18 @@ function updateSimulation() {
         cardUtile.className = 'bg-green-50 border border-green-200 p-3 rounded-2xl';
         labelUtile.className = 'block text-[8px] font-black text-green-600 uppercase tracking-widest mb-1';
         valUtile.className = 'text-base font-black text-green-700';
+    }
+
+    // Ricalcolo dinamico della sensibilità No-Show con Costo Opportunità
+    const loss5El = document.getElementById('no-show-5-loss');
+    const loss10El = document.getElementById('no-show-10-loss');
+    if (loss5El || loss10El) {
+        const baseCost = costoSediaTotaleOrario !== undefined ? costoSediaTotaleOrario : 0;
+        const totalTime = tempoSediaLordo !== undefined ? tempoSediaLordo : 0;
+        const noShowRate5Loss = volume * 0.05 * (unit_mdc + ((baseCost / 60) * totalTime));
+        const noShowRate10Loss = volume * 0.10 * (unit_mdc + ((baseCost / 60) * totalTime));
+        if (loss5El) loss5El.innerText = currFmt.format(noShowRate5Loss);
+        if (loss10El) loss10El.innerText = currFmt.format(noShowRate10Loss);
     }
 }
 
@@ -627,14 +596,15 @@ function updateBalanceSheetFromInputs() {
                 inputEl.value = newRate.toFixed(2);
                 
                 loc.estimated_internal_cost_rate = newRate;
-                const time = parseFloat(document.getElementById(`input-loc-time-${idx}`).value) || 0;
+                const timeEl = document.getElementById(`input-loc-time-${idx}`);
+                const time = timeEl ? parseFloat(timeEl.value) : 0;
                 loc.estimated_internal_cost = (newRate / 60) * time;
                 document.getElementById(`label-loc-cost-${idx}`).innerText = `€ ${loc.estimated_internal_cost.toFixed(2)}`;
             }
         });
     }
 
-    // 5. Ricalibra proporzionalmente gli ammortamenti orari degli asset in base ai nuovi leasing/ammortamenti
+    // 5. Ricalbra proporzionalmente gli ammortamenti orari degli asset in base ai nuovi leasing/ammortamenti
     if (originalEquipmentTot > 0) {
         const equipmentRatio = newEquipmentTot / originalEquipmentTot;
         const assets = currentData.assets || [];
@@ -651,8 +621,11 @@ function updateBalanceSheetFromInputs() {
         });
     }
 
-    // 6. Ricalcola la tariffa oraria consolidata sedia risultante
-    recalculateConsolidatedChairRate();
+    // 6. Ricalcola la tariffa oraria consolidata sedia risultante se verticale dental
+    const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
+    if (detectedVertical === 'dental') {
+        recalculateConsolidatedChairRate();
+    }
 
     // 7. Aggiorna l'input dei Costi Fissi Strutturali Annui nella barra laterale
     const newTotalOverhead = (raccordo.canoni_leasing_annui_IIC133 || 0) + 
@@ -669,6 +642,20 @@ function updateBalanceSheetFromInputs() {
 
 function getPayloadToSave() {
     if (!currentData) return null;
+
+    // Cattura dei nuovi parametri di efficienza dall'interfaccia
+    const setupEl = document.getElementById('in-setup-tempo');
+    const tempoSetup = setupEl ? parseFloat(setupEl.value) : 0;
+    const saturazioneEl = document.getElementById('in-saturazione-pct');
+    const saturazionePct = saturazioneEl ? parseFloat(saturazioneEl.value) : 100;
+    const garanziaEl = document.getElementById('in-garanzia-pct');
+    const garanziaPct = garanziaEl ? parseFloat(garanziaEl.value) : 0;
+
+    // Aggiornamento della struttura dati per l'inoltro a MongoDB
+    if (!currentData.operating_benchmarks) currentData.operating_benchmarks = {};
+    currentData.operating_benchmarks.agenda_saturation_target = saturazionePct / 100;
+    currentData.operating_benchmarks.chair_setup_turnover_minutes = tempoSetup;
+    currentData.operating_benchmarks.clinical_failure_provision_rate = garanziaPct / 100;
 
     // 1. Sidebar values
     const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
@@ -703,14 +690,22 @@ function getPayloadToSave() {
     
     const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
     const localBurdenHourly = parseFloat(currentData.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
-    const costOfPostazioneFixed = ((poltrona + localBurdenHourly) / 60) * tempo;
+    
+    const costoOraSaturata = saturazionePct > 0 ? (poltrona / (saturazionePct / 100)) : poltrona;
+    const tempoSediaLordo = tempo + tempoSetup;
+    const costoSediaTotaleOrario = costoOraSaturata + localBurdenHourly;
+    const costOfPostazioneFixed = (costoSediaTotaleOrario / 60) * tempoSediaLordo;
     
     currentData.financial_simulations.cost_breakdown_unit.chair_time_cost_fixed = costOfPostazioneFixed;
-    currentData.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + costoAso + materiali + lab;
-    currentData.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + costoAso + materiali + lab);
-    currentData.financial_simulations.cost_breakdown_unit.total_operating_clinical_cost_unit = (compenso + costoAso + materiali + lab) + costOfPostazioneFixed;
     
-    const operatingIncome = tariffa - ((compenso + costoAso + materiali + lab) + costOfPostazioneFixed);
+    const costoAccantonamentoGaranzia = (tariffa * garanziaPct) / 100;
+    currentData.financial_simulations.cost_breakdown_unit.clinical_failure_provision_value = costoAccantonamentoGaranzia;
+    
+    currentData.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
+    currentData.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia);
+    currentData.financial_simulations.cost_breakdown_unit.total_operating_clinical_cost_unit = (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed;
+    
+    const operatingIncome = tariffa - ((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed);
     currentData.financial_simulations.cost_breakdown_unit.operating_income_unit = operatingIncome;
 
     if (!currentData.financial_simulations.fiscal_and_previdential_impact) {
