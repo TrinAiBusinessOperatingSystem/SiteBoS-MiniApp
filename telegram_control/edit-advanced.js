@@ -58,6 +58,17 @@ function calculateSubprocessStaffCosts(sub) {
     }
 }
 
+function getAnalyticalMedicoFee() {
+    if (!currentData) return 0;
+    const steps = currentData.bill_of_materials?.bom_steps || [];
+    let totalMedico = 0;
+    steps.forEach(sub => {
+        const split = calculateSubprocessStaffCosts(sub);
+        totalMedico += split.medico;
+    });
+    return totalMedico;
+}
+
 function updateCompensoFromPct() {
     unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
     const pct = parseFloat(document.getElementById('in-compenso-pct').value) || 0;
@@ -86,11 +97,26 @@ function recalculateAll(drivenByEuro = false) {
         let ricalibrazionePct = parseFloat(ricalibrazioneEl.value);
         if (isNaN(ricalibrazionePct)) {
             ricalibrazionePct = 20.0;
+        } else {
+            ricalibrazionePct = Math.round(ricalibrazionePct);
         }
         compenso = (unit_tariffa * ricalibrazionePct) / 100;
         const labelCompensoVal = document.getElementById('label-compenso-val');
         if (labelCompensoVal) {
-            labelCompensoVal.innerText = `${currFmt.format(compenso)} (${ricalibrazionePct.toFixed(1)}%)`;
+            labelCompensoVal.value = currFmt.format(compenso);
+        }
+        
+        // Aggiorna il compenso clinico analitico calcolato dal backend/BOM
+        const clinicoValEl = document.getElementById('label-compenso-clinico-val');
+        const clinicoPctEl = document.getElementById('label-compenso-clinico-pct');
+        if (clinicoValEl || clinicoPctEl) {
+            const analyticalMedico = getAnalyticalMedicoFee();
+            if (clinicoValEl) {
+                clinicoValEl.value = currFmt.format(analyticalMedico);
+            }
+            if (clinicoPctEl) {
+                clinicoPctEl.value = unit_tariffa > 0 ? ((analyticalMedico / unit_tariffa) * 100).toFixed(1) + '%' : '0.0%';
+            }
         }
     } else {
         compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
@@ -689,8 +715,14 @@ function getPayloadToSave() {
         if (!currentData.operating_benchmarks) {
             currentData.operating_benchmarks = {};
         }
-        currentData.operating_benchmarks.recalibration_percentage = parseFloat(ricalibrazioneEl.value) || 20.0;
-        compenso = (tariffa * currentData.operating_benchmarks.recalibration_percentage) / 100;
+        let recalibrationVal = parseFloat(ricalibrazioneEl.value);
+        if (isNaN(recalibrationVal)) {
+            recalibrationVal = 20;
+        } else {
+            recalibrationVal = Math.round(recalibrationVal);
+        }
+        currentData.operating_benchmarks.recalibration_percentage = recalibrationVal;
+        compenso = (tariffa * recalibrationVal) / 100;
     } else {
         const compensoEl = document.getElementById('in-compenso');
         compenso = compensoEl ? parseFloat(compensoEl.value) : 0;
