@@ -257,37 +257,7 @@ function recalculateAll(drivenByEuro = false) {
         }
     }
 
-    // --- BOX SPIEGATIVO DI BILANCIO/FISCO ---
-    const explanationEl = document.getElementById('fiscal-explanation');
-    if (explanationEl) {
-        let explanationText = "";
-        if (detectedVertical === 'dental') {
-            const isSocietario = regimeLower.includes("s.r.l.") || regimeLower.includes("srl") || regimeLower.includes("stp");
-            const dbRegimeName = currentData.market_and_fiscal_intelligence?.fiscal_analysis?.regime_name || "Società STP";
-            if (isSocietario) {
-                let deltaSpreco = 78.0 - coeffReale;
-                let utileFittizioImposto = unit_tariffa * 0.78;
-                let differenzaImponibileTassabile = utileFittizioImposto - reddito;
 
-                explanationText = `
-                    L'inquadramento come <strong>${dbRegimeName}</strong> ti consente di pagare le imposte societarie sull'utile reale del <strong>${coeffReale.toFixed(1)}%</strong>, deducendo analiticamente tutti i costi di sedia, staff e materiali chirurgici.<br><br>
-                    ⚠️ <strong>Confronto con il Forfettario:</strong> Se utilizzassi il Regime Forfettario ordinario (ATECO 86.23.00), il Fisco applicherebbe un coefficiente legale fisso del <strong>78%</strong>, imponendoti di dichiarare un utile forzato di <strong>${formatter.format(utileFittizioImposto)}</strong> su questa prestazione clinica.<br>
-                    Così facendo, <strong>pagheresti le tasse su un ${deltaSpreco.toFixed(1)}% di utile fittizio</strong> (pari a <strong>${formatter.format(differenzaImponibileTassabile)}</strong> di costi effettivi che per il fisco non esistono). La struttura societaria elimina questa inefficienza.
-                `;
-            } else {
-                explanationText = `
-                    Il regime configurato simula l'applicazione del <strong>Regime Forfettario</strong> con coefficiente legale al <strong>78,0%</strong>. Le imposte e l'ENPAM vengono calcolati su questa base imponibile presunta, ignorando l'incidenza reale dei tuoi costi clinici di sedia o dei consumabili chirurgici.
-                `;
-            }
-        } else {
-            explanationText = `
-                In base all'analisi dei margini e dei flussi di cassa operativi, la redditività netta stimata della prestazione è pari al <strong>${coeffReale.toFixed(1)}% (ROS)</strong>. 
-                I costi fissi strutturali allocati e gli ammortamenti associati determinano l'incidenza fiscale effettiva. 
-                Utilizza gli strumenti di bilancio per verificare l'impatto fiscale stimato del regime in uso.
-            `;
-        }
-        explanationEl.innerHTML = explanationText;
-    }
 
     // Aggiornamento DOM elementi Sidebar
     document.getElementById('out-ricavi').innerText = currFmt.format(unit_tariffa);

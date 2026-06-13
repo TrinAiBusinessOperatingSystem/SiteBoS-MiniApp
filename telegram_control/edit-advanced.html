@@ -152,7 +152,10 @@
         <div class="lg:col-span-4 space-y-6">
             <div class="card rounded-3xl p-6 space-y-5 shadow-sm border-gray-200 bg-white sticky top-28">
                 <div class="flex items-center justify-between">
-                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block">📊 Controllo di Gestione</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 block">📊 Controllo di Gestione</span>
+                        <button id="btn-rationale-simulazione" class="w-3.5 h-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[9px] font-black border border-amber-200 hidden">?</button>
+                    </div>
                     <span class="px-2 py-0.5 bg-gray-100 text-gray-600 text-[8px] font-black uppercase rounded">EDITABILI</span>
                 </div>
                 
@@ -164,13 +167,24 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
+                        <!-- Ricalibrazione Ingaggio -->
                         <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Costo Professionista (%)</label>
-                            <input type="number" id="in-compenso-pct" oninput="updateCompensoFromPct(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                            <label class="text-[9px] font-black text-amber-700 uppercase tracking-wider">Ricalibrazione (%)</label>
+                            <input type="number" id="in-ricalibrazione-pct" step="1" min="0" max="100" oninput="this.value=this.value.replace(/[^0-9]/g,''); recalculateAll(); checkDirty();" class="hide-arrows w-full bg-amber-50 border border-amber-200 rounded-xl p-2 text-xs font-black text-amber-800 focus:outline-none focus:border-amber-500">
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Costo Professionista (€)</label>
-                            <input type="number" id="in-compenso" oninput="updateCompensoFromEuro(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                            <label class="text-[9px] font-black text-amber-700 uppercase tracking-wider">Compenso Ricalcolato (€)</label>
+                            <input type="text" id="label-compenso-val" readonly disabled class="w-full bg-amber-50/30 border border-amber-100 rounded-xl p-2 text-xs font-black text-amber-900/70 select-none cursor-not-allowed">
+                        </div>
+
+                        <!-- Compenso Analitico Professionista (BOM / AI) - Read-only -->
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Compenso Professionista (%)</label>
+                            <input type="text" id="label-compenso-clinico-pct" readonly disabled class="w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-gray-400 select-none cursor-not-allowed">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Compenso Professionista (€)</label>
+                            <input type="text" id="label-compenso-clinico-val" readonly disabled class="w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-gray-400 select-none cursor-not-allowed">
                         </div>
                         <div class="space-y-1">
                             <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Staff di Supporto (€)</label>
@@ -526,9 +540,7 @@
                             <!-- Popolato da JS -->
                         </div>
                     </div>
-                    
-                    <!-- BOX GIALLO RISOLTO E DINAMICO PER L'ARBITRAGGIO COEFF. REALE VS FORFETTARIO -->
-                    <div class="bg-amber-50/50 p-4 rounded-2xl border border-amber-200/60 text-xs text-amber-800 font-medium leading-relaxed" id="fiscal-explanation"></div>
+
                 </div>
             </div>
 
@@ -723,14 +735,20 @@
                 });
             }
 
-            const dbCompenso = costBreakdown?.medical_collaborator_fee;
-            const initialCompenso = (dbCompenso !== undefined && dbCompenso > 0) ? dbCompenso : (totalMedico > 0 ? totalMedico : 0);
+            // Recupero percentuale dal DB con fallback obbligatorio al 20%
+            let savedRecalibration = currentData.operating_benchmarks?.recalibration_percentage;
+            if (savedRecalibration === undefined || savedRecalibration === null) {
+                savedRecalibration = 20;
+            } else {
+                savedRecalibration = Math.round(savedRecalibration);
+            }
+            const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
+            if (ricalibrazioneEl) {
+                ricalibrazioneEl.value = savedRecalibration;
+            }
+
             const dbAso = costBreakdown?.aso_fee;
             const initialAso = (dbAso !== undefined && dbAso > 0) ? dbAso : (totalASO > 0 ? totalASO : 0);
-
-            document.getElementById('in-compenso').value = initialCompenso.toFixed(2);
-            const initialTariffa = pricingSummary?.catalog_price || 250;
-            document.getElementById('in-compenso-pct').value = initialTariffa > 0 ? ((initialCompenso / initialTariffa) * 100).toFixed(2) : 0;
             document.getElementById('in-costo-aso').value = initialAso.toFixed(2);
             
             document.getElementById('in-materiali').value = (costBreakdown?.direct_materials_cost || 0).toFixed(2);
@@ -773,6 +791,21 @@
                     opt.innerText = `Allocazione Custom (${(bepAllocPct * 100).toFixed(0)}%)`;
                     opt.selected = true;
                     selectBepAllocEl.appendChild(opt);
+                }
+            }
+
+            // Rationale della Simulazione Finanziaria
+            const simulationRationale = currentData.financial_simulations?.clinical_cost_calculation_rationale;
+            const simBtn = document.getElementById('btn-rationale-simulazione');
+            if (simBtn) {
+                if (simulationRationale && simulationRationale.trim() !== "") {
+                    simBtn.classList.remove('hidden');
+                    simBtn.onclick = (e) => {
+                        e.preventDefault();
+                        showRationale('Simulazione Finanziaria', simulationRationale);
+                    };
+                } else {
+                    simBtn.classList.add('hidden');
                 }
             }
 
@@ -842,8 +875,12 @@
                     <div class="card rounded-3xl p-5 space-y-4 bg-white">
                         <div class="flex justify-between border-b border-border pb-3">
                             <div>
-                                <span class="text-[8px] font-black text-gray-400 uppercase">${sub.subprocess_sku || ''}</span>
-                                <h3 class="text-xs font-black uppercase tracking-tight text-black">${sub.subprocess_name}</h3>
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="text-[8px] font-black text-gray-400 uppercase">${sub.subprocess_sku || ''}</span>
+                                    <!-- Bottone "?" per il rationale del sottoprocesso -->
+                                    ${sub.cost_scaling_rationale ? `<button onclick="showRationale('${sub.subprocess_name.replace(/'/g, "\\'")}', '${sub.cost_scaling_rationale.replace(/'/g, "\\'")}')" class="w-3.5 h-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[9px] font-black border border-amber-200">?</button>` : ''}
+                                </div>
+                                <h3 class="text-xs font-black uppercase tracking-tight text-black mt-0.5">${sub.subprocess_name}</h3>
                             </div>
                             <div class="text-right">
                                 <span class="text-xs font-black text-black" id="label-bom-cost-${idx}">€ ${(sub.estimated_internal_cost || 0).toFixed(2)}</span>
@@ -876,12 +913,6 @@
                                 </div>
                             </div>
                         </div>
-
-                        ${sub.cost_scaling_rationale ? `
-                        <div class="bg-gray-50 p-3.5 rounded-2xl border border-gray-100 mt-2">
-                            <span class="text-[9px] font-black uppercase text-amber-500"><i class="fas fa-coins"></i> Analisi di Costo</span>
-                            <p class="text-[10px] text-gray-600 mt-1">"${sub.cost_scaling_rationale}"</p>
-                        </div>` : ''}
                     </div>`;
             });
         }
@@ -986,7 +1017,11 @@
                     <div class="card rounded-3xl p-5 space-y-3 bg-white">
                         <div class="flex justify-between border-b border-border pb-3">
                             <div>
-                                <h3 class="text-xs font-black uppercase">${loc.loc_name}</h3>
+                                <div class="flex items-center gap-1.5">
+                                    <h3 class="text-xs font-black uppercase text-black">${loc.loc_name}</h3>
+                                    <!-- Bottone "?" per il rationale della location -->
+                                    ${loc.cost_scaling_rationale ? `<button onclick="showRationale('${loc.loc_name.replace(/'/g, "\\'")}', '${loc.cost_scaling_rationale.replace(/'/g, "\\'")}')" class="w-3.5 h-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[9px] font-black border border-amber-200">?</button>` : ''}
+                                </div>
                                 <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">${loc.temperature || ''}</p>
                             </div>
                             <span class="text-xs font-black" id="label-loc-cost-${idx}">€ ${(loc.estimated_internal_cost || 0).toFixed(2)}</span>
@@ -1001,7 +1036,6 @@
                                 <input type="number" id="input-loc-time-${idx}" value="${totalTime}" oninput="updateLocationsFromInputs()" class="w-full bg-white border border-border rounded-lg p-1 text-xs font-black text-center focus:outline-none">
                             </div>
                         </div>
-                        ${loc.cost_scaling_rationale ? `<p class="text-[10px] text-gray-600 italic">"${loc.cost_scaling_rationale}"</p>` : ''}
                         ${checks ? `<div class="bg-gray-50 p-3 rounded-xl border border-gray-100"><h4 class="text-[9px] font-black uppercase text-gray-800 mb-2">Checklist Manutenzione:</h4><ul class="list-disc pl-4 space-y-1">${checks}</ul></div>` : ''}
                     </div>`;
             });
@@ -1022,10 +1056,14 @@
                     <div class="card rounded-3xl p-5 space-y-3 bg-white">
                         <div class="flex justify-between border-b border-border pb-3">
                             <div>
-                                <span class="text-[8px] font-black text-gray-400 uppercase">${ast.asset_sku || ''}</span>
-                                <h3 class="text-xs font-black uppercase">${ast.asset_name}</h3>
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="text-[8px] font-black text-gray-400 uppercase">${ast.asset_sku || ''}</span>
+                                    <!-- Bottone "?" per il rationale dell'asset -->
+                                    ${ast.cost_scaling_rationale ? `<button onclick="showRationale('${ast.asset_name.replace(/'/g, "\\'")}', '${ast.cost_scaling_rationale.replace(/'/g, "\\'")}')" class="w-3.5 h-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[9px] font-black border border-amber-200">?</button>` : ''}
+                                </div>
+                                <h3 class="text-xs font-black uppercase text-black">${ast.asset_name}</h3>
                             </div>
-                            <span class="text-xs font-black" id="label-ast-cost-${idx}">€ ${(ast.estimated_internal_cost || 0).toFixed(2)} /h</span>
+                            <span class="text-xs font-black text-black" id="label-ast-cost-${idx}">€ ${(ast.estimated_internal_cost || 0).toFixed(2)} /h</span>
                         </div>
                         ${ast.notes ? `<p class="text-[10px] text-gray-600">${ast.notes}</p>` : ''}
                         <div class="flex items-center gap-4 bg-gray-50/50 p-3 rounded-2xl border border-gray-100 justify-end">
@@ -1455,9 +1493,17 @@
 
             try {
                 // Estrazione dei parametri correnti modificati dalla sidebar
-                const payloadFields = {
                     catalog_price: parseFloat(document.getElementById('in-tariffa').value) || 0,
-                    medical_collaborator_fee: parseFloat(document.getElementById('in-compenso').value) || 0,
+                    medical_collaborator_fee: (() => {
+                        const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
+                        if (ricalibrazioneEl) {
+                            const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
+                            const ricalibrazionePct = parseFloat(ricalibrazioneEl.value) || 20.0;
+                            return (tariffa * ricalibrazionePct) / 100;
+                        }
+                        const compensoEl = document.getElementById('in-compenso');
+                        return compensoEl ? parseFloat(compensoEl.value) : 0;
+                    })(),
                     aso_fee: parseFloat(document.getElementById('in-costo-aso').value) || 0,
                     direct_materials_cost: parseFloat(document.getElementById('in-materiali').value) || 0,
                     dental_lab_cost: parseFloat(document.getElementById('in-lab').value) || 0,
@@ -1599,6 +1645,21 @@
                 <span id="ai-loader-title" class="text-[9px] font-black text-black uppercase tracking-[0.2em] block">Generazione IA</span>
                 <p id="ai-loader-desc" class="text-[10px] text-gray-500 font-bold uppercase tracking-wider leading-relaxed">Rielaborazione semantica della strategia di prezzo in corso...</p>
             </div>
+        </div>
+    </div>
+    <!-- OVERLAY DIALOG PER I RATIONALES ECONOMICI -->
+    <div id="rationale-modal" class="fixed inset-0 bg-black/40 z-[9999] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-200" onclick="closeRationaleModal()">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 border border-border shadow-2xl scale-95 transition-transform duration-200" onclick="event.stopPropagation()">
+            <div class="space-y-2">
+                <span class="px-2 py-0.5 bg-amber-50 text-amber-700 text-[8px] font-black uppercase rounded-md tracking-wider inline-flex items-center gap-1">
+                    <i class="fas fa-calculator text-[9px]"></i> Rationale Economico
+                </span>
+                <h3 id="rationale-modal-title" class="text-xs font-black uppercase tracking-tight leading-tight text-black">Titolo</h3>
+                <p id="rationale-modal-text" class="text-[10px] text-gray-600 font-medium leading-relaxed italic">Dettaglio del calcolo...</p>
+            </div>
+            <button onclick="closeRationaleModal()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                Chiudi
+            </button>
         </div>
     </div>
 </body>
