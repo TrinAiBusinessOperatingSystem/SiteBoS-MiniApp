@@ -936,3 +936,31 @@ function checkDirty() {
         }
     }
 }
+
+function showRationale(title, text) {
+    if (!text || text.trim() === "") return;
+    const modal = document.getElementById('rationale-modal');
+    if (!modal) return;
+    const box = modal.querySelector('div');
+    
+    document.getElementById('rationale-modal-title').innerText = title;
+    document.getElementById('rationale-modal-text').innerText = text;
+    
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        if (box) box.classList.remove('scale-95');
+    }, 10);
+}
+
+function closeRationaleModal() {
+    const modal = document.getElementById('rationale-modal');
+    if (!modal) return;
+    const box = modal.querySelector('div');
+    
+    modal.classList.add('opacity-0');
+    if (box) box.classList.add('scale-95');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+    }, 200);
+}
