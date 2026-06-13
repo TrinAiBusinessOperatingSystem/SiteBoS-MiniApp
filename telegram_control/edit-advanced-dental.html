@@ -164,13 +164,18 @@
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Compenso Medico (%)</label>
-                            <input type="number" id="in-compenso-pct" oninput="updateCompensoFromPct(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
-                        </div>
-                        <div class="space-y-1">
-                            <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Compenso Medico (€)</label>
-                            <input type="number" id="in-compenso" oninput="updateCompensoFromEuro(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                        <div class="col-span-2 space-y-2">
+                            <!-- Unico input di controllo attivo -->
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black text-amber-700 uppercase tracking-wider">Ricalibrazione Ingaggio (%)</label>
+                                <input type="number" id="in-ricalibrazione-pct" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-amber-50 border border-amber-200 rounded-xl p-2.5 text-sm font-black text-amber-800 focus:outline-none focus:border-amber-500">
+                            </div>
+                            
+                            <!-- Visualizzazione dei risultati (Plain text leggibile, non editabile) -->
+                            <div class="flex justify-between items-center text-xs pt-1 border-t border-dashed border-gray-100">
+                                <span class="text-gray-400 font-bold uppercase text-[8px]">Compenso Medico Ricalcolato:</span>
+                                <span id="label-compenso-val" class="font-black text-black">€ 0,00</span>
+                            </div>
                         </div>
                         <div class="space-y-1">
                             <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Costo ASO / Staff (€)</label>
@@ -764,14 +769,15 @@
                 });
             }
 
-            const dbCompenso = costBreakdown?.medical_collaborator_fee;
-            const initialCompenso = (dbCompenso !== undefined && dbCompenso > 0) ? dbCompenso : (totalMedico > 0 ? totalMedico : 0);
+            // Recupero percentuale dal DB con fallback obbligatorio al 20%
+            let savedRecalibration = currentData.operating_benchmarks?.recalibration_percentage;
+            if (savedRecalibration === undefined || savedRecalibration === null) {
+                savedRecalibration = 20.0;
+            }
+            document.getElementById('in-ricalibrazione-pct').value = savedRecalibration;
+
             const dbAso = costBreakdown?.aso_fee;
             const initialAso = (dbAso !== undefined && dbAso > 0) ? dbAso : (totalASO > 0 ? totalASO : 0);
-
-            document.getElementById('in-compenso').value = initialCompenso.toFixed(2);
-            const initialTariffa = pricingSummary?.catalog_price || 250;
-            document.getElementById('in-compenso-pct').value = initialTariffa > 0 ? ((initialCompenso / initialTariffa) * 100).toFixed(2) : 0;
             document.getElementById('in-costo-aso').value = initialAso.toFixed(2);
             
             document.getElementById('in-materiali').value = (costBreakdown?.direct_materials_cost || 0).toFixed(2);
@@ -1504,7 +1510,16 @@
                 // Estrazione dei parametri correnti modificati dalla sidebar
                 const payloadFields = {
                     catalog_price: parseFloat(document.getElementById('in-tariffa').value) || 0,
-                    medical_collaborator_fee: parseFloat(document.getElementById('in-compenso').value) || 0,
+                    medical_collaborator_fee: (() => {
+                        const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
+                        if (ricalibrazioneEl) {
+                            const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
+                            const ricalibrazionePct = parseFloat(ricalibrazioneEl.value) || 20.0;
+                            return (tariffa * ricalibrazionePct) / 100;
+                        }
+                        const compensoEl = document.getElementById('in-compenso');
+                        return compensoEl ? parseFloat(compensoEl.value) : 0;
+                    })(),
                     aso_fee: parseFloat(document.getElementById('in-costo-aso').value) || 0,
                     direct_materials_cost: parseFloat(document.getElementById('in-materiali').value) || 0,
                     dental_lab_cost: parseFloat(document.getElementById('in-lab').value) || 0,

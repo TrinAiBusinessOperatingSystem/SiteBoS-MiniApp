@@ -80,11 +80,28 @@ function updateENPAMFromSelect() {
 function recalculateAll(drivenByEuro = false) {
     unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
     
-    let compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
-    if (!drivenByEuro) {
-        const pct = parseFloat(document.getElementById('in-compenso-pct').value) || 0;
-        compenso = (unit_tariffa * pct) / 100;
-        document.getElementById('in-compenso').value = compenso.toFixed(2);
+    let compenso = 0;
+    const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
+    if (ricalibrazioneEl) {
+        let ricalibrazionePct = parseFloat(ricalibrazioneEl.value);
+        if (isNaN(ricalibrazionePct)) {
+            ricalibrazionePct = 20.0;
+        }
+        compenso = (unit_tariffa * ricalibrazionePct) / 100;
+        const labelCompensoVal = document.getElementById('label-compenso-val');
+        if (labelCompensoVal) {
+            labelCompensoVal.innerText = `${currFmt.format(compenso)} (${ricalibrazionePct.toFixed(1)}%)`;
+        }
+    } else {
+        compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
+        if (!drivenByEuro) {
+            const pct = parseFloat(document.getElementById('in-compenso-pct').value) || 0;
+            compenso = (unit_tariffa * pct) / 100;
+            const compensoEl = document.getElementById('in-compenso');
+            if (compensoEl) {
+                compensoEl.value = compenso.toFixed(2);
+            }
+        }
     }
 
     const costoAso = parseFloat(document.getElementById('in-costo-aso').value) || 0;
@@ -378,9 +395,15 @@ function updateBOMFromInputs() {
     }
 
     // 2. Propaga i nuovi valori aggregati agli input della sidebar
-    document.getElementById('in-compenso').value = totalMedico.toFixed(2);
-    const currentTariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-    document.getElementById('in-compenso-pct').value = currentTariffa > 0 ? ((totalMedico / currentTariffa) * 100).toFixed(2) : 0;
+    const compensoEl = document.getElementById('in-compenso');
+    if (compensoEl) {
+        compensoEl.value = totalMedico.toFixed(2);
+    }
+    const compensoPctEl = document.getElementById('in-compenso-pct');
+    if (compensoPctEl) {
+        const currentTariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
+        compensoPctEl.value = currentTariffa > 0 ? ((totalMedico / currentTariffa) * 100).toFixed(2) : 0;
+    }
     document.getElementById('in-costo-aso').value = totalASO.toFixed(2);
     document.getElementById('in-tempo').value = totalChairTime;
 
@@ -659,7 +682,20 @@ function getPayloadToSave() {
 
     // 1. Sidebar values
     const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-    const compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
+    
+    let compenso = 0;
+    const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
+    if (ricalibrazioneEl) {
+        if (!currentData.operating_benchmarks) {
+            currentData.operating_benchmarks = {};
+        }
+        currentData.operating_benchmarks.recalibration_percentage = parseFloat(ricalibrazioneEl.value) || 20.0;
+        compenso = (tariffa * currentData.operating_benchmarks.recalibration_percentage) / 100;
+    } else {
+        const compensoEl = document.getElementById('in-compenso');
+        compenso = compensoEl ? parseFloat(compensoEl.value) : 0;
+    }
+
     const costoAso = parseFloat(document.getElementById('in-costo-aso').value) || 0;
     const materiali = parseFloat(document.getElementById('in-materiali').value) || 0;
     const lab = parseFloat(document.getElementById('in-lab').value) || 0;
