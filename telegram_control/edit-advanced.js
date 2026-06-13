@@ -188,6 +188,107 @@ function recalculateAll(drivenByEuro = false) {
     
     unit_utile = reddito - prelievoTotale;
 
+    // --- COEFFICIENTE DI REDDITIVITÀ REALE & FISCO ---
+    const formatter = typeof currFmt !== 'undefined' ? currFmt : new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+    const coeffReale = unit_tariffa > 0 ? ((reddito / unit_tariffa) * 100) : 0;
+    const coeffEl = document.getElementById('fiscal-coeff');
+    if (coeffEl) {
+        if (detectedVertical === 'dental') {
+            const isSocietario = regimeLower.includes("s.r.l.") || regimeLower.includes("srl") || regimeLower.includes("stp");
+            if (isSocietario) {
+                coeffEl.innerHTML = `<span class="text-green-600 font-bold">${coeffReale.toFixed(1)}%</span><span class="text-[7px] text-gray-400 block font-bold uppercase tracking-wider mt-0.5">Margine Reale (ROS)</span>`;
+            } else {
+                coeffEl.innerHTML = `<span>78.0%</span><span class="text-[7px] text-gray-400 block font-bold uppercase tracking-wider mt-0.5">Forfettario Legale</span>`;
+            }
+        } else {
+            coeffEl.innerHTML = `<span class="text-green-600 font-bold">${coeffReale.toFixed(1)}%</span><span class="text-[7px] text-gray-400 block font-bold uppercase tracking-wider mt-0.5">Margine Reale (ROS)</span>`;
+        }
+    }
+
+    const enpamLabelEl = document.getElementById('fiscal-enpam-label');
+    if (enpamLabelEl) {
+        enpamLabelEl.innerText = enpamRate.toFixed(2) + "%";
+    }
+    const taxRateEl = document.getElementById('fiscal-tax-rate');
+    if (taxRateEl) {
+        taxRateEl.innerText = tasseP.toFixed(1) + "%";
+    }
+
+    const regimeName = enpamRate === 2.0 ? "S.r.l. Ordinaria Commerciale" : (enpamRate === 0.5 ? "S.r.l. STP" : "Regime Esente");
+    const regimeNameEl = document.getElementById('fiscal-regime-name');
+    if (regimeNameEl) {
+        if (detectedVertical === 'dental') {
+            regimeNameEl.innerText = regimeName + " (con quota ENPAM " + enpamRate.toFixed(1) + "%)";
+        } else {
+            regimeNameEl.innerText = currentData.market_and_fiscal_intelligence?.fiscal_analysis?.regime_name || 'Standard';
+        }
+    }
+
+    // --- CALCOLO AFFIDABILITÀ FISCALE (ISA MODELLO DK21U) / SALUTE AZIENDALE ---
+    const isaBadge = document.getElementById('isa-badge');
+    if (isaBadge) {
+        if (unit_tariffa > 0) {
+            const ros = reddito / unit_tariffa;
+            if (ros >= 0.40) {
+                if (detectedVertical === 'dental') {
+                    isaBadge.innerText = "CONGRUO (PREMIALE)";
+                } else {
+                    isaBadge.innerText = "ECCELLENTE";
+                }
+                isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-green-100 text-green-700 transition-colors duration-200";
+            } else if (ros >= 0.25) {
+                if (detectedVertical === 'dental') {
+                    isaBadge.innerText = "CONGRUO (COERENTE)";
+                } else {
+                    isaBadge.innerText = "COERENTE";
+                }
+                isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-amber-100 text-amber-700 transition-colors duration-200";
+            } else {
+                if (detectedVertical === 'dental') {
+                    isaBadge.innerText = "RISCHIO ACCERTAMENTO";
+                } else {
+                    isaBadge.innerText = "RISCHIOSO";
+                }
+                isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-red-100 text-red-700 transition-colors duration-200";
+            }
+        } else {
+            isaBadge.innerText = "VERIFICA...";
+            isaBadge.className = "px-3 py-1.5 text-[9px] font-black uppercase tracking-wider rounded-xl bg-gray-100 text-gray-500 transition-colors duration-200";
+        }
+    }
+
+    // --- BOX SPIEGATIVO DI BILANCIO/FISCO ---
+    const explanationEl = document.getElementById('fiscal-explanation');
+    if (explanationEl) {
+        let explanationText = "";
+        if (detectedVertical === 'dental') {
+            const isSocietario = regimeLower.includes("s.r.l.") || regimeLower.includes("srl") || regimeLower.includes("stp");
+            const dbRegimeName = currentData.market_and_fiscal_intelligence?.fiscal_analysis?.regime_name || "Società STP";
+            if (isSocietario) {
+                let deltaSpreco = 78.0 - coeffReale;
+                let utileFittizioImposto = unit_tariffa * 0.78;
+                let differenzaImponibileTassabile = utileFittizioImposto - reddito;
+
+                explanationText = `
+                    L'inquadramento come <strong>${dbRegimeName}</strong> ti consente di pagare le imposte societarie sull'utile reale del <strong>${coeffReale.toFixed(1)}%</strong>, deducendo analiticamente tutti i costi di sedia, staff e materiali chirurgici.<br><br>
+                    ⚠️ <strong>Confronto con il Forfettario:</strong> Se utilizzassi il Regime Forfettario ordinario (ATECO 86.23.00), il Fisco applicherebbe un coefficiente legale fisso del <strong>78%</strong>, imponendoti di dichiarare un utile forzato di <strong>${formatter.format(utileFittizioImposto)}</strong> su questa prestazione clinica.<br>
+                    Così facendo, <strong>pagheresti le tasse su un ${deltaSpreco.toFixed(1)}% di utile fittizio</strong> (pari a <strong>${formatter.format(differenzaImponibileTassabile)}</strong> di costi effettivi che per il fisco non esistono). La struttura societaria elimina questa inefficienza.
+                `;
+            } else {
+                explanationText = `
+                    Il regime configurato simula l'applicazione del <strong>Regime Forfettario</strong> con coefficiente legale al <strong>78,0%</strong>. Le imposte e l'ENPAM vengono calcolati su questa base imponibile presunta, ignorando l'incidenza reale dei tuoi costi clinici di sedia o dei consumabili chirurgici.
+                `;
+            }
+        } else {
+            explanationText = `
+                In base all'analisi dei margini e dei flussi di cassa operativi, la redditività netta stimata della prestazione è pari al <strong>${coeffReale.toFixed(1)}% (ROS)</strong>. 
+                I costi fissi strutturali allocati e gli ammortamenti associati determinano l'incidenza fiscale effettiva. 
+                Utilizza gli strumenti di bilancio per verificare l'impatto fiscale stimato del regime in uso.
+            `;
+        }
+        explanationEl.innerHTML = explanationText;
+    }
+
     // Aggiornamento DOM elementi Sidebar
     document.getElementById('out-ricavi').innerText = currFmt.format(unit_tariffa);
     document.getElementById('out-costi-var').innerText = currFmt.format(varCosts);
