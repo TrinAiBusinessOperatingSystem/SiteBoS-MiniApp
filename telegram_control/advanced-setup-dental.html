@@ -488,6 +488,54 @@
                         if (op.contract === 'Dipendente') op.contract = 'Dipendente (CCNL)';
                         else if (op.contract === 'P.IVA') op.contract = 'Partita IVA';
                         
+                        if (op.contract === 'Dipendente (CCNL)') {
+                            if (op.hours === undefined) {
+                                op.hours = 40;
+                            }
+                            
+                            const levelNormalizationMap = {
+                                'Quadri': 'Quadri (Q)',
+                                'Q': 'Quadri (Q)',
+                                '1° Livello': '1° Livello',
+                                'L1': '1° Livello',
+                                '2° Livello': '2° Livello',
+                                'L2': '2° Livello',
+                                '3° Livello Super': '3° Livello Super (3°S)',
+                                '3°S': '3° Livello Super (3°S)',
+                                'L3S': '3° Livello Super (3°S)',
+                                '3° Livello': '3° Livello',
+                                'L3': '3° Livello',
+                                '4° Livello Super': '4° Livello Super (4°S)',
+                                '4°S': '4° Livello Super (4°S)',
+                                'L4S': '4° Livello Super (4°S)',
+                                '4° Livello': '4° Livello',
+                                'L4': '4° Livello',
+                                '5° Livello': '5° Livello',
+                                'L5': '5° Livello',
+                                '6° Livello': '5° Livello',
+                                '7° Livello': '5° Livello'
+                            };
+
+                            let normalizedLevel = '4° Livello';
+                            if (op.level) {
+                                const trimmed = op.level.trim();
+                                if (baseSalaries[trimmed] !== undefined) {
+                                    normalizedLevel = trimmed;
+                                } else {
+                                    for (const [key, target] of Object.entries(levelNormalizationMap)) {
+                                        if (trimmed.toLowerCase().includes(key.toLowerCase())) {
+                                            normalizedLevel = target;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            op.level = normalizedLevel;
+                        } else {
+                            op.level = '';
+                            op.hours = 40;
+                        }
+                        
                         return op;
                     });
                     machinery = result.machinery || [];
@@ -575,7 +623,8 @@
 
                 let contractText = '';
                 if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
-                    contractText = `Lorde: €${parseFloat(op.salary || 0).toLocaleString('it-IT')}/mese`;
+                    const hoursVal = op.hours !== undefined ? op.hours : 40;
+                    contractText = `Lorde: €${parseFloat(op.salary || 0).toLocaleString('it-IT')}/mese (${hoursVal}h/sett)`;
                 } else {
                     contractText = op.rate_type === 'hourly' 
                         ? `Tariffa: €${op.rate}/ora` 
@@ -620,7 +669,8 @@
                 role: 'Odontoiatra', 
                 specialization: 'Generico / Generalista',
                 contract: 'Dipendente (CCNL)', 
-                level: '',
+                level: '4° Livello',
+                hours: 40,
                 salary: '', 
                 rate_type: 'hourly', 
                 rate: '' 
@@ -685,36 +735,31 @@
 
                     <!-- DIPENDENTE FIELDS -->
                     <div id="op-dipendente-fields" class="space-y-3 ${data.contract === 'Dipendente (CCNL)' || data.contract === 'Dipendente' ? '' : 'hidden'}">
+                        <div class="space-y-1">
+                            <label class="label-micro">Livello Contratto</label>
+                            <select id="op-level" onchange="calculateSalary()" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="Quadri (Q)" ${data.level === 'Quadri (Q)' ? 'selected' : ''}>Quadri (Q) - Base: € 2.436,76</option>
+                                <option value="1° Livello" ${data.level === '1° Livello' ? 'selected' : ''}>1° Livello - Base: € 2.156,38</option>
+                                <option value="2° Livello" ${data.level === '2° Livello' ? 'selected' : ''}>2° Livello - Base: € 1.878,32</option>
+                                <option value="3° Livello Super (3°S)" ${data.level === '3° Livello Super (3°S)' ? 'selected' : ''}>3° Livello Super (3°S) - Base: € 1.742,30</option>
+                                <option value="3° Livello" ${data.level === '3° Livello' ? 'selected' : ''}>3° Livello - Base: € 1.726,37</option>
+                                <option value="4° Livello Super (4°S)" ${data.level === '4° Livello Super (4°S)' ? 'selected' : ''}>4° Livello Super (4°S) - Base: € 1.674,10</option>
+                                <option value="4° Livello" ${data.level === '4° Livello' || !data.level ? 'selected' : ''}>4° Livello - Base: € 1.614,12</option>
+                                <option value="5° Livello" ${data.level === '5° Livello' ? 'selected' : ''}>5° Livello - Base: € 1.502,19</option>
+                                <option value="Apprendistato finalizzato al 3°S (inquadrato al 4°S)" ${data.level === 'Apprendistato finalizzato al 3°S (inquadrato al 4°S)' ? 'selected' : ''}>Apprendistato finalizzato al 3°S (inquadrato al 4°S) - Base: € 1.674,10</option>
+                                <option value="Apprendistato finalizzato al 3° (inquadrato al 4°)" ${data.level === 'Apprendistato finalizzato al 3° (inquadrato al 4°)' ? 'selected' : ''}>Apprendistato finalizzato al 3° (inquadrato al 4°) - Base: € 1.614,12</option>
+                                <option value="Apprendistato finalizzato al 4°S (inquadrato al 5°)" ${data.level === 'Apprendistato finalizzato al 4°S (inquadrato al 5°)' ? 'selected' : ''}>Apprendistato finalizzato al 4°S (inquadrato al 5°) - Base: € 1.502,19</option>
+                                <option value="Apprendistato finalizzato al 4° (inquadrato al 5°)" ${data.level === 'Apprendistato finalizzato al 4° (inquadrato al 5°)' ? 'selected' : ''}>Apprendistato finalizzato al 4° (inquadrato al 5°) - Base: € 1.502,19</option>
+                            </select>
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="space-y-1">
-                                <label class="label-micro">Livello Contratto</label>
-                                <input type="text" id="op-level" value="${data.level || ''}" placeholder="Es: L4, L5 o Libero" list="ccnl-levels" oninput="handleLevelInput(this)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
-                                <datalist id="ccnl-levels">
-                                    <option value="Altro / Inserimento Libero"></option>
-                                    <!-- 1. Livelli Ordinari -->
-                                    <option value="Quadri (Q) (Clinic Manager / Responsabile di Struttura)"></option>
-                                    <option value="1° Livello (Coordinatore generale / Responsabile amministrativo)"></option>
-                                    <option value="2° Livello (Supervisore di segreteria e accoglienza)"></option>
-                                    <option value="3° Livello Super (3°S) (Segretaria di concetto senior con coordinamento ASO)"></option>
-                                    <option value="3° Livello (ASO Senior con mansioni di concetto / Segretaria esperta)"></option>
-                                    <option value="4° Livello Super (4°S) [ASO qualificata con oltre 24 mesi di esperienza]"></option>
-                                    <option value="4° Livello (ASO qualificata base / Segretaria esecutiva)"></option>
-                                    <option value="5° Livello (Impiegato d'ordine / Personale addetto all'accoglienza generico)"></option>
-                                    <option value="6° Livello (Mansioni d'ordine base / Addetto inserimento dati)"></option>
-                                    <option value="7° Livello (Addetto alle pulizie / Personale addetto ai servizi generali e manutenzioni)"></option>
-                                    <!-- 2. Livelli di Apprendistato Professionalizzante -->
-                                    <option value="Apprendistato finalizzato al Livello 3°S (Inquadrato inizialmente al 5° o 4°S livello)"></option>
-                                    <option value="Apprendistato finalizzato al Livello 3° (Inquadrato inizialmente al 5° o 4° livello)"></option>
-                                    <option value="Apprendistato finalizzato al Livello 4°S [Percorso standard per inserimento e qualificazione nuova ASO]"></option>
-                                    <option value="Apprendistato finalizzato al Livello 4 (Inquadrato inizialmente al 6° o 5° livello)"></option>
-                                    <option value="Apprendistato finalizzato al Livello 5 (Inquadrato inizialmente al 7° o 6° livello)"></option>
-                                    <!-- 3. Altre opzioni -->
-                                    <option value="Praticante"></option>
-                                </datalist>
+                                <label class="label-micro">Ore Settimanali di Lavoro</label>
+                                <input type="number" id="op-hours" value="${data.hours !== undefined ? data.hours : 40}" min="1" max="40" oninput="calculateSalary()" placeholder="40" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                             </div>
                             <div class="space-y-1">
                                 <label class="label-micro">Costo Mensile Lordo (€)</label>
-                                <input type="number" id="op-salary" value="${data.salary || ''}" placeholder="Es: 2500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                                <input type="number" id="op-salary" value="${data.salary || ''}" placeholder="Es: 2500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                             </div>
                         </div>
                     </div>
@@ -741,14 +786,40 @@
             `;
             toggleOpRoleFields(data.role);
             toggleOpContractFields(data.contract);
+            if ((data.contract === 'Dipendente (CCNL)' || data.contract === 'Dipendente') && !data.salary) {
+                calculateSalary();
+            }
             openDrawer();
         }
 
-        function handleLevelInput(inputEl) {
-            if (inputEl.value === 'Altro / Inserimento Libero') {
-                inputEl.value = '';
-                inputEl.placeholder = 'Digita livello personalizzato...';
-            }
+        const baseSalaries = {
+            "Quadri (Q)": 2436.76,
+            "1° Livello": 2156.38,
+            "2° Livello": 1878.32,
+            "3° Livello Super (3°S)": 1742.30,
+            "3° Livello": 1726.37,
+            "4° Livello Super (4°S)": 1674.10,
+            "4° Livello": 1614.12,
+            "5° Livello": 1502.19,
+            "Apprendistato finalizzato al 3°S (inquadrato al 4°S)": 1674.10,
+            "Apprendistato finalizzato al 3° (inquadrato al 4°)": 1614.12,
+            "Apprendistato finalizzato al 4°S (inquadrato al 5°)": 1502.19,
+            "Apprendistato finalizzato al 4° (inquadrato al 5°)": 1502.19
+        };
+
+        function calculateSalary() {
+            const levelSelect = document.getElementById('op-level');
+            const hoursInput = document.getElementById('op-hours');
+            const salaryInput = document.getElementById('op-salary');
+            
+            if (!levelSelect || !hoursInput || !salaryInput) return;
+            
+            const selectedLevel = levelSelect.value;
+            const hours = parseFloat(hoursInput.value) || 0;
+            const baseSalary = baseSalaries[selectedLevel] || 0;
+            
+            const calculated = baseSalary * (hours / 40);
+            salaryInput.value = calculated.toFixed(2);
         }
 
         function toggleOpRoleFields(roleVal) {
@@ -788,6 +859,7 @@
             if (contractVal === 'Dipendente (CCNL)' || contractVal === 'Dipendente') {
                 dipFields.classList.remove('hidden');
                 pivaFields.classList.add('hidden');
+                calculateSalary();
             } else {
                 dipFields.classList.add('hidden');
                 pivaFields.classList.remove('hidden');
@@ -824,12 +896,14 @@
             }
 
             if (contract === 'Dipendente (CCNL)' || contract === 'Dipendente') {
-                opData.level = document.getElementById('op-level').value.trim();
+                opData.level = document.getElementById('op-level').value;
+                opData.hours = parseInt(document.getElementById('op-hours').value) || 40;
                 opData.salary = parseFloat(document.getElementById('op-salary').value) || 0;
                 opData.rate_type = '';
                 opData.rate = 0;
             } else {
                 opData.level = '';
+                opData.hours = 40;
                 opData.salary = 0;
                 opData.rate_type = document.getElementById('op-rate-type').value;
                 opData.rate = parseFloat(document.getElementById('op-rate').value) || 0;
