@@ -826,6 +826,48 @@
         }
 
         // SAVE STEP DATA ASYNC
+        function serializeOperatorsForSave() {
+            return operators.map(op => {
+                let chatIDVal = null;
+                if (op.id) {
+                    const parsed = parseInt(op.id);
+                    if (!isNaN(parsed) && String(parsed) === String(op.id).trim()) {
+                        chatIDVal = parsed;
+                    } else if (typeof op.id === 'number') {
+                        chatIDVal = op.id;
+                    }
+                }
+                
+                let systemRole = 'Operator';
+                if (op.isOwner) {
+                    systemRole = 'Owner';
+                } else if (op.contract === 'Partita IVA' || op.contract === 'P.IVA') {
+                    systemRole = 'External';
+                }
+                
+                return {
+                    OperatorName: op.name,
+                    OperatorChatID: chatIDVal,
+                    OperatorLanguage: op.OperatorLanguage || 'Italiano',
+                    FreeHandOperator: op.FreeHandOperator !== undefined ? op.FreeHandOperator : true,
+                    Role: systemRole,
+                    role: systemRole,
+                    Job: op.role,
+                    job: op.role,
+                    isOwner: !!op.isOwner,
+                    contract: op.contract,
+                    level: op.level || '',
+                    hours: op.hours !== undefined ? op.hours : 40,
+                    salary: op.salary || 0,
+                    rate_type: op.rate_type || '',
+                    rate: op.rate !== undefined ? op.rate : 0,
+                    specialization: op.specialization || '',
+                    GeminiKey: op.geminiKey || '',
+                    geminiKey: op.geminiKey || ''
+                };
+            });
+        }
+
         async function saveStepData(step) {
             try {
                 const chairsInput = document.getElementById('op-chairs-num');
@@ -843,7 +885,7 @@
                         tenant_type: tenantType,
                         tax_regime: taxRegime,
                         is_forfettario: isForfettario,
-                        operators: operators,
+                        operators: serializeOperatorsForSave(),
                         machinery: machinery,
                         number_of_chairs: numberOfChairs
                     })
@@ -876,7 +918,7 @@
                         tenant_type: tenantType,
                         tax_regime: taxRegime,
                         is_forfettario: isForfettario,
-                        operators: operators,
+                        operators: serializeOperatorsForSave(),
                         machinery: machinery,
                         number_of_chairs: numberOfChairs,
                         financials: isForfettario ? {} : financials
@@ -932,13 +974,23 @@
                     isForfettario = !!result.is_forfettario;
                     operators = (result.operators || []).map(op => {
                         let nameVal = op.name || op.OperatorName || '';
-                        let roleVal = op.role || op.Role || 'Odontoiatra';
-                        let contractVal = op.contract || op.Contract || 'Dipendente (CCNL)';
+                        let isOwner = !!op.isOwner || (op.Role && op.Role.toLowerCase() === 'owner') || (op.role && op.role.toLowerCase() === 'owner');
+                        
+                        let roleVal = op.Job || op.job || '';
+                        if (!roleVal) {
+                            if (op.Role && op.Role.toLowerCase() !== 'owner' && op.Role.toLowerCase() !== 'operator' && op.Role.toLowerCase() !== 'external') {
+                                roleVal = op.Role;
+                            } else if (op.role && op.role.toLowerCase() !== 'owner' && op.role.toLowerCase() !== 'operator' && op.role.toLowerCase() !== 'external') {
+                                roleVal = op.role;
+                            } else {
+                                roleVal = 'Odontoiatra';
+                            }
+                        }
+                        
+                        let contractVal = op.contract || op.Contract || (op.Role === 'External' ? 'Partita IVA' : 'Dipendente (CCNL)');
                         let levelVal = op.level || op.Level || '';
                         let hoursVal = op.hours !== undefined ? op.hours : (op.Hours !== undefined ? op.Hours : 40);
                         let salaryVal = op.salary || op.Salary || '';
-                        
-                        let isOwner = !!op.isOwner || (op.Role && op.Role.toLowerCase() === 'owner') || (op.role && op.role.toLowerCase() === 'owner');
                         
                         if (isOwner && (roleVal.toLowerCase() === 'owner' || roleVal === 'Owner')) {
                             roleVal = 'Odontoiatra';
@@ -963,7 +1015,9 @@
                             rate_type: op.rate_type || 'percentage',
                             rate: op.rate !== undefined ? op.rate : (roleVal === 'Odontoiatra' ? 40 : 100),
                             specialization: op.specialization || 'Generico / Generalista',
-                            geminiKey: op.GeminiKey || op.geminiKey || ''
+                            geminiKey: op.GeminiKey || op.geminiKey || '',
+                            OperatorLanguage: op.OperatorLanguage || op.OperatorLenguage || 'Italiano',
+                            FreeHandOperator: op.FreeHandOperator !== undefined ? op.FreeHandOperator : true
                         };
                         
                         if (contractVal === 'Dipendente (CCNL)' && !isOwner) {
@@ -1440,7 +1494,9 @@
                 role: role,
                 contract: contract,
                 isOwner: activeEditIndex !== null ? !!operators[activeEditIndex].isOwner : false,
-                geminiKey: activeEditIndex !== null ? (operators[activeEditIndex].geminiKey || '') : ''
+                geminiKey: activeEditIndex !== null ? (operators[activeEditIndex].geminiKey || '') : '',
+                OperatorLanguage: activeEditIndex !== null ? (operators[activeEditIndex].OperatorLanguage || 'Italiano') : 'Italiano',
+                FreeHandOperator: activeEditIndex !== null ? (operators[activeEditIndex].FreeHandOperator !== undefined ? operators[activeEditIndex].FreeHandOperator : true) : true
             };
 
             if (role === 'Odontoiatra') {
@@ -2096,7 +2152,7 @@
                         tenant_type: tenantType,
                         tax_regime: taxRegime,
                         is_forfettario: isForfettario,
-                        operators: operators,
+                        operators: serializeOperatorsForSave(),
                         machinery: machinery,
                         number_of_chairs: numberOfChairs,
                         financials: isForfettario ? {} : financials
