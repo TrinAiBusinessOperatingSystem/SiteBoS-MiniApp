@@ -1563,6 +1563,47 @@
             return false;
         }
 
+        function filterEquipmentOptions(query) {
+            const selectEl = document.getElementById('mac-type');
+            if (!selectEl) return;
+            
+            const q = query.toLowerCase().trim();
+            const currentSelected = selectEl.value;
+            
+            let html = '';
+            let matchesCount = 0;
+            let currentSelectedStillExists = false;
+            
+            for (const [category, items] of Object.entries(attrezzaturePreset)) {
+                const filteredItems = items.filter(item => item.name.toLowerCase().includes(q));
+                if (filteredItems.length > 0) {
+                    html += `<optgroup label="${category}">`;
+                    filteredItems.forEach(item => {
+                        const isSel = (item.name === currentSelected);
+                        if (isSel) currentSelectedStillExists = true;
+                        html += `<option value="${item.name}" ${isSel ? 'selected' : ''}>${item.name}</option>`;
+                        matchesCount++;
+                    });
+                    html += `</optgroup>`;
+                }
+            }
+            
+            const isCustomSelected = (currentSelected === 'Altra Attrezzatura (Personalizzata)' || (currentSelected && !isPresetType(currentSelected)));
+            if (isCustomSelected) currentSelectedStillExists = true;
+            
+            html += `<option value="Altra Attrezzatura (Personalizzata)" ${isCustomSelected ? 'selected' : ''}>Altra Attrezzatura (Personalizzata)</option>`;
+            
+            selectEl.innerHTML = html;
+            
+            if (!currentSelectedStillExists) {
+                if (selectEl.options.length > 0) {
+                    selectEl.selectedIndex = 0;
+                }
+            }
+            
+            handleMacTypeChange(selectEl.value);
+        }
+
         function openMachineryDrawer(idx = null) {
             activeEditIndex = idx;
             const isEdit = idx !== null;
@@ -1590,7 +1631,12 @@
                 
                 <div class="space-y-3">
                     <div class="space-y-1">
-                        <label class="label-micro">Attrezzatura</label>
+                        <label class="label-micro">Cerca Attrezzatura</label>
+                        <input type="text" id="mac-search" oninput="filterEquipmentOptions(this.value)" placeholder="🔍 Digita per filtrare..." class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <label class="label-micro">Seleziona Attrezzatura</label>
                         <select id="mac-type" onchange="handleMacTypeChange(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
                             ${typeOptionsHtml}
                         </select>
