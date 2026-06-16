@@ -50,13 +50,16 @@
             color: #a3a3a3;
         }
 
-        .fade-in-up {
-            animation: fadeInUp 0.4s ease-out forwards;
+        .loader-spin {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
         }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -121,6 +124,18 @@
                 <i class="fas fa-external-link-alt text-blue-200 text-xs"></i>
             </div>
 
+            <!-- SETUP AVANZATO -->
+            <div class="card-noir p-5 flex items-center gap-4 cursor-pointer" onclick="handleSetupAvanzatoClick()">
+                <div class="icon-box">
+                    <i class="fas fa-sliders-h"></i>
+                </div>
+                <div class="flex-1">
+                    <span class="label-micro">Setup Avanzato</span>
+                    <h3 class="font-black text-sm uppercase tracking-tight">Parametri Avanzati</h3>
+                </div>
+                <i class="fas fa-chevron-right text-gray-200 text-xs"></i>
+            </div>
+
         </div>
 
         <!-- FOOTER INFO -->
@@ -128,6 +143,13 @@
             <p class="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300">SiteBoS Ecosystem &copy; 2026</p>
         </footer>
 
+    </div>
+
+    <!-- LOADER SCREEN OVERLAY -->
+    <div id="loader-overlay" class="fixed inset-0 bg-white/95 z-[100] hidden flex flex-col items-center justify-center p-10 text-center transition-opacity">
+        <div class="loader-spin mb-4"></div>
+        <h3 class="text-sm font-black uppercase tracking-tighter mb-1">Verifica Verticale...</h3>
+        <p class="text-[10px] text-gray-500 font-medium italic">Interrogazione dei sistemi centrali in corso</p>
     </div>
 
     <script>
@@ -157,6 +179,40 @@
                     tg.openLink(url);
                 }
             });
+        }
+
+        async function handleSetupAvanzatoClick() {
+            document.getElementById('loader-overlay').classList.remove('hidden');
+            try {
+                const response = await fetch("https://prod.workflow.trinai.it/webhook/5a58b38d-dfe5-44c2-9d58-34309585c057", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        msg_id: msg,
+                        action: "get_business_vertical"
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error("Errore di rete o risposta non valida dal server.");
+                }
+                
+                const result = await response.json();
+                const vertical = (result.vertical || result.data?.vertical || "").toLowerCase();
+                
+                if (vertical === 'dental') {
+                    navigate('advanced-setup-dental.html');
+                } else {
+                    navigate('advanced-setup.html');
+                }
+            } catch (error) {
+                console.error("Errore fetch vertical:", error);
+                navigate('advanced-setup.html');
+            } finally {
+                document.getElementById('loader-overlay').classList.add('hidden');
+            }
         }
     </script>
 </body>

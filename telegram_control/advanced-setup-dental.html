@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Setup Avanzato Odontoiatrico | SiteBoS</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+        (function () {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `
+                    <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-black uppercase tracking-widest">Accesso Proibito</h2></div>
+                    </body>`;
+                window.stop();
+            }
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #fafafa !important; color: #000000 !important; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card-noir { background: white !important; border: 1px solid #eeeeee !important; box-shadow: 0 4px 12px rgba(0,0,0,0.01); border-radius: 1.5rem; }
+        .label-micro { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #a3a3a3; }
+        .fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .loader-spin {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #000;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .accordion-header { cursor: pointer; transition: background-color 0.2s; }
+        .accordion-header:hover { background-color: #fcfcfc; }
+        .accordion-content { transition: max-height 0.3s ease-out; overflow: hidden; }
+    </style>
+</head>
+<body class="safe-area-inset min-h-screen flex flex-col pb-24">
+
+    <!-- STICKY HEADER & STEP INDICATOR -->
+    <header class="flex items-center justify-between px-6 py-4 border-b border-border bg-white sticky top-0 z-40">
+        <div class="flex items-center gap-2">
+            <span class="w-8 h-8 rounded-xl bg-black text-white text-xs font-black flex items-center justify-center" id="step-indicator">1</span>
+            <div>
+                <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block" id="step-desc-micro">Fase 1 di 3</span>
+                <h2 class="text-xs font-black uppercase tracking-wider text-black" id="step-title">Operatori e Staff</h2>
+            </div>
+        </div>
+        <div class="flex gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-black transition-all duration-300" id="dot-step-1"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-2"></span>
+            <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-3"></span>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-md w-full mx-auto p-6 space-y-6 fade-in-up">
+        
+        <!-- STEP 1: OPERATORI -->
+        <div id="section-step-1" class="space-y-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-sm font-black uppercase tracking-tight">Staff dello Studio</h3>
+                    <p class="text-[10px] text-gray-400 font-medium leading-relaxed">Inserisci e configura tutti i collaboratori della struttura.</p>
+                </div>
+                <button onclick="openOperatorDrawer()" class="px-4 py-2.5 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition">
+                    <i class="fas fa-plus"></i> Aggiungi
+                </button>
+            </div>
+            
+            <div id="operators-grid" class="grid gap-3">
+                <!-- Operator Cards Rendered dynamically -->
+            </div>
+            
+            <div class="pt-6 border-t border-border flex justify-end">
+                <button onclick="nextStep()" class="w-full py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5">
+                    Avanti <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 2: MACCHINARI -->
+        <div id="section-step-2" class="space-y-6 hidden">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h3 class="text-sm font-black uppercase tracking-tight">Macchinari e Asset</h3>
+                    <p class="text-[10px] text-gray-400 font-medium leading-relaxed">Censisci i riuniti e i grandi cespiti tecnologici.</p>
+                </div>
+                <button onclick="openMachineryDrawer()" class="px-4 py-2.5 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition">
+                    <i class="fas fa-plus"></i> Aggiungi
+                </button>
+            </div>
+
+            <div id="machinery-grid" class="grid gap-3">
+                <!-- Machinery Cards Rendered dynamically -->
+            </div>
+
+            <div class="pt-6 border-t border-border flex gap-3">
+                <button onclick="prevStep()" class="flex-1 py-4 bg-white text-black border border-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                    Indietro
+                </button>
+                <button onclick="nextStep()" class="flex-1 py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5">
+                    Avanti <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- STEP 3: BILANCIO -->
+        <div id="section-step-3" class="space-y-6 hidden">
+            <div class="space-y-1">
+                <h3 class="text-sm font-black uppercase tracking-tight">Scomposizione Finanziaria</h3>
+                <p class="text-[10px] text-gray-400 font-medium leading-relaxed">Fornisci il bilancio per consentire l'allocazione esatta del costo sedia.</p>
+            </div>
+
+            <!-- Profile & Regime Details Card -->
+            <div class="card-noir p-5 space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="label-micro">Tipo Profilo</label>
+                        <select id="tenant-type-select" onchange="changeTenantType(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            <option value="Società">Società (S.r.l. / STP)</option>
+                            <option value="Libero Professionista">Libero Professionista (P.IVA)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1" id="regime-selection-wrapper">
+                        <label class="label-micro">Regime Fiscale</label>
+                        <select id="regime-select" onchange="changeRegime(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            <option value="Ordinario">Regime Ordinario / Semplificato</option>
+                            <option value="Forfettario">Regime Forfettario</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Uploader Area -->
+            <div id="uploader-area" class="card-noir p-6 text-center border-2 border-dashed border-gray-300 hover:border-black cursor-pointer transition-colors relative" onclick="triggerFileSelect()">
+                <i class="fas fa-file-pdf text-3xl text-gray-400 mb-2 block" id="upload-icon"></i>
+                <span class="text-xs font-black uppercase tracking-wider block" id="upload-title">Carica Documento</span>
+                <span class="text-[8px] text-gray-400 font-bold uppercase tracking-widest block mt-1" id="upload-subtitle">Seleziona PDF o Immagine</span>
+                <input type="file" id="file-input" class="hidden" accept="application/pdf,image/*" onchange="handleFileSelect(event)">
+            </div>
+
+            <!-- Financials Detected Message -->
+            <div id="financials-detected-message" class="card-noir p-5 bg-white border-green-200 hidden">
+                <div class="flex items-center gap-3 text-green-700">
+                    <i class="fas fa-check-circle text-xl"></i>
+                    <div>
+                        <span class="text-xs font-black uppercase tracking-tight block">Dati Bilancio Presenti</span>
+                        <p class="text-[9px] text-gray-500 font-medium">I dati di bilancio della tua azienda sono già registrati in database.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <button id="btn-genera" onclick="executeDecompositionOrFinish()" class="w-full py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed" disabled>
+                <i class="fas fa-magic"></i> Genera Scomposizione
+            </button>
+
+            <!-- ACCOUNTS GRID CONTAINER -->
+            <div id="financials-grid-container" class="space-y-4 hidden">
+                <div class="border-t border-border pt-4">
+                    <span class="label-micro">Bozza Scomposizione (DRAFT)</span>
+                    <p class="text-[9px] text-gray-400 font-medium mt-1">Valori proposti dall'AI. Modifica qualsiasi importo per rettificare il calcolo.</p>
+                </div>
+
+                <!-- SEZIONE A: Materiali Clinici -->
+                <div class="card-noir overflow-hidden border border-border">
+                    <div class="accordion-header p-5 flex justify-between items-center bg-gray-50/50" onclick="toggleAccordion('acc-a')">
+                        <span class="text-xs font-black uppercase tracking-tight">A. Materiali Clinici & Fornitori</span>
+                        <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="arrow-acc-a"></i>
+                    </div>
+                    <div id="acc-a" class="accordion-content hidden p-5 space-y-4" style="max-height: 0px;">
+                        <div class="space-y-3" id="group-a">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEZIONE B: Personale -->
+                <div class="card-noir overflow-hidden border border-border">
+                    <div class="accordion-header p-5 flex justify-between items-center bg-gray-50/50" onclick="toggleAccordion('acc-b')">
+                        <span class="text-xs font-black uppercase tracking-tight">B. Personale & Consulenti</span>
+                        <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="arrow-acc-b"></i>
+                    </div>
+                    <div id="acc-b" class="accordion-content hidden p-5 space-y-4" style="max-height: 0px;">
+                        <div class="space-y-3" id="group-b">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEZIONE C: Affitto & Utenze -->
+                <div class="card-noir overflow-hidden border border-border">
+                    <div class="accordion-header p-5 flex justify-between items-center bg-gray-50/50" onclick="toggleAccordion('acc-c')">
+                        <span class="text-xs font-black uppercase tracking-tight">C. Affitto, Mura & Utenze</span>
+                        <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="arrow-acc-c"></i>
+                    </div>
+                    <div id="acc-c" class="accordion-content hidden p-5 space-y-4" style="max-height: 0px;">
+                        <div class="space-y-3" id="group-c">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEZIONE D: Ammortamenti -->
+                <div class="card-noir overflow-hidden border border-border">
+                    <div class="accordion-header p-5 flex justify-between items-center bg-gray-50/50" onclick="toggleAccordion('acc-d')">
+                        <span class="text-xs font-black uppercase tracking-tight">D. Ammortamenti & Locazioni</span>
+                        <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="arrow-acc-d"></i>
+                    </div>
+                    <div id="acc-d" class="accordion-content hidden p-5 space-y-4" style="max-height: 0px;">
+                        <div class="space-y-3" id="group-d">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totals Bar -->
+                <div class="card-noir p-5 bg-black text-white flex justify-between items-center">
+                    <div>
+                        <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">Riepilogo Costi</span>
+                        <h4 class="text-xs font-black uppercase">Totale Inserito</h4>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-base font-black" id="financials-total-val">€ 0,00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- STEP 3 ACTIONS -->
+            <div class="pt-6 border-t border-border flex gap-3">
+                <button onclick="prevStep()" class="flex-1 py-4 bg-white text-black border border-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                    Indietro
+                </button>
+                <button onclick="saveAndFinish()" id="btn-completa" class="flex-1 py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5">
+                    Completa Setup <i class="fas fa-check"></i>
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- DRAWER FOR DYNAMIC DIALOGS -->
+    <div id="drawer-backdrop" class="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300" onclick="closeDrawer()"></div>
+    <div id="drawer-container" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-border z-50 rounded-t-3xl translate-y-full transition-transform duration-300 flex flex-col p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        <!-- Drawer content injected via JS -->
+    </div>
+
+    <!-- LOADER OVERLAY -->
+    <div id="loader-overlay" class="fixed inset-0 bg-white/95 z-[100] hidden flex flex-col items-center justify-center p-10 text-center transition-opacity">
+        <div class="loader-spin mb-4"></div>
+        <h3 id="loader-title" class="text-sm font-black uppercase tracking-tighter mb-1">Caricamento...</h3>
+        <p id="loader-msg" class="text-[10px] text-gray-500 font-medium italic">Sincronizzazione in corso</p>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/5a58b38d-dfe5-44c2-9d58-34309585c057";
+        const urlParams = new URLSearchParams(window.location.search);
+        let ash = urlParams.get('ash');
+        let msg = urlParams.get('msg');
+
+        if (ash && ash.includes('?msg=')) {
+            const parts = ash.split('?msg=');
+            ash = parts[0];
+            if (!msg) msg = parts[1];
+        }
+
+        // Global State variables
+        let currentStep = 1;
+        let tenantType = 'Società';
+        let taxRegime = 'Ordinario';
+        let isForfettario = false;
+        let operators = [];
+        let machinery = [];
+        let financials = {};
+        let hasFinancials = false;
+        let uploadedFileData = null;
+        let uploadedFileName = "";
+
+        // Modal State
+        let activeEditIndex = null;
+
+        // Account Schema definitions
+        const financialsMapping = {
+            a: [
+                { code: "631.01000", label: "Materiale di Consumo Clinico", help: "Compositi, frese, impronte, anestetici e monouso dentale." },
+                { code: "631.01001", label: "DPI e Soluzioni di Sterilizzazione", help: "Guanti, mascherine, buste per autoclave e disinfettanti." },
+                { code: "631.01002", label: "Laboratorio Odontotecnico (Protesi)", help: "Fatture per corone, ponti, protesi mobili ed elementi in zirconio." },
+                { code: "631.01004", label: "Allineatori e Dispositivi Ortodontici", help: "Costo per mascherine invisibili e dispositivi ortodontici." },
+                { code: "631.01006", label: "Consumabili CAD/CAM in Studio", help: "Blocchetti di ceramica e materiali per fresatore interno." },
+                { code: "631.01005", label: "Smaltimento Rifiuti Speciali (Socio-Sanitari)", help: "Contratto annuo per ritiro di taglienti e rifiuti speciali infettivi." },
+                { code: "632.00005", label: "Tassa Rifiuti Comunale (TARI)", help: "Quota TARI annuale applicata alle superfici dello studio." }
+            ],
+            b: [
+                { code: "610.00001", label: "Stipendi Personale Dipendente", help: "Somma delle retribuzioni nette mensili di ASO e Segretarie." },
+                { code: "610.00021", label: "Contributi Previdenziali (INPS)", help: "Quota INPS a carico dello studio per i dipendenti assunti." },
+                { code: "610.00101", label: "Quota Accantonamento TFR", help: "Quota annuale accantonata per il Trattamento di Fine Rapporto." },
+                { code: "612.00005", label: "Compensi Medici e Collaboratori (P.IVA)", help: "Fatture pagate a odontoiatri consulenti ed igienisti esterni." },
+                { code: "612.00001", label: "Costo Commercialista e Consulenti Studio", help: "Spese per tenuta contabilità, consulente del lavoro o sicurezza." }
+            ],
+            c: [
+                { code: "606.00001", label: "Affitto dello Studio", help: "Canone di locazione mensile o annuale delle mura cliniche." },
+                { code: "621.00031", label: "Bolletta Luce ed Energia", help: "Spesa energetica complessiva per l'alimentazione del riunito." },
+                { code: "606.00007", label: "Bolletta dell'Acqua", help: "Consumo idrico dello studio (fondamentale per i riuniti)." },
+                { code: "606.00005", label: "Spese Gas e Riscaldamento", help: "Costi di climatizzazione e riscaldamento degli ambienti." },
+                { code: "606.00010", label: "Spese Condominiali", help: "Quota condominiale ordinaria imputata allo studio." },
+                { code: "621.00001", label: "Internet e Telefono Fisso", help: "Abbonamento fibra e linea telefonica della reception." },
+                { code: "631.00015", label: "Abbonamenti Software Gestionali", help: "Canone del gestionale di studio, cartella clinica o cloud 3D." }
+            ],
+            d: [
+                { code: "605.00001", label: "Leasing Riuniti e Grandi Macchinari", help: "Canone leasing mensile per riuniti, TAC o autoclavi." },
+                { code: "601.00004", label: "Ammortamento Tecnologie Mediche", help: "Quota annua di usura per riuniti, radiografici e sterilizzatrici." },
+                { code: "601.00010", label: "Ammortamento Mobili e Arredi", help: "Quota di usura per i mobili dei mobili clinici e sala d'attesa." },
+                { code: "601.00007", label: "Ammortamento computer d'ufficio", help: "Quota d'usura per PC reception, server di studio e stampanti." },
+                { code: "601.00012", label: "Spese per Piccoli Strumenti", help: "Turbine, contrangoli o specchietti acquistati singolarmente." },
+                { code: "631.00101", label: "Manutenzioni e Verifiche di Legge", help: "Taratura autoclave, controlli radioprotezione ed esperto qualificato." }
+            ]
+        };
+
+        window.onload = async () => {
+            initBackButton();
+            initFinancialsInputsHTML();
+            await loadData();
+        };
+
+        function showLoader(title, msg) {
+            document.getElementById('loader-title').innerText = title;
+            document.getElementById('loader-msg').innerText = msg;
+            document.getElementById('loader-overlay').classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            document.getElementById('loader-overlay').classList.add('hidden');
+        }
+
+        // Initialize back button native behavior
+        function initBackButton() {
+            if (tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(handleBackNav);
+            }
+        }
+
+        function handleBackNav() {
+            if (currentStep === 1) {
+                tg.showConfirm("Vuoi tornare all'Hub di identità?", (ok) => {
+                    if (ok) {
+                        location.href = `identity_hub.html?ash=${ash}&msg=${msg || ''}`;
+                    }
+                });
+            } else {
+                prevStep();
+            }
+        }
+
+        // STEP WIZARD NAVIGATION
+        function goToStep(step) {
+            currentStep = step;
+            
+            // Hide all steps
+            document.getElementById('section-step-1').classList.add('hidden');
+            document.getElementById('section-step-2').classList.add('hidden');
+            document.getElementById('section-step-3').classList.add('hidden');
+            
+            // Show target step
+            document.getElementById(`section-step-${step}`).classList.remove('hidden');
+            
+            // Update dots
+            document.getElementById('dot-step-1').className = `w-2.5 h-2.5 rounded-full ${step >= 1 ? 'bg-black' : 'bg-gray-200'}`;
+            document.getElementById('dot-step-2').className = `w-2.5 h-2.5 rounded-full ${step >= 2 ? 'bg-black' : 'bg-gray-200'}`;
+            document.getElementById('dot-step-3').className = `w-2.5 h-2.5 rounded-full ${step >= 3 ? 'bg-black' : 'bg-gray-200'}`;
+            
+            // Update indicator
+            document.getElementById('step-indicator').innerText = step;
+            document.getElementById('step-desc-micro').innerText = `Fase ${step} di 3`;
+            
+            // Update titles
+            const titles = ["", "Operatori e Staff", "Macchinari e Asset", "Bilancio"];
+            document.getElementById('step-title').innerText = titles[step];
+            
+            if (step === 3) {
+                refreshStep3UI();
+            }
+        }
+
+        async function nextStep() {
+            if (currentStep === 1) {
+                // Save state step 1
+                await saveStepData(1);
+                goToStep(2);
+            } else if (currentStep === 2) {
+                // Validation check
+                const operatorCount = operators.length;
+                const reunitoCount = machinery.filter(m => m.type === 'Riunito Odontoiatrico').length;
+                if (operatorCount < 1 || reunitoCount < 1) {
+                    tg.showAlert("Requisito Necessario: inserisci almeno 1 Operatore (nello Step 1) e almeno 1 Riunito Odontoiatrico (nello Step 2).");
+                    return;
+                }
+                // Save state step 2
+                await saveStepData(2);
+                goToStep(3);
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                goToStep(currentStep - 1);
+            }
+        }
+
+        // SAVE STEP DATA ASYNC
+        async function saveStepData(step) {
+            try {
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: "save_dental_setup",
+                        current_step: step,
+                        tenant_type: tenantType,
+                        tax_regime: taxRegime,
+                        is_forfettario: isForfettario,
+                        operators: operators,
+                        machinery: machinery
+                    })
+                });
+            } catch (err) {
+                console.error("Autosave fallito:", err);
+            }
+        }
+
+        // INITIALIZE LOAD DATA (GET)
+        async function loadData() {
+            showLoader("Caricamento", "Recupero dati di configurazione...");
+            try {
+                const initUrl = `${WEBHOOK_URL}?ash=${ash}&_auth=${encodeURIComponent(tg.initData)}&action=get_dental_setup`;
+                const response = await fetch(initUrl, { method: 'GET' });
+                
+                if (!response.ok) {
+                    throw new Error("Errore risposta server.");
+                }
+                
+                const result = await response.json();
+                if (result) {
+                    tenantType = result.tenant_type || 'Società';
+                    taxRegime = result.tax_regime || 'Ordinario';
+                    isForfettario = !!result.is_forfettario;
+                    operators = result.operators || [];
+                    machinery = result.machinery || [];
+                    
+                    // Set elements
+                    document.getElementById('tenant-type-select').value = tenantType;
+                    document.getElementById('regime-select').value = taxRegime;
+                    
+                    if (result.financials) {
+                        populateFinancialsGrid(result.financials);
+                        hasFinancials = true;
+                    }
+                    
+                    renderOperators();
+                    renderMachinery();
+                    
+                    if (result.current_step) {
+                        goToStep(result.current_step);
+                    } else {
+                        goToStep(1);
+                    }
+                } else {
+                    goToStep(1);
+                }
+            } catch (error) {
+                console.error("Caricamento fallito:", error);
+                goToStep(1);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // DRAWER GESTION
+        function openDrawer() {
+            document.getElementById('drawer-backdrop').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('drawer-backdrop').classList.add('opacity-100');
+                document.getElementById('drawer-container').classList.remove('translate-y-full');
+            }, 10);
+        }
+
+        function closeDrawer() {
+            document.getElementById('drawer-container').classList.add('translate-y-full');
+            document.getElementById('drawer-backdrop').classList.remove('opacity-100');
+            setTimeout(() => {
+                document.getElementById('drawer-backdrop').classList.add('hidden');
+            }, 300);
+            activeEditIndex = null;
+        }
+
+        // STAFF/OPERATORS MANAGEMENT
+        function renderOperators() {
+            const grid = document.getElementById('operators-grid');
+            grid.innerHTML = '';
+            
+            if (operators.length === 0) {
+                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessun operatore inserito nello staff.</div>`;
+                return;
+            }
+
+            operators.forEach((op, idx) => {
+                let iconClass = 'fa-user-tie';
+                if (op.role === 'Odontoiatra') iconClass = 'fa-user-md';
+                else if (op.role === 'ASO') iconClass = 'fa-user-nurse';
+                else if (op.role === 'Igienista') iconClass = 'fa-tooth';
+
+                let contractText = '';
+                if (op.contract === 'Dipendente') {
+                    contractText = `Lorde: €${parseFloat(op.salary).toLocaleString('it-IT')}/mese`;
+                } else {
+                    contractText = op.rate_type === 'hourly' ? `PIVA: €${op.rate}/ora` : `PIVA: ${op.rate}% prestazione`;
+                }
+
+                grid.innerHTML += `
+                    <div class="card-noir p-4 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center text-sm">
+                                <i class="fas ${iconClass}"></i>
+                            </div>
+                            <div>
+                                <span class="label-micro !text-gray-400">${op.role} - ${op.contract}</span>
+                                <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">${op.name}</h4>
+                                <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${contractText}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 items-center">
+                            ${op.contract === 'P.IVA' ? `
+                                <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito">
+                                    Invita
+                                </button>
+                            ` : ''}
+                            <button onclick="openOperatorDrawer(${idx})" class="w-7 h-7 bg-gray-50 text-gray-500 border border-border rounded-lg flex items-center justify-center active:scale-95 transition">
+                                <i class="fas fa-edit text-[10px]"></i>
+                            </button>
+                            <button onclick="deleteOperator(${idx})" class="w-7 h-7 bg-red-50 text-red-500 border border-red-100 rounded-lg flex items-center justify-center active:scale-95 transition">
+                                <i class="fas fa-trash text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openOperatorDrawer(idx = null) {
+            activeEditIndex = idx;
+            const isEdit = idx !== null;
+            const data = isEdit ? operators[idx] : { name: '', role: 'Odontoiatra', contract: 'Dipendente', salary: '', rate_type: 'hourly', rate: '' };
+            
+            const container = document.getElementById('drawer-container');
+            container.innerHTML = `
+                <div class="flex justify-between items-center pb-2 border-b border-border">
+                    <h3 class="text-xs font-black uppercase tracking-tight text-black">${isEdit ? 'Modifica' : 'Aggiungi'} Operatore</h3>
+                    <button onclick="closeDrawer()" class="text-gray-400"><i class="fas fa-times-circle text-lg"></i></button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="space-y-1">
+                        <label class="label-micro">Nome e Cognome</label>
+                        <input type="text" id="op-name" value="${data.name}" placeholder="Es: Dr. Rossi" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="label-micro">Ruolo</label>
+                            <select id="op-role" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="Odontoiatra" ${data.role === 'Odontoiatra' ? 'selected' : ''}>Odontoiatra</option>
+                                <option value="ASO" ${data.role === 'ASO' ? 'selected' : ''}>ASO (Assistente)</option>
+                                <option value="Segretaria" ${data.role === 'Segretaria' ? 'selected' : ''}>Segretaria</option>
+                                <option value="Igienista" ${data.role === 'Igienista' ? 'selected' : ''}>Igienista</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="label-micro">Inquadramento</label>
+                            <select id="op-contract" onchange="toggleOpSalaryFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="Dipendente" ${data.contract === 'Dipendente' ? 'selected' : ''}>Dipendente</option>
+                                <option value="P.IVA" ${data.contract === 'P.IVA' ? 'selected' : ''}>Partita IVA</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- DIPENDENTE FIELDS -->
+                    <div id="op-dipendente-fields" class="space-y-1 ${data.contract === 'Dipendente' ? '' : 'hidden'}">
+                        <label class="label-micro">Costo Mensile Lordo (€)</label>
+                        <input type="number" id="op-salary" value="${data.salary}" placeholder="Es: 2500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                    </div>
+
+                    <!-- PIVA FIELDS -->
+                    <div id="op-piva-fields" class="space-y-3 ${data.contract === 'P.IVA' ? '' : 'hidden'}">
+                        <div class="space-y-1">
+                            <label class="label-micro">Tipo Compenso</label>
+                            <select id="op-rate-type" onchange="toggleOpRateInput(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="hourly" ${data.rate_type === 'hourly' ? 'selected' : ''}>Tariffa Oraria (€/ora)</option>
+                                <option value="percentage" ${data.rate_type === 'percentage' ? 'selected' : ''}>Percentuale su Prestazione (%)</option>
+                            </select>
+                        </div>
+                        <div class="space-y-1">
+                            <label class="label-micro" id="op-rate-label">${data.rate_type === 'hourly' ? 'Importo Orario (€)' : 'Valore Percentuale (%)'}</label>
+                            <input type="number" id="op-rate" value="${data.rate}" placeholder="Es: 40" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="saveOperatorFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                    ${isEdit ? 'Aggiorna' : 'Aggiungi'} Staff
+                </button>
+            `;
+            openDrawer();
+        }
+
+        function toggleOpSalaryFields(contractVal) {
+            if (contractVal === 'Dipendente') {
+                document.getElementById('op-dipendente-fields').classList.remove('hidden');
+                document.getElementById('op-piva-fields').classList.add('hidden');
+            } else {
+                document.getElementById('op-dipendente-fields').classList.add('hidden');
+                document.getElementById('op-piva-fields').classList.remove('hidden');
+            }
+        }
+
+        function toggleOpRateInput(rateTypeVal) {
+            const label = document.getElementById('op-rate-label');
+            if (rateTypeVal === 'hourly') {
+                label.innerText = "Importo Orario (€)";
+            } else {
+                label.innerText = "Valore Percentuale (%)";
+            }
+        }
+
+        function saveOperatorFromDrawer() {
+            const name = document.getElementById('op-name').value.trim();
+            const role = document.getElementById('op-role').value;
+            const contract = document.getElementById('op-contract').value;
+            
+            if (!name) { tg.showAlert("Fornisci un nome identificativo."); return; }
+
+            const opData = {
+                id: activeEditIndex !== null ? operators[activeEditIndex].id : 'op_' + Date.now(),
+                name: name,
+                role: role,
+                contract: contract
+            };
+
+            if (contract === 'Dipendente') {
+                opData.salary = parseFloat(document.getElementById('op-salary').value) || 0;
+            } else {
+                opData.rate_type = document.getElementById('op-rate-type').value;
+                opData.rate = parseFloat(document.getElementById('op-rate').value) || 0;
+            }
+
+            if (activeEditIndex !== null) {
+                operators[activeEditIndex] = opData;
+            } else {
+                operators.push(opData);
+            }
+
+            closeDrawer();
+            renderOperators();
+        }
+
+        function deleteOperator(idx) {
+            tg.showConfirm("Sicuro di voler rimuovere questo operatore?", (ok) => {
+                if (ok) {
+                    operators.splice(idx, 1);
+                    renderOperators();
+                }
+            });
+        }
+
+        async function generateOperatorInvite(opId, role) {
+            showLoader("Generazione link", "Creazione invito operatore in corso...");
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: "generate_operator_invite",
+                        operator_id: opId,
+                        role: role
+                    })
+                });
+
+                if (!response.ok) throw new Error("Errore chiamata server");
+                
+                const result = await response.json();
+                const inviteLink = result.invite_link || result.url || "";
+                
+                if (inviteLink) {
+                    tg.showPopup({
+                        title: "Invito Generato",
+                        message: "Il link temporaneo per completare la registrazione è pronto.",
+                        buttons: [
+                            { id: "copy", type: "default", text: "Copia Link" },
+                            { type: "cancel", text: "Chiudi" }
+                        ]
+                    }, function(button_id) {
+                        if (button_id === 'copy') {
+                            copyTextToClipboard(inviteLink);
+                            tg.showAlert("Link copiato negli appunti con successo.");
+                        }
+                    });
+                } else {
+                    tg.showAlert("Nessun link generato dal server.");
+                }
+            } catch (err) {
+                console.error("Generazione invito fallita:", err);
+                tg.showAlert("Errore durante la generazione dell'invito.");
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function copyTextToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text);
+            } else {
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback copy failed', err);
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+
+        // MACHINERY/ASSET MANAGEMENT
+        function renderMachinery() {
+            const grid = document.getElementById('machinery-grid');
+            grid.innerHTML = '';
+            
+            if (machinery.length === 0) {
+                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessun macchinario censito.</div>`;
+                return;
+            }
+
+            machinery.forEach((mac, idx) => {
+                let iconClass = 'fa-tools';
+                if (mac.type === 'Riunito Odontoiatrico') iconClass = 'fa-chair';
+                else if (mac.type === 'PC/Workstation') iconClass = 'fa-laptop';
+                else if (mac.type === 'TAC CBCT') iconClass = 'fa-x-ray';
+                else if (mac.type === 'Scanner Intraorale 3D') iconClass = 'fa-qrcode';
+
+                let ownershipText = '';
+                if (mac.ownership === 'Proprietà') {
+                    ownershipText = `Prezzo d'acquisto: €${parseFloat(mac.value).toLocaleString('it-IT')}`;
+                } else {
+                    ownershipText = `Leasing: €${parseFloat(mac.value).toLocaleString('it-IT')}/mese`;
+                }
+
+                grid.innerHTML += `
+                    <div class="card-noir p-4 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center text-sm">
+                                <i class="fas ${iconClass}"></i>
+                            </div>
+                            <div>
+                                <span class="label-micro !text-gray-400">${mac.type} - ${mac.ownership}</span>
+                                <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">Tecnologia ACQ: ${mac.year}</h4>
+                                <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${ownershipText} (Amm. ${mac.useful_life} anni)</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="openMachineryDrawer(${idx})" class="w-7 h-7 bg-gray-50 text-gray-500 border border-border rounded-lg flex items-center justify-center active:scale-95 transition">
+                                <i class="fas fa-edit text-[10px]"></i>
+                            </button>
+                            <button onclick="deleteMachinery(${idx})" class="w-7 h-7 bg-red-50 text-red-500 border border-red-100 rounded-lg flex items-center justify-center active:scale-95 transition">
+                                <i class="fas fa-trash text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openMachineryDrawer(idx = null) {
+            activeEditIndex = idx;
+            const isEdit = idx !== null;
+            const data = isEdit ? machinery[idx] : { type: 'Riunito Odontoiatrico', year: new Date().getFullYear(), ownership: 'Proprietà', value: '', useful_life: 8 };
+            
+            const container = document.getElementById('drawer-container');
+            container.innerHTML = `
+                <div class="flex justify-between items-center pb-2 border-b border-border">
+                    <h3 class="text-xs font-black uppercase tracking-tight text-black">${isEdit ? 'Modifica' : 'Aggiungi'} Macchinario</h3>
+                    <button onclick="closeDrawer()" class="text-gray-400"><i class="fas fa-times-circle text-lg"></i></button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="space-y-1">
+                        <label class="label-micro">Tipo Cespito</label>
+                        <select id="mac-type" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            <option value="Riunito Odontoiatrico" ${data.type === 'Riunito Odontoiatrico' ? 'selected' : ''}>Riunito Odontoiatrico</option>
+                            <option value="Scanner Intraorale 3D" ${data.type === 'Scanner Intraorale 3D' ? 'selected' : ''}>Scanner Intraorale 3D</option>
+                            <option value="Autoclave Classe B" ${data.type === 'Autoclave Classe B' ? 'selected' : ''}>Autoclave Classe B</option>
+                            <option value="PC/Workstation" ${data.type === 'PC/Workstation' ? 'selected' : ''}>PC/Workstation</option>
+                            <option value="TAC CBCT" ${data.type === 'TAC CBCT' ? 'selected' : ''}>TAC CBCT</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="label-micro">Anno Acquisto</label>
+                            <input type="number" id="mac-year" value="${data.year}" placeholder="Es: 2024" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="label-micro">Possesso</label>
+                            <select id="mac-ownership" onchange="toggleMacOwnershipLabels(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="Proprietà" ${data.ownership === 'Proprietà' ? 'selected' : ''}>Proprietà</option>
+                                <option value="Leasing/Noleggio" ${data.ownership === 'Leasing/Noleggio' ? 'selected' : ''}>Leasing / Noleggio</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="label-micro" id="mac-value-label">${data.ownership === 'Proprietà' ? 'Valore d\'acquisto (€)' : 'Canone Mensile (€)'}</label>
+                            <input type="number" id="mac-value" value="${data.value}" placeholder="Es: 35000" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="label-micro">Vita Utile (Anni)</label>
+                            <input type="number" id="mac-useful-life" value="${data.useful_life}" placeholder="Es: 8" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="saveMachineryFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                    ${isEdit ? 'Aggiorna' : 'Aggiungi'} Cespito
+                </button>
+            `;
+            openDrawer();
+        }
+
+        function toggleMacOwnershipLabels(ownershipVal) {
+            const label = document.getElementById('mac-value-label');
+            if (ownershipVal === 'Proprietà') {
+                label.innerText = "Valore d'acquisto (€)";
+            } else {
+                label.innerText = "Canone Mensile (€)";
+            }
+        }
+
+        function saveMachineryFromDrawer() {
+            const type = document.getElementById('mac-type').value;
+            const year = parseInt(document.getElementById('mac-year').value) || new Date().getFullYear();
+            const ownership = document.getElementById('mac-ownership').value;
+            const value = parseFloat(document.getElementById('mac-value').value) || 0;
+            const useful_life = parseInt(document.getElementById('mac-useful-life').value) || 8;
+
+            if (value <= 0) { tg.showAlert("Fornisci un importo economico valido."); return; }
+
+            const macData = {
+                type: type,
+                year: year,
+                ownership: ownership,
+                value: value,
+                useful_life: useful_life
+            };
+
+            if (activeEditIndex !== null) {
+                machinery[activeEditIndex] = macData;
+            } else {
+                machinery.push(macData);
+            }
+
+            closeDrawer();
+            renderMachinery();
+        }
+
+        function deleteMachinery(idx) {
+            tg.showConfirm("Sicuro di voler rimuovere questo asset?", (ok) => {
+                if (ok) {
+                    machinery.splice(idx, 1);
+                    renderMachinery();
+                }
+            });
+        }
+
+        // STEP 3: FINANCIALS / SCOMPOSIZIONE
+        function changeTenantType(val) {
+            tenantType = val;
+            refreshStep3UI();
+        }
+
+        function changeRegime(val) {
+            taxRegime = val;
+            isForfettario = (val === 'Forfettario');
+            refreshStep3UI();
+        }
+
+        function triggerFileSelect() {
+            document.getElementById('file-input').click();
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            uploadedFileName = file.name;
+            
+            document.getElementById('upload-title').innerText = file.name;
+            document.getElementById('upload-subtitle').innerText = (file.size / 1024 / 1024).toFixed(2) + " MB";
+            document.getElementById('upload-icon').className = "fas fa-file-alt text-3xl text-black mb-2 block";
+            
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                uploadedFileData = evt.target.result.split(',')[1];
+                enableDecompositionButton(true);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function enableDecompositionButton(active) {
+            const btn = document.getElementById('btn-genera');
+            if (active) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function refreshStep3UI() {
+            const isSocieta = (tenantType === 'Società');
+            const regimeSelectEl = document.getElementById('regime-select');
+            
+            // Set regime select value based on state
+            if (isForfettario) {
+                regimeSelectEl.value = 'Forfettario';
+            } else {
+                regimeSelectEl.value = 'Ordinario';
+            }
+
+            const regimeWrapper = document.getElementById('regime-selection-wrapper');
+            if (isSocieta) {
+                regimeWrapper.classList.add('hidden');
+            } else {
+                regimeWrapper.classList.remove('hidden');
+            }
+
+            const uploaderArea = document.getElementById('uploader-area');
+            const financialsMessage = document.getElementById('financials-detected-message');
+            const financialsGrid = document.getElementById('financials-grid-container');
+            const btnCompleta = document.getElementById('btn-completa');
+            const btnGenera = document.getElementById('btn-genera');
+
+            if (!isSocieta && isForfettario) {
+                // Forfettario - Skip decomposition
+                uploaderArea.classList.add('hidden');
+                financialsMessage.classList.add('hidden');
+                financialsGrid.classList.add('hidden');
+                
+                btnGenera.classList.add('hidden');
+                btnCompleta.classList.remove('hidden');
+            } else {
+                btnGenera.classList.remove('hidden');
+                btnCompleta.classList.add('hidden'); // hidden until decomp is done
+                
+                if (isSocieta && hasFinancials) {
+                    // Case A1
+                    uploaderArea.classList.add('hidden');
+                    financialsMessage.classList.remove('hidden');
+                    enableDecompositionButton(true);
+                } else {
+                    // Case A2 & Case B1
+                    uploaderArea.classList.remove('hidden');
+                    financialsMessage.classList.add('hidden');
+                    
+                    const uploadTitleText = document.getElementById('upload-title');
+                    if (uploadedFileName) {
+                        uploadTitleText.innerText = uploadedFileName;
+                    } else {
+                        uploadTitleText.innerText = isSocieta ? "Carica Bilancio Depositato (CEE)" : "Carica Modello Unico (Quadro RE)";
+                    }
+                    
+                    if (uploadedFileData) {
+                        enableDecompositionButton(true);
+                    } else {
+                        enableDecompositionButton(false);
+                    }
+                }
+            }
+        }
+
+        async function executeDecompositionOrFinish() {
+            if (!tenantType === 'Società' && isForfettario) {
+                await saveAndFinish();
+                return;
+            }
+
+            showLoader("Analisi", "Scomposizione finanziaria del bilancio con IA in corso...");
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: "execute_financial_decomposition",
+                        operators: operators,
+                        machinery: machinery,
+                        uploaded_file_data: uploadedFileData
+                    })
+                });
+
+                if (!response.ok) throw new Error("Errore chiamata server");
+                
+                const result = await response.json();
+                if (result && result.financials) {
+                    populateFinancialsGrid(result.financials);
+                    document.getElementById('financials-grid-container').classList.remove('hidden');
+                    document.getElementById('btn-completa').classList.remove('hidden');
+                    updateFinancialsTotal();
+                } else {
+                    tg.showAlert("Errore: la scomposizione non ha prodotto dati finanziari validi.");
+                }
+            } catch (err) {
+                console.error("Scomposizione fallita:", err);
+                tg.showAlert("Errore durante l'elaborazione del bilancio.");
+            } finally {
+                hideLoader();
+            }
+        }
+
+        // INITIALIZE AND POPULATE ACCOUNTS GRID
+        function initFinancialsInputsHTML() {
+            const populateGroup = (groupKey, targetDivId) => {
+                const container = document.getElementById(targetDivId);
+                container.innerHTML = '';
+                
+                financialsMapping[groupKey].forEach(item => {
+                    container.innerHTML += `
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-baseline">
+                                <label class="text-[10px] font-black uppercase text-gray-700 tracking-wider">${item.label}</label>
+                            </div>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2.5 text-xs font-bold text-gray-400">€</span>
+                                <input type="number" id="${item.code}" name="${item.code}" value="0" min="0" step="0.01" oninput="updateFinancialsTotal()" class="pl-7 pr-3 py-2.5 bg-gray-50 border border-border rounded-xl text-xs font-black text-black w-full focus:bg-white focus:border-black transition-all">
+                            </div>
+                            <span class="text-[8px] text-gray-400 font-bold block mt-0.5 leading-tight">${item.help}</span>
+                        </div>
+                    `;
+                });
+            };
+
+            populateGroup('a', 'group-a');
+            populateGroup('b', 'group-b');
+            populateGroup('c', 'group-c');
+            populateGroup('d', 'group-d');
+        }
+
+        function populateFinancialsGrid(financialsData) {
+            financials = financialsData;
+            Object.keys(financialsData).forEach(code => {
+                const el = document.getElementById(code);
+                if (el) {
+                    el.value = financialsData[code];
+                }
+            });
+            updateFinancialsTotal();
+        }
+
+        function updateFinancialsTotal() {
+            let total = 0;
+            const codes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code);
+            
+            codes.forEach(code => {
+                const el = document.getElementById(code);
+                if (el) {
+                    const val = parseFloat(el.value) || 0;
+                    total += val;
+                    financials[code] = val;
+                }
+            });
+
+            document.getElementById('financials-total-val').innerText = "€ " + total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // ACCORDION GESTION
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const arrow = document.getElementById(`arrow-${id}`);
+            
+            if (content.classList.contains('hidden') || content.style.maxHeight === '0px' || !content.style.maxHeight || content.style.maxHeight === '0') {
+                // Open
+                content.classList.remove('hidden');
+                content.style.maxHeight = content.scrollHeight + 'px';
+                arrow.classList.add('rotate-180');
+                
+                // Allow dynamic changes by setting max-height to none after transition
+                setTimeout(() => {
+                    if (content.style.maxHeight !== '0px') {
+                        content.style.maxHeight = 'none';
+                    }
+                }, 300);
+            } else {
+                // Close
+                content.style.maxHeight = content.scrollHeight + 'px';
+                content.offsetHeight; // force reflow
+                
+                setTimeout(() => {
+                    content.style.maxHeight = '0px';
+                    arrow.classList.remove('rotate-180');
+                }, 10);
+
+                // Add hidden class back after transition finishes to maintain DOM cleanliness
+                setTimeout(() => {
+                    if (content.style.maxHeight === '0px') {
+                        content.classList.add('hidden');
+                    }
+                }, 310);
+            }
+        }
+
+        // SAVE & FINISH ACTIONS
+        async function saveAndFinish() {
+            updateFinancialsTotal();
+            showLoader("Salvataggio", "Salvataggio e chiusura della sessione in corso...");
+            
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: "save_dental_setup",
+                        current_step: 3,
+                        tenant_type: tenantType,
+                        tax_regime: taxRegime,
+                        is_forfettario: isForfettario,
+                        operators: operators,
+                        machinery: machinery,
+                        financials: isForfettario ? {} : financials
+                    })
+                });
+
+                if (!response.ok) throw new Error("Errore nel salvataggio");
+
+                tg.showAlert("Configurazione salvata con successo!", () => {
+                    // Navigate back to hub
+                    location.href = `identity_hub.html?ash=${ash}&msg=${msg || ''}`;
+                });
+            } catch (err) {
+                console.error("Salvataggio finale fallito:", err);
+                tg.showAlert("Errore durante il salvataggio della configurazione.");
+            } finally {
+                hideLoader();
+            }
+        }
+    </script>
+</body>
+</html>
