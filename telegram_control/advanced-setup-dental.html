@@ -103,15 +103,12 @@
 
         <!-- STEP 2: ATTREZZATURE -->
         <div id="section-step-2" class="space-y-6 hidden">
-            <!-- Capacity Check: Numero di Sale Operatorie Attive -->
+            <!-- Capacity Check: Sale Operatorie Attive -->
             <div class="card-noir p-4 flex items-center justify-between gap-4">
                 <div class="flex-1">
                     <h4 class="font-black text-xs uppercase tracking-tight text-black">
-                        Numero di Sale Operatorie Attive [<span id="op-chairs-badge">2</span>]
+                        Sale Operatorie Attive [<span id="op-chairs-badge">2</span>]
                     </h4>
-                    <span class="text-[8px] text-gray-400 font-bold block mt-1 leading-tight">
-                        Rappresenta il numero di poltrone di produzione simultanea dello studio (fondamentale per il calcolo del costo sedia).
-                    </span>
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0 bg-gray-50 border border-border p-1 rounded-xl">
                     <button type="button" onclick="changeChairsCount(-1)" class="w-7 h-7 bg-white text-black border border-border rounded-lg flex items-center justify-center font-bold text-xs active:scale-95 transition hover:bg-black hover:text-white">-</button>
@@ -622,6 +619,64 @@
                 value: 3000,
                 useful_life: 8
             });
+
+            // 5. Add Autoclave di Classe B 18-23 L (Fascia Base)
+            machinery.push({
+                type: 'Autoclave di Classe B 18-23 L (Fascia Base)',
+                year: new Date().getFullYear(),
+                ownership: 'Proprietà',
+                value: 2600,
+                useful_life: 5
+            });
+
+            // 6. Add Termosigillatrice / Sigillatrice Rotativa (Imbustatrice)
+            machinery.push({
+                type: 'Termosigillatrice / Sigillatrice Rotativa',
+                year: new Date().getFullYear(),
+                ownership: 'Proprietà',
+                value: 900,
+                useful_life: 5
+            });
+        }
+
+        function initializeDefaultStaff() {
+            const owner = operators.find(op => op.role === 'Owner');
+            operators = [];
+            if (owner) {
+                operators.push(owner);
+            }
+            
+            // 1. Add Igienista Collaboratore
+            operators.push({
+                id: 'def-igienista',
+                name: 'Igienista Collaboratore',
+                role: 'Igienista',
+                contract: 'Partita IVA',
+                rate_type: 'percentage',
+                rate: 40
+            });
+            
+            // 2. Add ASO Assistente
+            operators.push({
+                id: 'def-aso',
+                name: 'ASO Assistente',
+                role: 'ASO (Assistente)',
+                contract: 'Dipendente (CCNL)',
+                level: '4° Livello Super (4°S)',
+                hours: 40,
+                salary: 1674.10
+            });
+            
+            // 3. Add Segretaria
+            operators.push({
+                id: 'def-segretaria',
+                name: 'Segretaria / Receptionist',
+                role: 'Segretaria / Receptionist',
+                contract: 'Dipendente (CCNL)',
+                level: '4° Livello',
+                hours: 40,
+                salary: 1614.12
+            });
         }
 
         function synchronizeBaseEquipment() {
@@ -715,6 +770,18 @@
                     useful_life: 8
                 });
             }
+
+            // Ensure an autoclave is there
+            const autoclaveIdx = machinery.findIndex(m => m.type && m.type.toLowerCase().includes('autoclave'));
+            if (autoclaveIdx === -1) {
+                machinery.push({
+                    type: 'Autoclave di Classe B 18-23 L (Fascia Base)',
+                    year: new Date().getFullYear(),
+                    ownership: 'Proprietà',
+                    value: 2600,
+                    useful_life: 5
+                });
+            }
             
             renderMachinery();
         }
@@ -805,17 +872,39 @@
                     taxRegime = result.tax_regime || 'Ordinario';
                     isForfettario = !!result.is_forfettario;
                     operators = (result.operators || []).map(op => {
-                        if (op.role === 'ASO') op.role = 'ASO (Assistente)';
-                        else if (op.role === 'Segretaria') op.role = 'Segretaria / Receptionist';
+                        let nameVal = op.name || op.OperatorName || '';
+                        let roleVal = op.role || op.Role || 'Odontoiatra';
+                        let contractVal = op.contract || op.Contract || 'Dipendente (CCNL)';
+                        let levelVal = op.level || op.Level || '';
+                        let hoursVal = op.hours !== undefined ? op.hours : (op.Hours !== undefined ? op.Hours : 40);
+                        let salaryVal = op.salary || op.Salary || '';
                         
-                        if (op.contract === 'Dipendente') op.contract = 'Dipendente (CCNL)';
-                        else if (op.contract === 'P.IVA') op.contract = 'Partita IVA';
+                        if (roleVal === 'ASO') roleVal = 'ASO (Assistente)';
+                        else if (roleVal === 'Segretaria') roleVal = 'Segretaria / Receptionist';
+                        else if (roleVal.toLowerCase() === 'owner') roleVal = 'Owner';
                         
-                        if (op.contract === 'Dipendente (CCNL)') {
-                            if (op.hours === undefined) {
-                                op.hours = 40;
-                            }
-                            
+                        if (contractVal === 'Dipendente') contractVal = 'Dipendente (CCNL)';
+                        else if (contractVal === 'P.IVA') contractVal = 'Partita IVA';
+                        
+                        if (roleVal === 'Owner') {
+                            contractVal = 'Partita IVA';
+                        }
+                        
+                        let opData = {
+                            id: op.id || op.OperatorChatID || null,
+                            name: nameVal,
+                            role: roleVal,
+                            contract: contractVal,
+                            level: levelVal,
+                            hours: hoursVal,
+                            salary: salaryVal,
+                            rate_type: op.rate_type || 'percentage',
+                            rate: op.rate || 100,
+                            specialization: op.specialization || 'Generico / Generalista',
+                            geminiKey: op.GeminiKey || op.geminiKey || ''
+                        };
+                        
+                        if (contractVal === 'Dipendente (CCNL)' && roleVal !== 'Owner') {
                             const levelNormalizationMap = {
                                 'Quadri': 'Quadri (Q)',
                                 'Q': 'Quadri (Q)',
@@ -840,8 +929,8 @@
                             };
 
                             let normalizedLevel = '4° Livello';
-                            if (op.level) {
-                                const trimmed = op.level.trim();
+                            if (opData.level) {
+                                const trimmed = opData.level.trim();
                                 if (baseSalaries[trimmed] !== undefined) {
                                     normalizedLevel = trimmed;
                                 } else {
@@ -853,46 +942,68 @@
                                     }
                                 }
                             }
-                            op.level = normalizedLevel;
+                            opData.level = normalizedLevel;
                         } else {
-                            op.level = '';
-                            op.hours = 40;
+                            if (roleVal !== 'Owner') {
+                                opData.level = '';
+                                opData.hours = 40;
+                            }
                         }
                         
-                        return op;
+                        return opData;
                     });
+                    
+                    // Sort to make sure Owner is always at the top/in head
+                    operators.sort((a, b) => {
+                        if (a.role === 'Owner') return -1;
+                        if (b.role === 'Owner') return 1;
+                        return 0;
+                    });
+                    
+                    const hasOnlyOwner = operators.length === 0 || (operators.length === 1 && operators[0].role === 'Owner');
+                    if (hasOnlyOwner) {
+                        initializeDefaultStaff();
+                    }
                     machinery = result.machinery || [];
                     numberOfChairs = result.number_of_chairs !== undefined ? result.number_of_chairs : 2;
-                    
-                    if (machinery.length === 0) {
-                        initializeDefaultEquipment();
-                    }
-                    
-                    // Set elements
-                    document.getElementById('tenant-type-select').value = tenantType;
-                    document.getElementById('regime-select').value = taxRegime;
-                    const chairsInput = document.getElementById('op-chairs-num');
-                    if (chairsInput) {
-                        chairsInput.value = numberOfChairs;
-                    }
-                    const badge = document.getElementById('op-chairs-badge');
-                    if (badge) {
-                        badge.innerText = numberOfChairs;
-                    }
-                    
-                    if (result.financials) {
-                        populateFinancialsGrid(result.financials);
-                        hasFinancials = true;
-                    }
-                    
-                    renderOperators();
-                    renderMachinery();
-                    
-                    if (result.current_step) {
-                        goToStep(result.current_step);
-                    } else {
-                        goToStep(1);
-                    }
+                } else {
+                    tenantType = 'Società';
+                    taxRegime = 'Ordinario';
+                    isForfettario = false;
+                    operators = [];
+                    machinery = [];
+                    numberOfChairs = 2;
+                    initializeDefaultStaff();
+                }
+                
+                if (machinery.length === 0) {
+                    initializeDefaultEquipment();
+                } else {
+                    synchronizeBaseEquipment();
+                }
+                
+                // Set elements
+                document.getElementById('tenant-type-select').value = tenantType;
+                document.getElementById('regime-select').value = taxRegime;
+                const chairsInput = document.getElementById('op-chairs-num');
+                if (chairsInput) {
+                    chairsInput.value = numberOfChairs;
+                }
+                const badge = document.getElementById('op-chairs-badge');
+                if (badge) {
+                    badge.innerText = numberOfChairs;
+                }
+                
+                if (result && result.financials) {
+                    populateFinancialsGrid(result.financials);
+                    hasFinancials = true;
+                }
+                
+                renderOperators();
+                renderMachinery();
+                
+                if (result && result.current_step) {
+                    goToStep(result.current_step);
                 } else {
                     goToStep(1);
                 }
@@ -944,27 +1055,53 @@
                 else if (op.role === 'Odontotecnico') iconClass = 'fa-teeth';
                 else if (op.role === 'Tecnico Manutentore') iconClass = 'fa-wrench';
                 else if (op.role === 'Ausiliario / Addetto Pulizie') iconClass = 'fa-broom';
+                else if (op.role === 'Owner') iconClass = 'fa-crown';
 
                 let roleText = op.role;
                 if (op.role === 'Odontoiatra' && op.specialization) {
                     roleText = `${op.role} (${op.specialization})`;
+                } else if (op.role === 'Owner') {
+                    roleText = 'Titolare (Owner)';
                 }
 
                 let contractLabel = roleText;
-                if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
+                if (op.role === 'Owner') {
+                    contractLabel = roleText;
+                } else if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
                     contractLabel += op.level ? ` - Dipendente (${op.level})` : ` - Dipendente`;
                 } else if (op.contract === 'Partita IVA' || op.contract === 'P.IVA') {
                     contractLabel += ` - P.IVA`;
                 }
 
                 let contractText = '';
-                if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
+                if (op.role === 'Owner') {
+                    contractText = 'Amministratore dello Studio';
+                } else if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
                     const hoursVal = op.hours !== undefined ? op.hours : 40;
                     contractText = `Lorde: €${parseFloat(op.salary || 0).toLocaleString('it-IT')}/mese (${hoursVal}h/sett)`;
                 } else {
                     contractText = op.rate_type === 'hourly' 
                         ? `Tariffa: €${op.rate}/ora` 
                         : `Ingaggio: ${op.rate}% su prestazione`;
+                }
+
+                let actionButtonsHtml = '';
+                if (op.role !== 'Owner') {
+                    actionButtonsHtml = `
+                        ${op.contract === 'Partita IVA' || op.contract === 'P.IVA' ? `
+                            <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito">
+                                Invita
+                            </button>
+                        ` : ''}
+                        <button onclick="openOperatorDrawer(${idx})" class="w-7 h-7 bg-gray-50 text-gray-500 border border-border rounded-lg flex items-center justify-center active:scale-95 transition">
+                            <i class="fas fa-edit text-[10px]"></i>
+                        </button>
+                        <button onclick="deleteOperator(${idx})" class="w-7 h-7 bg-red-50 text-red-500 border border-red-100 rounded-lg flex items-center justify-center active:scale-95 transition">
+                            <i class="fas fa-trash text-[10px]"></i>
+                        </button>
+                    `;
+                } else {
+                    actionButtonsHtml = `<span class="px-2 py-1 bg-black text-white text-[8px] font-black uppercase rounded-lg">Owner</span>`;
                 }
 
                 grid.innerHTML += `
@@ -980,17 +1117,7 @@
                             </div>
                         </div>
                         <div class="flex gap-2 items-center">
-                            ${op.contract === 'Partita IVA' || op.contract === 'P.IVA' ? `
-                                <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito">
-                                    Invita
-                                </button>
-                            ` : ''}
-                            <button onclick="openOperatorDrawer(${idx})" class="w-7 h-7 bg-gray-50 text-gray-500 border border-border rounded-lg flex items-center justify-center active:scale-95 transition">
-                                <i class="fas fa-edit text-[10px]"></i>
-                            </button>
-                            <button onclick="deleteOperator(${idx})" class="w-7 h-7 bg-red-50 text-red-500 border border-red-100 rounded-lg flex items-center justify-center active:scale-95 transition">
-                                <i class="fas fa-trash text-[10px]"></i>
-                            </button>
+                            ${actionButtonsHtml}
                         </div>
                     </div>
                 `;
