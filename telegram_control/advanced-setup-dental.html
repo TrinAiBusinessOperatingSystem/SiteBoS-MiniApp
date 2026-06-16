@@ -1086,13 +1086,11 @@
                 }
 
                 let actionButtonsHtml = '';
-                if (op.role !== 'Owner') {
+                if (!op.isOwner) {
                     actionButtonsHtml = `
-                        ${op.contract === 'Partita IVA' || op.contract === 'P.IVA' ? `
-                            <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito">
-                                Invita
-                            </button>
-                        ` : ''}
+                        <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito">
+                            Invita
+                        </button>
                         <button onclick="openOperatorDrawer(${idx})" class="w-7 h-7 bg-gray-50 text-gray-500 border border-border rounded-lg flex items-center justify-center active:scale-95 transition">
                             <i class="fas fa-edit text-[10px]"></i>
                         </button>
@@ -1101,7 +1099,12 @@
                         </button>
                     `;
                 } else {
-                    actionButtonsHtml = `<span class="px-2 py-1 bg-black text-white text-[8px] font-black uppercase rounded-lg">Owner</span>`;
+                    actionButtonsHtml = `
+                        <button onclick="openOperatorDrawer(${idx})" class="w-7 h-7 bg-gray-50 text-gray-500 border border-border rounded-lg flex items-center justify-center active:scale-95 transition">
+                            <i class="fas fa-edit text-[10px]"></i>
+                        </button>
+                        <span class="px-2 py-1 bg-black text-white text-[8px] font-black uppercase rounded-lg">Owner</span>
+                    `;
                 }
 
                 grid.innerHTML += `
@@ -1349,7 +1352,9 @@
                 id: activeEditIndex !== null ? operators[activeEditIndex].id : 'op_' + Date.now(),
                 name: name,
                 role: role,
-                contract: contract
+                contract: contract,
+                isOwner: activeEditIndex !== null ? !!operators[activeEditIndex].isOwner : false,
+                geminiKey: activeEditIndex !== null ? (operators[activeEditIndex].geminiKey || '') : ''
             };
 
             if (role === 'Odontoiatra') {
@@ -1377,6 +1382,13 @@
             } else {
                 operators.push(opData);
             }
+
+            // Re-sort to make sure Owner is in head
+            operators.sort((a, b) => {
+                if (a.isOwner && !b.isOwner) return -1;
+                if (!a.isOwner && b.isOwner) return 1;
+                return 0;
+            });
 
             closeDrawer();
             renderOperators();
