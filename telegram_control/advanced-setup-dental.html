@@ -101,12 +101,21 @@
             </div>
         </div>
 
-        <!-- STEP 2: MACCHINARI -->
+        <!-- STEP 2: ATTREZZATURE -->
         <div id="section-step-2" class="space-y-6 hidden">
+            <!-- Capacity Check: Numero di Sale Operatorie Attive -->
+            <div class="card-noir p-5 space-y-3">
+                <div class="space-y-1">
+                    <label class="label-micro">Numero di Sale Operatorie Attive (Riuniti)</label>
+                    <input type="number" id="op-chairs-num" value="2" min="1" onchange="updateChairsNumber(this.value)" oninput="updateChairsNumber(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                    <span class="text-[8px] text-gray-400 font-bold block mt-1 leading-tight">Rappresenta il numero di poltrone di produzione simultanea dello studio (fondamentale per il calcolo del costo sedia).</span>
+                </div>
+            </div>
+
             <div class="flex justify-between items-center">
                 <div>
-                    <h3 class="text-sm font-black uppercase tracking-tight">Macchinari e Asset</h3>
-                    <p class="text-[10px] text-gray-400 font-medium leading-relaxed">Censisci i riuniti e i grandi cespiti tecnologici.</p>
+                    <h3 class="text-sm font-black uppercase tracking-tight">Attrezzature e Asset</h3>
+                    <p class="text-[10px] text-gray-400 font-medium leading-relaxed">Censisci i riuniti e le grandi attrezzature tecnologiche.</p>
                 </div>
                 <button onclick="openMachineryDrawer()" class="px-4 py-2.5 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition">
                     <i class="fas fa-plus"></i> Aggiungi
@@ -114,7 +123,7 @@
             </div>
 
             <div id="machinery-grid" class="grid gap-3">
-                <!-- Machinery Cards Rendered dynamically -->
+                <!-- Machinery/Attrezzature Cards Rendered dynamically -->
             </div>
 
             <div class="pt-6 border-t border-border flex gap-3">
@@ -299,6 +308,137 @@
         let isForfettario = false;
         let operators = [];
         let machinery = [];
+        let numberOfChairs = 2;
+
+        const attrezzaturePreset = {
+          "Attrezzatura di Base": [
+            { name: "Riunito Odontoiatrico (Fascia Base)", defaultPrice: 12000, usefulLife: 10 },
+            { name: "Riunito Odontoiatrico (Fascia Media)", defaultPrice: 18500, usefulLife: 10 },
+            { name: "Riunito Odontoiatrico (Fascia Premium)", defaultPrice: 25000, usefulLife: 12 },
+            { name: "Compressore d'Aria Medicale Secco con Essiccatore (1-2 riuniti)", defaultPrice: 1200, usefulLife: 8 },
+            { name: "Compressore d'Aria Medicale Secco con Essiccatore (2-3 riuniti)", defaultPrice: 1600, usefulLife: 8 },
+            { name: "Compressore d'Aria Medicale Secco con Essiccatore (4-5 riuniti - Centralizzato)", defaultPrice: 3500, usefulLife: 8 },
+            { name: "Sistema di Aspirazione Chirurgica ad Anello Umido", defaultPrice: 2000, usefulLife: 8 },
+            { name: "Sistema di Aspirazione Chirurgica ad Anello Secco", defaultPrice: 3200, usefulLife: 8 },
+            { name: "Radiografico Endorale a Parete (Generatore RX)", defaultPrice: 3000, usefulLife: 8 },
+            { name: "Inalatore per Sedazione Cosciente (Flussometro Meccanico con Carrello)", defaultPrice: 3800, usefulLife: 8 },
+            { name: "Inalatore per Sedazione Cosciente (Flussometro Elettronico Proporzionatore)", defaultPrice: 5500, usefulLife: 8 },
+            { name: "Sedation Machine / Flussometro Elettronico Intelligente (High-End)", defaultPrice: 7800, usefulLife: 8 }
+          ],
+
+          "Diagnostica e Radiologia": [
+            { name: "Ortopantomografo Digitale (OPT 2D - Fascia Base)", defaultPrice: 18000, usefulLife: 8 },
+            { name: "Ortopantomografo Digitale (OPT 2D - Fascia Media)", defaultPrice: 28000, usefulLife: 8 },
+            { name: "Teleradiografo del Cranio (Cefalometria)", defaultPrice: 15000, usefulLife: 8 },
+            { name: "TAC CBCT (Cone Beam 3D – FOV standard)", defaultPrice: 60000, usefulLife: 8 },
+            { name: "TAC CBCT (Cone Beam 3D – High-End, FOV esteso)", defaultPrice: 90000, usefulLife: 8 },
+            { name: "Sensore Digitale RVG Endorale (Size 1)", defaultPrice: 2000, usefulLife: 5 },
+            { name: "Sensore Digitale RVG Endorale (Size 2)", defaultPrice: 2200, usefulLife: 5 },
+            { name: "Scanner CR per Lastre ai Fosfori", defaultPrice: 6000, usefulLife: 5 },
+            { name: "Monitor Diagnostico Medicale (alta luminanza)", defaultPrice: 800, usefulLife: 6 }
+          ],
+
+          "Microscopia e Ingrandimenti": [
+            { name: "Sistemi d'Ingrandimento Galileiani TTL su caschetto/occhiali (Entry-Level)", defaultPrice: 1200, usefulLife: 6 },
+            { name: "Sistemi d'Ingrandimento Prismatici TTL personalizzati (Fascia Media)", defaultPrice: 2500, usefulLife: 6 },
+            { name: "Microscopio Operatorio Odontoiatrico (Fascia Entry, e.g. Zumax)", defaultPrice: 11000, usefulLife: 10 },
+            { name: "Microscopio Operatorio Odontoiatrico (High-End, e.g. Leica/Zeiss)", defaultPrice: 28000, usefulLife: 10 },
+            { name: "Kit Fotografia Clinica (Corpo Mirrorless/Reflex, Obiettivo Macro, Flash Anulare)", defaultPrice: 2200, usefulLife: 5 }
+          ],
+
+          "Sterilizzazione": [
+            { name: "Autoclave di Classe B 18-23 L (Fascia Base)", defaultPrice: 2600, usefulLife: 5 },
+            { name: "Autoclave di Classe B 23 L (Fascia Media - seconda/aut backup)", defaultPrice: 2800, usefulLife: 5 },
+            { name: "Autoclave di Classe B 24-28 L (Premium/High-End, e.g. Mocom Futura / Euronda E10)", defaultPrice: 7500, usefulLife: 5 },
+            { name: "Sistema Automatico Lavaggio, Lubrificazione e Sterilizzazione Manipoli (e.g. DAC Universal)", defaultPrice: 5200, usefulLife: 5 },
+            { name: "Termosigillatrice / Sigillatrice Rotativa", defaultPrice: 900, usefulLife: 5 },
+            { name: "Termodisinfettore / Lava-strumenti automatico", defaultPrice: 4000, usefulLife: 6 },
+            { name: "Vasca a Ultrasuoni per Strumenti", defaultPrice: 500, usefulLife: 5 },
+            { name: "Distillatore / Sistema Trattamento Acqua per Autoclave", defaultPrice: 500, usefulLife: 5 }
+          ],
+
+          "Strumenti Rotanti e Conservativa": [
+            { name: "Turbina ad Alta Velocità con Fibra Ottica (Fascia Base)", defaultPrice: 450, usefulLife: 4 },
+            { name: "Turbina ad Alta Velocità con Fibra Ottica (Fascia Media/Top)", defaultPrice: 600, usefulLife: 4 },
+            { name: "Contrangolo Moltiplicatore 1:5 (anello rosso - Fascia Base)", defaultPrice: 650, usefulLife: 4 },
+            { name: "Contrangolo Moltiplicatore 1:5 (anello rosso - Fascia Media/Top)", defaultPrice: 900, usefulLife: 4 },
+            { name: "Contrangolo 1:1 (anello blu)", defaultPrice: 500, usefulLife: 4 },
+            { name: "Contrangolo Riduttore 20:1 (Endodonzia/Chirurgia)", defaultPrice: 800, usefulLife: 4 },
+            { name: "Micromotore Elettrico ad Induzione per Riunito", defaultPrice: 1500, usefulLife: 4 },
+            { name: "Micromotore Pneumatico", defaultPrice: 400, usefulLife: 4 },
+            { name: "Ablatore a Ultrasuoni (Scaler) Stand-Alone o da Riunito", defaultPrice: 1400, usefulLife: 5 },
+            { name: "Lampada Fotopolimerizzante LED", defaultPrice: 600, usefulLife: 4 }
+          ],
+
+          "Endodonzia": [
+            { name: "Motore Endodontico con Movimento Reciprocante/Rotante", defaultPrice: 1800, usefulLife: 5 },
+            { name: "Localizzatore d'Apice Elettronico", defaultPrice: 700, usefulLife: 5 },
+            { name: "Sistema di Otturazione Termoplastica (pistola guttaperca)", defaultPrice: 1200, usefulLife: 5 },
+            { name: "Sistema di Condensazione Termica", defaultPrice: 700, usefulLife: 5 },
+            { name: "Lenti Ingrandimento TTL con LED", defaultPrice: 1500, usefulLife: 6 }
+          ],
+
+          "Chirurgia e Implantologia": [
+            { name: "Fisiodispenser per Chirurgia/Implantologia (Fascia Base)", defaultPrice: 2400, usefulLife: 5 },
+            { name: "Fisiodispenser per Chirurgia/Implantologia (Fascia Media/Top)", defaultPrice: 3600, usefulLife: 5 },
+            { name: "Unità Chirurgica Piezoelettrica (Fascia Media)", defaultPrice: 5200, usefulLife: 5 },
+            { name: "Unità Chirurgica Piezoelettrica (Fascia High-End)", defaultPrice: 8500, usefulLife: 5 },
+            { name: "Kit Chirurgico Implantare Completo (fresatori, guide, chiavi)", defaultPrice: 2200, usefulLife: 7 },
+            { name: "Set Strumentario Chirurgico (vassoi, retrattori, pinze, porta-aghi)", defaultPrice: 1800, usefulLife: 7 },
+            { name: "Aspiratore Chirurgico ad Alta Potenza (mobile)", defaultPrice: 1900, usefulLife: 8 },
+            { name: "Lampada Scialitica da Chirurgia (ceiling/stand)", defaultPrice: 3200, usefulLife: 10 },
+            { name: "Lampada Scialitica/Operatoria a LED", defaultPrice: 1800, usefulLife: 10 }
+          ],
+
+          "Parodontologia e Igiene": [
+            { name: "Riunito/Poltrona Dedicata all'Igienista", defaultPrice: 11000, usefulLife: 10 },
+            { name: "Ablatore a Ultrasuoni con Programmi Parodontali", defaultPrice: 1900, usefulLife: 5 },
+            { name: "Unità Air-Polishing / Air-Flow per Profilassi", defaultPrice: 4500, usefulLife: 6 },
+            { name: "Lampada Ingrandente con LED per Igiene/Parodontologia", defaultPrice: 700, usefulLife: 6 },
+            { name: "Telecamera Intraorale HD per Motivazione e Monitoraggio", defaultPrice: 1800, usefulLife: 5 }
+          ],
+
+          "Laser e Tecnologie Avanzate": [
+            { name: "Laser a Diodi Chirurgico/Terapeutico (Fascia Base/Entry)", defaultPrice: 3500, usefulLife: 5 },
+            { name: "Laser a Diodi Chirurgico/Terapeutico (Fascia Media/Top)", defaultPrice: 5200, usefulLife: 5 },
+            { name: "Laser ad Erbio (Soft and Hard Tissue - High-End)", defaultPrice: 24000, usefulLife: 5 },
+            { name: "Dispositivo per Terapia Fotodinamica (PDT)", defaultPrice: 3800, usefulLife: 5 },
+            { name: "Dispositivo per Diagnosi con Fluorescenza Cariosa", defaultPrice: 3200, usefulLife: 5 }
+          ],
+
+          "Gnatologia e Posturologia": [
+            { name: "Pedana Baropodometrica e Stabilometrica per Gnatologia", defaultPrice: 3500, usefulLife: 6 },
+            { name: "Kinesiografo ed Elettromiografo di Superficie", defaultPrice: 6800, usefulLife: 6 },
+            { name: "Arco Facciale e Articolatore Registrabile di precisione", defaultPrice: 1800, usefulLife: 10 }
+          ],
+
+          "Emergenza e Sicurezza Clinica": [
+            { name: "Defibrillatore Semiautomatico Esterno (DAE)", defaultPrice: 1200, usefulLife: 8 },
+            { name: "Kit Emergenze Mediche Completo (Bombola Ossigeno, Ambu, Farmaci Salvavita)", defaultPrice: 900, usefulLife: 5 }
+          ],
+
+          "Laboratorio Digitale 3D - Acquisizione": [
+            { name: "Scanner Intraorale 3D (fascia economica)", defaultPrice: 5500, usefulLife: 5 },
+            { name: "Scanner Intraorale 3D (fascia mid-range)", defaultPrice: 12000, usefulLife: 5 },
+            { name: "Scanner Intraorale 3D (fascia high-end)", defaultPrice: 22000, usefulLife: 5 },
+            { name: "Scanner da Banco per Modelli in Gesso", defaultPrice: 9000, usefulLife: 6 },
+            { name: "Workstation CAD per Odontoiatria Digitale", defaultPrice: 2800, usefulLife: 5 },
+            { name: "Software CAD/CAM Protesico (licenza iniziale)", defaultPrice: 9000, usefulLife: 5 }
+          ],
+
+          "Laboratorio Digitale 3D - Production Additiva": [
+            { name: "Stampante 3D Dentale a Resina (LCD/DLP – uso studio)", defaultPrice: 3200, usefulLife: 5 },
+            { name: "Stampante 3D Dentale High-End (DLP/4K)", defaultPrice: 5200, usefulLife: 5 },
+            { name: "Stazione di Lavaggio Resine (Wash Station)", defaultPrice: 900, usefulLife: 5 },
+            { name: "Forno di Post-Polimerizzazione UV (Cure Station)", defaultPrice: 1500, usefulLife: 5 }
+          ],
+
+          "Laboratorio Digitale 3D - Fresatura CAD/CAM": [
+            { name: "Fresatrice CAD/CAM 4 Assi da Banco", defaultPrice: 20000, usefulLife: 7 },
+            { name: "Fresatrice CAD/CAM 5 Assi (zirconia/metallo)", defaultPrice: 32000, usefulLife: 7 },
+            { name: "Sistema Aspirazione Polveri/Fresato per Fresatrice", defaultPrice: 2200, usefulLife: 6 }
+          ]
+        };
         let financials = {};
         let hasFinancials = false;
         let uploadedFileData = null;
@@ -335,7 +475,7 @@
                 { code: "631.00015", label: "Abbonamenti Software Gestionali", help: "Canone del gestionale di studio, cartella clinica o cloud 3D." }
             ],
             d: [
-                { code: "605.00001", label: "Leasing Riuniti e Grandi Macchinari", help: "Canone leasing mensile per riuniti, TAC o autoclavi." },
+                { code: "605.00001", label: "Leasing Riuniti e Grandi Attrezzature", help: "Canone leasing mensile per riuniti, TAC o autoclavi." },
                 { code: "601.00004", label: "Ammortamento Tecnologie Mediche", help: "Quota annua di usura per riuniti, radiografici e sterilizzatrici." },
                 { code: "601.00010", label: "Ammortamento Mobili e Arredi", help: "Quota di usura per i mobili dei mobili clinici e sala d'attesa." },
                 { code: "601.00007", label: "Ammortamento computer d'ufficio", help: "Quota d'usura per PC reception, server di studio e stampanti." },
@@ -402,12 +542,16 @@
             document.getElementById('step-desc-micro').innerText = `Fase ${step} di 3`;
             
             // Update titles
-            const titles = ["", "Operatori e Staff", "Macchinari e Asset", "Bilancio"];
+            const titles = ["", "Operatori e Staff", "Attrezzature e Asset", "Bilancio"];
             document.getElementById('step-title').innerText = titles[step];
             
             if (step === 3) {
                 refreshStep3UI();
             }
+        }
+
+        function updateChairsNumber(val) {
+            numberOfChairs = parseInt(val) || 2;
         }
 
         async function nextStep() {
@@ -418,11 +562,20 @@
             } else if (currentStep === 2) {
                 // Validation check
                 const operatorCount = operators.length;
-                const reunitoCount = machinery.filter(m => m.type === 'Riunito Odontoiatrico').length;
+                const reunitoCount = machinery.filter(m => m.type && m.type.toLowerCase().includes('riunito')).length;
+                const chairsInput = document.getElementById('op-chairs-num');
+                const chairs = chairsInput ? (parseInt(chairsInput.value) || 0) : numberOfChairs;
+
+                if (chairs < 1) {
+                    tg.showAlert("Requisito Necessario: il numero di sale operatorie attive deve essere almeno 1.");
+                    return;
+                }
                 if (operatorCount < 1 || reunitoCount < 1) {
                     tg.showAlert("Requisito Necessario: inserisci almeno 1 Operatore (nello Step 1) e almeno 1 Riunito Odontoiatrico (nello Step 2).");
                     return;
                 }
+                numberOfChairs = chairs;
+                
                 // Save state step 2
                 await saveStepData(2);
                 goToStep(3);
@@ -438,6 +591,10 @@
         // SAVE STEP DATA ASYNC
         async function saveStepData(step) {
             try {
+                const chairsInput = document.getElementById('op-chairs-num');
+                if (chairsInput) {
+                    numberOfChairs = parseInt(chairsInput.value) || numberOfChairs;
+                }
                 await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -450,7 +607,8 @@
                         tax_regime: taxRegime,
                         is_forfettario: isForfettario,
                         operators: operators,
-                        machinery: machinery
+                        machinery: machinery,
+                        number_of_chairs: numberOfChairs
                     })
                 });
             } catch (err) {
@@ -539,10 +697,15 @@
                         return op;
                     });
                     machinery = result.machinery || [];
+                    numberOfChairs = result.number_of_chairs !== undefined ? result.number_of_chairs : 2;
                     
                     // Set elements
                     document.getElementById('tenant-type-select').value = tenantType;
                     document.getElementById('regime-select').value = taxRegime;
+                    const chairsInput = document.getElementById('op-chairs-num');
+                    if (chairsInput) {
+                        chairsInput.value = numberOfChairs;
+                    }
                     
                     if (result.financials) {
                         populateFinancialsGrid(result.financials);
@@ -998,22 +1161,33 @@
             grid.innerHTML = '';
             
             if (machinery.length === 0) {
-                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessun macchinario censito.</div>`;
+                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessuna attrezzatura inserita.</div>`;
                 return;
             }
 
             machinery.forEach((mac, idx) => {
-                let iconClass = 'fa-tools';
-                if (mac.type === 'Riunito Odontoiatrico') iconClass = 'fa-chair';
-                else if (mac.type === 'PC/Workstation') iconClass = 'fa-laptop';
-                else if (mac.type === 'TAC CBCT') iconClass = 'fa-x-ray';
-                else if (mac.type === 'Scanner Intraorale 3D') iconClass = 'fa-qrcode';
+                let iconClass = 'fa-tools'; // default
+                const nameLower = (mac.type || '').toLowerCase();
+                
+                if (nameLower.includes('riunito') || nameLower.includes('poltrona')) iconClass = 'fa-chair';
+                else if (nameLower.includes('compressore')) iconClass = 'fa-wind';
+                else if (nameLower.includes('aspiratore') || nameLower.includes('aspirazione')) iconClass = 'fa-filter';
+                else if (nameLower.includes('radiografico') || nameLower.includes('opt') || nameLower.includes('cbct') || nameLower.includes('tac') || nameLower.includes('cefalometria')) iconClass = 'fa-x-ray';
+                else if (nameLower.includes('scanner') || nameLower.includes('sensor') || nameLower.includes('rvg')) iconClass = 'fa-qrcode';
+                else if (nameLower.includes('microscopio') || nameLower.includes('ingrandimento') || nameLower.includes('ttl')) iconClass = 'fa-microscope';
+                else if (nameLower.includes('fotografia')) iconClass = 'fa-camera';
+                else if (nameLower.includes('autoclave') || nameLower.includes('sterilizz') || nameLower.includes('lava-strumenti') || nameLower.includes('termodisinfettore')) iconClass = 'fa-soap';
+                else if (nameLower.includes('laser')) iconClass = 'fa-bolt';
+                else if (nameLower.includes('stampante 3d') || nameLower.includes('fresatrice')) iconClass = 'fa-print';
+                else if (nameLower.includes('workstation') || nameLower.includes('pc') || nameLower.includes('software')) iconClass = 'fa-laptop';
+                else if (nameLower.includes('defibrillatore') || nameLower.includes('emergenz')) iconClass = 'fa-first-aid';
+                else if (nameLower.includes('turbina') || nameLower.includes('contrangolo') || nameLower.includes('micromotore') || nameLower.includes('ablatore') || nameLower.includes('scaler') || nameLower.includes('sigillatrice') || nameLower.includes('manipol')) iconClass = 'fa-sync-alt';
 
                 let ownershipText = '';
                 if (mac.ownership === 'Proprietà') {
                     ownershipText = `Prezzo d'acquisto: €${parseFloat(mac.value).toLocaleString('it-IT')}`;
                 } else {
-                    ownershipText = `Leasing: €${parseFloat(mac.value).toLocaleString('it-IT')}/mese`;
+                    ownershipText = `Leasing/Noleggio: €${parseFloat(mac.value).toLocaleString('it-IT')}/mese`;
                 }
 
                 grid.innerHTML += `
@@ -1023,9 +1197,9 @@
                                 <i class="fas ${iconClass}"></i>
                             </div>
                             <div>
-                                <span class="label-micro !text-gray-400">${mac.type} - ${mac.ownership}</span>
-                                <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">Tecnologia ACQ: ${mac.year}</h4>
-                                <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${ownershipText} (Amm. ${mac.useful_life} anni)</span>
+                                <span class="label-micro !text-gray-400">${mac.ownership}</span>
+                                <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">${mac.type}</h4>
+                                <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${ownershipText} (Amm. ${mac.useful_life} anni - ACQ: ${mac.year})</span>
                             </div>
                         </div>
                         <div class="flex gap-2">
@@ -1041,38 +1215,62 @@
             });
         }
 
+        function isPresetType(name) {
+            for (const category of Object.values(attrezzaturePreset)) {
+                if (category.some(item => item.name === name)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         function openMachineryDrawer(idx = null) {
             activeEditIndex = idx;
             const isEdit = idx !== null;
-            const data = isEdit ? machinery[idx] : { type: 'Riunito Odontoiatrico', year: new Date().getFullYear(), ownership: 'Proprietà', value: '', useful_life: 8 };
+            const data = isEdit ? machinery[idx] : { type: 'Riunito Odontoiatrico (Fascia Media)', year: new Date().getFullYear(), ownership: 'Proprietà', value: 18500, useful_life: 10 };
             
+            const isPreset = isPresetType(data.type);
+            const isCustom = data.type && !isPreset && data.type !== 'Altra Attrezzatura (Personalizzata)';
+            
+            let typeOptionsHtml = '';
+            for (const [category, items] of Object.entries(attrezzaturePreset)) {
+                typeOptionsHtml += `<optgroup label="${category}">`;
+                items.forEach(item => {
+                    typeOptionsHtml += `<option value="${item.name}" ${data.type === item.name ? 'selected' : ''}>${item.name}</option>`;
+                });
+                typeOptionsHtml += `</optgroup>`;
+            }
+            typeOptionsHtml += `<option value="Altra Attrezzatura (Personalizzata)" ${data.type === 'Altra Attrezzatura (Personalizzata)' || isCustom ? 'selected' : ''}>Altra Attrezzatura (Personalizzata)</option>`;
+
             const container = document.getElementById('drawer-container');
             container.innerHTML = `
                 <div class="flex justify-between items-center pb-2 border-b border-border">
-                    <h3 class="text-xs font-black uppercase tracking-tight text-black">${isEdit ? 'Modifica' : 'Aggiungi'} Macchinario</h3>
+                    <h3 class="text-xs font-black uppercase tracking-tight text-black">${isEdit ? 'Modifica' : 'Aggiungi'} Attrezzatura</h3>
                     <button onclick="closeDrawer()" class="text-gray-400"><i class="fas fa-times-circle text-lg"></i></button>
                 </div>
                 
                 <div class="space-y-3">
                     <div class="space-y-1">
-                        <label class="label-micro">Tipo Cespito</label>
-                        <select id="mac-type" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
-                            <option value="Riunito Odontoiatrico" ${data.type === 'Riunito Odontoiatrico' ? 'selected' : ''}>Riunito Odontoiatrico</option>
-                            <option value="Scanner Intraorale 3D" ${data.type === 'Scanner Intraorale 3D' ? 'selected' : ''}>Scanner Intraorale 3D</option>
-                            <option value="Autoclave Classe B" ${data.type === 'Autoclave Classe B' ? 'selected' : ''}>Autoclave Classe B</option>
-                            <option value="PC/Workstation" ${data.type === 'PC/Workstation' ? 'selected' : ''}>PC/Workstation</option>
-                            <option value="TAC CBCT" ${data.type === 'TAC CBCT' ? 'selected' : ''}>TAC CBCT</option>
+                        <label class="label-micro">Attrezzatura</label>
+                        <select id="mac-type" onchange="handleMacTypeChange(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            ${typeOptionsHtml}
                         </select>
                     </div>
 
+                    <!-- NOME PERSONALIZZATO -->
+                    <div id="mac-custom-name-wrapper" class="space-y-1 ${isCustom ? '' : 'hidden'}">
+                        <label class="label-micro">Nome Attrezzatura Personalizzata</label>
+                        <input type="text" id="mac-custom-name" value="${isCustom ? data.type : ''}" placeholder="Es: Turbina speciale" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                    </div>
+                    
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="label-micro">Anno Acquisto</label>
-                            <input type="number" id="mac-year" value="${data.year}" placeholder="Es: 2024" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                            <input type="number" id="mac-year" value="${data.year}" placeholder="Es: 2024" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                         </div>
                         <div class="space-y-1">
                             <label class="label-micro">Possesso</label>
-                            <select id="mac-ownership" onchange="toggleMacOwnershipLabels(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            <select id="mac-ownership" onchange="handleMacOwnershipChange(this.value, false)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
                                 <option value="Proprietà" ${data.ownership === 'Proprietà' ? 'selected' : ''}>Proprietà</option>
                                 <option value="Leasing/Noleggio" ${data.ownership === 'Leasing/Noleggio' ? 'selected' : ''}>Leasing / Noleggio</option>
                             </select>
@@ -1082,33 +1280,90 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="label-micro" id="mac-value-label">${data.ownership === 'Proprietà' ? 'Valore d\'acquisto (€)' : 'Canone Mensile (€)'}</label>
-                            <input type="number" id="mac-value" value="${data.value}" placeholder="Es: 35000" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                            <input type="number" id="mac-value" value="${data.value}" placeholder="Es: 18500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                         </div>
                         <div class="space-y-1">
                             <label class="label-micro">Vita Utile (Anni)</label>
-                            <input type="number" id="mac-useful-life" value="${data.useful_life}" placeholder="Es: 8" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                            <input type="number" id="mac-useful-life" value="${data.useful_life}" placeholder="Es: 10" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                         </div>
                     </div>
                 </div>
 
                 <button onclick="saveMachineryFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
-                    ${isEdit ? 'Aggiorna' : 'Aggiungi'} Cespito
+                    ${isEdit ? 'Aggiorna' : 'Aggiungi'} Attrezzatura
                 </button>
             `;
+            handleMacOwnershipChange(data.ownership, true);
             openDrawer();
         }
 
-        function toggleMacOwnershipLabels(ownershipVal) {
-            const label = document.getElementById('mac-value-label');
-            if (ownershipVal === 'Proprietà') {
-                label.innerText = "Valore d'acquisto (€)";
+        function handleMacTypeChange(selectedVal) {
+            const customWrapper = document.getElementById('mac-custom-name-wrapper');
+            const customInput = document.getElementById('mac-custom-name');
+            const valueInput = document.getElementById('mac-value');
+            const lifeInput = document.getElementById('mac-useful-life');
+            
+            if (selectedVal === 'Altra Attrezzatura (Personalizzata)') {
+                customWrapper.classList.remove('hidden');
+                if (customInput) customInput.value = '';
+                if (valueInput) valueInput.value = 0;
+                if (lifeInput) lifeInput.value = 0;
             } else {
-                label.innerText = "Canone Mensile (€)";
+                customWrapper.classList.add('hidden');
+                let foundItem = null;
+                for (const category of Object.values(attrezzaturePreset)) {
+                    const match = category.find(item => item.name === selectedVal);
+                    if (match) {
+                        foundItem = match;
+                        break;
+                    }
+                }
+                if (foundItem) {
+                    if (valueInput) valueInput.value = foundItem.defaultPrice;
+                    if (lifeInput) lifeInput.value = foundItem.usefulLife;
+                }
+            }
+            
+            const ownershipSelect = document.getElementById('mac-ownership');
+            if (ownershipSelect && ownershipSelect.value === 'Leasing/Noleggio') {
+                handleMacOwnershipChange(ownershipSelect.value, false);
+            }
+        }
+
+        function handleMacOwnershipChange(ownershipVal, isInit = false) {
+            const label = document.getElementById('mac-value-label');
+            const valueInput = document.getElementById('mac-value');
+            const typeSelect = document.getElementById('mac-type');
+            
+            if (ownershipVal === 'Proprietà') {
+                if (label) label.innerText = "Valore d'acquisto (€)";
+            } else {
+                if (label) label.innerText = "Canone Mensile (€)";
+                if (!isInit) {
+                    let purchaseVal = parseFloat(valueInput.value) || 0;
+                    if (purchaseVal === 0 && typeSelect && typeSelect.value !== 'Altra Attrezzatura (Personalizzata)') {
+                        for (const category of Object.values(attrezzaturePreset)) {
+                            const match = category.find(item => item.name === typeSelect.value);
+                            if (match) {
+                                purchaseVal = match.defaultPrice;
+                                break;
+                            }
+                        }
+                    }
+                    const estimatedRent = purchaseVal * 0.015;
+                    valueInput.value = estimatedRent.toFixed(2);
+                }
             }
         }
 
         function saveMachineryFromDrawer() {
-            const type = document.getElementById('mac-type').value;
+            const selectEl = document.getElementById('mac-type');
+            let type = selectEl.value;
+            if (type === 'Altra Attrezzatura (Personalizzata)') {
+                type = document.getElementById('mac-custom-name').value.trim();
+                if (!type) { tg.showAlert("Fornisci un nome per l'attrezzatura personalizzata."); return; }
+            }
+            
             const year = parseInt(document.getElementById('mac-year').value) || new Date().getFullYear();
             const ownership = document.getElementById('mac-ownership').value;
             const value = parseFloat(document.getElementById('mac-value').value) || 0;
@@ -1135,7 +1390,7 @@
         }
 
         function deleteMachinery(idx) {
-            tg.showConfirm("Sicuro di voler rimuovere questo asset?", (ok) => {
+            tg.showConfirm("Sicuro di voler rimuovere questa attrezzatura?", (ok) => {
                 if (ok) {
                     machinery.splice(idx, 1);
                     renderMachinery();
@@ -1399,6 +1654,7 @@
                         is_forfettario: isForfettario,
                         operators: operators,
                         machinery: machinery,
+                        number_of_chairs: numberOfChairs,
                         financials: isForfettario ? {} : financials
                     })
                 });
