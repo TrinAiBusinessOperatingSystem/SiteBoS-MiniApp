@@ -104,11 +104,19 @@
         <!-- STEP 2: ATTREZZATURE -->
         <div id="section-step-2" class="space-y-6 hidden">
             <!-- Capacity Check: Numero di Sale Operatorie Attive -->
-            <div class="card-noir p-5 space-y-3">
-                <div class="space-y-1">
-                    <label class="label-micro">Numero di Sale Operatorie Attive (Riuniti)</label>
-                    <input type="number" id="op-chairs-num" value="2" min="1" onchange="updateChairsNumber(this.value)" oninput="updateChairsNumber(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
-                    <span class="text-[8px] text-gray-400 font-bold block mt-1 leading-tight">Rappresenta il numero di poltrone di produzione simultanea dello studio (fondamentale per il calcolo del costo sedia).</span>
+            <div class="card-noir p-4 flex items-center justify-between gap-4">
+                <div class="flex-1">
+                    <h4 class="font-black text-xs uppercase tracking-tight text-black">
+                        Numero di Sale Operatorie Attive [<span id="op-chairs-badge">2</span>]
+                    </h4>
+                    <span class="text-[8px] text-gray-400 font-bold block mt-1 leading-tight">
+                        Rappresenta il numero di poltrone di produzione simultanea dello studio (fondamentale per il calcolo del costo sedia).
+                    </span>
+                </div>
+                <div class="flex items-center gap-1.5 shrink-0 bg-gray-50 border border-border p-1 rounded-xl">
+                    <button type="button" onclick="changeChairsCount(-1)" class="w-7 h-7 bg-white text-black border border-border rounded-lg flex items-center justify-center font-bold text-xs active:scale-95 transition hover:bg-black hover:text-white">-</button>
+                    <input type="number" id="op-chairs-num" value="2" min="1" readonly class="w-8 text-center bg-transparent border-none text-xs font-black focus:outline-none select-none pointer-events-none">
+                    <button type="button" onclick="changeChairsCount(1)" class="w-7 h-7 bg-white text-black border border-border rounded-lg flex items-center justify-center font-bold text-xs active:scale-95 transition hover:bg-black hover:text-white">+</button>
                 </div>
             </div>
 
@@ -550,8 +558,165 @@
             }
         }
 
-        function updateChairsNumber(val) {
-            numberOfChairs = parseInt(val) || 2;
+        function changeChairsCount(delta) {
+            const input = document.getElementById('op-chairs-num');
+            if (!input) return;
+            let val = (parseInt(input.value) || 2) + delta;
+            if (val < 1) val = 1;
+            input.value = val;
+            numberOfChairs = val;
+            
+            const badge = document.getElementById('op-chairs-badge');
+            if (badge) {
+                badge.innerText = val;
+            }
+            
+            synchronizeBaseEquipment();
+        }
+
+        function initializeDefaultEquipment() {
+            machinery = [];
+            // 1. Add Riunito Odontoiatrico (Fascia Media) x numberOfChairs
+            for (let i = 0; i < numberOfChairs; i++) {
+                machinery.push({
+                    type: 'Riunito Odontoiatrico (Fascia Media)',
+                    year: new Date().getFullYear(),
+                    ownership: 'Proprietà',
+                    value: 18500,
+                    useful_life: 10
+                });
+            }
+            
+            // 2. Add Compressor depending on numberOfChairs
+            let compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (1-2 riuniti)";
+            let compressorPrice = 1200;
+            if (numberOfChairs === 3) {
+                compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (2-3 riuniti)";
+                compressorPrice = 1600;
+            } else if (numberOfChairs >= 4) {
+                compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (4-5 riuniti - Centralizzato)";
+                compressorPrice = 3500;
+            }
+            machinery.push({
+                type: compressorName,
+                year: new Date().getFullYear(),
+                ownership: 'Proprietà',
+                value: compressorPrice,
+                useful_life: 8
+            });
+            
+            // 3. Add Aspiratore Chirurgica ad Anello Umido
+            machinery.push({
+                type: 'Sistema di Aspirazione Chirurgica ad Anello Umido',
+                year: new Date().getFullYear(),
+                ownership: 'Proprietà',
+                value: 2000,
+                useful_life: 8
+            });
+
+            // 4. Add Radiografico Endorale a Parete (Generatore RX)
+            machinery.push({
+                type: 'Radiografico Endorale a Parete (Generatore RX)',
+                year: new Date().getFullYear(),
+                ownership: 'Proprietà',
+                value: 3000,
+                useful_life: 8
+            });
+        }
+
+        function synchronizeBaseEquipment() {
+            // Find existing chair cards indices
+            const chairIndices = [];
+            machinery.forEach((m, idx) => {
+                const nameLower = (m.type || '').toLowerCase();
+                if (nameLower.includes('riunito') || nameLower.includes('poltrona')) {
+                    chairIndices.push(idx);
+                }
+            });
+            
+            const currentCount = chairIndices.length;
+            if (currentCount < numberOfChairs) {
+                // Add more chairs
+                const diff = numberOfChairs - currentCount;
+                for (let i = 0; i < diff; i++) {
+                    machinery.push({
+                        type: 'Riunito Odontoiatrico (Fascia Media)',
+                        year: new Date().getFullYear(),
+                        ownership: 'Proprietà',
+                        value: 18500,
+                        useful_life: 10
+                    });
+                }
+            } else if (currentCount > numberOfChairs) {
+                // Remove some chairs (from the end of the array, targeting chair cards)
+                const diff = currentCount - numberOfChairs;
+                for (let i = 0; i < diff; i++) {
+                    const targetIdx = chairIndices[chairIndices.length - 1 - i];
+                    machinery.splice(targetIdx, 1);
+                }
+            }
+            
+            // Adjust/ensure compressor matches numberOfChairs
+            const compressorIdx = machinery.findIndex(m => m.type && m.type.toLowerCase().includes('compressore'));
+            if (compressorIdx !== -1) {
+                const comp = machinery[compressorIdx];
+                if (comp.type.startsWith("Compressore d'Aria Medicale Secco con Essiccatore")) {
+                    let compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (1-2 riuniti)";
+                    let compressorPrice = 1200;
+                    if (numberOfChairs === 3) {
+                        compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (2-3 riuniti)";
+                        compressorPrice = 1600;
+                    } else if (numberOfChairs >= 4) {
+                        compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (4-5 riuniti - Centralizzato)";
+                        compressorPrice = 3500;
+                    }
+                    comp.type = compressorName;
+                    comp.value = compressorPrice;
+                }
+            } else {
+                let compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (1-2 riuniti)";
+                let compressorPrice = 1200;
+                if (numberOfChairs === 3) {
+                    compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (2-3 riuniti)";
+                    compressorPrice = 1600;
+                } else if (numberOfChairs >= 4) {
+                    compressorName = "Compressore d'Aria Medicale Secco con Essiccatore (4-5 riuniti - Centralizzato)";
+                    compressorPrice = 3500;
+                }
+                machinery.push({
+                    type: compressorName,
+                    year: new Date().getFullYear(),
+                    ownership: 'Proprietà',
+                    value: compressorPrice,
+                    useful_life: 8
+                });
+            }
+            
+            // Ensure an aspiratore is there
+            const aspiratoreIdx = machinery.findIndex(m => m.type && (m.type.toLowerCase().includes('aspiratore') || m.type.toLowerCase().includes('aspirazione')));
+            if (aspiratoreIdx === -1) {
+                machinery.push({
+                    type: 'Sistema di Aspirazione Chirurgica ad Anello Umido',
+                    year: new Date().getFullYear(),
+                    ownership: 'Proprietà',
+                    value: 2000,
+                    useful_life: 8
+                });
+            }
+
+            // Ensure a radiografico endorale is there
+            const radiograficoIdx = machinery.findIndex(m => m.type && m.type.toLowerCase().includes('radiografico endorale'));
+            if (radiograficoIdx === -1) {
+                machinery.push({
+                    type: 'Radiografico Endorale a Parete (Generatore RX)',
+                    year: new Date().getFullYear(),
+                    ownership: 'Proprietà',
+                    value: 3000,
+                    useful_life: 8
+                });
+            }
+            
+            renderMachinery();
         }
 
         async function nextStep() {
@@ -699,12 +864,20 @@
                     machinery = result.machinery || [];
                     numberOfChairs = result.number_of_chairs !== undefined ? result.number_of_chairs : 2;
                     
+                    if (machinery.length === 0) {
+                        initializeDefaultEquipment();
+                    }
+                    
                     // Set elements
                     document.getElementById('tenant-type-select').value = tenantType;
                     document.getElementById('regime-select').value = taxRegime;
                     const chairsInput = document.getElementById('op-chairs-num');
                     if (chairsInput) {
                         chairsInput.value = numberOfChairs;
+                    }
+                    const badge = document.getElementById('op-chairs-badge');
+                    if (badge) {
+                        badge.innerText = numberOfChairs;
                     }
                     
                     if (result.financials) {
