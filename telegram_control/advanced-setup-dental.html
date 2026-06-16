@@ -68,10 +68,15 @@
                 <h2 class="text-xs font-black uppercase tracking-wider text-black" id="step-title">Operatori e Staff</h2>
             </div>
         </div>
-        <div class="flex gap-1.5">
-            <span class="w-2.5 h-2.5 rounded-full bg-black transition-all duration-300" id="dot-step-1"></span>
-            <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-2"></span>
-            <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-3"></span>
+        <div class="flex items-center gap-3">
+            <div class="flex gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-black transition-all duration-300" id="dot-step-1"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-2"></span>
+                <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-3"></span>
+            </div>
+            <button id="btn-save-draft" onclick="saveDraftManually()" class="w-8 h-8 rounded-xl bg-gray-50 border border-border flex items-center justify-center text-gray-500 hover:bg-black hover:text-white hover:border-black active:scale-95 transition-all duration-200" title="Salva Bozza">
+                <i class="far fa-save text-xs"></i>
+            </button>
         </div>
     </header>
 
@@ -845,6 +850,60 @@
                 });
             } catch (err) {
                 console.error("Autosave fallito:", err);
+            }
+        }
+
+        async function saveDraftManually() {
+            showLoader("Salvataggio", "Salvataggio bozza in corso...");
+            try {
+                const chairsInput = document.getElementById('op-chairs-num');
+                if (chairsInput) {
+                    numberOfChairs = parseInt(chairsInput.value) || numberOfChairs;
+                }
+                
+                if (currentStep === 3) {
+                    updateFinancialsTotal();
+                }
+                
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: "save_dental_setup",
+                        current_step: currentStep,
+                        tenant_type: tenantType,
+                        tax_regime: taxRegime,
+                        is_forfettario: isForfettario,
+                        operators: operators,
+                        machinery: machinery,
+                        number_of_chairs: numberOfChairs,
+                        financials: isForfettario ? {} : financials
+                    })
+                });
+
+                if (!response.ok) throw new Error("Errore nel salvataggio");
+                
+                const btn = document.getElementById('btn-save-draft');
+                if (btn) {
+                    const icon = btn.querySelector('i');
+                    if (icon) {
+                        icon.className = "fas fa-check text-green-600";
+                        setTimeout(() => {
+                            icon.className = "far fa-save text-gray-500";
+                        }, 2000);
+                    }
+                }
+                
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                }
+            } catch (err) {
+                console.error("Salvataggio fallito:", err);
+                tg.showAlert("Errore durante il salvataggio della bozza.");
+            } finally {
+                hideLoader();
             }
         }
 
