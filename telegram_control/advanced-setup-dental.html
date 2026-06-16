@@ -879,32 +879,35 @@
                         let hoursVal = op.hours !== undefined ? op.hours : (op.Hours !== undefined ? op.Hours : 40);
                         let salaryVal = op.salary || op.Salary || '';
                         
+                        let isOwner = !!op.isOwner || (op.Role && op.Role.toLowerCase() === 'owner') || (op.role && op.role.toLowerCase() === 'owner');
+                        
+                        if (isOwner && (roleVal.toLowerCase() === 'owner' || roleVal === 'Owner')) {
+                            roleVal = 'Odontoiatra';
+                            contractVal = 'Partita IVA';
+                        }
+                        
                         if (roleVal === 'ASO') roleVal = 'ASO (Assistente)';
                         else if (roleVal === 'Segretaria') roleVal = 'Segretaria / Receptionist';
-                        else if (roleVal.toLowerCase() === 'owner') roleVal = 'Owner';
                         
                         if (contractVal === 'Dipendente') contractVal = 'Dipendente (CCNL)';
                         else if (contractVal === 'P.IVA') contractVal = 'Partita IVA';
-                        
-                        if (roleVal === 'Owner') {
-                            contractVal = 'Partita IVA';
-                        }
                         
                         let opData = {
                             id: op.id || op.OperatorChatID || null,
                             name: nameVal,
                             role: roleVal,
+                            isOwner: isOwner,
                             contract: contractVal,
                             level: levelVal,
                             hours: hoursVal,
                             salary: salaryVal,
                             rate_type: op.rate_type || 'percentage',
-                            rate: op.rate || 100,
+                            rate: op.rate !== undefined ? op.rate : (roleVal === 'Odontoiatra' ? 40 : 100),
                             specialization: op.specialization || 'Generico / Generalista',
                             geminiKey: op.GeminiKey || op.geminiKey || ''
                         };
                         
-                        if (contractVal === 'Dipendente (CCNL)' && roleVal !== 'Owner') {
+                        if (contractVal === 'Dipendente (CCNL)' && !isOwner) {
                             const levelNormalizationMap = {
                                 'Quadri': 'Quadri (Q)',
                                 'Q': 'Quadri (Q)',
@@ -944,7 +947,7 @@
                             }
                             opData.level = normalizedLevel;
                         } else {
-                            if (roleVal !== 'Owner') {
+                            if (!isOwner) {
                                 opData.level = '';
                                 opData.hours = 40;
                             }
@@ -955,12 +958,12 @@
                     
                     // Sort to make sure Owner is always at the top/in head
                     operators.sort((a, b) => {
-                        if (a.role === 'Owner') return -1;
-                        if (b.role === 'Owner') return 1;
+                        if (a.isOwner && !b.isOwner) return -1;
+                        if (!a.isOwner && b.isOwner) return 1;
                         return 0;
                     });
                     
-                    const hasOnlyOwner = operators.length === 0 || (operators.length === 1 && operators[0].role === 'Owner');
+                    const hasOnlyOwner = operators.length === 0 || (operators.length === 1 && operators[0].isOwner);
                     if (hasOnlyOwner) {
                         initializeDefaultStaff();
                     }
