@@ -481,7 +481,15 @@
                     tenantType = result.tenant_type || 'Società';
                     taxRegime = result.tax_regime || 'Ordinario';
                     isForfettario = !!result.is_forfettario;
-                    operators = result.operators || [];
+                    operators = (result.operators || []).map(op => {
+                        if (op.role === 'ASO') op.role = 'ASO (Assistente)';
+                        else if (op.role === 'Segretaria') op.role = 'Segretaria / Receptionist';
+                        
+                        if (op.contract === 'Dipendente') op.contract = 'Dipendente (CCNL)';
+                        else if (op.contract === 'P.IVA') op.contract = 'Partita IVA';
+                        
+                        return op;
+                    });
                     machinery = result.machinery || [];
                     
                     // Set elements
@@ -543,21 +551,26 @@
             operators.forEach((op, idx) => {
                 let iconClass = 'fa-user-tie';
                 if (op.role === 'Odontoiatra') iconClass = 'fa-user-md';
-                else if (op.role === 'ASO') iconClass = 'fa-user-nurse';
                 else if (op.role === 'Igienista') iconClass = 'fa-tooth';
+                else if (op.role === 'Anestesista') iconClass = 'fa-syringe';
+                else if (op.role === 'ASO (Assistente)' || op.role === 'ASO') iconClass = 'fa-user-nurse';
+                else if (op.role === 'Segretaria / Receptionist' || op.role === 'Segretaria') iconClass = 'fa-keyboard';
+                else if (op.role === 'Clinic Manager / Coordinatore') iconClass = 'fa-briefcase';
+                else if (op.role === 'Direttore Sanitario') iconClass = 'fa-user-shield';
                 else if (op.role === 'Odontotecnico') iconClass = 'fa-teeth';
+                else if (op.role === 'Tecnico Manutentore') iconClass = 'fa-wrench';
+                else if (op.role === 'Ausiliario / Addetto Pulizie') iconClass = 'fa-broom';
 
                 let roleText = op.role;
                 if (op.role === 'Odontoiatra' && op.specialization) {
                     roleText = `${op.role} (${op.specialization})`;
                 }
 
-                let contractLabel = op.contract;
-                if (op.contract === 'Dipendente (CCNL)') {
-                    contractLabel = op.level ? `${op.role} - Dipendente (${op.level})` : `${op.role} - Dipendente`;
+                let contractLabel = roleText;
+                if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
+                    contractLabel += op.level ? ` - Dipendente (${op.level})` : ` - Dipendente`;
                 } else if (op.contract === 'Partita IVA' || op.contract === 'P.IVA') {
-                    const shortRole = op.role === 'Odontoiatra' && op.specialization ? op.specialization : op.role;
-                    contractLabel = `${shortRole} - P.IVA`;
+                    contractLabel += ` - P.IVA`;
                 }
 
                 let contractText = '';
@@ -631,19 +644,29 @@
                             <label class="label-micro">Ruolo</label>
                             <select id="op-role" onchange="toggleOpRoleFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
                                 <option value="Odontoiatra" ${data.role === 'Odontoiatra' ? 'selected' : ''}>Odontoiatra</option>
-                                <option value="ASO" ${data.role === 'ASO' ? 'selected' : ''}>ASO (Assistente)</option>
-                                <option value="Segretaria" ${data.role === 'Segretaria' ? 'selected' : ''}>Segretaria</option>
                                 <option value="Igienista" ${data.role === 'Igienista' ? 'selected' : ''}>Igienista</option>
+                                <option value="Anestesista" ${data.role === 'Anestesista' ? 'selected' : ''}>Anestesista</option>
+                                <option value="ASO (Assistente)" ${data.role === 'ASO (Assistente)' || data.role === 'ASO' ? 'selected' : ''}>ASO (Assistente)</option>
+                                <option value="Segretaria / Receptionist" ${data.role === 'Segretaria / Receptionist' || data.role === 'Segretaria' ? 'selected' : ''}>Segretaria / Receptionist</option>
+                                <option value="Clinic Manager / Coordinatore" ${data.role === 'Clinic Manager / Coordinatore' ? 'selected' : ''}>Clinic Manager / Coordinatore</option>
+                                <option value="Direttore Sanitario" ${data.role === 'Direttore Sanitario' ? 'selected' : ''}>Direttore Sanitario</option>
                                 <option value="Odontotecnico" ${data.role === 'Odontotecnico' ? 'selected' : ''}>Odontotecnico</option>
+                                <option value="Tecnico Manutentore" ${data.role === 'Tecnico Manutentore' ? 'selected' : ''}>Tecnico Manutentore</option>
+                                <option value="Ausiliario / Addetto Pulizie" ${data.role === 'Ausiliario / Addetto Pulizie' ? 'selected' : ''}>Ausiliario / Addetto Pulizie</option>
                             </select>
                         </div>
                         <div class="space-y-1">
                             <label class="label-micro">Inquadramento</label>
                             <select id="op-contract" onchange="toggleOpContractFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
                                 <option value="Dipendente (CCNL)" ${data.contract === 'Dipendente (CCNL)' || data.contract === 'Dipendente' ? 'selected' : ''}>Dipendente (CCNL)</option>
-                                <option value="Partita IVA" ${data.contract === 'Partita IVA' || data.contract === 'P.IVA' ? 'selected' : ''}>Partita IVA</option>
+                                <option value="Partita IVA" ${data.contract === 'Partita IVA' || data.contract === 'P.IVA' ? 'selected' : ''} id="opt-piva">Partita IVA</option>
                             </select>
                         </div>
+                    </div>
+
+                    <!-- WARNING MSG FOR COMPLIANCE -->
+                    <div id="op-compliance-warning" class="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-[10px] font-medium leading-relaxed hidden">
+                        ⚠️ Per conformità legale con la normativa sul lavoro, questo ruolo richiede obbligatoriamente l'inquadramento come dipendente subordinato.
                     </div>
 
                     <!-- SPECIALIZZAZIONE (Odontoiatra ONLY) -->
@@ -665,7 +688,7 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div class="space-y-1">
                                 <label class="label-micro">Livello Contratto</label>
-                                <input type="text" id="op-level" value="${data.level || ''}" placeholder="Es: L4, L5 o Libero" list="ccnl-levels" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                                <input type="text" id="op-level" value="${data.level || ''}" placeholder="Es: L4, L5 o Libero" list="ccnl-levels" oninput="handleLevelInput(this)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
                                 <datalist id="ccnl-levels">
                                     <option value="Altro / Inserimento Libero"></option>
                                     <!-- 1. Livelli Ordinari -->
@@ -716,7 +739,16 @@
                     ${isEdit ? 'Aggiorna' : 'Aggiungi'} Staff
                 </button>
             `;
+            toggleOpRoleFields(data.role);
+            toggleOpContractFields(data.contract);
             openDrawer();
+        }
+
+        function handleLevelInput(inputEl) {
+            if (inputEl.value === 'Altro / Inserimento Libero') {
+                inputEl.value = '';
+                inputEl.placeholder = 'Digita livello personalizzato...';
+            }
         }
 
         function toggleOpRoleFields(roleVal) {
@@ -725,6 +757,28 @@
                 specWrapper.classList.remove('hidden');
             } else {
                 specWrapper.classList.add('hidden');
+            }
+
+            const contractSelect = document.getElementById('op-contract');
+            const optPiva = document.getElementById('opt-piva');
+            const warningBox = document.getElementById('op-compliance-warning');
+            
+            const forcedRoles = ['ASO (Assistente)', 'ASO', 'Segretaria / Receptionist', 'Segretaria', 'Ausiliario / Addetto Pulizie'];
+            
+            if (forcedRoles.includes(roleVal)) {
+                if (contractSelect) contractSelect.value = 'Dipendente (CCNL)';
+                if (optPiva) {
+                    optPiva.disabled = true;
+                    optPiva.classList.add('hidden');
+                }
+                if (warningBox) warningBox.classList.remove('hidden');
+                toggleOpContractFields('Dipendente (CCNL)');
+            } else {
+                if (optPiva) {
+                    optPiva.disabled = false;
+                    optPiva.classList.remove('hidden');
+                }
+                if (warningBox) warningBox.classList.add('hidden');
             }
         }
 
