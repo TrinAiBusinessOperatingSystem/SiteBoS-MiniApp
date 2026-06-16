@@ -545,12 +545,28 @@
                 if (op.role === 'Odontoiatra') iconClass = 'fa-user-md';
                 else if (op.role === 'ASO') iconClass = 'fa-user-nurse';
                 else if (op.role === 'Igienista') iconClass = 'fa-tooth';
+                else if (op.role === 'Odontotecnico') iconClass = 'fa-teeth';
+
+                let roleText = op.role;
+                if (op.role === 'Odontoiatra' && op.specialization) {
+                    roleText = `${op.role} (${op.specialization})`;
+                }
+
+                let contractLabel = op.contract;
+                if (op.contract === 'Dipendente (CCNL)') {
+                    contractLabel = op.level ? `${op.role} - Dipendente (${op.level})` : `${op.role} - Dipendente`;
+                } else if (op.contract === 'Partita IVA' || op.contract === 'P.IVA') {
+                    const shortRole = op.role === 'Odontoiatra' && op.specialization ? op.specialization : op.role;
+                    contractLabel = `${shortRole} - P.IVA`;
+                }
 
                 let contractText = '';
-                if (op.contract === 'Dipendente') {
-                    contractText = `Lorde: €${parseFloat(op.salary).toLocaleString('it-IT')}/mese`;
+                if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
+                    contractText = `Lorde: €${parseFloat(op.salary || 0).toLocaleString('it-IT')}/mese`;
                 } else {
-                    contractText = op.rate_type === 'hourly' ? `PIVA: €${op.rate}/ora` : `PIVA: ${op.rate}% prestazione`;
+                    contractText = op.rate_type === 'hourly' 
+                        ? `Tariffa: €${op.rate}/ora` 
+                        : `Ingaggio: ${op.rate}% su prestazione`;
                 }
 
                 grid.innerHTML += `
@@ -560,13 +576,13 @@
                                 <i class="fas ${iconClass}"></i>
                             </div>
                             <div>
-                                <span class="label-micro !text-gray-400">${op.role} - ${op.contract}</span>
+                                <span class="label-micro !text-gray-400">${contractLabel}</span>
                                 <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">${op.name}</h4>
                                 <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${contractText}</span>
                             </div>
                         </div>
                         <div class="flex gap-2 items-center">
-                            ${op.contract === 'P.IVA' ? `
+                            ${op.contract === 'Partita IVA' || op.contract === 'P.IVA' ? `
                                 <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito">
                                     Invita
                                 </button>
@@ -586,7 +602,16 @@
         function openOperatorDrawer(idx = null) {
             activeEditIndex = idx;
             const isEdit = idx !== null;
-            const data = isEdit ? operators[idx] : { name: '', role: 'Odontoiatra', contract: 'Dipendente', salary: '', rate_type: 'hourly', rate: '' };
+            const data = isEdit ? operators[idx] : { 
+                name: '', 
+                role: 'Odontoiatra', 
+                specialization: 'Generico / Generalista',
+                contract: 'Dipendente (CCNL)', 
+                level: '',
+                salary: '', 
+                rate_type: 'hourly', 
+                rate: '' 
+            };
             
             const container = document.getElementById('drawer-container');
             container.innerHTML = `
@@ -598,46 +623,91 @@
                 <div class="space-y-3">
                     <div class="space-y-1">
                         <label class="label-micro">Nome e Cognome</label>
-                        <input type="text" id="op-name" value="${data.name}" placeholder="Es: Dr. Rossi" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                        <input type="text" id="op-name" value="${data.name}" placeholder="Es: Dr. Rossi" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
                     
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="label-micro">Ruolo</label>
-                            <select id="op-role" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            <select id="op-role" onchange="toggleOpRoleFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
                                 <option value="Odontoiatra" ${data.role === 'Odontoiatra' ? 'selected' : ''}>Odontoiatra</option>
                                 <option value="ASO" ${data.role === 'ASO' ? 'selected' : ''}>ASO (Assistente)</option>
                                 <option value="Segretaria" ${data.role === 'Segretaria' ? 'selected' : ''}>Segretaria</option>
                                 <option value="Igienista" ${data.role === 'Igienista' ? 'selected' : ''}>Igienista</option>
+                                <option value="Odontotecnico" ${data.role === 'Odontotecnico' ? 'selected' : ''}>Odontotecnico</option>
                             </select>
                         </div>
                         <div class="space-y-1">
                             <label class="label-micro">Inquadramento</label>
-                            <select id="op-contract" onchange="toggleOpSalaryFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
-                                <option value="Dipendente" ${data.contract === 'Dipendente' ? 'selected' : ''}>Dipendente</option>
-                                <option value="P.IVA" ${data.contract === 'P.IVA' ? 'selected' : ''}>Partita IVA</option>
+                            <select id="op-contract" onchange="toggleOpContractFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="Dipendente (CCNL)" ${data.contract === 'Dipendente (CCNL)' || data.contract === 'Dipendente' ? 'selected' : ''}>Dipendente (CCNL)</option>
+                                <option value="Partita IVA" ${data.contract === 'Partita IVA' || data.contract === 'P.IVA' ? 'selected' : ''}>Partita IVA</option>
                             </select>
                         </div>
                     </div>
 
+                    <!-- SPECIALIZZAZIONE (Odontoiatra ONLY) -->
+                    <div id="op-specialization-wrapper" class="space-y-1 ${data.role === 'Odontoiatra' ? '' : 'hidden'}">
+                        <label class="label-micro">Specializzazione</label>
+                        <select id="op-specialization" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            <option value="Chirurgo / Implantologo" ${data.specialization === 'Chirurgo / Implantologo' ? 'selected' : ''}>Chirurgo / Implantologo</option>
+                            <option value="Protesista" ${data.specialization === 'Protesista' ? 'selected' : ''}>Protesista</option>
+                            <option value="Ortodontista" ${data.specialization === 'Ortodontista' ? 'selected' : ''}>Ortodontista</option>
+                            <option value="Conservatore / Endodontista" ${data.specialization === 'Conservatore / Endodontista' ? 'selected' : ''}>Conservatore / Endodontista</option>
+                            <option value="Pedodontista" ${data.specialization === 'Pedodontista' ? 'selected' : ''}>Pedodontista</option>
+                            <option value="Medicina Estetica" ${data.specialization === 'Medicina Estetica' ? 'selected' : ''}>Medicina Estetica</option>
+                            <option value="Generico / Generalista" ${data.specialization === 'Generico / Generalista' ? 'selected' : ''}>Generico / Generalista</option>
+                        </select>
+                    </div>
+
                     <!-- DIPENDENTE FIELDS -->
-                    <div id="op-dipendente-fields" class="space-y-1 ${data.contract === 'Dipendente' ? '' : 'hidden'}">
-                        <label class="label-micro">Costo Mensile Lordo (€)</label>
-                        <input type="number" id="op-salary" value="${data.salary}" placeholder="Es: 2500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                    <div id="op-dipendente-fields" class="space-y-3 ${data.contract === 'Dipendente (CCNL)' || data.contract === 'Dipendente' ? '' : 'hidden'}">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="label-micro">Livello Contratto</label>
+                                <input type="text" id="op-level" value="${data.level || ''}" placeholder="Es: L4, L5 o Libero" list="ccnl-levels" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                                <datalist id="ccnl-levels">
+                                    <option value="Altro / Inserimento Libero"></option>
+                                    <!-- 1. Livelli Ordinari -->
+                                    <option value="Quadri (Q) (Clinic Manager / Responsabile di Struttura)"></option>
+                                    <option value="1° Livello (Coordinatore generale / Responsabile amministrativo)"></option>
+                                    <option value="2° Livello (Supervisore di segreteria e accoglienza)"></option>
+                                    <option value="3° Livello Super (3°S) (Segretaria di concetto senior con coordinamento ASO)"></option>
+                                    <option value="3° Livello (ASO Senior con mansioni di concetto / Segretaria esperta)"></option>
+                                    <option value="4° Livello Super (4°S) [ASO qualificata con oltre 24 mesi di esperienza]"></option>
+                                    <option value="4° Livello (ASO qualificata base / Segretaria esecutiva)"></option>
+                                    <option value="5° Livello (Impiegato d'ordine / Personale addetto all'accoglienza generico)"></option>
+                                    <option value="6° Livello (Mansioni d'ordine base / Addetto inserimento dati)"></option>
+                                    <option value="7° Livello (Addetto alle pulizie / Personale addetto ai servizi generali e manutenzioni)"></option>
+                                    <!-- 2. Livelli di Apprendistato Professionalizzante -->
+                                    <option value="Apprendistato finalizzato al Livello 3°S (Inquadrato inizialmente al 5° o 4°S livello)"></option>
+                                    <option value="Apprendistato finalizzato al Livello 3° (Inquadrato inizialmente al 5° o 4° livello)"></option>
+                                    <option value="Apprendistato finalizzato al Livello 4°S [Percorso standard per inserimento e qualificazione nuova ASO]"></option>
+                                    <option value="Apprendistato finalizzato al Livello 4 (Inquadrato inizialmente al 6° o 5° livello)"></option>
+                                    <option value="Apprendistato finalizzato al Livello 5 (Inquadrato inizialmente al 7° o 6° livello)"></option>
+                                    <!-- 3. Altre opzioni -->
+                                    <option value="Praticante"></option>
+                                </datalist>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="label-micro">Costo Mensile Lordo (€)</label>
+                                <input type="number" id="op-salary" value="${data.salary || ''}" placeholder="Es: 2500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                            </div>
+                        </div>
                     </div>
 
                     <!-- PIVA FIELDS -->
-                    <div id="op-piva-fields" class="space-y-3 ${data.contract === 'P.IVA' ? '' : 'hidden'}">
+                    <div id="op-piva-fields" class="space-y-3 ${data.contract === 'Partita IVA' || data.contract === 'P.IVA' ? '' : 'hidden'}">
                         <div class="space-y-1">
                             <label class="label-micro">Tipo Compenso</label>
                             <select id="op-rate-type" onchange="toggleOpRateInput(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
-                                <option value="hourly" ${data.rate_type === 'hourly' ? 'selected' : ''}>Tariffa Oraria (€/ora)</option>
-                                <option value="percentage" ${data.rate_type === 'percentage' ? 'selected' : ''}>Percentuale su Prestazione (%)</option>
+                                <option value="hourly" ${data.rate_type === 'hourly' ? 'selected' : ''}>Tariffa Oraria fissa (€/ora)</option>
+                                <option value="percentage" ${data.rate_type === 'percentage' ? 'selected' : ''}>Percentuale d'Ingaggio (% su tariffa)</option>
                             </select>
                         </div>
                         <div class="space-y-1">
                             <label class="label-micro" id="op-rate-label">${data.rate_type === 'hourly' ? 'Importo Orario (€)' : 'Valore Percentuale (%)'}</label>
-                            <input type="number" id="op-rate" value="${data.rate}" placeholder="Es: 40" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                            <input type="number" id="op-rate" value="${data.rate || ''}" placeholder="Es: 40" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
                         </div>
                     </div>
                 </div>
@@ -649,13 +719,24 @@
             openDrawer();
         }
 
-        function toggleOpSalaryFields(contractVal) {
-            if (contractVal === 'Dipendente') {
-                document.getElementById('op-dipendente-fields').classList.remove('hidden');
-                document.getElementById('op-piva-fields').classList.add('hidden');
+        function toggleOpRoleFields(roleVal) {
+            const specWrapper = document.getElementById('op-specialization-wrapper');
+            if (roleVal === 'Odontoiatra') {
+                specWrapper.classList.remove('hidden');
             } else {
-                document.getElementById('op-dipendente-fields').classList.add('hidden');
-                document.getElementById('op-piva-fields').classList.remove('hidden');
+                specWrapper.classList.add('hidden');
+            }
+        }
+
+        function toggleOpContractFields(contractVal) {
+            const dipFields = document.getElementById('op-dipendente-fields');
+            const pivaFields = document.getElementById('op-piva-fields');
+            if (contractVal === 'Dipendente (CCNL)' || contractVal === 'Dipendente') {
+                dipFields.classList.remove('hidden');
+                pivaFields.classList.add('hidden');
+            } else {
+                dipFields.classList.add('hidden');
+                pivaFields.classList.remove('hidden');
             }
         }
 
@@ -682,9 +763,20 @@
                 contract: contract
             };
 
-            if (contract === 'Dipendente') {
-                opData.salary = parseFloat(document.getElementById('op-salary').value) || 0;
+            if (role === 'Odontoiatra') {
+                opData.specialization = document.getElementById('op-specialization').value;
             } else {
+                opData.specialization = '';
+            }
+
+            if (contract === 'Dipendente (CCNL)' || contract === 'Dipendente') {
+                opData.level = document.getElementById('op-level').value.trim();
+                opData.salary = parseFloat(document.getElementById('op-salary').value) || 0;
+                opData.rate_type = '';
+                opData.rate = 0;
+            } else {
+                opData.level = '';
+                opData.salary = 0;
                 opData.rate_type = document.getElementById('op-rate-type').value;
                 opData.rate = parseFloat(document.getElementById('op-rate').value) || 0;
             }
