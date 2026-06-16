@@ -99,6 +99,12 @@
                 <!-- Operator Cards Rendered dynamically -->
             </div>
             
+            <!-- Cost Disclaimer Banner -->
+            <div class="text-[9px] text-gray-400 font-medium bg-gray-50 border border-border p-3.5 rounded-xl flex items-start gap-2 mt-3 leading-normal">
+                <i class="fas fa-info-circle text-gray-400 mt-0.5"></i>
+                <span>La generazione dell'invito e l'attivazione dello slot operatore richiedono l'addebito di 20 Crediti.</span>
+            </div>
+            
             <div class="pt-6 border-t border-border flex justify-end">
                 <button onclick="nextStep()" class="w-full py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5">
                     Avanti <i class="fas fa-arrow-right"></i>
@@ -851,9 +857,7 @@
                     OperatorLanguage: op.OperatorLanguage || 'Italiano',
                     FreeHandOperator: op.FreeHandOperator !== undefined ? op.FreeHandOperator : true,
                     Role: systemRole,
-                    role: systemRole,
                     Job: op.role,
-                    job: op.role,
                     isOwner: !!op.isOwner,
                     contract: op.contract,
                     level: op.level || '',
@@ -863,7 +867,8 @@
                     rate: op.rate !== undefined ? op.rate : 0,
                     specialization: op.specialization || '',
                     GeminiKey: op.geminiKey || '',
-                    geminiKey: op.geminiKey || ''
+                    status: op.status || '',
+                    invitation_code: op.invitation_code || ''
                 };
             });
         }
@@ -1017,7 +1022,9 @@
                             specialization: op.specialization || 'Generico / Generalista',
                             geminiKey: op.GeminiKey || op.geminiKey || '',
                             OperatorLanguage: op.OperatorLanguage || op.OperatorLenguage || 'Italiano',
-                            FreeHandOperator: op.FreeHandOperator !== undefined ? op.FreeHandOperator : true
+                            FreeHandOperator: op.FreeHandOperator !== undefined ? op.FreeHandOperator : true,
+                            status: op.status || '',
+                            invitation_code: op.invitation_code || ''
                         };
                         
                         if (contractVal === 'Dipendente (CCNL)' && !isOwner) {
@@ -1227,10 +1234,29 @@
 
                 let actionButtonsHtml = '';
                 if (!op.isOwner) {
+                    let inviteBtnHtml = '';
+                    if (op.status === 'ACTIVE') {
+                        inviteBtnHtml = `
+                            <span class="px-2 py-1 bg-green-50 text-green-700 border border-green-200 text-[8px] font-black uppercase rounded-lg flex items-center gap-1">
+                                <i class="fas fa-check text-[8px]"></i> Attivo
+                            </span>
+                        `;
+                    } else if (op.status === 'PENDING' && op.invitation_code) {
+                        inviteBtnHtml = `
+                            <button onclick="copyPreexistingInvite('${op.invitation_code}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors flex items-center gap-1" title="Copia Link Invito esistente">
+                                <i class="fas fa-copy"></i> Copia
+                            </button>
+                        `;
+                    } else {
+                        inviteBtnHtml = `
+                            <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito (Costo: 20 Crediti)">
+                                Invita
+                            </button>
+                        `;
+                    }
+
                     actionButtonsHtml = `
-                        <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito">
-                            Invita
-                        </button>
+                        ${inviteBtnHtml}
                         <button onclick="openOperatorDrawer(${idx})" class="w-7 h-7 bg-gray-50 text-gray-500 border border-border rounded-lg flex items-center justify-center active:scale-95 transition">
                             <i class="fas fa-edit text-[10px]"></i>
                         </button>
@@ -1389,6 +1415,11 @@
                 <button onclick="saveOperatorFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
                     ${isEdit ? 'Aggiorna' : 'Aggiungi'} Staff
                 </button>
+                ${(!isEdit || (!data.status || (data.status !== 'ACTIVE' && data.status !== 'PENDING'))) ? `
+                <p class="text-[9px] text-gray-400 font-medium text-center leading-normal mt-2">
+                    ℹ️ La generazione dell'invito e l'attivazione dello slot operatore richiedono l'addebito di 20 Crediti.
+                </p>
+                ` : ''}
             `;
             toggleOpRoleFields(data.role);
             toggleOpContractFields(data.contract);
@@ -1496,7 +1527,9 @@
                 isOwner: activeEditIndex !== null ? !!operators[activeEditIndex].isOwner : false,
                 geminiKey: activeEditIndex !== null ? (operators[activeEditIndex].geminiKey || '') : '',
                 OperatorLanguage: activeEditIndex !== null ? (operators[activeEditIndex].OperatorLanguage || 'Italiano') : 'Italiano',
-                FreeHandOperator: activeEditIndex !== null ? (operators[activeEditIndex].FreeHandOperator !== undefined ? operators[activeEditIndex].FreeHandOperator : true) : true
+                FreeHandOperator: activeEditIndex !== null ? (operators[activeEditIndex].FreeHandOperator !== undefined ? operators[activeEditIndex].FreeHandOperator : true) : true,
+                status: activeEditIndex !== null ? (operators[activeEditIndex].status || '') : '',
+                invitation_code: activeEditIndex !== null ? (operators[activeEditIndex].invitation_code || '') : ''
             };
 
             if (role === 'Odontoiatra') {
@@ -1546,48 +1579,65 @@
         }
 
         async function generateOperatorInvite(opId, role) {
-            showLoader("Generazione link", "Creazione invito operatore in corso...");
-            try {
-                const response = await fetch(WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        _auth: tg.initData,
-                        ash: ash,
-                        action: "generate_operator_invite",
-                        operator_id: opId,
-                        role: role
-                    })
-                });
+            tg.showConfirm("La generazione dell'invito e l'attivazione dello slot operatore richiedono l'addebito di 20 Crediti. Vuoi procedere?", async (ok) => {
+                if (!ok) return;
 
-                if (!response.ok) throw new Error("Errore chiamata server");
-                
-                const result = await response.json();
-                const inviteLink = result.invite_link || result.url || "";
-                
-                if (inviteLink) {
-                    tg.showPopup({
-                        title: "Invito Generato",
-                        message: "Il link temporaneo per completare la registrazione è pronto.",
-                        buttons: [
-                            { id: "copy", type: "default", text: "Copia Link" },
-                            { type: "cancel", text: "Chiudi" }
-                        ]
-                    }, function(button_id) {
-                        if (button_id === 'copy') {
-                            copyTextToClipboard(inviteLink);
-                            tg.showAlert("Link copiato negli appunti con successo.");
-                        }
+                showLoader("Generazione link", "Creazione invito operatore in corso...");
+                try {
+                    const response = await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            _auth: tg.initData,
+                            ash: ash,
+                            action: "generate_operator_invite",
+                            operator_id: opId,
+                            role: role
+                        })
                     });
-                } else {
-                    tg.showAlert("Nessun link generato dal server.");
+
+                    if (!response.ok) throw new Error("Errore chiamata server");
+                    
+                    const result = await response.json();
+                    const inviteLink = result.invite_link || result.url || "";
+                    
+                    if (inviteLink) {
+                        let code = result.invitation_code || "";
+                        if (!code && inviteLink.includes("start=")) {
+                            code = inviteLink.split("start=")[1];
+                        }
+                        
+                        const opIdx = operators.findIndex(o => o.id === opId);
+                        if (opIdx !== -1) {
+                            operators[opIdx].status = "PENDING";
+                            operators[opIdx].invitation_code = code;
+                            renderOperators();
+                            await saveStepData(1);
+                        }
+
+                        tg.showPopup({
+                            title: "Invito Generato",
+                            message: "Il link per completare la registrazione è pronto. Lo slot è attivo (addebito di 20 Crediti).",
+                            buttons: [
+                                { id: "copy", type: "default", text: "Copia Link" },
+                                { type: "cancel", text: "Chiudi" }
+                            ]
+                        }, function(button_id) {
+                            if (button_id === 'copy') {
+                                copyTextToClipboard(inviteLink);
+                                tg.showAlert("Link copiato negli appunti con successo.");
+                            }
+                        });
+                    } else {
+                        tg.showAlert("Nessun link generato dal server.");
+                    }
+                } catch (err) {
+                    console.error("Generazione invito fallita:", err);
+                    tg.showAlert("Errore durante la generazione dell'invito.");
+                } finally {
+                    hideLoader();
                 }
-            } catch (err) {
-                console.error("Generazione invito fallita:", err);
-                tg.showAlert("Errore durante la generazione dell'invito.");
-            } finally {
-                hideLoader();
-            }
+            });
         }
 
         function copyTextToClipboard(text) {
@@ -1606,6 +1656,15 @@
                     console.error('Fallback copy failed', err);
                 }
                 document.body.removeChild(textArea);
+            }
+        }
+
+        function copyPreexistingInvite(invitationCode) {
+            const url = `https://t.me/TrinAi_Team_bot?start=${invitationCode}`;
+            copyTextToClipboard(url);
+            tg.showAlert("Link invito esistente copiato negli appunti!");
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('success');
             }
         }
 
