@@ -640,7 +640,7 @@
         }
 
         function initializeDefaultStaff() {
-            const owner = operators.find(op => op.role === 'Owner');
+            const owner = operators.find(op => op.isOwner);
             operators = [];
             if (owner) {
                 operators.push(owner);
@@ -956,6 +956,32 @@
                         return opData;
                     });
                     
+                    // Check if owner exists in mapped operators list
+                    const ownerExists = operators.some(op => op.isOwner);
+                    if (!ownerExists) {
+                        const tgUser = (tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
+                        let ownerName = "Titolare";
+                        let ownerId = 'owner_1';
+                        if (tgUser) {
+                            ownerName = ((tgUser.first_name || '') + ' ' + (tgUser.last_name || '')).trim() || ownerName;
+                            ownerId = tgUser.id || ownerId;
+                        }
+                        operators.unshift({
+                            id: ownerId,
+                            name: ownerName.toUpperCase(),
+                            role: 'Odontoiatra',
+                            isOwner: true,
+                            contract: 'Partita IVA',
+                            level: '',
+                            hours: 40,
+                            salary: 0,
+                            rate_type: 'percentage',
+                            rate: 40,
+                            specialization: 'Generico / Generalista',
+                            geminiKey: ''
+                        });
+                    }
+
                     // Sort to make sure Owner is always at the top/in head
                     operators.sort((a, b) => {
                         if (a.isOwner && !b.isOwner) return -1;
@@ -1048,7 +1074,8 @@
 
             operators.forEach((op, idx) => {
                 let iconClass = 'fa-user-tie';
-                if (op.role === 'Odontoiatra') iconClass = 'fa-user-md';
+                if (op.isOwner) iconClass = 'fa-crown';
+                else if (op.role === 'Odontoiatra') iconClass = 'fa-user-md';
                 else if (op.role === 'Igienista') iconClass = 'fa-tooth';
                 else if (op.role === 'Anestesista') iconClass = 'fa-syringe';
                 else if (op.role === 'ASO (Assistente)' || op.role === 'ASO') iconClass = 'fa-user-nurse';
@@ -1058,28 +1085,25 @@
                 else if (op.role === 'Odontotecnico') iconClass = 'fa-teeth';
                 else if (op.role === 'Tecnico Manutentore') iconClass = 'fa-wrench';
                 else if (op.role === 'Ausiliario / Addetto Pulizie') iconClass = 'fa-broom';
-                else if (op.role === 'Owner') iconClass = 'fa-crown';
 
                 let roleText = op.role;
                 if (op.role === 'Odontoiatra' && op.specialization) {
                     roleText = `${op.role} (${op.specialization})`;
-                } else if (op.role === 'Owner') {
-                    roleText = 'Titolare (Owner)';
                 }
 
                 let contractLabel = roleText;
-                if (op.role === 'Owner') {
-                    contractLabel = roleText;
-                } else if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
+                if (op.isOwner) {
+                    contractLabel = `Titolare (${roleText})`;
+                }
+                
+                if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
                     contractLabel += op.level ? ` - Dipendente (${op.level})` : ` - Dipendente`;
                 } else if (op.contract === 'Partita IVA' || op.contract === 'P.IVA') {
                     contractLabel += ` - P.IVA`;
                 }
 
                 let contractText = '';
-                if (op.role === 'Owner') {
-                    contractText = 'Amministratore dello Studio';
-                } else if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
+                if (op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente') {
                     const hoursVal = op.hours !== undefined ? op.hours : 40;
                     contractText = `Lorde: €${parseFloat(op.salary || 0).toLocaleString('it-IT')}/mese (${hoursVal}h/sett)`;
                 } else {
