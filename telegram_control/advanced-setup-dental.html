@@ -293,6 +293,19 @@
                     </div>
                 </div>
 
+                <!-- Warning Banner for Stale Data -->
+                <div id="financials-stale-warning" class="p-3.5 bg-amber-50 text-amber-900 border border-amber-200 rounded-xl text-[10px] font-bold leading-relaxed flex items-start gap-2 hidden">
+                    <span class="text-xs">⚠️</span>
+                    <div>
+                        Hai apportato modifiche allo staff (Fase 1) o alle attrezzature (Fase 2) dopo l'ultimo calcolo. Si raccomanda di ricalcolare per allineare i costi.
+                    </div>
+                </div>
+
+                <!-- Recalculate Button -->
+                <button id="btn-ricalcola" onclick="executeDecompositionOrFinish()" class="w-full py-3.5 border border-black text-black bg-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5 hidden">
+                    <i class="fas fa-sync-alt"></i> Ricalcola Scomposizione
+                </button>
+
                 <!-- Totals Bar -->
                 <div class="card-noir p-5 bg-black text-white flex justify-between items-center">
                     <div>
@@ -359,6 +372,7 @@
         let profileType = 'societa_capitali';
         let apiBalance = null;
         let isManualInsertionActive = false;
+        let financialsSnapshot = "";
 
         const attrezzaturePreset = {
           "Attrezzatura di Base": [
@@ -1019,7 +1033,8 @@
                             isForfettario = true;
                             taxRegime = 'Forfettario';
                         }
-                        populateFinancialsGrid(result.financials);
+                        populateFinancialsGrid(result.financials, false);
+                        financialsSnapshot = result.financials_snapshot || getStaffEquipmentSnapshot();
                         if (isAdvancedSetup) {
                             hasFinancials = true;
                         } else {
@@ -2207,6 +2222,12 @@
             return allFilled;
         }
 
+        function getStaffEquipmentSnapshot() {
+            const opHash = operators.map(op => `${op.id}-${op.role}-${op.salary}-${op.hours}-${op.rate}`).join('|');
+            const macHash = machinery.map(mac => `${mac.type}-${mac.value}-${mac.ownership}`).join('|');
+            return `${opHash}#${macHash}`;
+        }
+
         function refreshStep3UI() {
             // Re-sync tenantType and taxRegime for legacy compatibility
             if (profileType === 'professionista') {
@@ -2232,6 +2253,8 @@
             const financialsMessage = document.getElementById('financials-detected-message');
             const financialsGrid = document.getElementById('financials-grid-container');
             const manualLinkBox = document.getElementById('box-manual-insertion-link');
+            const warningEl = document.getElementById('financials-stale-warning');
+            const btnRicalcola = document.getElementById('btn-ricalcola');
 
             // Hide/reset elements initially
             if (boxUploadCEE) boxUploadCEE.classList.add('hidden');
@@ -2240,6 +2263,8 @@
             if (financialsMessage) financialsMessage.classList.add('hidden');
             if (financialsGrid) financialsGrid.classList.add('hidden');
             if (manualLinkBox) manualLinkBox.classList.remove('hidden');
+            if (warningEl) warningEl.classList.add('hidden');
+            if (btnRicalcola) btnRicalcola.classList.add('hidden');
 
             // Reset buttons
             if (btnScomposizione) {
@@ -2262,6 +2287,20 @@
                     btnCompleta.disabled = false;
                     btnCompleta.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
+                
+                // Show Ricalcola button since grid is visible and it is not Forfettario
+                if (btnRicalcola && !isForfettario) {
+                    btnRicalcola.classList.remove('hidden');
+                }
+                
+                // Show warning banner if staff/equipment changed
+                if (warningEl && !isForfettario && financialsSnapshot) {
+                    const currentSnapshot = getStaffEquipmentSnapshot();
+                    if (financialsSnapshot !== currentSnapshot) {
+                        warningEl.classList.remove('hidden');
+                    }
+                }
+
                 if (statusText) statusText.innerText = "Configurazione di bilancio caricata. Modifica i valori o premi Salva Configurazione.";
                 return;
             }
@@ -2357,6 +2396,7 @@
         async function executeDecompositionOrFinish() {
             showLoader("Analisi", "Scomposizione finanziaria del bilancio con IA in corso...");
             try {
+                const currentSnapshot = getStaffEquipmentSnapshot();
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2370,6 +2410,7 @@
                         profile_type: profileType,
                         is_forfettario: isForfettario,
                         isForfettario: isForfettario,
+                        financials_snapshot: currentSnapshot,
                         advanced_setup: true
                     })
                 });
@@ -2387,7 +2428,8 @@
                 }
 
                 if (result && result.financials) {
-                    populateFinancialsGrid(result.financials);
+                    populateFinancialsGrid(result.financials, false);
+                    financialsSnapshot = currentSnapshot;
                     hasFinancials = true;
                     isManualInsertionActive = false;
                     refreshStep3UI();
@@ -2430,7 +2472,7 @@
             populateGroup('d', 'group-d');
         }
 
-        function populateFinancialsGrid(financialsData) {
+        function populateFinancialsGrid(financialsData, updateSnapshot = true) {
             financials = financialsData;
             Object.keys(financialsData).forEach(code => {
                 const el = document.getElementById(code);
@@ -2439,6 +2481,9 @@
                 }
             });
             updateFinancialsTotal();
+            if (updateSnapshot) {
+                financialsSnapshot = getStaffEquipmentSnapshot();
+            }
         }
 
         function updateFinancialsTotal() {
@@ -2502,6 +2547,7 @@
                     updateFinancialsTotal();
                 }
 
+                const currentSnapshot = getStaffEquipmentSnapshot();
                 // Call execute_financial_decomposition webhook
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
@@ -2517,12 +2563,14 @@
                         is_forfettario: isForfettario,
                         isForfettario: isForfettario,
                         financials: isForfettario ? { isForfettario: true } : financials,
+                        financials_snapshot: currentSnapshot,
                         advanced_setup: true
                     })
                 });
 
                 if (!response.ok) throw new Error("Errore chiamata server");
                 
+                financialsSnapshot = currentSnapshot;
                 await saveAndFinish();
             } catch (err) {
                 console.error("Salvataggio fallito:", err);
@@ -2537,6 +2585,7 @@
             showLoader("Salvataggio", "Salvataggio e chiusura della sessione in corso...");
             
             try {
+                const currentSnapshot = getStaffEquipmentSnapshot();
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2554,12 +2603,14 @@
                         operators: serializeOperatorsForSave(),
                         machinery: machinery,
                         number_of_chairs: numberOfChairs,
-                        financials: isForfettario ? { isForfettario: true } : financials
+                        financials: isForfettario ? { isForfettario: true } : financials,
+                        financials_snapshot: currentSnapshot
                     })
                 });
 
                 if (!response.ok) throw new Error("Errore nel salvataggio");
 
+                financialsSnapshot = currentSnapshot;
                 tg.showAlert("Configurazione salvata con successo!", () => {
                     // Navigate back to hub
                     location.href = `identity_hub.html?ash=${ash}&msg=${msg || ''}`;
