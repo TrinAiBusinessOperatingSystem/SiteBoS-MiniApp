@@ -310,8 +310,8 @@
                 <button onclick="prevStep()" class="flex-1 py-4 bg-white text-black border border-black rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
                     Indietro
                 </button>
-                <button onclick="saveAndFinish()" id="btn-completa" class="flex-1 py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5">
-                    Completa Setup <i class="fas fa-check"></i>
+                <button onclick="executeSaveConfiguration()" id="btn-completa" class="flex-1 py-4 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-1.5">
+                    Salva Configurazione <i class="fas fa-check"></i>
                 </button>
             </div>
         </div>
@@ -358,6 +358,7 @@
         let numberOfChairs = 2;
         let profileType = 'societa_capitali';
         let apiBalance = null;
+        let isManualInsertionActive = false;
 
         const attrezzaturePreset = {
           "Attrezzatura di Base": [
@@ -943,10 +944,6 @@
                     numberOfChairs = parseInt(chairsInput.value) || numberOfChairs;
                 }
                 
-                if (currentStep === 3) {
-                    updateFinancialsTotal();
-                }
-                
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -962,8 +959,7 @@
                         profile_type: profileType,
                         operators: serializeOperatorsForSave(),
                         machinery: machinery,
-                        number_of_chairs: numberOfChairs,
-                        financials: isForfettario ? {} : financials
+                        number_of_chairs: numberOfChairs
                     })
                 });
 
@@ -1016,6 +1012,22 @@
                     tenantType = result.tenant_type || 'Società';
                     taxRegime = result.tax_regime || 'Ordinario';
                     isForfettario = !!result.is_forfettario;
+                    
+                    let isAdvancedSetup = !!result.advanced_setup;
+                    if (result.financials) {
+                        if (result.financials.isForfettario === true || result.financials.isForfettario === 'true') {
+                            isForfettario = true;
+                            taxRegime = 'Forfettario';
+                        }
+                        populateFinancialsGrid(result.financials);
+                        if (isAdvancedSetup) {
+                            hasFinancials = true;
+                        } else {
+                            hasFinancials = false;
+                        }
+                    } else {
+                        hasFinancials = false;
+                    }
                     operators = (result.operators || []).map(op => {
                         let nameVal = op.name || op.OperatorName || '';
                         let isOwner = !!op.isOwner || (op.Role && op.Role.toLowerCase() === 'owner') || (op.role && op.role.toLowerCase() === 'owner');
@@ -1182,10 +1194,7 @@
                     badge.innerText = numberOfChairs;
                 }
                 
-                if (result && result.financials) {
-                    populateFinancialsGrid(result.financials);
-                    hasFinancials = true;
-                }
+                // Financials are already populated and checked at the start of loadData
                 
                 renderOperators();
                 renderMachinery();
@@ -1902,7 +1911,7 @@
                             </div>
                         </div>
                         <!-- Floating Dropdown list -->
-                        <div id="mac-combobox-dropdown" class="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-border rounded-xl shadow-lg z-50 hidden">
+                        <div id="mac-combobox-dropdown" class="absolute left-0 right-0 bottom-full mb-1 max-h-60 overflow-y-auto bg-white border border-border rounded-xl shadow-lg z-50 hidden">
                             <!-- Populated dynamically -->
                         </div>
                         <!-- Hidden input to keep compatibility with existing JS -->
@@ -2116,6 +2125,9 @@
             taxRegime = checked ? 'Forfettario' : 'Ordinario';
             const regimeSelect = document.getElementById('regime-select');
             if (regimeSelect) regimeSelect.value = taxRegime;
+            if (checked) {
+                isManualInsertionActive = false;
+            }
             refreshStep3UI();
         }
 
@@ -2154,19 +2166,45 @@
             }
         }
 
+        function enableSaveConfigurationButton(active) {
+            const btn = document.getElementById('btn-completa');
+            if (!btn) return;
+            if (active) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            } else {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
         function enableManualInsertion() {
-            hasFinancials = true;
-            document.getElementById('financials-grid-container').classList.remove('hidden');
-            document.getElementById('btn-genera-scomposizione').classList.add('hidden');
-            document.getElementById('btn-completa').classList.remove('hidden');
+            isManualInsertionActive = true;
+            refreshStep3UI();
+        }
+
+        function checkManualFieldsFilled() {
+            if (!isManualInsertionActive) {
+                enableSaveConfigurationButton(true);
+                return true;
+            }
             
-            const manualLink = document.getElementById('box-manual-insertion-link');
-            if (manualLink) manualLink.classList.add('hidden');
-            
-            const statusText = document.getElementById('upload-status-text');
-            if (statusText) statusText.innerText = "Inserimento manuale attivo. Specifica i costi sotto.";
-            
-            updateFinancialsTotal();
+            const codes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code);
+            let allFilled = true;
+            codes.forEach(code => {
+                const el = document.getElementById(code);
+                if (el) {
+                    const val = parseFloat(el.value) || 0;
+                    if (val <= 0) {
+                        allFilled = false;
+                    }
+                } else {
+                    allFilled = false;
+                }
+            });
+
+            enableSaveConfigurationButton(allFilled);
+            return allFilled;
         }
 
         function refreshStep3UI() {
@@ -2193,27 +2231,50 @@
             const statusText = document.getElementById('upload-status-text');
             const financialsMessage = document.getElementById('financials-detected-message');
             const financialsGrid = document.getElementById('financials-grid-container');
+            const manualLinkBox = document.getElementById('box-manual-insertion-link');
 
             // Hide/reset elements initially
             if (boxUploadCEE) boxUploadCEE.classList.add('hidden');
             if (boxUploadProfessionista) boxUploadProfessionista.classList.add('hidden');
             if (boxForfettario) boxForfettario.classList.add('hidden');
             if (financialsMessage) financialsMessage.classList.add('hidden');
+            if (financialsGrid) financialsGrid.classList.add('hidden');
+            if (manualLinkBox) manualLinkBox.classList.remove('hidden');
 
-            // Default button visibility
-            if (btnScomposizione) btnScomposizione.classList.remove('hidden');
-            if (btnCompleta) btnCompleta.classList.add('hidden');
+            // Reset buttons
+            if (btnScomposizione) {
+                btnScomposizione.classList.add('hidden');
+                btnScomposizione.disabled = true;
+                btnScomposizione.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            if (btnCompleta) {
+                btnCompleta.classList.add('hidden');
+                btnCompleta.disabled = false;
+                btnCompleta.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
 
-            // Check if we already did scomposizione or force opened manual insertion
+            // Check if we have pre-loaded/active financials (advanced_setup === true)
             if (hasFinancials) {
                 if (financialsGrid) financialsGrid.classList.remove('hidden');
-                if (btnScomposizione) btnScomposizione.classList.add('hidden');
-                if (btnCompleta) btnCompleta.classList.remove('hidden');
-                
-                const manualLink = document.getElementById('box-manual-insertion-link');
-                if (manualLink) manualLink.classList.add('hidden');
+                if (manualLinkBox) manualLinkBox.classList.add('hidden');
+                if (btnCompleta) {
+                    btnCompleta.classList.remove('hidden');
+                    btnCompleta.disabled = false;
+                    btnCompleta.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+                if (statusText) statusText.innerText = "Configurazione di bilancio caricata. Modifica i valori o premi Salva Configurazione.";
+                return;
+            }
 
-                if (statusText) statusText.innerText = "Dati economici pronti. Modifica le cifre o clicca su 'Completa Setup'.";
+            // Manual insertion override state
+            if (isManualInsertionActive) {
+                if (financialsGrid) financialsGrid.classList.remove('hidden');
+                if (manualLinkBox) manualLinkBox.classList.add('hidden');
+                if (btnCompleta) {
+                    btnCompleta.classList.remove('hidden');
+                }
+                if (statusText) statusText.innerText = "Inserimento manuale attivo. Compila tutti i campi con valori maggiori di 0.";
+                checkManualFieldsFilled();
                 return;
             }
 
@@ -2225,14 +2286,22 @@
                 }
 
                 if (isForfettario) {
-                    if (boxUploadProfessionista) boxUploadProfessionista.classList.add('hidden');
-                    enableDecompositionButton(true);
+                    // Scenario A1: Forfettario checked
+                    if (manualLinkBox) manualLinkBox.classList.add('hidden');
+                    if (btnCompleta) {
+                        btnCompleta.classList.remove('hidden');
+                        btnCompleta.disabled = false;
+                        btnCompleta.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
                     if (statusText) statusText.innerText = "Regime Forfettario attivo. Pronto per completare.";
                 } else {
+                    // Scenario A2: Forfettario unchecked
                     if (boxUploadProfessionista) boxUploadProfessionista.classList.remove('hidden');
                     const uploadProfTitle = document.getElementById('upload-prof-title');
-                    if (uploadProfTitle) uploadProfTitle.innerText = "Carica Modello Redditi / Quadro RE/LM";
+                    if (uploadProfTitle) uploadProfTitle.innerText = "Carica Modello Redditi (Quadro RE)";
                     
+                    if (btnScomposizione) btnScomposizione.classList.remove('hidden');
+
                     if (uploadedFileData) {
                         enableDecompositionButton(true);
                         if (statusText) statusText.innerText = `Documento pronto: ${uploadedFileName || 'selezionato'}.`;
@@ -2244,6 +2313,7 @@
 
             } else if (profileType === "societa_capitali") {
                 if (boxUploadCEE) boxUploadCEE.classList.remove('hidden');
+                if (btnScomposizione) btnScomposizione.classList.remove('hidden');
 
                 if (apiBalance) {
                     enableDecompositionButton(true);
@@ -2262,15 +2332,24 @@
 
             } else if (profileType === "societa_persone") {
                 if (boxUploadProfessionista) boxUploadProfessionista.classList.remove('hidden');
+                if (btnScomposizione) btnScomposizione.classList.remove('hidden');
+                
                 const uploadProfTitle = document.getElementById('upload-prof-title');
-                if (uploadProfTitle) uploadProfTitle.innerText = "Fornisci il Bilancio Interno / Modello Redditi SP";
+                if (uploadProfTitle) uploadProfTitle.innerText = "Carica Bilancio Interno o Modello Redditi SP";
 
-                if (uploadedFileData) {
+                if (apiBalance) {
                     enableDecompositionButton(true);
-                    if (statusText) statusText.innerText = `Documento pronto: ${uploadedFileName || 'selezionato'}.`;
+                    if (financialsMessage) financialsMessage.classList.remove('hidden');
+                    if (boxUploadProfessionista) boxUploadProfessionista.classList.add('hidden');
+                    if (statusText) statusText.innerText = "Bilancio ufficiale rilevato automaticamente. Pronto.";
                 } else {
-                    enableDecompositionButton(false);
-                    if (statusText) statusText.innerText = "Inserisci il Bilancio Interno o il Modello Redditi SP per procedere";
+                    if (uploadedFileData) {
+                        enableDecompositionButton(true);
+                        if (statusText) statusText.innerText = `Documento pronto: ${uploadedFileName || 'selezionato'}.`;
+                    } else {
+                        enableDecompositionButton(false);
+                        if (statusText) statusText.innerText = "Inserisci il Bilancio Interno o il Modello Redditi SP per procedere";
+                    }
                 }
             }
         }
@@ -2290,7 +2369,8 @@
                         uploaded_file_data: uploadedFileData || "",
                         profile_type: profileType,
                         is_forfettario: isForfettario,
-                        isForfettario: isForfettario
+                        isForfettario: isForfettario,
+                        advanced_setup: true
                     })
                 });
 
@@ -2308,15 +2388,9 @@
 
                 if (result && result.financials) {
                     populateFinancialsGrid(result.financials);
-                    document.getElementById('financials-grid-container').classList.remove('hidden');
-                    document.getElementById('btn-genera-scomposizione').classList.add('hidden');
-                    document.getElementById('btn-completa').classList.remove('hidden');
-                    
-                    const manualLink = document.getElementById('box-manual-insertion-link');
-                    if (manualLink) manualLink.classList.add('hidden');
-                    
                     hasFinancials = true;
-                    updateFinancialsTotal();
+                    isManualInsertionActive = false;
+                    refreshStep3UI();
                 } else {
                     tg.showAlert("Errore: la scomposizione non ha prodotto dati finanziari validi.");
                 }
@@ -2381,6 +2455,7 @@
             });
 
             document.getElementById('financials-total-val').innerText = "€ " + total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            checkManualFieldsFilled();
         }
 
         // ACCORDION GESTION
@@ -2420,6 +2495,43 @@
         }
 
         // SAVE & FINISH ACTIONS
+        async function executeSaveConfiguration() {
+            showLoader("Salvataggio", "Salvataggio configurazione in corso...");
+            try {
+                if (isManualInsertionActive) {
+                    updateFinancialsTotal();
+                }
+
+                // Call execute_financial_decomposition webhook
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: "execute_financial_decomposition",
+                        operators: serializeOperatorsForSave(),
+                        machinery: machinery,
+                        uploaded_file_data: "",
+                        profile_type: profileType,
+                        is_forfettario: isForfettario,
+                        isForfettario: isForfettario,
+                        financials: isForfettario ? { isForfettario: true } : financials,
+                        advanced_setup: true
+                    })
+                });
+
+                if (!response.ok) throw new Error("Errore chiamata server");
+                
+                await saveAndFinish();
+            } catch (err) {
+                console.error("Salvataggio fallito:", err);
+                tg.showAlert("Errore durante il salvataggio della configurazione.");
+            } finally {
+                hideLoader();
+            }
+        }
+
         async function saveAndFinish() {
             updateFinancialsTotal();
             showLoader("Salvataggio", "Salvataggio e chiusura della sessione in corso...");
@@ -2438,10 +2550,11 @@
                         is_forfettario: isForfettario,
                         isForfettario: isForfettario,
                         profile_type: profileType,
+                        advanced_setup: true,
                         operators: serializeOperatorsForSave(),
                         machinery: machinery,
                         number_of_chairs: numberOfChairs,
-                        financials: isForfettario ? {} : financials
+                        financials: isForfettario ? { isForfettario: true } : financials
                     })
                 });
 
