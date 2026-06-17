@@ -1625,7 +1625,11 @@
                         }, function(button_id) {
                             if (button_id === 'copy') {
                                 copyTextToClipboard(inviteLink);
-                                tg.showAlert("Link copiato negli appunti con successo.");
+                                tg.showAlert("Link copiato negli appunti con successo.", () => {
+                                    location.reload();
+                                });
+                            } else {
+                                location.reload();
                             }
                         });
                     } else {
@@ -1737,46 +1741,101 @@
             return false;
         }
 
-        function filterEquipmentOptions(query) {
-            const selectEl = document.getElementById('mac-type');
-            if (!selectEl) return;
+        function populateComboboxDropdown(query) {
+            const dropdown = document.getElementById('mac-combobox-dropdown');
+            if (!dropdown) return;
             
             const q = query.toLowerCase().trim();
-            const currentSelected = selectEl.value;
+            const currentSelected = document.getElementById('mac-type').value;
             
             let html = '';
-            let matchesCount = 0;
-            let currentSelectedStillExists = false;
-            
             for (const [category, items] of Object.entries(attrezzaturePreset)) {
                 const filteredItems = items.filter(item => item.name.toLowerCase().includes(q));
                 if (filteredItems.length > 0) {
-                    html += `<optgroup label="${category}">`;
+                    html += `<div class="px-3 py-1.5 text-[8px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 border-y border-border/50 sticky top-0 select-none">${category}</div>`;
                     filteredItems.forEach(item => {
                         const isSel = (item.name === currentSelected);
-                        if (isSel) currentSelectedStillExists = true;
-                        html += `<option value="${item.name}" ${isSel ? 'selected' : ''}>${item.name}</option>`;
-                        matchesCount++;
+                        html += `
+                            <div class="mac-combobox-option px-4 py-2.5 text-xs font-bold ${isSel ? 'bg-black text-white' : 'text-black hover:bg-black hover:text-white'} cursor-pointer transition-colors" data-value="${item.name}">
+                                ${item.name}
+                            </div>
+                        `;
                     });
-                    html += `</optgroup>`;
                 }
             }
             
-            const isCustomSelected = (currentSelected === 'Altra Attrezzatura (Personalizzata)' || (currentSelected && !isPresetType(currentSelected)));
-            if (isCustomSelected) currentSelectedStillExists = true;
+            const isCustomSelected = (currentSelected === 'Altra Attrezzatura (Personalizzata)');
+            html += `
+                <div class="mac-combobox-option px-4 py-2.5 text-xs font-bold ${isCustomSelected ? 'bg-black text-white' : 'text-gray-500 hover:bg-black hover:text-white'} cursor-pointer border-t border-border transition-colors italic" data-value="Altra Attrezzatura (Personalizzata)">
+                    Altra Attrezzatura (Personalizzata)
+                </div>
+            `;
             
-            html += `<option value="Altra Attrezzatura (Personalizzata)" ${isCustomSelected ? 'selected' : ''}>Altra Attrezzatura (Personalizzata)</option>`;
-            
-            selectEl.innerHTML = html;
-            
-            if (!currentSelectedStillExists) {
-                if (selectEl.options.length > 0) {
-                    selectEl.selectedIndex = 0;
-                }
-            }
-            
-            handleMacTypeChange(selectEl.value);
+            dropdown.innerHTML = html;
         }
+
+        function selectComboboxValue(val) {
+            const hiddenType = document.getElementById('mac-type');
+            const visibleInput = document.getElementById('mac-combobox-input');
+            const dropdown = document.getElementById('mac-combobox-dropdown');
+            
+            if (hiddenType) hiddenType.value = val;
+            if (visibleInput) visibleInput.value = val;
+            if (dropdown) dropdown.classList.add('hidden');
+            
+            handleMacTypeChange(val);
+        }
+
+        function handleComboboxSelectionOnBlur() {
+            const visibleInput = document.getElementById('mac-combobox-input');
+            if (!visibleInput) return;
+            const typedVal = visibleInput.value.trim();
+            if (!typedVal) {
+                selectComboboxValue('Riunito Odontoiatrico (Fascia Media)');
+                return;
+            }
+            
+            let matched = null;
+            for (const categoryItems of Object.values(attrezzaturePreset)) {
+                const match = categoryItems.find(item => item.name.toLowerCase() === typedVal.toLowerCase());
+                if (match) {
+                    matched = match.name;
+                    break;
+                }
+            }
+            
+            if (matched) {
+                selectComboboxValue(matched);
+            } else {
+                selectComboboxValue('Altra Attrezzatura (Personalizzata)');
+                const customInput = document.getElementById('mac-custom-name');
+                if (customInput) {
+                    customInput.value = typedVal;
+                }
+            }
+        }
+
+        // Global listener for click outside combobox dropdown
+        document.addEventListener('click', function(e) {
+            const container = document.getElementById('mac-combobox-container');
+            const dropdown = document.getElementById('mac-combobox-dropdown');
+            if (container && dropdown && !container.contains(e.target)) {
+                if (!dropdown.classList.contains('hidden')) {
+                    dropdown.classList.add('hidden');
+                    handleComboboxSelectionOnBlur();
+                }
+            }
+        });
+
+        // Global listener for Enter key inside combobox input
+        document.addEventListener('keydown', function(e) {
+            if (e.target && e.target.id === 'mac-combobox-input' && e.key === 'Enter') {
+                e.preventDefault();
+                const dropdown = document.getElementById('mac-combobox-dropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+                handleComboboxSelectionOnBlur();
+            }
+        });
 
         function openMachineryDrawer(idx = null) {
             activeEditIndex = idx;
@@ -1786,16 +1845,6 @@
             const isPreset = isPresetType(data.type);
             const isCustom = data.type && !isPreset && data.type !== 'Altra Attrezzatura (Personalizzata)';
             
-            let typeOptionsHtml = '';
-            for (const [category, items] of Object.entries(attrezzaturePreset)) {
-                typeOptionsHtml += `<optgroup label="${category}">`;
-                items.forEach(item => {
-                    typeOptionsHtml += `<option value="${item.name}" ${data.type === item.name ? 'selected' : ''}>${item.name}</option>`;
-                });
-                typeOptionsHtml += `</optgroup>`;
-            }
-            typeOptionsHtml += `<option value="Altra Attrezzatura (Personalizzata)" ${data.type === 'Altra Attrezzatura (Personalizzata)' || isCustom ? 'selected' : ''}>Altra Attrezzatura (Personalizzata)</option>`;
-
             const container = document.getElementById('drawer-container');
             container.innerHTML = `
                 <div class="flex justify-between items-center pb-2 border-b border-border">
@@ -1804,16 +1853,21 @@
                 </div>
                 
                 <div class="space-y-3">
-                    <div class="space-y-1">
-                        <label class="label-micro">Cerca Attrezzatura</label>
-                        <input type="text" id="mac-search" oninput="filterEquipmentOptions(this.value)" placeholder="🔍 Digita per filtrare..." class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
-                    </div>
-                    
-                    <div class="space-y-1">
+                    <!-- UNIFIED SEARCHABLE COMBOBOX COMPONENT -->
+                    <div class="space-y-1 relative" id="mac-combobox-container">
                         <label class="label-micro">Seleziona Attrezzatura</label>
-                        <select id="mac-type" onchange="handleMacTypeChange(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
-                            ${typeOptionsHtml}
-                        </select>
+                        <div class="relative">
+                            <input type="text" id="mac-combobox-input" autocomplete="off" placeholder="Seleziona o digita per cercare..." class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition cursor-pointer pr-10">
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                                <i class="fas fa-chevron-down text-xs"></i>
+                            </div>
+                        </div>
+                        <!-- Floating Dropdown list -->
+                        <div id="mac-combobox-dropdown" class="absolute left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-border rounded-xl shadow-lg z-50 hidden">
+                            <!-- Populated dynamically -->
+                        </div>
+                        <!-- Hidden input to keep compatibility with existing JS -->
+                        <input type="hidden" id="mac-type" value="${isCustom ? 'Altra Attrezzatura (Personalizzata)' : data.type}">
                     </div>
 
                     <!-- NOME PERSONALIZZATO -->
@@ -1852,6 +1906,38 @@
                     ${isEdit ? 'Aggiorna' : 'Aggiungi'} Attrezzatura
                 </button>
             `;
+            
+            const comboboxInput = document.getElementById('mac-combobox-input');
+            if (comboboxInput) {
+                comboboxInput.value = isCustom ? 'Altra Attrezzatura (Personalizzata)' : data.type;
+                
+                comboboxInput.addEventListener('focus', function() {
+                    populateComboboxDropdown('');
+                    document.getElementById('mac-combobox-dropdown').classList.remove('hidden');
+                });
+                
+                comboboxInput.addEventListener('click', function() {
+                    populateComboboxDropdown(this.value);
+                    document.getElementById('mac-combobox-dropdown').classList.remove('hidden');
+                });
+                
+                comboboxInput.addEventListener('input', function() {
+                    populateComboboxDropdown(this.value);
+                    document.getElementById('mac-combobox-dropdown').classList.remove('hidden');
+                });
+            }
+
+            const dropdownEl = document.getElementById('mac-combobox-dropdown');
+            if (dropdownEl) {
+                dropdownEl.addEventListener('click', function(e) {
+                    const option = e.target.closest('.mac-combobox-option');
+                    if (option) {
+                        const val = option.getAttribute('data-value');
+                        selectComboboxValue(val);
+                    }
+                });
+            }
+
             handleMacOwnershipChange(data.ownership, true);
             openDrawer();
         }
