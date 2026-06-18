@@ -2247,9 +2247,72 @@
                 return true;
             }
             
-            const codes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code);
+            // A. I 17 Conti Universali (Sempre Obbligatori)
+            const requiredCodes = [
+                "631.01000", "631.01001", "631.01005", "612.00001", "631.00011",
+                "631.00017", "606.00007", "621.00031", "621.00001", "632.00005",
+                "632.00001", "601.00001", "601.00004", "631.00016", "631.00103",
+                "626.00201", "626.00202"
+            ];
+
+            // B. Conti Condizionali
+            
+            // 1. Canone di Locazione
+            const hasOwnedProperty = machinery.some(mac => {
+                const typeLower = (mac.type || '').toLowerCase();
+                const isOwned = mac.ownership === 'Proprietà';
+                const isProperty = typeLower.includes('immobile') || 
+                                   typeLower.includes('fabbricato') || 
+                                   typeLower.includes('studio di proprietà') || 
+                                   typeLower.includes('locale') || 
+                                   typeLower.includes('mura');
+                return isOwned && isProperty;
+            });
+            if (!hasOwnedProperty) {
+                requiredCodes.push("606.00001", "606.00010");
+            }
+
+            // 2. Personale Dipendente
+            const hasCCNLStaff = operators.some(op => op.contract === 'Dipendente (CCNL)' || op.contract === 'Dipendente');
+            const isSocieta = profileType !== 'professionista';
+            if (isSocieta || hasCCNLStaff) {
+                requiredCodes.push("610.00001", "610.00021", "610.00031", "610.01001");
+            }
+
+            // 3. Collaboratori Medici Esterni
+            const hasPIvaClinico = operators.some(op => {
+                const r = (op.role || '').toLowerCase();
+                const isClinico = r.includes('odontoiatra') || r.includes('igienista') || r.includes('anestesista');
+                const isPIva = op.contract === 'Partita IVA' || op.contract === 'P.IVA';
+                return isClinico && isPIva;
+            });
+            if (hasPIvaClinico) {
+                requiredCodes.push("612.00005");
+            }
+
+            // 4. Attrezzature in Leasing
+            const currentYear = new Date().getFullYear();
+            const hasLeasingLast4Years = machinery.some(mac => {
+                const isLeasing = mac.ownership === 'Leasing/Noleggio' || mac.ownership === 'Leasing' || mac.ownership === 'Noleggio';
+                const isRecent = (currentYear - (parseInt(mac.year) || currentYear)) <= 4;
+                return isLeasing && isRecent;
+            });
+            if (hasLeasingLast4Years) {
+                requiredCodes.push("605.00001", "605.00061");
+            }
+
+            // 5. Autovettura Aziendale
+            const hasAuto = machinery.some(mac => {
+                const name = (mac.type || '').toLowerCase();
+                return name.includes('auto') || name.includes('veicolo') || name.includes('furgone') || name.includes('macchina') || name.includes('vettura');
+            });
+            if (hasAuto) {
+                requiredCodes.push("601.00008", "631.00101", "631.00121", "621.00005");
+            }
+
+            // Verifica dei valori dei campi selezionati come obbligatori
             let allFilled = true;
-            codes.forEach(code => {
+            requiredCodes.forEach(code => {
                 const el = document.getElementById(code);
                 if (el) {
                     const val = parseFloat(el.value) || 0;
