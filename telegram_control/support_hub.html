@@ -69,7 +69,7 @@
                     In Attesa
                 </button>
                 <button onclick="setInboxFilter('PREV')" id="filterBtn-PREV" class="flex-1 py-1.5 rounded-xl text-gray-400 hover:text-black transition-all text-center">
-                    Preventivi
+                    Richieste
                 </button>
                 <button onclick="setInboxFilter('TICKET')" id="filterBtn-TICKET" class="flex-1 py-1.5 rounded-xl text-gray-400 hover:text-black transition-all text-center">
                     Ticket
@@ -109,7 +109,7 @@
                 </button>
                 <button onclick="switchTab('PREV')" id="tabBtn-PREV" 
                     class="flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-all flex items-center justify-center gap-1.5">
-                    <i class="fas fa-file-invoice-dollar"></i> Preventivi
+                    <i class="fas fa-file-invoice-dollar"></i> Richieste
                 </button>
                 <button onclick="switchTab('PROF')" id="tabBtn-PROF" 
                     class="flex-1 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-all flex items-center justify-center gap-1.5">
@@ -336,7 +336,9 @@
 
                 const name = session.customer_name || `Cliente (${session.customer_id})`;
                 const snippet = session.last_message ? session.last_message : "Vedi dettagli...";
-                const badgeClass = session.type === 'PREVENTIVO' ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800';
+                const badgeClass = session.type === 'PREVENTIVO' ? 'bg-amber-100 text-amber-800' : 
+                                   session.type === 'BOOKING' ? 'bg-purple-100 text-purple-800' : 
+                                   'bg-blue-100 text-blue-800';
                 
                 const isClosed = session.closed === true || session.status === 'closed' || session.status === 'resolved';
                 const statusBadge = isClosed 
@@ -386,7 +388,7 @@
             if (currentInboxFilter === 'PENDING') {
                 filtered = filtered.filter(s => s.status !== 'resolved' && s.status !== 'closed' && s.closed !== true);
             } else if (currentInboxFilter === 'PREV') {
-                filtered = filtered.filter(s => s.type === 'PREVENTIVO');
+                filtered = filtered.filter(s => s.type === 'PREVENTIVO' || s.type === 'BOOKING');
             } else if (currentInboxFilter === 'TICKET') {
                 filtered = filtered.filter(s => s.type === 'TICKET' || !s.type);
             }
@@ -522,7 +524,7 @@
             if (!Array.isArray(orders) || orders.length === 0) {
                 dom.proposalsList.innerHTML = `
                     <div class="text-center py-8 text-gray-400 font-bold text-xs uppercase tracking-widest bg-white rounded-3xl border border-border">
-                        Nessun preventivo o ordine registrato
+                        Nessun preventivo, ordine o appuntamento registrato
                     </div>`;
                 return;
             }
@@ -532,18 +534,49 @@
                 card.className = "bg-white p-4 rounded-3xl border border-border shadow-sm space-y-3";
 
                 const isProposal = (order.sessionId && order.sessionId.includes('prev')) || order.type === 'PREVENTIVO' || order.orderId?.startsWith('prev_');
-                const title = isProposal ? "📝 Richiesta Preventivo" : "📦 Ordine";
+                const isBooking = order.type === 'BOOKING' || order.orderId?.startsWith('book_');
+                const title = isProposal ? "📝 Richiesta Preventivo" : isBooking ? "📅 Proposta Appuntamento" : "📦 Ordine";
                 const total = order.total_amount ? `€ ${parseFloat(order.total_amount).toFixed(2)}` : 'N/D';
                 const date = order.timestamp ? new Date(order.timestamp).toLocaleDateString('it-IT') : 'N/D';
 
-                // Lista articoli
-                let itemsHtml = '';
-                if (Array.isArray(order.items)) {
-                    order.items.forEach(item => {
-                        itemsHtml += `<div class="text-[9px] font-bold text-gray-600 border-l-2 border-black pl-2 mt-1">• ${item.quantity || 1}x ${item.name}</div>`;
-                    });
-                } else if (order.description) {
-                    itemsHtml = `<div class="text-[9px] font-bold text-gray-600 border-l-2 border-black pl-2 mt-1">${order.description}</div>`;
+                // Lista articoli o dettagli booking
+                let contentHtml = '';
+                if (isBooking) {
+                    const booking = order.booking_data || {};
+                    const services = booking.services || [];
+                    const servicesHtml = services.map(s => `<div class="text-[9px] font-bold text-gray-600 border-l-2 border-black pl-2 mt-1">• ${s.name} (${s.duration_min} min)</div>`).join('');
+                    
+                    const availabilities = booking.availabilities || [];
+                    const availabilitiesHtml = availabilities.map(a => `${a.day} (${a.period})`).join(', ');
+
+                    contentHtml = `
+                        <div class="space-y-2.5 text-xs">
+                            <div>
+                                <span class="font-black text-[7px] text-gray-400 uppercase tracking-widest block">Servizi Richiesti</span>
+                                ${servicesHtml || '<div class="text-gray-400 pl-2">Nessun servizio selezionato</div>'}
+                            </div>
+                            <div class="pt-1.5 border-t border-gray-50">
+                                <span class="font-black text-[7px] text-gray-400 uppercase tracking-widest block">Preferenze Disponibilità Cliente</span>
+                                <div class="text-black font-bold pl-2 mt-1 text-[10px]">
+                                    <i class="far fa-calendar-alt mr-1 text-purple-500"></i> ${availabilitiesHtml || 'N/D'}
+                                </div>
+                            </div>
+                            ${booking.notes ? `
+                            <div class="pt-1.5 border-t border-gray-50">
+                                <span class="font-black text-[7px] text-gray-400 uppercase tracking-widest block">Note Cliente</span>
+                                <div class="text-gray-500 italic pl-2 bg-gray-50 p-2 rounded-xl mt-1 border border-gray-100">${booking.notes}</div>
+                            </div>` : ''}
+                        </div>`;
+                } else {
+                    let itemsHtml = '';
+                    if (Array.isArray(order.items)) {
+                        order.items.forEach(item => {
+                            itemsHtml += `<div class="text-[9px] font-bold text-gray-600 border-l-2 border-black pl-2 mt-1">• ${item.quantity || 1}x ${item.name}</div>`;
+                        });
+                    } else if (order.description) {
+                        itemsHtml = `<div class="text-[9px] font-bold text-gray-600 border-l-2 border-black pl-2 mt-1">${order.description}</div>`;
+                    }
+                    contentHtml = `<div class="space-y-1">${itemsHtml}</div>`;
                 }
 
                 // GPCTBA specifico di questo preventivo
@@ -569,27 +602,72 @@
                     }
                 }
 
+                let footerHtml = '';
+                if (isBooking) {
+                    const booking = order.booking_data || {};
+                    footerHtml = `
+                        <!-- Form di Pianificazione Inline -->
+                        <div id="schedule-form-${idx}" class="hidden p-3 bg-gray-50 border border-gray-100 rounded-2xl space-y-3 mt-3 fade-in-up">
+                            <span class="font-black text-[7px] text-gray-400 uppercase tracking-widest block">Definisci Appuntamento</span>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="space-y-1">
+                                    <label class="text-[7px] font-black uppercase text-gray-400">Data</label>
+                                    <input type="date" id="sched-date-${idx}" class="w-full bg-white p-2 rounded-xl text-[9px] font-bold border border-gray-200 outline-none">
+                                </div>
+                                <div class="space-y-1">
+                                    <label class="text-[7px] font-black uppercase text-gray-400">Ora Inizio</label>
+                                    <input type="time" id="sched-time-${idx}" class="w-full bg-white p-2 rounded-xl text-[9px] font-bold border border-gray-200 outline-none">
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[7px] font-black uppercase text-gray-400">Durata (minuti)</label>
+                                <input type="number" id="sched-duration-${idx}" value="${booking.total_duration_min || 30}" class="w-full bg-white p-2 rounded-xl text-[9px] font-bold border border-gray-200 outline-none">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 pt-1">
+                                <button onclick="cancelSchedule(${idx})" class="h-8 bg-gray-200 text-black rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95">
+                                    Annulla
+                                </button>
+                                <button onclick="saveSchedule('${order.orderId || order.id || idx}', ${idx})" class="h-8 bg-black text-white rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95">
+                                    Conferma e Invia
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Pulsanti d'azione primari -->
+                        <div id="action-buttons-${idx}" class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-50">
+                            <button onclick="showScheduleForm(${idx})" class="h-8 bg-black hover:bg-neutral-800 text-white rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95 flex items-center justify-center gap-1">
+                                <i class="fas fa-calendar-check"></i> Pianifica
+                            </button>
+                            <button onclick="manageBooking('${order.orderId || order.id || idx}', 'reject', ${idx})" class="h-8 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95 flex items-center justify-center gap-1">
+                                <i class="fas fa-times-circle"></i> Rifiuta
+                            </button>
+                        </div>`;
+                } else {
+                    footerHtml = `
+                        <div class="flex justify-between items-center pt-2 border-t border-gray-50 text-[10px]">
+                            <span class="font-black uppercase tracking-widest text-gray-400 text-[8px]">Totale</span>
+                            <span class="font-black text-black">${total}</span>
+                        </div>
+                        ${orderGpctbaHtml}
+                        <div class="grid grid-cols-2 gap-2 pt-2">
+                            <button onclick="copyProposalToClipboard(${idx})" class="h-8 bg-gray-100 hover:bg-gray-200 text-black border border-border rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95 flex items-center justify-center gap-1">
+                                <i class="fas fa-copy"></i> Copia
+                            </button>
+                            <button onclick="downloadProposalReport(${idx})" class="h-8 bg-black hover:bg-neutral-800 text-white rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95 flex items-center justify-center gap-1">
+                                <i class="fas fa-download"></i> Scarica Report
+                            </button>
+                        </div>`;
+                }
+
                 card.innerHTML = `
                     <div class="flex justify-between items-center pb-2 border-b border-gray-50">
                         <span class="font-black uppercase tracking-tight text-[10px] text-black">${title}</span>
                         <span class="text-[8px] font-bold text-gray-400">${date}</span>
                     </div>
-                    <div class="space-y-1">
-                        ${itemsHtml}
+                    <div class="py-1">
+                        ${contentHtml}
                     </div>
-                    <div class="flex justify-between items-center pt-2 border-t border-gray-50 text-[10px]">
-                        <span class="font-black uppercase tracking-widest text-gray-400 text-[8px]">Totale</span>
-                        <span class="font-black text-black">${total}</span>
-                    </div>
-                    ${orderGpctbaHtml}
-                    <div class="grid grid-cols-2 gap-2 pt-2">
-                        <button onclick="copyProposalToClipboard(${idx})" class="h-8 bg-gray-100 hover:bg-gray-200 text-black border border-border rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95 flex items-center justify-center gap-1">
-                            <i class="fas fa-copy"></i> Copia
-                        </button>
-                        <button onclick="downloadProposalReport(${idx})" class="h-8 bg-black hover:bg-neutral-800 text-white rounded-xl font-black uppercase text-[7px] tracking-wider transition active:scale-95 flex items-center justify-center gap-1">
-                            <i class="fas fa-download"></i> Scarica Report
-                        </button>
-                    </div>
+                    ${footerHtml}
                 `;
                 dom.proposalsList.appendChild(card);
             });
@@ -674,6 +752,107 @@ Generato da SiteBoS Centro Supporto il ${new Date().toLocaleString('it-IT')}
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function showScheduleForm(idx) {
+            document.getElementById(`schedule-form-${idx}`).classList.remove('hidden');
+            document.getElementById(`action-buttons-${idx}`).classList.add('hidden');
+        }
+
+        function cancelSchedule(idx) {
+            document.getElementById(`schedule-form-${idx}`).classList.add('hidden');
+            document.getElementById(`action-buttons-${idx}`).classList.remove('hidden');
+        }
+
+        async function saveSchedule(bookingId, idx) {
+            if (!currentCustomerId) return;
+            const dateVal = document.getElementById(`sched-date-${idx}`).value;
+            const timeVal = document.getElementById(`sched-time-${idx}`).value;
+            const durationVal = parseInt(document.getElementById(`sched-duration-${idx}`).value);
+
+            if (!dateVal || !timeVal || isNaN(durationVal)) {
+                tg.showAlert("Inserisci data, ora e durata per confermare l'appuntamento.");
+                return;
+            }
+
+            const order = currentOrders[idx] || {};
+            const services = order.booking_data?.services || [];
+            const servicesStr = services.map(s => s.name).join(', ');
+            
+            tg.showConfirm(`Pianificare l'appuntamento il ${dateVal} alle ore ${timeVal} con durata ${durationVal} min?`, async ok => {
+                if (ok) {
+                    showLoader();
+                    try {
+                        const response = await fetch(WEBHOOK_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                _auth: tg.initData,
+                                ash: originalAsh,
+                                target_customer_id: currentCustomerId,
+                                booking_id: bookingId,
+                                action: "confirm_booking",
+                                confirmed_slot: {
+                                    date: dateVal,
+                                    time_start: timeVal,
+                                    duration_min: durationVal,
+                                    title: `Appuntamento: ${servicesStr || "Servizi Selezionati"}`
+                                }
+                            })
+                        });
+
+                        if (response.ok) {
+                            tg.showAlert("Appuntamento confermato e salvato in agenda!");
+                            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                            await loadHandoverDetails(currentCustomerId);
+                        } else {
+                            throw new Error("Errore chiamata");
+                        }
+                    } catch (err) {
+                        tg.showAlert("Errore durante il salvataggio dell'appuntamento.");
+                    } finally {
+                        hideLoader();
+                    }
+                }
+            });
+        }
+
+        async function manageBooking(bookingId, action, idx) {
+            if (!currentCustomerId) return;
+            const actionText = action === 'confirm' ? 'CONFERMARE' : 'RIFIUTARE';
+            const actionName = action === 'confirm' ? 'confirm_booking' : 'reject_booking';
+            
+            tg.showConfirm(`Sei sicuro di voler ${actionText} questo appuntamento?`, async ok => {
+                if (ok) {
+                    showLoader();
+                    try {
+                        const response = await fetch(WEBHOOK_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                _auth: tg.initData,
+                                ash: originalAsh,
+                                target_customer_id: currentCustomerId,
+                                booking_id: bookingId,
+                                action: actionName,
+                                booking_data: currentOrders[idx]?.booking_data || {}
+                            })
+                        });
+
+                        if (response.ok) {
+                            tg.showAlert(`Appuntamento rifiutato con successo!`);
+                            if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                            await loadHandoverDetails(currentCustomerId);
+                        } else {
+                            throw new Error("Errore chiamata");
+                        }
+                    } catch (err) {
+                        tg.showAlert("Errore durante la gestione dell'appuntamento.");
+                    } finally {
+                        hideLoader();
+                    }
+                }
+            });
         }
 
         // --- GRID GPCTBA ---
