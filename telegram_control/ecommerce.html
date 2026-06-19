@@ -116,7 +116,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             <div class="w-10 h-1 bg-gray-100 rounded-full mx-auto"></div>
             <div class="overflow-y-auto no-scrollbar space-y-5 pb-8">
                 <div id="modal-img-container" class="w-full aspect-square rounded-2xl bg-gray-50 overflow-hidden border border-gray-100">
-                    <img id="modal-img" src="" class="w-full h-full object-cover">
+                    <img id="modal-img" src="" onerror="handleProductImageError(this, activeSku)" class="w-full h-full object-cover">
                 </div>
                 <div>
                     <h2 id="modal-title" class="text-xl font-black tracking-tight leading-tight uppercase"></h2>
@@ -245,6 +245,24 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         let imgRoot = "", vat = params.get('vat') || 'default', currentFilter = 'ALL', userCoords = null, paymentMode = 'DELIVERY';
         let activeSku = null, currentBasePrice = 0, modalLocalQty = 1, modalEditingKey = null;
 
+        function getProductImageUrl(p) {
+            return `https://minisite.trinai.it/${vat}/images/${p.callback_data}.jpg`;
+        }
+
+        function handleProductImageError(img, callbackData) {
+            if (!callbackData) return;
+            if (!img.dataset.triedDashboard) {
+                img.dataset.triedDashboard = 'true';
+                img.src = `https://dashboard.trinai.it/images/minisite/${vat}/${callbackData}.jpg`;
+            } else if (!img.dataset.triedLegacy) {
+                img.dataset.triedLegacy = 'true';
+                img.src = `${imgRoot}images/${vat}/${callbackData}.jpg`;
+            } else if (!img.dataset.triedPlaceholder) {
+                img.dataset.triedPlaceholder = 'true';
+                img.src = 'https://via.placeholder.com/200?text=IMG';
+            }
+        }
+
         window.onload = async () => { 
             console.log("Window Loaded. Script pronto.");
             if (!ashToken) { 
@@ -328,7 +346,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 list.innerHTML = items.map(p => `
                     <div class="flex-shrink-0 w-24 bg-white p-1 rounded-2xl bento-card" onclick="openProduct('${p.callback_data}')">
                         <div class="w-full aspect-square rounded-xl bg-gray-50 overflow-hidden relative border border-gray-100">
-                            <img src="${imgRoot}images/${vat}/${p.callback_data}.jpg" onerror="this.src='https://via.placeholder.com/200?text=IMG'" class="w-full h-full object-cover">
+                            <img src="${getProductImageUrl(p)}" onerror="handleProductImageError(this, '${p.callback_data}')" class="w-full h-full object-cover">
                             <div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-2 text-center">
                                 <h3 class="font-black text-[7px] text-white uppercase tracking-tighter leading-none mb-1" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">${p.short_name || p.name}</h3>
                                 <p class="font-black text-[9px] text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">€ ${parseFloat(p.price).toFixed(2)}</p>
@@ -353,7 +371,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                         ${products.map(p => `
                             <div class="bg-white p-3 rounded-3xl bento-card space-y-3 relative overflow-hidden group border border-gray-50" onclick="openProduct('${p.callback_data}')">
                                 <div class="w-full aspect-square rounded-2xl bg-gray-50 overflow-hidden">
-                                    <img src="${imgRoot}images/${vat}/${p.callback_data}.jpg" onerror="this.src='https://via.placeholder.com/200?text=IMG'" class="w-full h-full object-cover">
+                                    <img src="${getProductImageUrl(p)}" onerror="handleProductImageError(this, '${p.callback_data}')" class="w-full h-full object-cover">
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-[10px] leading-tight mb-2 h-7 overflow-hidden text-gray-800 uppercase tracking-tighter">${p.name}</h3>
@@ -402,7 +420,11 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             document.getElementById('modal-title').innerText = p.name;
             document.getElementById('modal-category').innerText = p.category;
             document.getElementById('modal-desc').innerText = p.long_description || p.description || "Nessuna descrizione.";
-            document.getElementById('modal-img').src = `${imgRoot}images/${vat}/${p.callback_data}.jpg`;
+            const modalImg = document.getElementById('modal-img');
+            delete modalImg.dataset.triedDashboard;
+            delete modalImg.dataset.triedLegacy;
+            delete modalImg.dataset.triedPlaceholder;
+            modalImg.src = getProductImageUrl(p);
             
             let config = { extras: [], note: "" };
 
@@ -457,7 +479,11 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             document.getElementById('modal-title').innerText = p.name;
             document.getElementById('modal-category').innerText = p.category;
             document.getElementById('modal-desc').innerText = p.long_description || p.description || "Nessuna descrizione.";
-            document.getElementById('modal-img').src = `${imgRoot}images/${vat}/${p.callback_data}.jpg`;
+            const modalImg = document.getElementById('modal-img');
+            delete modalImg.dataset.triedDashboard;
+            delete modalImg.dataset.triedLegacy;
+            delete modalImg.dataset.triedPlaceholder;
+            modalImg.src = getProductImageUrl(p);
             
             let config = cartConfig[key] || { extras: [], note: "" };
 
