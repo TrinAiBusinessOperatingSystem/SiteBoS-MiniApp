@@ -261,6 +261,17 @@
 
                 <div class="pt-2 border-t border-gray-50 flex justify-between items-center">
                     <div class="flex flex-col">
+                        <span class="label-micro !m-0">Prezzi Esposti sul Web</span>
+                        <span class="text-[9px] text-gray-400">Mostra i prezzi dei servizi pubblicamente sul sito</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" name="esposizione_prezzi" class="sr-only peer">
+                        <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-black"></div>
+                    </label>
+                </div>
+
+                <div class="pt-2 border-t border-gray-50 flex justify-between items-center">
+                    <div class="flex flex-col">
                         <span class="label-micro !m-0">Crediti Operatore</span>
                         <span class="text-xs font-black" id="display-credits">0</span>
                         <input type="hidden" name="operator_credit">
@@ -349,11 +360,17 @@
 
                 function populateForm(data) {
             const form = document.getElementById('owner-form');
-            const fields = ['name', 'surname', 'email', 'fiscal_code', 'vat_number', 'sdi_pec', 'phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'operator_credit', 'user_id', 'chat_id', 'payment_provider_token'];
+            const fields = ['name', 'surname', 'email', 'fiscal_code', 'vat_number', 'sdi_pec', 'phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'operator_credit', 'user_id', 'chat_id', 'payment_provider_token', 'esposizione_prezzi'];
             
             fields.forEach(f => {
                 const el = form.elements[f];
-                if (el) el.value = data[f] || '';
+                if (el) {
+                    if (el.type === 'checkbox') {
+                        el.checked = data[f] !== undefined && data[f] !== null ? !!data[f] : true;
+                    } else {
+                        el.value = data[f] || '';
+                    }
+                }
             });
 
             document.getElementById('display-user-id').innerText = data.user_id || 'N/A';
@@ -366,12 +383,16 @@
             const form = document.getElementById('owner-form');
             const data = {};
             // Inviamo solo i campi modificabili per evitare di sovrascrivere dati fissi (int32, ID, etc.)
-            const editableFields = ['phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'payment_provider_token'];
+            const editableFields = ['phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'payment_provider_token', 'esposizione_prezzi'];
             
             editableFields.forEach(field => {
                 const el = form.elements[field];
                 if (el) {
-                    data[field] = el.value;
+                    if (el.type === 'checkbox') {
+                        data[field] = el.checked;
+                    } else {
+                        data[field] = el.value;
+                    }
                 }
             });
             return data;
