@@ -40,6 +40,14 @@
     
     .dot { width: 6px; height: 6px; border-radius: 50%; background: #ddd; transition: all 0.3s; }
     .dot.active { width: 20px; background: #000; border-radius: 10px; }
+
+    /* Voice Recording */
+    .mic-btn { width: 72px; height: 72px; border-radius: 50%; background: #000; color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s; position: relative; cursor: pointer; }
+    .mic-btn.recording { background: #dc2626; animation: mic-pulse 1.2s ease-in-out infinite; }
+    .mic-btn.recording::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 2px solid rgba(220,38,38,0.4); animation: mic-ring 1.2s ease-in-out infinite; }
+    @keyframes mic-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+    @keyframes mic-ring { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
+    .rec-timer { font-family: 'Inter', monospace; font-size: 11px; font-weight: 900; letter-spacing: 0.1em; color: #dc2626; }
   </style>
 </head>
 <body class="bg-bg text-black">
@@ -86,14 +94,18 @@
     <!-- QUICK INPUTS -->
     <section class="pt-4 space-y-4">
         <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Acquisizione Rapida</p>
-        <div class="grid grid-cols-2 gap-4">
-            <button onclick="openView('photo')" class="btn-action bg-black text-white p-6 rounded-3xl flex flex-col items-center justify-center gap-3 shadow-xl">
-                <i class="fas fa-camera text-2xl"></i>
-                <span class="text-[10px] font-black uppercase tracking-widest">Scansiona</span>
+        <div class="grid grid-cols-3 gap-3">
+            <button onclick="openView('photo')" class="btn-action bg-black text-white p-5 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-xl">
+                <i class="fas fa-camera text-xl"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest">Scansiona</span>
             </button>
-            <button onclick="openView('text')" class="btn-action bg-white border-2 border-black text-black p-6 rounded-3xl flex flex-col items-center justify-center gap-3 shadow-sm">
-                <i class="fas fa-keyboard text-2xl"></i>
-                <span class="text-[10px] font-black uppercase tracking-widest">Testo Libero</span>
+            <button onclick="openView('text')" class="btn-action bg-white border-2 border-black text-black p-5 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-sm">
+                <i class="fas fa-keyboard text-xl"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest">Testo</span>
+            </button>
+            <button onclick="openView('voice')" class="btn-action bg-white border-2 border-black text-black p-5 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-sm">
+                <i class="fas fa-microphone text-xl"></i>
+                <span class="text-[8px] font-black uppercase tracking-widest">Voce</span>
             </button>
         </div>
         <button onclick="openManualAdd()" class="w-full py-4 bg-gray-100 rounded-2xl text-[9px] font-black uppercase tracking-widest text-gray-500 flex items-center justify-center gap-2">
@@ -170,6 +182,40 @@
     <button id="btn-analyze-text" onclick="analyzeText()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 mb-6">
         <i class="fas fa-search"></i> Analizza con AI
     </button>
+  </div>
+
+  <!-- SCREEN H: VOICE RECORDING -->
+  <div id="screen-voice" class="view-overlay flex flex-col p-6">
+    <header class="flex justify-between items-center mb-8">
+        <button onclick="stopAndCloseVoice()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
+        <h2 class="text-sm font-black uppercase tracking-widest">Registra Voce</h2>
+        <div class="w-10"></div>
+    </header>
+
+    <div class="flex-1 flex flex-col items-center justify-center space-y-8">
+        <div class="flex flex-col items-center gap-4">
+            <button id="mic-record-btn" onclick="toggleRecording()" class="mic-btn">
+                <i id="mic-icon" class="fas fa-microphone"></i>
+            </button>
+            <p id="voice-status" class="text-[10px] font-black uppercase tracking-widest text-gray-400">Premi per registrare</p>
+            <p id="voice-timer" class="rec-timer hidden">00:00</p>
+        </div>
+
+        <div class="w-full space-y-2 text-center">
+            <p class="text-[9px] text-gray-300 leading-relaxed">Parla liberamente come se stessi dettando i tuoi impegni.<br>L'AI li trasformerà in eventi strutturati.</p>
+        </div>
+
+        <!-- AI Progress for voice -->
+        <div id="voice-ai-progress" class="w-full space-y-2 hidden">
+            <div class="flex justify-between items-end">
+                <p class="text-[9px] font-black uppercase tracking-widest text-black">Analisi AI in corso...</p>
+                <p id="voice-ai-progress-val" class="text-[9px] font-black text-gray-400">0%</p>
+            </div>
+            <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div id="voice-ai-progress-bar" class="h-full bg-black transition-all duration-500" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
   </div>
 
   <!-- SCREEN D: AI REVISION -->
@@ -390,15 +436,15 @@
         { id: 'default', name: 'Personale', color: '#000000' }
     ];
     let activeCalendarId = 'default';
-    
-    // Multi-tenant Calendars
-    let calendars = [
-        { id: 'default', name: 'Personale', color: '#000000' }
-    ];
-    let activeCalendarId = 'default';
+
+    // Voice Recording State
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let voiceTimerInterval = null;
+    let voiceSeconds = 0;
 
     // --- INITIALIZATION ---
-    async async function init() {
+    async function init() {
         if (!ash) {
             document.body.innerHTML = `<div class="h-full flex items-center justify-center font-black text-red-500">ASH MISSING</div>`;
             return;
@@ -664,6 +710,116 @@
         } else {
             tg.showAlert("L'AI non ha trovato impegni nel testo fornito.");
         }
+    }
+
+    // --- VOICE RECORDING (SCREEN H) ---
+    async function toggleRecording() {
+        const btn = document.getElementById('mic-record-btn');
+        const icon = document.getElementById('mic-icon');
+        const status = document.getElementById('voice-status');
+        const timer = document.getElementById('voice-timer');
+
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            // Stop recording
+            mediaRecorder.stop();
+            btn.classList.remove('recording');
+            icon.className = 'fas fa-microphone';
+            status.innerText = 'Elaborazione...';
+            clearInterval(voiceTimerInterval);
+            return;
+        }
+
+        // Start recording
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            audioChunks = [];
+            voiceSeconds = 0;
+
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+            mediaRecorder = new MediaRecorder(stream, { mimeType });
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                stream.getTracks().forEach(t => t.stop());
+                timer.classList.add('hidden');
+
+                const blob = new Blob(audioChunks, { type: mimeType });
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                    const base64 = reader.result.split(',')[1];
+                    await analyzeVoice(base64, mimeType.split(';')[0]);
+                };
+                reader.readAsDataURL(blob);
+            };
+
+            mediaRecorder.start(250);
+            btn.classList.add('recording');
+            icon.className = 'fas fa-stop';
+            status.innerText = 'Registrazione in corso...';
+            timer.classList.remove('hidden');
+            timer.innerText = '00:00';
+
+            voiceTimerInterval = setInterval(() => {
+                voiceSeconds++;
+                const mm = String(Math.floor(voiceSeconds / 60)).padStart(2, '0');
+                const ss = String(voiceSeconds % 60).padStart(2, '0');
+                timer.innerText = `${mm}:${ss}`;
+            }, 1000);
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        } catch (err) {
+            console.error('Mic error:', err);
+            tg.showAlert('Impossibile accedere al microfono. Verifica i permessi.');
+        }
+    }
+
+    async function analyzeVoice(base64, mime) {
+        const progress = document.getElementById('voice-ai-progress');
+        const bar = document.getElementById('voice-ai-progress-bar');
+        const val = document.getElementById('voice-ai-progress-val');
+        const status = document.getElementById('voice-status');
+
+        progress.classList.remove('hidden');
+        bar.style.width = '30%'; val.innerText = '30%';
+        status.innerText = 'Analisi AI in corso...';
+
+        bar.style.width = '60%'; val.innerText = '60%';
+
+        const result = await apiCall('agenda_analyze_text', {
+            voice_base64: base64,
+            mime_type: mime
+        });
+
+        bar.style.width = '100%'; val.innerText = '100%';
+
+        if (result && result.events_draft) {
+            draftEvents = result.events_draft;
+            setTimeout(() => {
+                progress.classList.add('hidden');
+                status.innerText = 'Premi per registrare';
+                openRevision();
+            }, 400);
+        } else {
+            progress.classList.add('hidden');
+            status.innerText = 'Premi per registrare';
+            tg.showAlert("L'AI non ha trovato impegni nel messaggio vocale.");
+        }
+    }
+
+    function stopAndCloseVoice() {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+            document.getElementById('mic-record-btn').classList.remove('recording');
+            document.getElementById('mic-icon').className = 'fas fa-microphone';
+            clearInterval(voiceTimerInterval);
+        }
+        document.getElementById('voice-status').innerText = 'Premi per registrare';
+        document.getElementById('voice-timer').classList.add('hidden');
+        document.getElementById('voice-ai-progress').classList.add('hidden');
+        closeView();
     }
 
     // --- REVISION (SCREEN D) ---
