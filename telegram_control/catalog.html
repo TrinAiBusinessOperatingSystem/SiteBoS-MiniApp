@@ -542,11 +542,13 @@
 
         let currentSopId = null;
         let currentSocialData = null;
+        let currentVatNumber = null;
 
         window.openProduct = async (page, pId, catId) => {
             if (page === 'edit-blueprint.html') {
                 currentSopId = pId;
                 currentSocialData = null; // Reset
+                currentVatNumber = null; // Reset
 
                 const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === pId);
                 document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli Prodotto';
@@ -560,6 +562,7 @@
                     });
                     const info = await res.json();
                     const rawInfo = Array.isArray(info) ? info[0] : info;
+                    currentVatNumber = rawInfo.vat_number || rawInfo.vatnumber || rawInfo.vat || '';
 
                     // Gestione Blog
                     const blogBtn = document.getElementById('hub-blog-btn');
@@ -689,7 +692,7 @@
                                 <p class="text-[7px] font-black uppercase text-gray-400">Image Prompt (Gemini/MJ)</p>
                                 <button onclick="copyToClipboard('prompt-img')" class="text-[7px] font-black uppercase text-blue-500">Copia Prompt</button>
                             </div>
-                            <div id="prompt-img" class="bg-gray-50 p-4 rounded-xl text-[9px] font-mono leading-tight border border-gray-100 text-gray-600">${currentSocialData.prompt}</div>
+                            <textarea id="prompt-img" class="w-full bg-gray-50 p-4 rounded-xl text-[9px] font-mono leading-tight border border-gray-100 text-gray-600 focus:border-black focus:bg-white transition-all outline-none resize-y" rows="3">${currentSocialData.prompt}</textarea>
                         </div>
                     ` : ''}
 
@@ -699,16 +702,19 @@
                                 <p class="text-[7px] font-black uppercase text-gray-400">Video Master Prompt (VEO)</p>
                                 <button onclick="copyToClipboard('prompt-video')" class="text-[7px] font-black uppercase text-blue-500">Copia Prompt</button>
                             </div>
-                            <div id="prompt-video" class="bg-gray-50 p-4 rounded-xl text-[9px] font-mono leading-tight border border-gray-100 text-gray-600">${currentSocialData.veo_master_prompt_8s}</div>
+                            <textarea id="prompt-video" class="w-full bg-gray-50 p-4 rounded-xl text-[9px] font-mono leading-tight border border-gray-100 text-gray-600 focus:border-black focus:bg-white transition-all outline-none resize-y" rows="3">${currentSocialData.veo_master_prompt_8s}</textarea>
                         </div>
                     ` : ''}
                 </section>
             `;
             }
 
-            // Genera Video Button
+            // Genera Video / Immagine Buttons
             container.innerHTML += `
-            <div class="pt-6">
+            <div class="pt-6 grid grid-cols-2 gap-3">
+                <button onclick="generateImage()" class="w-full bg-black text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition text-[10px] uppercase tracking-widest">
+                    <i class="fas fa-image"></i> Genera Immagine AI
+                </button>
                 <button onclick="generateVideo()" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-lg flex items-center justify-center gap-3 active:scale-95 transition text-[10px] uppercase tracking-widest">
                     <i class="fas fa-video"></i> Genera Video AI
                 </button>
@@ -732,13 +738,83 @@
             if (tg.BackButton) tg.BackButton.onClick(closeHub);
         }
 
-        window.generateVideo = async () => {
-            tg.showConfirm("Generare un video per questo post? (15 crediti)", ok => {
+        async function savePrompts() {
+            const promptImgEl = document.getElementById('prompt-img');
+            const promptVideoEl = document.getElementById('prompt-video');
+            const promptVal = promptImgEl ? promptImgEl.value : '';
+            const veoVal = promptVideoEl ? promptVideoEl.value : '';
+
+            // Controlla se c'è stata una reale modifica rispetto ai valori iniziali/precedenti
+            const promptChanged = currentSocialData && promptVal !== currentSocialData.prompt;
+            const veoChanged = currentSocialData && veoVal !== currentSocialData.veo_master_prompt_8s;
+
+            if (!promptChanged && !veoChanged) {
+                return; // Nessuna modifica, evita la chiamata di salvataggio
+            }
+
+            if (currentSocialData) {
+                currentSocialData.prompt = promptVal;
+                currentSocialData.veo_master_prompt_8s = veoVal;
+            }
+
+            try {
+                const idVal = `${currentVatNumber}-${currentSopId}`;
+                await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'update_social_prompts',
+                        id: idVal,
+                        social_post: currentSocialData,
+                        sop_id: currentSopId,
+                        ash: ash,
+                        msg: msg,
+                        msg_id: msg,
+                        _auth: tg.initData
+                    })
+                });
+            } catch (e) {
+                console.error("Save Prompts Error:", e);
+            }
+        }
+
+        window.generateImage = async () => {
+            tg.showConfirm("Generare un'immagine per questo post? (50 crediti)", async ok => {
                 if (ok) {
+                    await savePrompts();
+                    fetch("https://prod.workflow.trinai.it/webhook/8fc050ca-41cd-4469-989c-269a113a00f9", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'generate_image',
+                            sop_id: currentSopId,
+                            ash: ash,
+                            msg: msg,
+                            msg_id: msg,
+                            _auth: tg.initData
+                        }),
+                        keepalive: true
+                    });
+                    tg.close();
+                }
+            });
+        };
+
+        window.generateVideo = async () => {
+            tg.showConfirm("Generare un video per questo post? (320 crediti)", async ok => {
+                if (ok) {
+                    await savePrompts();
                     fetch("https://prod.workflow.trinai.it/webhook/7d09d946-95e6-4efa-baee-00c458c82e9e", {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'generate_video', sop_id: currentSopId, ash: ash, msg: msg, _auth: tg.initData }),
+                        body: JSON.stringify({
+                            action: 'generate_video',
+                            sop_id: currentSopId,
+                            ash: ash,
+                            msg: msg,
+                            msg_id: msg,
+                            _auth: tg.initData
+                        }),
                         keepalive: true
                     });
                     tg.close();
@@ -747,7 +823,8 @@
         };
 
         function copyToClipboard(elementId) {
-            const text = document.getElementById(elementId).innerText;
+            const el = document.getElementById(elementId);
+            const text = el.tagName === 'TEXTAREA' || el.tagName === 'INPUT' ? el.value : el.innerText;
             navigator.clipboard.writeText(text).then(() => {
                 tg.showAlert("Copiato negli appunti!");
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
