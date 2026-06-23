@@ -949,8 +949,6 @@
 
         async function nextStep() {
             if (currentStep === 1) {
-                // Save state step 1
-                await saveStepData(1);
                 goToStep(2);
             } else if (currentStep === 2) {
                 // Validation check
@@ -976,8 +974,6 @@
                 }
                 numberOfChairs = chairs;
                 
-                // Save state step 2
-                await saveStepData(2);
                 goToStep(3);
             }
         }
@@ -1875,7 +1871,6 @@
                             operators[opIdx].status = "PENDING";
                             operators[opIdx].invitation_code = code;
                             renderOperators();
-                            await saveStepData(1);
                         }
 
                         tg.showPopup({
@@ -1981,7 +1976,7 @@
                             <div>
                                 <span class="label-micro !text-gray-400">${mac.ownership}</span>
                                 <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">${mac.type}</h4>
-                                <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${ownershipText} (Amm. ${mac.useful_life} anni - ACQ: ${mac.year})</span>
+                                <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${ownershipText} (Amm. ${mac.useful_life} anni - ACQ: ${mac.year}${mac.serial_number ? ` - Matricola: ${mac.serial_number}` : ''})</span>
                             </div>
                         </div>
                         <div class="flex gap-2">
@@ -2135,8 +2130,12 @@
                 ownership: 'Proprietà', 
                 value: 1200, 
                 useful_life: 5,
-                vertical: activeMachineryTab
+                vertical: activeMachineryTab,
+                serial_number: ''
             };
+            if (isEdit && !data.hasOwnProperty('serial_number')) {
+                data.serial_number = '';
+            }
             
             const isPreset = isPresetType(data.type);
             const isCustom = data.type && !isPreset && data.type !== 'Altra Attrezzatura (Personalizzata)';
@@ -2206,6 +2205,11 @@
                     <div class="space-y-1">
                         <label class="label-micro" id="mac-value-label">${data.ownership === 'Proprietà' ? 'Valore d\'acquisto (€)' : 'Canone Mensile (€)'}</label>
                         <input type="number" id="mac-value" value="${data.value}" placeholder="Es: 18500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="label-micro">Numero di Matricola (S/N)</label>
+                        <input type="text" id="mac-serial-number" value="${data.serial_number || ''}" placeholder="Es: SN-123456" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
                 </div>
 
@@ -2338,6 +2342,7 @@
             const ownership = document.getElementById('mac-ownership').value;
             const value = parseFloat(document.getElementById('mac-value').value) || 0;
             const useful_life = parseInt(document.getElementById('mac-useful-life').value) || 8;
+            const serial_number = document.getElementById('mac-serial-number').value.trim();
 
             if (value <= 0) { tg.showAlert("Fornisci un importo economico valido."); return; }
 
@@ -2347,7 +2352,8 @@
                 ownership: ownership,
                 value: value,
                 useful_life: useful_life,
-                vertical: vertical
+                vertical: vertical,
+                serial_number: serial_number
             };
 
             if (activeEditIndex !== null) {
