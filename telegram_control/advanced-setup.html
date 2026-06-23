@@ -83,6 +83,11 @@
     <!-- MAIN CONTAINER -->
     <main class="flex-1 max-w-md w-full mx-auto p-6 space-y-6 fade-in-up">
         
+        <!-- VERTICAL SWITCHER (PILL SEGMENTED CONTROL) -->
+        <div id="vertical-switcher-container" class="card-noir p-1.5 flex gap-1 bg-gray-50/50 border border-border rounded-2xl hidden">
+            <!-- Populated dynamically -->
+        </div>
+
         <!-- STEP 1: OPERATORI -->
         <div id="section-step-1" class="space-y-6">
             <div class="flex justify-between items-center">
@@ -114,18 +119,9 @@
 
         <!-- STEP 2: ATTREZZATURE -->
         <div id="section-step-2" class="space-y-6 hidden">
-            <!-- Capacity Check: Postazioni Operative Attive -->
-            <div class="card-noir p-4 flex items-center justify-between gap-4">
-                <div class="flex-1">
-                    <h4 class="font-black text-xs uppercase tracking-tight text-black">
-                        Postazioni Operative Attive
-                    </h4>
-                </div>
-                <div class="flex items-center gap-1.5 shrink-0 bg-gray-50 border border-border p-1 rounded-xl">
-                    <button type="button" onclick="changeChairsCount(-1)" class="w-7 h-7 bg-white text-black border border-border rounded-lg flex items-center justify-center font-bold text-xs active:scale-95 transition hover:bg-black hover:text-white">-</button>
-                    <input type="number" id="op-chairs-num" value="2" min="1" readonly class="w-8 text-center bg-transparent border-none text-xs font-black focus:outline-none select-none pointer-events-none">
-                    <button type="button" onclick="changeChairsCount(1)" class="w-7 h-7 bg-white text-black border border-border rounded-lg flex items-center justify-center font-bold text-xs active:scale-95 transition hover:bg-black hover:text-white">+</button>
-                </div>
+            <!-- Dynamic Operational Units counters -->
+            <div id="operational-units-container" class="space-y-3">
+                <!-- Populated dynamically -->
             </div>
 
             <div class="flex justify-between items-center">
@@ -379,46 +375,91 @@
         let isManualInsertionActive = false;
         let financialsSnapshot = "";
 
+        // Multi-vertical State
+        let activeVerticals = ['generic'];
+        let primaryVertical = 'generic';
+        let activeStaffTab = 'common';
+        let activeMachineryTab = 'common';
+        let activeFinancialsTab = 'common';
+        let operationalUnits = [];
+        let reunitiCount = 0;
+        let reunitiLabel = 'Riuniti Dentistici';
+        let chairsCount = 2;
+        let chairsLabel = 'Postazioni Operative';
+
+        const verticalsMeta = {
+          "dental": { emoji: "🦷", name: "Odontoiatria", label: "Clinico", staffLabel: "Odontoiatria", financialsLabel: "Costi Clinici", presetCategory: "Odontoiatria (Clinico)" },
+          "beauty": { emoji: "💆", name: "Estetica", label: "Estetica", staffLabel: "Estetica", financialsLabel: "Costi Estetica", presetCategory: "Estetica & Benessere" },
+          "food": { emoji: "🍕", name: "Ristorazione", label: "Ristorazione", staffLabel: "Ristorazione", financialsLabel: "Costi Ristorazione", presetCategory: "Ristorazione & Food" },
+          "hospitality": { emoji: "🛌", name: "Ospitalità", label: "Ospitalità", staffLabel: "Ospitalità", financialsLabel: "Costi Ospitalità", presetCategory: "Ospitalità & B&B" },
+          "professional": { emoji: "⚖️", name: "Servizi Prof.", label: "Servizi", staffLabel: "Ufficio", financialsLabel: "Costi Servizi", presetCategory: "Ufficio & Consulenza" },
+          "workshop": { emoji: "🔧", name: "Artigianato", label: "Artigianato", staffLabel: "Officina", financialsLabel: "Costi Artigianato", presetCategory: "Artigianato & Officine" },
+          "construction": { emoji: "🚧", name: "Edilizia/Impianti", label: "Cantiere", staffLabel: "Cantiere", financialsLabel: "Costi Impianti", presetCategory: "Impianti & Edilizia" },
+          "generic": { emoji: "💼", name: "Generico", label: "Generico", staffLabel: "Generico", financialsLabel: "Costi Generici", presetCategory: "Ufficio & Consulenza" },
+          "common": { emoji: "🏠", name: "Comune", label: "Comune", staffLabel: "Staff Comune", financialsLabel: "Costi Comuni", presetCategory: "Comune & Infrastruttura IT" }
+        };
+
         const attrezzaturePreset = {
-          "Hardware & Infrastruttura IT": [
+          "Odontoiatria (Clinico)": [
+            { name: "Riunito Odontoiatrico (Fascia Media)", defaultPrice: 18500, usefulLife: 10 },
+            { name: "Compressore d'Aria Medicale con Essiccatore", defaultPrice: 1600, usefulLife: 8 },
+            { name: "Sistema di Aspirazione Chirurgica Chirurgica", defaultPrice: 2000, usefulLife: 8 },
+            { name: "Radiografico Endorale a Parete (Generatore RX)", defaultPrice: 3000, usefulLife: 8 },
+            { name: "Autoclave di Classe B 23 L (Sterilizzazione)", defaultPrice: 2800, usefulLife: 5 },
+            { name: "Turbina ad Alta Velocità con Fibra Ottica", defaultPrice: 600, usefulLife: 4 },
+            { name: "Scanner Intraorale 3D Dentale (Mid-Range)", defaultPrice: 12000, usefulLife: 5 }
+          ],
+          "Estetica & Benessere": [
+            { name: "Lettino Estetica / Massaggio Elettrico", defaultPrice: 1500, usefulLife: 10 },
+            { name: "Macchinario Epilazione Laser Diodo", defaultPrice: 12000, usefulLife: 5 },
+            { name: "Vapozono Professionale su Stativo", defaultPrice: 450, usefulLife: 5 },
+            { name: "Sterilizzatore al Quarzo / UV Cabina", defaultPrice: 350, usefulLife: 5 },
+            { name: "Pressoterapia Professionale (Corpo)", defaultPrice: 3500, usefulLife: 6 },
+            { name: "Radiofrequenza Estetica Viso/Corpo", defaultPrice: 5000, usefulLife: 6 }
+          ],
+          "Ristorazione & Food": [
+            { name: "Cucina Industriale 4 Fuochi con Forno", defaultPrice: 4500, usefulLife: 10 },
+            { name: "Friggitrice Professionale Doppia Vasca", defaultPrice: 1500, usefulLife: 8 },
+            { name: "Abbattitore di Temperatura (3 teglie)", defaultPrice: 2200, usefulLife: 8 },
+            { name: "Cappa Aspirante Industriale a Parete", defaultPrice: 1800, usefulLife: 10 },
+            { name: "Lavastoviglie Professionale a Capotta", defaultPrice: 2800, usefulLife: 8 },
+            { name: "Banco Frigo Bar ed Espositore", defaultPrice: 3500, usefulLife: 10 }
+          ],
+          "Ospitalità & B&B": [
+            { name: "Letto Matrimoniale con Materasso Orthopedic", defaultPrice: 800, usefulLife: 10 },
+            { name: "Smart TV LED 43\" per Camera", defaultPrice: 350, usefulLife: 5 },
+            { name: "Cassaforte Elettronica di Sicurezza Hotel", defaultPrice: 150, usefulLife: 10 },
+            { name: "Frigobar Silenzioso per Camera", defaultPrice: 200, usefulLife: 8 },
+            { name: "Climatizzatore Split Inverter 9000 BTU", defaultPrice: 600, usefulLife: 8 }
+          ],
+          "Ufficio & Consulenza": [
+            { name: "Scrivania Operativa e Sedia Ergonomica", defaultPrice: 800, usefulLife: 8 },
             { name: "PC Workstation / Notebook Ufficio", defaultPrice: 1200, usefulLife: 5 },
-            { name: "Server Aziendale (Fascia Base)", defaultPrice: 2500, usefulLife: 5 },
-            { name: "Server Aziendale (Fascia Premium)", defaultPrice: 8000, usefulLife: 5 },
-            { name: "Tablet Operativo", defaultPrice: 600, usefulLife: 3 },
-            { name: "Switch di Rete & Cablaggio", defaultPrice: 1500, usefulLife: 8 },
-            { name: "Gruppo di Continuità (UPS Rack)", defaultPrice: 1200, usefulLife: 5 }
-          ],
-
-          "Software & Licenze": [
-            { name: "Software ERP / Gestionale Aziendale", defaultPrice: 5000, usefulLife: 5 },
-            { name: "Software CRM / Sales Management", defaultPrice: 3000, usefulLife: 5 },
-            { name: "Software Progettazione / CAD / Suite Grafica", defaultPrice: 2500, usefulLife: 3 },
-            { name: "Licenze Cloud / Spazio di Archiviazione (Annuale)", defaultPrice: 800, usefulLife: 1 }
-          ],
-
-          "Macchinari & Strumenti Professionali": [
-            { name: "Macchinario di Produzione / Stazione di Lavoro", defaultPrice: 15000, usefulLife: 8 },
-            { name: "Stampante 3D Professionale", defaultPrice: 4500, usefulLife: 5 },
-            { name: "Attrezzatura Tecnica da Officina / Laboratorio", defaultPrice: 6000, usefulLife: 7 },
-            { name: "Kit Strumentazione / Utensili Professionali", defaultPrice: 2000, usefulLife: 5 }
-          ],
-
-          "Arredamento & Allestimento Locali": [
-            { name: "Scrivania e Sedie Ergonomiche Ufficio", defaultPrice: 800, usefulLife: 8 },
-            { name: "Arredo Reception / Sala d'Attesa", defaultPrice: 3500, usefulLife: 10 },
+            { name: "Stampante / Copiatrice Multifunzione A3", defaultPrice: 1500, usefulLife: 6 },
             { name: "Allestimento Sala Riunioni (Tavolo e Schermo)", defaultPrice: 4000, usefulLife: 8 }
           ],
-
-          "Veicoli e Mobilità": [
-            { name: "Auto Aziendale / Veicolo di Servizio", defaultPrice: 22000, usefulLife: 5 },
-            { name: "Furgone per Trasporto e Consegne", defaultPrice: 30000, usefulLife: 5 }
+          "Artigianato & Officine": [
+            { name: "Ponte Sollevatore Elettroidraulico 2 Colonne", defaultPrice: 3500, usefulLife: 10 },
+            { name: "Kit Diagnosi Elettronica Professionale OBD", defaultPrice: 2500, usefulLife: 5 },
+            { name: "Compressore d'Aria Industriale 200L", defaultPrice: 1200, usefulLife: 8 },
+            { name: "Carrello Utensili da Lavoro Completo (150pz)", defaultPrice: 800, usefulLife: 8 },
+            { name: "Saldatrice a Filo Professionale MIG/MAG", defaultPrice: 1100, usefulLife: 8 }
           ],
-
-          "Sicurezza & Antincendio": [
-            { name: "Sistema Videosorveglianza & Allarme", defaultPrice: 3000, usefulLife: 8 },
-            { name: "Presidi Antincendio & Primo Soccorso", defaultPrice: 600, usefulLife: 5 }
+          "Impianti & Edilizia": [
+            { name: "Furgone Attrezzato (Officina Mobile)", defaultPrice: 25000, usefulLife: 5 },
+            { name: "Kit Strumentazione Professionale (Rilevatori/Analisi)", defaultPrice: 3500, usefulLife: 5 },
+            { name: "Betoniera Elettrica 130L Professionale", defaultPrice: 1800, usefulLife: 8 },
+            { name: "Ponteggio Mobile / Trabattello Alluminio", defaultPrice: 1200, usefulLife: 8 },
+            { name: "Trapano Demolitore / Carotatrice Professionale", defaultPrice: 1500, usefulLife: 5 }
+          ],
+          "Comune & Infrastruttura IT": [
+            { name: "Server Aziendale / Centralino Cloud", defaultPrice: 2500, usefulLife: 5 },
+            { name: "Licenza Software ERP / Gestionale Centrale", defaultPrice: 5000, usefulLife: 5 },
+            { name: "Arredo Reception / Sala d'Attesa", defaultPrice: 3500, usefulLife: 10 },
+            { name: "Videosorveglianza & Sistema Allarme", defaultPrice: 3000, usefulLife: 8 }
           ]
         };
+
         let financials = {};
         let hasFinancials = false;
         let uploadedFileData = null;
@@ -564,22 +605,113 @@
             const titles = ["", "Operatori e Staff", "Attrezzature e Asset", "Bilancio"];
             document.getElementById('step-title').innerText = titles[step];
             
+            // Render vertical switcher
+            renderVerticalSwitcher(step);
+            
             if (step === 3) {
                 refreshStep3UI();
             }
         }
 
-        function changeChairsCount(delta) {
-            const input = document.getElementById('op-chairs-num');
-            if (!input) return;
-            let val = (parseInt(input.value) || 2) + delta;
-            if (val < 1) val = 1;
-            input.value = val;
-            numberOfChairs = val;
+        // New Segmented Pill Switcher Helpers
+        function renderVerticalSwitcher(step) {
+            const container = document.getElementById('vertical-switcher-container');
+            if (!container) return;
             
-            const badge = document.getElementById('op-chairs-badge');
-            if (badge) {
-                badge.innerText = val;
+            // Hide switcher if single vertical
+            if (activeVerticals.length <= 1) {
+                container.classList.add('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            container.innerHTML = '';
+            
+            // Determine active tab variable based on step
+            let activeTab;
+            if (step === 1) activeTab = activeStaffTab;
+            else if (step === 2) activeTab = activeMachineryTab;
+            else if (step === 3) activeTab = activeFinancialsTab;
+            else return;
+            
+            // Show active verticals + common tab
+            const tabsToShow = [...activeVerticals, 'common'];
+            
+            tabsToShow.forEach(v => {
+                const meta = verticalsMeta[v] || verticalsMeta.generic;
+                let displayLabel = meta.label;
+                if (step === 1) displayLabel = meta.staffLabel;
+                else if (step === 3) displayLabel = meta.financialsLabel;
+                
+                const isActive = (v === activeTab);
+                container.innerHTML += `
+                    <button onclick="handleVerticalTabChange('${v}', ${step})" class="flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all duration-200 ${isActive ? 'bg-black text-white shadow-sm' : 'text-gray-400 hover:text-black bg-transparent'}">
+                        ${meta.emoji} ${displayLabel}
+                    </button>
+                `;
+            });
+        }
+        
+        function handleVerticalTabChange(v, step) {
+            if (step === 1) {
+                activeStaffTab = v;
+                renderOperators();
+            } else if (step === 2) {
+                activeMachineryTab = v;
+                renderMachinery();
+            } else if (step === 3) {
+                // Save current financials tab before changing
+                saveCurrentTabFinancials(activeFinancialsTab);
+                activeFinancialsTab = v;
+                refreshStep3UI();
+            }
+            renderVerticalSwitcher(step);
+            if (tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        }
+
+        function renderOperationalUnitsCounters() {
+            const container = document.getElementById('operational-units-container');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            operationalUnits.forEach((unit, idx) => {
+                const meta = verticalsMeta[unit.vertical] || verticalsMeta.generic;
+                container.innerHTML += `
+                    <div class="card-noir p-4 flex flex-col gap-3">
+                        <div class="flex items-center justify-between gap-4">
+                            <div class="flex-1">
+                                <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">${meta.emoji} ${meta.name}</span>
+                                <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">
+                                    ${unit.label} Attivi
+                                </h4>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0 bg-gray-50 border border-border p-1 rounded-xl">
+                                <button type="button" onclick="changeUnitCount(${idx}, -1)" class="w-7 h-7 bg-white text-black border border-border rounded-lg flex items-center justify-center font-bold text-xs active:scale-95 transition hover:bg-black hover:text-white">-</button>
+                                <input type="number" value="${unit.count}" min="1" readonly class="w-8 text-center bg-transparent border-none text-xs font-black focus:outline-none select-none pointer-events-none">
+                                <button type="button" onclick="changeUnitCount(${idx}, 1)" class="w-7 h-7 bg-white text-black border border-border rounded-lg flex items-center justify-center font-bold text-xs active:scale-95 transition hover:bg-black hover:text-white">+</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function changeUnitCount(idx, delta) {
+            let unit = operationalUnits[idx];
+            if (!unit) return;
+            unit.count += delta;
+            if (unit.count < 1) unit.count = 1;
+            
+            renderOperationalUnitsCounters();
+            
+            // Sync flat variables for backward compatibility
+            if (unit.vertical === 'dental') {
+                reunitiCount = unit.count;
+            } else if (unit.vertical === primaryVertical) {
+                chairsCount = unit.count;
+                numberOfChairs = unit.count;
             }
             
             synchronizeBaseEquipment();
@@ -587,42 +719,94 @@
 
         function initializeDefaultEquipment() {
             machinery = [];
-            // 1. Add PC Workstation / Notebook Ufficio x numberOfChairs
-            for (let i = 0; i < numberOfChairs; i++) {
-                machinery.push({
-                    type: 'PC Workstation / Notebook Ufficio',
-                    year: new Date().getFullYear(),
-                    ownership: 'Proprietà',
-                    value: 1200,
-                    useful_life: 5
-                });
-            }
-            
-            // 2. Add Software ERP / Gestionale Aziendale
+            // Add PC & desks based on unit counts
+            operationalUnits.forEach(unit => {
+                const count = unit.count;
+                const v = unit.vertical;
+                
+                if (v === 'dental') {
+                    for (let i = 0; i < count; i++) {
+                        machinery.push({
+                            type: 'Riunito Odontoiatrico (Fascia Media)',
+                            year: new Date().getFullYear(),
+                            ownership: 'Proprietà',
+                            value: 18500,
+                            useful_life: 10,
+                            vertical: 'dental'
+                        });
+                    }
+                    machinery.push({
+                        type: "Compressore d'Aria Medicale con Essiccatore",
+                        year: new Date().getFullYear(),
+                        ownership: 'Proprietà',
+                        value: 1600,
+                        useful_life: 8,
+                        vertical: 'dental'
+                    });
+                } else if (v === 'beauty') {
+                    for (let i = 0; i < count; i++) {
+                        machinery.push({
+                            type: 'Lettino Estetica / Massaggio Elettrico',
+                            year: new Date().getFullYear(),
+                            ownership: 'Proprietà',
+                            value: 1500,
+                            useful_life: 10,
+                            vertical: 'beauty'
+                        });
+                    }
+                } else if (v === 'construction') {
+                    for (let i = 0; i < count; i++) {
+                        machinery.push({
+                            type: 'Furgone Attrezzato (Officina Mobile)',
+                            year: new Date().getFullYear(),
+                            ownership: 'Proprietà',
+                            value: 25000,
+                            useful_life: 5,
+                            vertical: 'construction'
+                        });
+                    }
+                } else if (v === 'hospitality') {
+                    for (let i = 0; i < count; i++) {
+                        machinery.push({
+                            type: 'Letto Matrimoniale con Materasso Orthopedic',
+                            year: new Date().getFullYear(),
+                            ownership: 'Proprietà',
+                            value: 800,
+                            useful_life: 10,
+                            vertical: 'hospitality'
+                        });
+                    }
+                } else {
+                    // generic / professional
+                    for (let i = 0; i < count; i++) {
+                        machinery.push({
+                            type: 'PC Workstation / Notebook Ufficio',
+                            year: new Date().getFullYear(),
+                            ownership: 'Proprietà',
+                            value: 1200,
+                            useful_life: 5,
+                            vertical: v
+                        });
+                    }
+                }
+            });
+
+            // Add common infrastructure presets
             machinery.push({
-                type: 'Software ERP / Gestionale Aziendale',
+                type: 'Licenza Software ERP / Gestionale Centrale',
                 year: new Date().getFullYear(),
                 ownership: 'Proprietà',
                 value: 5000,
-                useful_life: 5
+                useful_life: 5,
+                vertical: 'common'
             });
-            
-            // 3. Add Server Aziendale (Fascia Base)
-            machinery.push({
-                type: 'Server Aziendale (Fascia Base)',
-                year: new Date().getFullYear(),
-                ownership: 'Proprietà',
-                value: 2500,
-                useful_life: 5
-            });
-            
-            // 4. Add Arredo Reception / Sala d'Attesa
             machinery.push({
                 type: "Arredo Reception / Sala d'Attesa",
                 year: new Date().getFullYear(),
                 ownership: 'Proprietà',
                 value: 3500,
-                useful_life: 10
+                useful_life: 10,
+                vertical: 'common'
             });
         }
 
@@ -630,14 +814,11 @@
             const owner = operators.find(op => op.isOwner);
             operators = [];
             if (owner) {
-                if (owner.role === 'Odontoiatra' || owner.role === 'Owner') {
-                    owner.role = 'Manager / Coordinatore';
-                    owner.specialization = 'Direzione';
-                }
+                owner.vertical = 'common';
                 operators.push(owner);
             }
             
-            // 1. Add Amministrativo / Segreteria (Dipendente CCNL, 4° Level, 40 hours, €1,614.12)
+            // 1. Add Common admin assistant
             operators.push({
                 id: 'def-amministrativo',
                 name: 'Amministrativo / Segreteria',
@@ -646,64 +827,123 @@
                 level: '4° Livello',
                 hours: 40,
                 salary: 1614.12,
+                vertical: 'common',
                 specialization: 'Amministrazione'
             });
             
-            // 2. Add Tecnico / Specialista Operativo (Partita IVA, rate: 100)
-            operators.push({
-                id: 'def-tecnico',
-                name: 'Tecnico / Specialista Operativo',
-                role: 'Tecnico / Specialista Operativo',
-                contract: 'Partita IVA',
-                rate_type: 'percentage',
-                rate: 100,
-                specialization: 'Operazioni'
-            });
-            
-            // 3. Add Consulente Professionista (Partita IVA, rate: 40)
-            operators.push({
-                id: 'def-consulente',
-                name: 'Consulente Professionista',
-                role: 'Consulente Professionista',
-                contract: 'Partita IVA',
-                rate_type: 'percentage',
-                rate: 40,
-                specialization: 'Consulenza'
+            // 2. Add vertical operators based on active verticals
+            activeVerticals.forEach(v => {
+                if (v === 'dental') {
+                    operators.push({
+                        id: 'def-odontoiatra',
+                        name: 'Collaboratore Odontoiatra',
+                        role: 'Consulente Professionista',
+                        contract: 'Partita IVA',
+                        rate_type: 'percentage',
+                        rate: 40,
+                        vertical: 'dental',
+                        specialization: 'Odontoiatria Clinica'
+                    });
+                } else {
+                    const meta = verticalsMeta[v] || verticalsMeta.generic;
+                    operators.push({
+                        id: `def-operatore-${v}`,
+                        name: `Operatore ${meta.name}`,
+                        role: 'Tecnico / Specialista Operativo',
+                        contract: 'Partita IVA',
+                        rate_type: 'percentage',
+                        rate: 100,
+                        vertical: v,
+                        specialization: meta.name
+                    });
+                }
             });
         }
 
-        function synchronizeBaseEquipment() {
-            // Find existing PC Workstation / Notebook Ufficio cards
-            const pcIndices = [];
+        function scalePresetItem(name, targetCount, template) {
+            const indices = [];
             machinery.forEach((m, idx) => {
-                const nameLower = (m.type || '').toLowerCase();
-                if (nameLower === 'pc workstation / notebook ufficio') {
-                    pcIndices.push(idx);
+                if ((m.type || '').toLowerCase() === name.toLowerCase()) {
+                    indices.push(idx);
                 }
             });
             
-            const currentCount = pcIndices.length;
-            if (currentCount < numberOfChairs) {
-                // Add more workstations
-                const diff = numberOfChairs - currentCount;
+            const currentCount = indices.length;
+            if (currentCount < targetCount) {
+                const diff = targetCount - currentCount;
                 for (let i = 0; i < diff; i++) {
-                    machinery.push({
+                    machinery.push({ ...template });
+                }
+            } else if (currentCount > targetCount) {
+                const diff = currentCount - targetCount;
+                for (let i = 0; i < diff; i++) {
+                    const targetIdx = indices[indices.length - 1 - i];
+                    machinery.splice(targetIdx, 1);
+                }
+            }
+        }
+
+        function synchronizeBaseEquipment() {
+            operationalUnits.forEach(unit => {
+                const count = unit.count;
+                const v = unit.vertical;
+                
+                if (v === 'dental') {
+                    scalePresetItem('Riunito Odontoiatrico (Fascia Media)', count, {
+                        type: 'Riunito Odontoiatrico (Fascia Media)',
+                        year: new Date().getFullYear(),
+                        ownership: 'Proprietà',
+                        value: 18500,
+                        useful_life: 10,
+                        vertical: 'dental'
+                    });
+                } else if (v === 'beauty') {
+                    scalePresetItem('Lettino Estetica / Massaggio Elettrico', count, {
+                        type: 'Lettino Estetica / Massaggio Elettrico',
+                        year: new Date().getFullYear(),
+                        ownership: 'Proprietà',
+                        value: 1500,
+                        useful_life: 10,
+                        vertical: 'beauty'
+                    });
+                } else if (v === 'hospitality') {
+                    scalePresetItem('Letto Matrimoniale con Materasso Orthopedic', count, {
+                        type: 'Letto Matrimoniale con Materasso Orthopedic',
+                        year: new Date().getFullYear(),
+                        ownership: 'Proprietà',
+                        value: 800,
+                        useful_life: 10,
+                        vertical: 'hospitality'
+                    });
+                } else if (v === 'professional' || v === 'generic') {
+                    scalePresetItem('PC Workstation / Notebook Ufficio', count, {
                         type: 'PC Workstation / Notebook Ufficio',
                         year: new Date().getFullYear(),
                         ownership: 'Proprietà',
                         value: 1200,
-                        useful_life: 5
+                        useful_life: 5,
+                        vertical: v
+                    });
+                } else if (v === 'construction') {
+                    scalePresetItem('Furgone Attrezzato (Officina Mobile)', count, {
+                        type: 'Furgone Attrezzato (Officina Mobile)',
+                        year: new Date().getFullYear(),
+                        ownership: 'Proprietà',
+                        value: 25000,
+                        useful_life: 5,
+                        vertical: 'construction'
+                    });
+                } else if (v === 'workshop') {
+                    scalePresetItem('Ponte Sollevatore Elettroidraulico 2 Colonne', count, {
+                        type: 'Ponte Sollevatore Elettroidraulico 2 Colonne',
+                        year: new Date().getFullYear(),
+                        ownership: 'Proprietà',
+                        value: 3500,
+                        useful_life: 10,
+                        vertical: 'workshop'
                     });
                 }
-            } else if (currentCount > numberOfChairs) {
-                // Remove some workstations
-                const diff = currentCount - numberOfChairs;
-                for (let i = 0; i < diff; i++) {
-                    const targetIdx = pcIndices[pcIndices.length - 1 - i];
-                    machinery.splice(targetIdx, 1);
-                }
-            }
-            
+            });
             renderMachinery();
         }
 
@@ -785,7 +1025,8 @@
                     specialization: op.specialization || '',
                     GeminiKey: op.geminiKey || '',
                     status: op.status || '',
-                    invitation_code: op.invitation_code || ''
+                    invitation_code: op.invitation_code || '',
+                    vertical: op.vertical || 'common'
                 };
             });
         }
@@ -796,6 +1037,12 @@
                 if (chairsInput) {
                     numberOfChairs = parseInt(chairsInput.value) || numberOfChairs;
                 }
+                
+                // Save current financials tab before sending if we are on step 3
+                if (step === 3) {
+                    saveCurrentTabFinancials(activeFinancialsTab);
+                }
+
                 await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -810,7 +1057,12 @@
                         profile_type: profileType,
                         operators: serializeOperatorsForSave(),
                         machinery: machinery,
-                        number_of_chairs: numberOfChairs
+                        number_of_chairs: numberOfChairs,
+                        operational_units: operationalUnits,
+                        verticals: activeVerticals,
+                        primary_vertical: primaryVertical,
+                        financials: isForfettario ? { isForfettario: true } : financials,
+                        financials_snapshot: financialsSnapshot
                     })
                 });
             } catch (err) {
@@ -824,6 +1076,10 @@
                 const chairsInput = document.getElementById('op-chairs-num');
                 if (chairsInput) {
                     numberOfChairs = parseInt(chairsInput.value) || numberOfChairs;
+                }
+                
+                if (currentStep === 3) {
+                    saveCurrentTabFinancials(activeFinancialsTab);
                 }
                 
                 const response = await fetch(WEBHOOK_URL, {
@@ -840,7 +1096,12 @@
                         profile_type: profileType,
                         operators: serializeOperatorsForSave(),
                         machinery: machinery,
-                        number_of_chairs: numberOfChairs
+                        number_of_chairs: numberOfChairs,
+                        operational_units: operationalUnits,
+                        verticals: activeVerticals,
+                        primary_vertical: primaryVertical,
+                        financials: isForfettario ? { isForfettario: true } : financials,
+                        financials_snapshot: financialsSnapshot
                     })
                 });
 
@@ -894,6 +1155,51 @@
                     taxRegime = result.tax_regime || 'Ordinario';
                     isForfettario = !!result.isForfettario || !!result.is_forfettario;
                     
+                    // Multi-vertical State Initialization
+                    activeVerticals = result.verticals || (result.vertical ? [result.vertical] : ['generic']);
+                    if (!Array.isArray(activeVerticals)) activeVerticals = [activeVerticals];
+                    activeVerticals = [...new Set(activeVerticals.filter(v => v && verticalsMeta[v]))];
+                    if (activeVerticals.length === 0) activeVerticals = ['generic'];
+                    
+                    primaryVertical = result.primary_vertical || result.vertical || activeVerticals[0] || 'generic';
+                    if (!activeVerticals.includes(primaryVertical)) {
+                        primaryVertical = activeVerticals[0];
+                    }
+                    
+                    operationalUnits = result.operational_units || [];
+                    if (!Array.isArray(operationalUnits) || operationalUnits.length === 0) {
+                        operationalUnits = [];
+                        activeVerticals.forEach(v => {
+                            let count = 1;
+                            if (v === 'dental') {
+                                count = result.number_of_chairs !== undefined ? result.number_of_chairs : 2;
+                            } else if (v === primaryVertical) {
+                                count = result.number_of_chairs !== undefined ? result.number_of_chairs : 2;
+                            }
+                            
+                            let label = verticalsMeta[v]?.label || 'Unità';
+                            if (v === 'dental') label = 'Riuniti Dentistici';
+                            else if (v === 'beauty') label = 'Cabine Massaggio';
+                            else if (v === 'food') label = 'Postazioni Cucina/Servizio';
+                            else if (v === 'hospitality') label = 'Camere/Appartamenti';
+                            else if (v === 'professional') label = 'Scrivanie/Postazioni';
+                            else if (v === 'workshop') label = 'Ponti/Postazioni Officina';
+                            else if (v === 'construction') label = 'Squadre Operative';
+                            else label = 'Postazioni Operative';
+                            
+                            operationalUnits.push({
+                                vertical: v,
+                                count: count,
+                                label: label
+                            });
+                        });
+                    }
+                    
+                    // Set active tabs to primaryVertical or 'common' as defaults
+                    activeStaffTab = 'common';
+                    activeMachineryTab = 'common';
+                    activeFinancialsTab = 'common';
+                    
                     let isAdvancedSetup = !!result.advanced_setup;
                     if (result.financials) {
                         if (result.financials.isForfettario === true || result.financials.isForfettario === 'true') {
@@ -910,6 +1216,7 @@
                     } else {
                         hasFinancials = false;
                     }
+                    
                     operators = (result.operators || []).map(op => {
                         let nameVal = op.name || op.OperatorName || '';
                         let isOwner = !!op.isOwner || (op.Role && op.Role.toLowerCase() === 'owner') || (op.role && op.role.toLowerCase() === 'owner');
@@ -929,6 +1236,16 @@
                         let levelVal = op.level || op.Level || '';
                         let hoursVal = op.hours !== undefined ? op.hours : (op.Hours !== undefined ? op.Hours : 40);
                         let salaryVal = op.salary || op.Salary || '';
+                        
+                        // Set vertical attribute
+                        let verticalVal = op.vertical || op.Vertical || '';
+                        if (!verticalVal) {
+                            if (isOwner) {
+                                verticalVal = 'common';
+                            } else {
+                                verticalVal = primaryVertical;
+                            }
+                        }
                         
                         const roleMigrationMap = {
                             'odontoiatra': 'Consulente Professionista',
@@ -973,7 +1290,8 @@
                             OperatorLanguage: op.OperatorLanguage || op.OperatorLenguage || 'Italiano',
                             FreeHandOperator: op.FreeHandOperator !== undefined ? op.FreeHandOperator : true,
                             status: op.status || '',
-                            invitation_code: op.invitation_code || ''
+                            invitation_code: op.invitation_code || '',
+                            vertical: verticalVal
                         };
                         
                         if (contractVal === 'Dipendente (CCNL)' && !isOwner) {
@@ -1047,7 +1365,8 @@
                             rate_type: 'percentage',
                             rate: 40,
                             specialization: 'Direzione',
-                            geminiKey: ''
+                            geminiKey: '',
+                            vertical: 'common'
                         });
                     }
 
@@ -1062,7 +1381,22 @@
                     if (hasOnlyOwner) {
                         initializeDefaultStaff();
                     }
-                    machinery = result.machinery || [];
+                    
+                    machinery = (result.machinery || []).map(mac => {
+                        let v = mac.vertical || mac.Vertical || '';
+                        if (!v) {
+                            v = 'common';
+                        }
+                        return {
+                            type: mac.type || mac.Type || '',
+                            year: mac.year || mac.Year || new Date().getFullYear(),
+                            ownership: mac.ownership || mac.Ownership || 'Proprietà',
+                            value: mac.value || mac.Value || 0,
+                            useful_life: mac.useful_life || mac.UsefulLife || 8,
+                            vertical: v
+                        };
+                    });
+                    
                     numberOfChairs = result.number_of_chairs !== undefined ? result.number_of_chairs : 2;
                 } else {
                     tenantType = 'Società';
@@ -1091,6 +1425,9 @@
                 if (badge) {
                     badge.innerText = numberOfChairs;
                 }
+                
+                // Update Operational Units rendering
+                renderOperationalUnitsCounters();
                 
                 // Financials are already populated and checked at the start of loadData
                 
@@ -1133,12 +1470,19 @@
             const grid = document.getElementById('operators-grid');
             grid.innerHTML = '';
             
-            if (operators.length === 0) {
-                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessun operatore inserito nello staff.</div>`;
+            const filteredOperators = operators.filter(op => {
+                const v = op.vertical || 'common';
+                return v === activeStaffTab;
+            });
+            
+            if (filteredOperators.length === 0) {
+                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessun operatore inserito in questa categoria.</div>`;
                 return;
             }
 
-            operators.forEach((op, idx) => {
+            filteredOperators.forEach((op) => {
+                const idx = operators.indexOf(op);
+                
                 let iconClass = 'fa-user-tie';
                 if (op.isOwner) iconClass = 'fa-crown';
                 else if (op.role === 'Amministrativo / Segreteria') iconClass = 'fa-keyboard';
@@ -1245,7 +1589,8 @@
                 hours: 40,
                 salary: '', 
                 rate_type: 'hourly', 
-                rate: '' 
+                rate: '',
+                vertical: activeStaffTab
             };
             
             const container = document.getElementById('drawer-container');
@@ -1263,13 +1608,13 @@
                     
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
-                            <label class="label-micro">Ruolo</label>
-                            <select id="op-role" onchange="toggleOpRoleFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
-                                <option value="Amministrativo / Segreteria" ${data.role === 'Amministrativo / Segreteria' ? 'selected' : ''}>Amministrativo / Segreteria</option>
-                                <option value="Tecnico / Specialista Operativo" ${data.role === 'Tecnico / Specialista Operativo' ? 'selected' : ''}>Tecnico / Specialista Operativo</option>
-                                <option value="Manager / Coordinatore" ${data.role === 'Manager / Coordinatore' ? 'selected' : ''}>Manager / Coordinatore</option>
-                                <option value="Consulente Professionista" ${data.role === 'Consulente Professionista' ? 'selected' : ''}>Consulente Professionista</option>
-                                <option value="Supporto / Servizi Ausiliari" ${data.role === 'Supporto / Servizi Ausiliari' ? 'selected' : ''}>Supporto / Servizi Ausiliari</option>
+                            <label class="label-micro">Categoria / Verticale</label>
+                            <select id="op-vertical" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="common" ${data.vertical === 'common' ? 'selected' : ''}>🏠 Comune / Amministrativo</option>
+                                ${activeVerticals.map(v => {
+                                    const meta = verticalsMeta[v] || verticalsMeta.generic;
+                                    return `<option value="${v}" ${data.vertical === v ? 'selected' : ''}>${meta.emoji} ${meta.name}</option>`;
+                                }).join('')}
                             </select>
                         </div>
                         <div class="space-y-1">
@@ -1281,15 +1626,27 @@
                         </div>
                     </div>
 
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1">
+                            <label class="label-micro">Ruolo</label>
+                            <select id="op-role" onchange="toggleOpRoleFields(this.value)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="Amministrativo / Segreteria" ${data.role === 'Amministrativo / Segreteria' ? 'selected' : ''}>Amministrativo / Segreteria</option>
+                                <option value="Tecnico / Specialista Operativo" ${data.role === 'Tecnico / Specialista Operativo' ? 'selected' : ''}>Tecnico / Specialista Operativo</option>
+                                <option value="Manager / Coordinatore" ${data.role === 'Manager / Coordinatore' ? 'selected' : ''}>Manager / Coordinatore</option>
+                                <option value="Consulente Professionista" ${data.role === 'Consulente Professionista' ? 'selected' : ''}>Consulente Professionista</option>
+                                <option value="Supporto / Servizi Ausiliari" ${data.role === 'Supporto / Servizi Ausiliari' ? 'selected' : ''}>Supporto / Servizi Ausiliari</option>
+                            </select>
+                        </div>
+                        <!-- SPECIALIZZAZIONE / COMPETENZA -->
+                        <div id="op-specialization-wrapper" class="space-y-1">
+                            <label class="label-micro">Specializzazione</label>
+                            <input type="text" id="op-specialization" value="${data.specialization || ''}" placeholder="Es: Generalista, Amministrazione" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
+                        </div>
+                    </div>
+
                     <!-- WARNING MSG FOR COMPLIANCE -->
                     <div id="op-compliance-warning" class="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-[10px] font-medium leading-relaxed hidden">
                         ⚠️ Per conformità legale con la normativa sul lavoro, questo ruolo richiede obbligatoriamente l'inquadramento come dipendente subordinato.
-                    </div>
-
-                    <!-- SPECIALIZZAZIONE / COMPETENZA -->
-                    <div id="op-specialization-wrapper" class="space-y-1">
-                        <label class="label-micro">Specializzazione / Competenza</label>
-                        <input type="text" id="op-specialization" value="${data.specialization || ''}" placeholder="Es: Sviluppatore, Designer, Amministrazione" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
 
                     <!-- DIPENDENTE FIELDS -->
@@ -1313,7 +1670,7 @@
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div class="space-y-1">
-                                <label class="label-micro">Ore Settimanali di Lavoro</label>
+                                <label class="label-micro">Ore Settimanali</label>
                                 <input type="number" id="op-hours" value="${data.hours !== undefined ? data.hours : 40}" min="1" max="40" oninput="calculateSalary()" placeholder="40" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                             </div>
                             <div class="space-y-1">
@@ -1583,12 +1940,18 @@
             const grid = document.getElementById('machinery-grid');
             grid.innerHTML = '';
             
-            if (machinery.length === 0) {
-                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessuna attrezzatura inserita.</div>`;
+            const filteredMachinery = machinery.filter(mac => {
+                const v = mac.vertical || 'common';
+                return v === activeMachineryTab;
+            });
+            
+            if (filteredMachinery.length === 0) {
+                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessun bene strumentale inserito in questa categoria.</div>`;
                 return;
             }
 
-            machinery.forEach((mac, idx) => {
+            filteredMachinery.forEach((mac) => {
+                const idx = machinery.indexOf(mac);
                 let iconClass = 'fa-tools'; // default
                 const nameLower = (mac.type || '').toLowerCase();
                 
@@ -1649,9 +2012,33 @@
             
             const q = query.toLowerCase().trim();
             const currentSelected = document.getElementById('mac-type').value;
+            const drawerVertical = document.getElementById('mac-vertical')?.value || activeMachineryTab;
+            
+            // Map drawer vertical to the corresponding category key in attrezzaturePreset
+            const activeCategoryKey = verticalsMeta[drawerVertical]?.presetCategory;
             
             let html = '';
-            for (const [category, items] of Object.entries(attrezzaturePreset)) {
+            
+            // We want to show first the category corresponding to the selected vertical
+            const orderedCategories = [];
+            if (activeCategoryKey && attrezzaturePreset[activeCategoryKey]) {
+                orderedCategories.push(activeCategoryKey);
+            }
+            
+            // Then add common category
+            if (attrezzaturePreset["Comune & Infrastruttura IT"] && activeCategoryKey !== "Comune & Infrastruttura IT") {
+                orderedCategories.push("Comune & Infrastruttura IT");
+            }
+            
+            // Then add other categories
+            Object.keys(attrezzaturePreset).forEach(cat => {
+                if (!orderedCategories.includes(cat)) {
+                    orderedCategories.push(cat);
+                }
+            });
+            
+            orderedCategories.forEach(category => {
+                const items = attrezzaturePreset[category];
                 const filteredItems = items.filter(item => item.name.toLowerCase().includes(q));
                 if (filteredItems.length > 0) {
                     html += `<div class="px-3 py-1.5 text-[8px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/50 border-y border-border/50 sticky top-0 select-none">${category}</div>`;
@@ -1664,7 +2051,7 @@
                         `;
                     });
                 }
-            }
+            });
             
             const isCustomSelected = (currentSelected === 'Altra Attrezzatura (Personalizzata)');
             html += `
@@ -1742,7 +2129,14 @@
         function openMachineryDrawer(idx = null) {
             activeEditIndex = idx;
             const isEdit = idx !== null;
-            const data = isEdit ? machinery[idx] : { type: 'PC Workstation / Notebook Ufficio', year: new Date().getFullYear(), ownership: 'Proprietà', value: 1200, useful_life: 5 };
+            const data = isEdit ? machinery[idx] : { 
+                type: 'PC Workstation / Notebook Ufficio', 
+                year: new Date().getFullYear(), 
+                ownership: 'Proprietà', 
+                value: 1200, 
+                useful_life: 5,
+                vertical: activeMachineryTab
+            };
             
             const isPreset = isPresetType(data.type);
             const isCustom = data.type && !isPreset && data.type !== 'Altra Attrezzatura (Personalizzata)';
@@ -1780,9 +2174,22 @@
                     
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
+                            <label class="label-micro">Categoria / Verticale</label>
+                            <select id="mac-vertical" onchange="populateComboboxDropdown('')" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                                <option value="common" ${data.vertical === 'common' ? 'selected' : ''}>🏠 Comune / IT</option>
+                                ${activeVerticals.map(v => {
+                                    const meta = verticalsMeta[v] || verticalsMeta.generic;
+                                    return `<option value="${v}" ${data.vertical === v ? 'selected' : ''}>${meta.emoji} ${meta.name}</option>`;
+                                }).join('')}
+                            </select>
+                        </div>
+                        <div class="space-y-1">
                             <label class="label-micro">Anno Acquisto</label>
                             <input type="number" id="mac-year" value="${data.year}" placeholder="Es: 2024" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                         </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="label-micro">Possesso</label>
                             <select id="mac-ownership" onchange="handleMacOwnershipChange(this.value, false)" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
@@ -1790,17 +2197,15 @@
                                 <option value="Leasing/Noleggio" ${data.ownership === 'Leasing/Noleggio' ? 'selected' : ''}>Leasing / Noleggio</option>
                             </select>
                         </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-3">
-                        <div class="space-y-1">
-                            <label class="label-micro" id="mac-value-label">${data.ownership === 'Proprietà' ? 'Valore d\'acquisto (€)' : 'Canone Mensile (€)'}</label>
-                            <input type="number" id="mac-value" value="${data.value}" placeholder="Es: 18500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
-                        </div>
                         <div class="space-y-1">
                             <label class="label-micro">Vita Utile (Anni)</label>
                             <input type="number" id="mac-useful-life" value="${data.useful_life}" placeholder="Es: 10" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                         </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label class="label-micro" id="mac-value-label">${data.ownership === 'Proprietà' ? 'Valore d\'acquisto (€)' : 'Canone Mensile (€)'}</label>
+                        <input type="number" id="mac-value" value="${data.value}" placeholder="Es: 18500" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
                 </div>
 
@@ -1928,6 +2333,7 @@
                 if (!type) { tg.showAlert("Fornisci un nome per l'attrezzatura personalizzata."); return; }
             }
             
+            const vertical = document.getElementById('mac-vertical').value;
             const year = parseInt(document.getElementById('mac-year').value) || new Date().getFullYear();
             const ownership = document.getElementById('mac-ownership').value;
             const value = parseFloat(document.getElementById('mac-value').value) || 0;
@@ -1940,7 +2346,8 @@
                 year: year,
                 ownership: ownership,
                 value: value,
-                useful_life: useful_life
+                useful_life: useful_life,
+                vertical: vertical
             };
 
             if (activeEditIndex !== null) {
@@ -2038,24 +2445,197 @@
             refreshStep3UI();
         }
 
+        const verticalSpecificCodes = [
+            "631.01000",
+            "631.01002",
+            "631.01005",
+            "601.00004",
+            "605.00001"
+        ];
+
+        const verticalLabels = {
+            "631.01000": {
+                dental: { label: "631.01000 - MATERIALE DI CONSUMO CLINICO / PROTESI", help: "Acquisto di impianti, biomateriali, monouso e semilavorati protesici." },
+                beauty: { label: "631.01000 - PRODOTTI ESTETICI / CREME / MONOUSO", help: "Acquisto di cosmetici, creme, olii, teli e monouso cabina." },
+                food: { label: "631.01000 - MATERIE PRIME ALIMENTARI / BEVANDE", help: "Acquisto di cibo, bevande, ingredienti e consumabili di sala." },
+                hospitality: { label: "631.01000 - KIT CORTESIA / BIANCHERIA / MONOUSO", help: "Acquisto di saponi, ciabattine, biancheria e forniture camere." },
+                workshop: { label: "631.01000 - RICAMBI AUTO / LUBRIFICANTI / CONSUMO", help: "Acquisto di pezzi di ricambio, olio motore, filtri e minuteria." },
+                construction: { label: "631.01000 - MATERIALI EDILI / CAVI / TUBAZIONI", help: "Acquisto di cemento, mattoni, tubi, cavi elettrici e minuteria cantiere." },
+                generic: { label: "631.01000 - MERCI E MATERIE PRIME PRODUZIONE/SERVIZI", help: "Acquisti di merci, materie prime, materiali di consumo per l'attività operativa." },
+                professional: { label: "631.01000 - MERCI E MATERIE PRIME PRODUZIONE/SERVIZI", help: "Acquisti di merci, materie prime, materiali di consumo per l'attività operativa." }
+            },
+            "631.01002": {
+                dental: { label: "631.01002 - FATTURE LABORATORIO ODONTOTECNICO", help: "Prestazioni e manufatti protesici ordinati ai laboratori esterni." },
+                construction: { label: "631.01002 - SUBAPPALTI E LAVORAZIONI CANTIERI", help: "Fatture di artigiani o ditte esterne subappaltate sui cantieri." }
+            },
+            "631.01005": {
+                dental: { label: "631.01005 - RIFIUTI SPECIALI (HALOGEN/TAGLIENTI)", help: "Contratti per lo smaltimento dei rifiuti speciali odontoiatrici." }
+            },
+            "601.00004": {
+                dental: { label: "601.00004 - AMM.TO RIUNITI E STRUMENTAZIONE CLINICA", help: "Quota annua di ammortamento dei riuniti, radiografici e scanner." },
+                beauty: { label: "601.00004 - AMM.TO MACCHINARI E LETTINI ESTETICA", help: "Quota annua per laser diodo, pressoterapia e lettini elettrici." },
+                food: { label: "601.00004 - AMM.TO ATTREZZATURE CUCINA E ARREDI SALA", help: "Quota annua per forni, banchi frigo, cappe e arredi." },
+                hospitality: { label: "601.00004 - AMM.TO ARREDI CAMERE E CLIMATIZZATORI", help: "Quota annua per letti, condizionatori e frigo bar." },
+                workshop: { label: "601.00004 - AMM.TO PONTI E STRUMENTAZIONE OFFICINA", help: "Quota annua per ponti sollevatori, strumenti diagnostici." },
+                construction: { label: "601.00004 - AMM.TO ATTREZZATURE CANTIERE E STRUMENTI", help: "Quota annua per betoniere, ponteggi, demolitori e attrezzature." }
+            },
+            "605.00001": {
+                dental: { label: "605.00001 - LEASING RIUNITI / LASER / TAC", help: "Canoni mensili o trimestrali di leasing per strumentazione medica." }
+            }
+        };
+
+        function normalizeLoadedFinancials(loaded) {
+            if (!loaded) return { common: {} };
+            
+            // If already nested, clean/return it
+            if (loaded.common || activeVerticals.some(v => loaded[v])) {
+                const nested = { common: { ...loaded.common } };
+                activeVerticals.forEach(v => {
+                    nested[v] = { ...loaded[v] };
+                });
+                
+                // Copy top-level properties if any
+                Object.keys(loaded).forEach(k => {
+                    if (k !== 'common' && !activeVerticals.includes(k) && typeof loaded[k] !== 'object') {
+                        if (verticalSpecificCodes.includes(k)) {
+                            if (!nested[primaryVertical]) nested[primaryVertical] = {};
+                            nested[primaryVertical][k] = loaded[k];
+                        } else {
+                            nested.common[k] = loaded[k];
+                        }
+                    }
+                });
+                return nested;
+            }
+            
+            // Legacy flat financials migration
+            const nested = { common: {} };
+            activeVerticals.forEach(v => {
+                nested[v] = {};
+            });
+            
+            Object.keys(loaded).forEach(code => {
+                const val = loaded[code];
+                if (verticalSpecificCodes.includes(code)) {
+                    if (!nested[primaryVertical]) nested[primaryVertical] = {};
+                    nested[primaryVertical][code] = val;
+                } else {
+                    nested.common[code] = val;
+                }
+            });
+            
+            return nested;
+        }
+
+        function saveCurrentTabFinancials(tab) {
+            if (!financials) financials = {};
+            if (!financials[tab]) financials[tab] = {};
+            
+            const codes = (tab === 'common')
+                ? [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code).filter(c => !verticalSpecificCodes.includes(c))
+                : verticalSpecificCodes;
+                
+            codes.forEach(code => {
+                const el = document.getElementById(code);
+                if (el) {
+                    financials[tab][code] = parseFloat(el.value) || 0;
+                }
+            });
+        }
+
+        function loadTabFinancials(tab) {
+            if (!financials) financials = {};
+            if (!financials[tab]) financials[tab] = {};
+            
+            const allCodes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code);
+            
+            allCodes.forEach(code => {
+                const el = document.getElementById(code);
+                if (el) {
+                    const val = financials[tab][code] !== undefined ? financials[tab][code] : 0;
+                    el.value = val;
+                }
+            });
+        }
+
+        function updateFinancialsInputsVisibilityAndLabels() {
+            const tab = activeFinancialsTab;
+            const allCodes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code);
+            
+            allCodes.forEach(code => {
+                const input = document.getElementById(code);
+                if (!input) return;
+                
+                const wrapper = input.closest('.space-y-1');
+                if (!wrapper) return;
+                
+                const isSpecific = verticalSpecificCodes.includes(code);
+                
+                if (tab === 'common') {
+                    if (isSpecific) {
+                        wrapper.classList.add('hidden');
+                    } else {
+                        wrapper.classList.remove('hidden');
+                    }
+                } else {
+                    if (isSpecific) {
+                        wrapper.classList.remove('hidden');
+                        
+                        const labelEl = wrapper.querySelector('label');
+                        const helpEl = wrapper.querySelector('span.text-\\[8px\\]');
+                        
+                        let origMeta = null;
+                        for (const key of ['a', 'b', 'c', 'd']) {
+                            origMeta = financialsMapping[key].find(item => item.code === code);
+                            if (origMeta) break;
+                        }
+                        
+                        let customMeta = verticalLabels[code]?.[tab] || verticalLabels[code]?.generic || origMeta;
+                        if (labelEl) labelEl.innerText = customMeta.label || (origMeta ? origMeta.label : code);
+                        if (helpEl) helpEl.innerText = customMeta.help || (origMeta ? origMeta.help : '');
+                    } else {
+                        wrapper.classList.add('hidden');
+                    }
+                }
+            });
+            
+            // Adjust active accordions layout height
+            ['acc-a', 'acc-b', 'acc-c', 'acc-d'].forEach(id => {
+                const content = document.getElementById(id);
+                if (content && !content.classList.contains('hidden') && content.style.maxHeight !== '0px' && content.style.maxHeight !== 'none') {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                }
+            });
+        }
+
         function checkManualFieldsFilled() {
             if (!isManualInsertionActive) {
                 enableSaveConfigurationButton(true);
                 return true;
             }
             
-            const codes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code);
             let allFilled = true;
-            codes.forEach(code => {
-                const el = document.getElementById(code);
-                if (el) {
-                    const val = parseFloat(el.value) || 0;
-                    if (val <= 0) {
-                        allFilled = false;
-                    }
-                } else {
+            
+            // Check common
+            const commonCodes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d]
+                .map(i => i.code)
+                .filter(c => !verticalSpecificCodes.includes(c));
+                
+            commonCodes.forEach(code => {
+                const val = financials.common?.[code];
+                if (val === undefined || parseFloat(val) <= 0) {
                     allFilled = false;
                 }
+            });
+            
+            // Check active verticals
+            activeVerticals.forEach(v => {
+                verticalSpecificCodes.forEach(code => {
+                    const val = financials[v]?.[code];
+                    if (val === undefined || parseFloat(val) <= 0) {
+                        allFilled = false;
+                    }
+                });
             });
 
             enableSaveConfigurationButton(allFilled);
@@ -2069,7 +2649,6 @@
         }
 
         function refreshStep3UI() {
-            // Re-sync tenantType and taxRegime for legacy compatibility
             if (profileType === 'professionista') {
                 tenantType = 'Libero Professionista';
                 taxRegime = isForfettario ? 'Forfettario' : 'Ordinario';
@@ -2120,17 +2699,19 @@
                 btnCompleta.classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            // Check if we have pre-loaded/active financials (advanced_setup === true)
             if (hasFinancials) {
                 if (financialsGrid) financialsGrid.classList.remove('hidden');
                 if (manualLinkBox) manualLinkBox.classList.add('hidden');
+                
+                loadTabFinancials(activeFinancialsTab);
+                updateFinancialsInputsVisibilityAndLabels();
+                
                 if (btnCompleta) {
                     btnCompleta.classList.remove('hidden');
                     btnCompleta.disabled = false;
                     btnCompleta.classList.remove('opacity-50', 'cursor-not-allowed');
                 }
                 
-                // Show Ricalcola and CaricaSpese buttons since grid is visible and it is not Forfettario
                 if (btnRicalcola && !isForfettario) {
                     btnRicalcola.classList.remove('hidden');
                 }
@@ -2138,7 +2719,6 @@
                     btnCaricaSpese.classList.remove('hidden');
                 }
                 
-                // Show warning banner if staff/equipment changed
                 if (warningEl && !isForfettario && financialsSnapshot) {
                     const currentSnapshot = getStaffEquipmentSnapshot();
                     if (financialsSnapshot !== currentSnapshot) {
@@ -2150,10 +2730,13 @@
                 return;
             }
 
-            // Manual insertion override state
             if (isManualInsertionActive) {
                 if (financialsGrid) financialsGrid.classList.remove('hidden');
                 if (manualLinkBox) manualLinkBox.classList.add('hidden');
+                
+                loadTabFinancials(activeFinancialsTab);
+                updateFinancialsInputsVisibilityAndLabels();
+                
                 if (btnCaricaSpese) {
                     btnCaricaSpese.classList.remove('hidden');
                 }
@@ -2173,7 +2756,6 @@
                 }
 
                 if (isForfettario) {
-                    // Scenario A1: Forfettario checked
                     if (manualLinkBox) manualLinkBox.classList.add('hidden');
                     if (btnCompleta) {
                         btnCompleta.classList.remove('hidden');
@@ -2182,7 +2764,6 @@
                     }
                     if (statusText) statusText.innerText = "Regime Forfettario attivo. Pronto per completare.";
                 } else {
-                    // Scenario A2: Forfettario unchecked
                     if (boxUploadProfessionista) boxUploadProfessionista.classList.remove('hidden');
                     const uploadProfTitle = document.getElementById('upload-prof-title');
                     if (uploadProfTitle) uploadProfTitle.innerText = "Carica Modello Redditi (Quadro RE)";
@@ -2257,22 +2838,19 @@
                 const result = await response.json();
                 
                 const actualExpenses = result.actual_expenses || {};
+                const normalized = normalizeLoadedFinancials(actualExpenses);
                 
-                // Aggiorna gli input del modulo con i valori reali importati
-                let updatedCount = 0;
-                for (const code in actualExpenses) {
-                    const input = document.getElementById(code);
-                    if (input) {
-                        const val = parseFloat(actualExpenses[code]) || 0;
-                        input.value = val.toFixed(2);
-                        // Trigger input event to update totals
-                        input.dispatchEvent(new Event('input'));
-                        updatedCount++;
-                    }
-                }
+                financials.common = { ...financials.common, ...normalized.common };
+                activeVerticals.forEach(v => {
+                    financials[v] = { ...financials[v], ...normalized[v] };
+                });
+                
+                loadTabFinancials(activeFinancialsTab);
+                updateFinancialsInputsVisibilityAndLabels();
+                updateFinancialsTotal();
                 
                 if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                tg.showAlert(`Importazione completata: aggiornati ${updatedCount} codici conto con le spese del magazzino!`);
+                tg.showAlert(`Importazione completata con successo!`);
             } catch (e) {
                 tg.showAlert("Errore durante l'importazione delle spese reali.");
             } finally {
@@ -2367,13 +2945,9 @@
         }
 
         function populateFinancialsGrid(financialsData, updateSnapshot = true) {
-            financials = financialsData;
-            Object.keys(financialsData).forEach(code => {
-                const el = document.getElementById(code);
-                if (el) {
-                    el.value = financialsData[code];
-                }
-            });
+            financials = normalizeLoadedFinancials(financialsData);
+            loadTabFinancials(activeFinancialsTab);
+            updateFinancialsInputsVisibilityAndLabels();
             updateFinancialsTotal();
             if (updateSnapshot) {
                 financialsSnapshot = getStaffEquipmentSnapshot();
@@ -2381,19 +2955,25 @@
         }
 
         function updateFinancialsTotal() {
-            let total = 0;
-            const codes = [...financialsMapping.a, ...financialsMapping.b, ...financialsMapping.c, ...financialsMapping.d].map(i => i.code);
+            saveCurrentTabFinancials(activeFinancialsTab);
             
-            codes.forEach(code => {
-                const el = document.getElementById(code);
-                if (el) {
-                    const val = parseFloat(el.value) || 0;
-                    total += val;
-                    financials[code] = val;
+            let grandTotal = 0;
+            
+            if (financials.common) {
+                Object.values(financials.common).forEach(val => {
+                    grandTotal += parseFloat(val) || 0;
+                });
+            }
+            
+            activeVerticals.forEach(v => {
+                if (financials[v]) {
+                    Object.values(financials[v]).forEach(val => {
+                        grandTotal += parseFloat(val) || 0;
+                    });
                 }
             });
 
-            document.getElementById('financials-total-val').innerText = "€ " + total.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('financials-total-val').innerText = "€ " + grandTotal.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             checkManualFieldsFilled();
         }
 
@@ -2403,28 +2983,24 @@
             const arrow = document.getElementById(`arrow-${id}`);
             
             if (content.classList.contains('hidden') || content.style.maxHeight === '0px' || !content.style.maxHeight || content.style.maxHeight === '0') {
-                // Open
                 content.classList.remove('hidden');
                 content.style.maxHeight = content.scrollHeight + 'px';
                 arrow.classList.add('rotate-180');
                 
-                // Allow dynamic changes by setting max-height to none after transition
                 setTimeout(() => {
                     if (content.style.maxHeight !== '0px') {
                         content.style.maxHeight = 'none';
                     }
                 }, 300);
             } else {
-                // Close
                 content.style.maxHeight = content.scrollHeight + 'px';
-                content.offsetHeight; // force reflow
+                content.offsetHeight;
                 
                 setTimeout(() => {
                     content.style.maxHeight = '0px';
                     arrow.classList.remove('rotate-180');
                 }, 10);
 
-                // Add hidden class back after transition finishes to maintain DOM cleanliness
                 setTimeout(() => {
                     if (content.style.maxHeight === '0px') {
                         content.classList.add('hidden');
@@ -2437,9 +3013,7 @@
         async function executeSaveConfiguration() {
             showLoader("Salvataggio", "Salvataggio configurazione in corso...");
             try {
-                if (isManualInsertionActive) {
-                    updateFinancialsTotal();
-                }
+                saveCurrentTabFinancials(activeFinancialsTab);
 
                 const currentSnapshot = getStaffEquipmentSnapshot();
                 const payload = {
@@ -2462,7 +3036,6 @@
                     payload.uploaded_file_mimetype = uploadedFileMimeType;
                 }
 
-                // Call execute_financial_decomposition webhook
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -2482,7 +3055,7 @@
         }
 
         async function saveAndFinish() {
-            updateFinancialsTotal();
+            saveCurrentTabFinancials(activeFinancialsTab);
             showLoader("Salvataggio", "Salvataggio e chiusura della sessione in corso...");
             
             try {
@@ -2503,6 +3076,9 @@
                         operators: serializeOperatorsForSave(),
                         machinery: machinery,
                         number_of_chairs: numberOfChairs,
+                        operational_units: operationalUnits,
+                        verticals: activeVerticals,
+                        primary_vertical: primaryVertical,
                         financials: isForfettario ? { isForfettario: true } : financials,
                         financials_snapshot: currentSnapshot
                     })
@@ -2512,7 +3088,6 @@
 
                 financialsSnapshot = currentSnapshot;
                 tg.showAlert("Configurazione salvata con successo!", () => {
-                    // Navigate back to hub
                     location.href = `identity_hub.html?ash=${ash}&msg=${msg || ''}`;
                 });
             } catch (err) {

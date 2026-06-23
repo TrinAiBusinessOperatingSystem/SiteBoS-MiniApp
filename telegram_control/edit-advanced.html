@@ -202,13 +202,25 @@
                             <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Tempo Operativo (Min)</label>
                             <input type="number" id="in-tempo" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-blue-50 border border-blue-150 rounded-xl p-2 text-xs font-black text-blue-600 focus:outline-none focus:border-black transition-colors">
                         </div>
+                        <div class="space-y-1 dental-only hidden">
+                            <label class="text-[9px] font-black text-blue-600 uppercase tracking-wider">Tempo Setup Sedia (Min)</label>
+                            <input type="number" id="in-setup-tempo" value="15" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-blue-50 border border-blue-150 rounded-xl p-2 text-xs font-black text-blue-600 focus:outline-none focus:border-black transition-colors">
+                        </div>
                         <div class="space-y-1">
                             <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Costo Orario Postazione (€/h)</label>
                             <input type="number" id="in-poltrona" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
                         </div>
+                        <div class="space-y-1 dental-only hidden">
+                            <label class="text-[9px] font-black text-amber-600 uppercase tracking-wider">Saturazione Reale (%)</label>
+                            <input type="number" id="in-saturazione-pct" value="70" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-amber-50 border border-amber-150 rounded-xl p-2 text-xs font-black text-amber-600 focus:outline-none focus:border-black transition-colors">
+                        </div>
                         <div class="space-y-1">
                             <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Fisco Societario (%)</label>
                             <input type="number" id="in-tasse" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                        </div>
+                        <div class="space-y-1 dental-only hidden">
+                            <label class="text-[9px] font-black text-red-600 uppercase tracking-wider">Rischio Garanzia (%)</label>
+                            <input type="number" id="in-garanzia-pct" value="2" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-red-50 border border-red-150 rounded-xl p-2 text-xs font-black text-red-600 focus:outline-none focus:border-black transition-colors">
                         </div>
                     </div>
                 </div>
@@ -489,7 +501,15 @@
                     <!-- STRUMENTI DI MODIFICA DELLA CONFIGURAZIONE -->
                     <div class="bg-gray-50 p-4 rounded-2xl border border-gray-150 space-y-3">
                         <span class="text-[9px] font-black uppercase tracking-wider text-gray-500 block">⚙️ STRUMENTI DI MODIFICA DEL BILANCIO</span>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="fiscal-tools-grid">
+                            <div class="space-y-1 dental-only hidden" id="enpam-rate-wrapper">
+                                <label class="text-[9px] font-bold text-gray-400 uppercase">Aliquota ENPAM Societaria</label>
+                                <select id="select-enpam-rate" onchange="updateENPAMFromSelect(); checkDirty();" class="w-full bg-white border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                                    <option value="2.0">2.0% (S.r.l. Ordinaria - L. 205/2017)</option>
+                                    <option value="0.5">0.5% (Aliquota Ridotta STP / Particolari Convenzioni)</option>
+                                    <option value="0.0">0.0% (Esente ENPAM)</option>
+                                </select>
+                            </div>
                             <div class="space-y-1">
                                 <label class="text-[9px] font-bold text-gray-400 uppercase">Costi Fissi Strutturali Annui (€)</label>
                                 <input type="number" id="in-fissi-annui" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-white border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
@@ -506,8 +526,8 @@
                         </div>
                     </div>
 
-                    <!-- PARAMETRI STATISTICI ADATTATI (3 COLONNE) -->
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 py-1">
+                    <!-- PARAMETRI STATISTICI ADATTATI (DINAMICO) -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 py-1" id="fiscal-params-grid">
                         <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
                             <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Codice ATECO</span>
                             <div class="text-sm font-black text-black mt-1" id="fiscal-ateco">86.23.00</div>
@@ -519,6 +539,14 @@
                         <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center">
                             <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">Tasse Societarie</span>
                             <div class="text-sm font-black text-black mt-1" id="fiscal-tax-rate">24%</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center dental-only hidden" id="fiscal-enpam-box">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block">ENPAM Società</span>
+                            <div class="text-sm font-black text-black mt-1" id="fiscal-enpam-label">2.00%</div>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 text-center" id="fiscal-chairs-box">
+                            <span class="text-[8px] font-black text-gray-400 uppercase tracking-widest block" id="fiscal-chairs-title">Unità Attive</span>
+                            <div class="text-sm font-black text-black mt-1" id="fiscal-chairs">3</div>
                         </div>
                     </div>
 
@@ -647,11 +675,6 @@
                 if (!data) throw new Error("Risposta vuota dal server");
                 
                 const loadedItem = Array.isArray(data) ? data[0] : data;
-                const detectedVertical = (loadedItem.vertical || 'generic').toLowerCase();
-                if (detectedVertical === 'dental') {
-                    window.location.href = `edit-advanced-dental.html${window.location.search}`;
-                    return;
-                }
 
                 // If data comes wrapped in an array, take first item
                 currentData = loadedItem;
@@ -767,6 +790,22 @@
             if (selectEnpamRateEl) {
                 selectEnpamRateEl.value = enpamRate.toFixed(1);
             }
+
+            // Nuovi parametri di efficienza
+            const setupMins = currentData.operating_benchmarks?.chair_setup_turnover_minutes !== undefined ? 
+                              currentData.operating_benchmarks.chair_setup_turnover_minutes : 15;
+            const setupEl = document.getElementById('in-setup-tempo');
+            if (setupEl) setupEl.value = setupMins;
+
+            const saturazionePct = currentData.operating_benchmarks?.agenda_saturation_target !== undefined ? 
+                                   (currentData.operating_benchmarks.agenda_saturation_target * 100) : 70;
+            const satEl = document.getElementById('in-saturazione-pct');
+            if (satEl) satEl.value = saturazionePct;
+
+            const garanziaPct = currentData.operating_benchmarks?.clinical_failure_provision_rate !== undefined ? 
+                                 (currentData.operating_benchmarks.clinical_failure_provision_rate * 100) : 2;
+            const garEl = document.getElementById('in-garanzia-pct');
+            if (garEl) garEl.value = garanziaPct;
             
             // Reconstruct total overhead and set budget allocation percentage
             const bepOverheadVal = bepMetrics?.allocated_overhead_value || 50000;
@@ -819,6 +858,87 @@
             renderFiscal();
             renderCFOAdvisory();
             renderBlueprint();
+
+            // 3b. Dynamic multi-vertical layout customization
+            const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
+            const dentalElements = document.querySelectorAll('.dental-only');
+            dentalElements.forEach(el => {
+                if (detectedVertical === 'dental') {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+
+            // Adjust tools grid columns
+            const toolsGrid = document.getElementById('fiscal-tools-grid');
+            if (toolsGrid) {
+                if (detectedVertical === 'dental') {
+                    toolsGrid.classList.remove('md:grid-cols-2');
+                    toolsGrid.classList.add('md:grid-cols-3');
+                } else {
+                    toolsGrid.classList.remove('md:grid-cols-3');
+                    toolsGrid.classList.add('md:grid-cols-2');
+                }
+            }
+
+            // Adjust parameters grid columns
+            const paramsGrid = document.getElementById('fiscal-params-grid');
+            if (paramsGrid) {
+                if (detectedVertical === 'dental') {
+                    paramsGrid.classList.remove('md:grid-cols-3');
+                    paramsGrid.classList.add('md:grid-cols-5');
+                } else {
+                    paramsGrid.classList.remove('md:grid-cols-5');
+                    paramsGrid.classList.add('md:grid-cols-4');
+                }
+            }
+
+            // Adjust dynamic labels in the sidebar
+            const asoLabel = document.getElementById('in-costo-aso')?.previousElementSibling;
+            if (asoLabel) {
+                asoLabel.innerText = detectedVertical === 'dental' ? 'Costo ASO / Staff (€)' : 'Staff di Supporto (€)';
+            }
+            const labLabel = document.getElementById('in-lab')?.previousElementSibling;
+            if (labLabel) {
+                labLabel.innerText = detectedVertical === 'dental' ? 'Costo Lab. Esterno (€)' : 'Lavorazioni Esterne (€)';
+            }
+            const tempoLabel = document.getElementById('in-tempo')?.previousElementSibling;
+            if (tempoLabel) {
+                tempoLabel.innerText = detectedVertical === 'dental' ? 'Tempo Utilizzo (Min)' : 'Tempo Operativo (Min)';
+            }
+            const poltronaLabel = document.getElementById('in-poltrona')?.previousElementSibling;
+            if (poltronaLabel) {
+                poltronaLabel.innerText = detectedVertical === 'dental' ? 'Costo Ora Sedia (€/h)' : 'Costo Orario Postazione (€/h)';
+            }
+
+            // Adjust budget allocation option texts
+            const selectBepAllocEl = document.getElementById('select-bep-allocation');
+            if (selectBepAllocEl) {
+                if (detectedVertical === 'dental') {
+                    selectBepAllocEl.options[0].text = "Linea Diagnostica / Prevenzione (10%)";
+                    selectBepAllocEl.options[1].text = "Linea Conservativa / Chirurgia Base (30%)";
+                    selectBepAllocEl.options[2].text = "Linea Protesi / Implantologia / Ortodonzia (60%)";
+                } else {
+                    selectBepAllocEl.options[0].text = "Linea Minore / Basso Utilizzo (10%)";
+                    selectBepAllocEl.options[1].text = "Linea Media / Medio Utilizzo (30%)";
+                    selectBepAllocEl.options[2].text = "Linea Principale / Alto Utilizzo (60%)";
+                }
+            }
+
+            // Adjust active operational units label in parameters grid
+            const chairsTitleEl = document.getElementById('fiscal-chairs-title');
+            if (chairsTitleEl) {
+                let unitLabel = "Unità Attive";
+                if (detectedVertical === 'dental') unitLabel = "Riuniti Attivi";
+                else if (detectedVertical === 'beauty') unitLabel = "Cabine Attive";
+                else if (detectedVertical === 'construction') unitLabel = "Squadre Attive";
+                else if (detectedVertical === 'professional') unitLabel = "Postazioni Attive";
+                else if (detectedVertical === 'workshop') unitLabel = "Ponti Attivi";
+                else if (detectedVertical === 'food') unitLabel = "Laboratori Attivi";
+                else if (detectedVertical === 'hospitality') unitLabel = "Camere Attive";
+                chairsTitleEl.innerText = unitLabel;
+            }
             
             // 4. Initial calculations
             recalculateAll();
