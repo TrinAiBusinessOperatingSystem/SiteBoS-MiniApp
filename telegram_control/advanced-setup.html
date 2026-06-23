@@ -443,7 +443,7 @@
         class="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 hidden opacity-0 transition-opacity duration-300"
         onclick="closeDrawer()"></div>
     <div id="drawer-container"
-        class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-border z-50 rounded-t-3xl translate-y-full transition-transform duration-300 flex flex-col p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+        class="fixed inset-0 w-full h-full bg-white z-50 translate-y-full transition-transform duration-300 flex flex-col overflow-hidden">
         <!-- Drawer content injected via JS -->
     </div>
 
@@ -1972,15 +1972,16 @@
             const overlay = document.getElementById('vertical-picker-overlay');
             overlay.innerHTML = `
                 <div class="fixed inset-0 bg-black/40 z-40 backdrop-blur-sm" onclick="closeVerticalPicker()"></div>
-                <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-border z-50 rounded-t-3xl flex flex-col p-6 pb-8 space-y-2 max-h-[75vh] overflow-y-auto"
-                     style="animation:slideUp 0.25s cubic-bezier(0.16,1,0.3,1) forwards;">
-                    <div class="flex items-center justify-between pb-3 border-b border-border mb-1">
+                <div class="fixed inset-0 w-full h-full bg-white z-50 flex flex-col overflow-hidden"
+                     style="animation:slideUp 0.2s cubic-bezier(0.16,1,0.3,1) forwards;">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-border bg-white shrink-0">
                         <div>
                             <h3 class="text-xs font-black uppercase tracking-tight">Seleziona Sezione</h3>
                             <p class="text-[9px] text-gray-400 font-medium">Step ${step} di 3 — ${allTabs.length} sezioni disponibili</p>
                         </div>
-                        <button onclick="closeVerticalPicker()" class="text-gray-400"><i class="fas fa-times-circle text-lg"></i></button>
+                        <button onclick="closeVerticalPicker()" class="text-gray-400 w-8 h-8 flex items-center justify-center"><i class="fas fa-times-circle text-lg"></i></button>
                     </div>
+                    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-2">
                     ${allTabs.map(tab => {
                         const isActive = tab.key === activeTab;
                         const count = countForTab(tab.key);
@@ -1995,6 +1996,7 @@
                             ${isActive ? '<i class="fas fa-check text-xs"></i>' : '<i class="fas fa-chevron-right text-xs text-gray-300"></i>'}
                         </button>`;
                     }).join('')}
+                    </div>
                 </div>
             `;
             overlay.classList.remove('hidden');
@@ -2075,9 +2077,8 @@
         function adjustDrawerStyles(type) {
             const container = document.getElementById('drawer-container');
             if (!container) return;
-            if (type === 'machinery') {
-                container.className = "fixed inset-0 max-w-full w-full h-full bg-white z-50 translate-y-full transition-transform duration-300 flex flex-col p-6 space-y-4 overflow-y-auto";
-            } else {
+            container.className = "fixed inset-0 w-full h-full bg-white z-50 translate-y-full transition-transform duration-300 flex flex-col overflow-hidden";
+        } else {
                 container.className = "fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-border z-50 rounded-t-3xl translate-y-full transition-transform duration-300 flex flex-col p-6 space-y-4 max-h-[90vh] overflow-y-auto";
             }
         }
@@ -2599,14 +2600,17 @@
                     </div>
                 </div>
  
-                <button onclick="saveOperatorFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
-                    ${isEdit ? 'Aggiorna' : 'Aggiungi'} Staff
-                </button>
-                ${(!isEdit || (!data.status || (data.status !== 'ACTIVE' && data.status !== 'PENDING'))) ? `
-                <p class="text-[9px] text-gray-400 font-medium text-center leading-normal mt-2">
-                    ℹ️ La generazione dell'invito e l'attivazione dello slot operatore richiedono l'addebito di 20 Crediti.
-                </p>
-                ` : ''}
+                </div>
+                </div>
+                <div class="px-5 py-4 border-t border-border bg-white shrink-0">
+                    <button onclick="saveOperatorFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                        ${isEdit ? 'Aggiorna' : 'Aggiungi'} Staff
+                    </button>
+                    ${(!isEdit || (!data.status || (data.status !== 'ACTIVE' && data.status !== 'PENDING'))) ? `
+                    <p class="text-[9px] text-gray-400 font-medium text-center leading-normal mt-2">
+                        ℹ️ La generazione dell'invito e l'attivazione dello slot operatore richiedono l'addebito di 20 Crediti.
+                    </p>` : ''}
+                </div>
             `;
 
             openDrawer();
@@ -2877,12 +2881,22 @@
             const grid = document.getElementById('machinery-grid');
             grid.innerHTML = '';
 
-            if (machinery.length === 0) {
-                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">Nessuna attrezzatura inserita.</div>`;
+            // Filtro per verticale attiva
+            let filteredMachinery = machinery.map((m, i) => ({ ...m, _origIdx: i }));
+            if (activeMachineryTab && activeMachineryTab !== 'general') {
+                filteredMachinery = filteredMachinery.filter(m => (m.vertical || 'common') === activeMachineryTab);
+            }
+
+            if (filteredMachinery.length === 0) {
+                const emptyMsg = (activeMachineryTab && activeMachineryTab !== 'general')
+                    ? 'Nessuna attrezzatura per questa sezione.'
+                    : 'Nessuna attrezzatura inserita.';
+                grid.innerHTML = `<div class="card-noir p-5 text-center text-gray-400 italic text-xs">${emptyMsg}</div>`;
                 return;
             }
 
-            machinery.forEach((mac, idx) => {
+            filteredMachinery.forEach((mac) => {
+                const idx = mac._origIdx;
                 let iconClass = 'fa-tools'; // default
                 const nameLower = (mac.type || '').toLowerCase();
 
@@ -2910,7 +2924,10 @@
                                 <i class="fas ${iconClass}"></i>
                             </div>
                             <div>
-                                <span class="label-micro !text-gray-400">${mac.ownership}</span>
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="label-micro !text-gray-400">${mac.ownership}</span>
+                                    ${activeMachineryTab === 'general' && mac.vertical ? `<span class="text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">${(verticalsMeta[mac.vertical] || {}).emoji || '🏢'} ${(verticalsMeta[mac.vertical] || {}).name || mac.vertical}</span>` : ''}
+                                </div>
                                 <h4 class="font-black text-xs uppercase tracking-tight text-black mt-0.5">${mac.type}</h4>
                                 <span class="text-[9px] text-gray-500 font-bold block mt-0.5">${ownershipText} (Amm. ${mac.useful_life} anni - ACQ: ${mac.year})</span>
                             </div>
@@ -3091,6 +3108,17 @@
                         <input type="text" id="mac-serial" value="${data.serial_number || ''}" placeholder="Es: SN-2024-001 / CEQ-042" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition">
                     </div>
 
+                    <div class="space-y-1">
+                        <label class="label-micro">Sezione di Appartenenza</label>
+                        <select id="mac-vertical" class="w-full bg-gray-50 border border-border rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                            <option value="common" ${(data.vertical || '') === 'common' ? 'selected' : ''}>🏢 Comune (Infrastruttura Condivisa)</option>
+                            ${activeVerticals.filter(v => v !== 'common' && v !== 'generic').map(v => {
+                                const m = verticalsMeta[v] || { emoji: '🏢', name: v };
+                                return '<option value="' + v + '" ' + ((data.vertical || activeMachineryTab) === v ? 'selected' : '') + '>' + m.emoji + ' ' + m.name + '</option>';
+                            }).join('')}
+                        </select>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="label-micro" id="mac-value-label">${data.ownership === 'Proprietà' ? 'Valore d\'acquisto (€)' : 'Canone Mensile (€)'}</label>
@@ -3103,9 +3131,13 @@
                     </div>
                 </div>
 
-                <button onclick="saveMachineryFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
-                    ${isEdit ? 'Aggiorna' : 'Aggiungi'} Attrezzatura
-                </button>
+                </div>
+                </div>
+                <div class="px-5 py-4 border-t border-border bg-white shrink-0">
+                    <button onclick="saveMachineryFromDrawer()" class="w-full py-3 bg-black text-white rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                        ${isEdit ? 'Aggiorna' : 'Aggiungi'} Attrezzatura
+                    </button>
+                </div>
             `;
 
             const comboboxInput = document.getElementById('mac-combobox-input');
@@ -3236,6 +3268,7 @@
             if (value <= 0) { tg.showAlert("Fornisci un importo economico valido."); return; }
 
             const serial_number = (document.getElementById('mac-serial')?.value || '').trim();
+            const vertical = document.getElementById('mac-vertical')?.value || activeMachineryTab || 'common';
 
             const macData = {
                 type: type,
@@ -3243,7 +3276,8 @@
                 ownership: ownership,
                 value: value,
                 useful_life: useful_life,
-                serial_number: serial_number
+                serial_number: serial_number,
+                vertical: vertical
             };
 
             if (activeEditIndex !== null) {
