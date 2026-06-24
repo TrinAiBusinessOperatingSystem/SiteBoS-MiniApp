@@ -2453,11 +2453,20 @@
                             </button>
                         `;
                     } else {
-                        inviteBtnHtml = `
-                            <button onclick="generateOperatorInvite('${op.id || idx}', '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito (Costo: 20 Crediti)">
-                                Invita
-                            </button>
-                        `;
+                        const isNew = typeof op.id === 'string' && op.id.startsWith('op_');
+                        if (isNew) {
+                            inviteBtnHtml = `
+                                <span class="px-2 py-1.5 bg-gray-50 text-gray-400 border border-border text-[8px] font-black uppercase rounded-lg cursor-not-allowed" title="Salva bozza per invitare">
+                                    Salva bozza per invitare
+                                </span>
+                            `;
+                        } else {
+                            inviteBtnHtml = `
+                                <button onclick="generateOperatorInvite(${idx}, '${op.role}')" class="px-2 py-1.5 bg-gray-100 hover:bg-black hover:text-white text-black text-[8px] font-black uppercase rounded-lg transition-colors" title="Genera Link Invito (Costo: 20 Crediti)">
+                                    Invita
+                                </button>
+                            `;
+                        }
                     }
 
                     actionButtonsHtml = `
@@ -2786,7 +2795,7 @@
             });
         }
 
-        async function generateOperatorInvite(opId, role) {
+        async function generateOperatorInvite(opIdx, role) {
             tg.showConfirm("La generazione dell'invito e l'attivazione dello slot operatore richiedono l'addebito di 20 Crediti. Vuoi procedere?", async (ok) => {
                 if (!ok) return;
 
@@ -2799,7 +2808,7 @@
                             _auth: tg.initData,
                             ash: ash,
                             action: "generate_operator_invite",
-                            operator_id: opId,
+                            operator_id: opIdx,
                             role: role
                         })
                     });
@@ -2815,8 +2824,7 @@
                             code = inviteLink.split("start=")[1];
                         }
 
-                        const opIdx = operators.findIndex(o => o.id === opId);
-                        if (opIdx !== -1) {
+                        if (operators[opIdx]) {
                             operators[opIdx].status = "PENDING";
                             operators[opIdx].invitation_code = code;
                             renderOperators();
