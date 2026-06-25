@@ -627,55 +627,8 @@
         </div>
 
         <div class="flex-1 overflow-y-auto no-scrollbar space-y-4 pb-6">
-            <!-- Settori Aziendali (Verticali) -->
-            <div class="space-y-2">
-                <span class="label-micro flex items-center gap-1.5"><i class="fas fa-list-check"></i> Settori da Valutare</span>
-                <div class="grid grid-cols-1 gap-2">
-                    <!-- Comune -->
-                    <label class="flex items-center gap-3 p-3 bg-gray-50 border border-gray-100 rounded-xl opacity-70">
-                        <input type="checkbox" name="overlay_active_verticals" value="comune" checked disabled class="rounded border-gray-300 text-black">
-                        <div>
-                            <span class="text-xs font-bold">🏠 Misure Comuni (Sede)</span>
-                            <p class="text-[8px] text-gray-400">Sempre attivo per default</p>
-                        </div>
-                    </label>
-                    <!-- Dentale -->
-                    <label class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition">
-                        <input type="checkbox" name="overlay_active_verticals" value="dentale" class="rounded border-gray-300 text-black focus:ring-black">
-                        <div>
-                            <span class="text-xs font-bold">🦷 Settore Dentale</span>
-                            <p class="text-[8px] text-gray-400">Attrezzature cliniche, radiologia, agenti biologici</p>
-                        </div>
-                    </label>
-                    <!-- Estetica -->
-                    <label class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition">
-                        <input type="checkbox" name="overlay_active_verticals" value="estetica" class="rounded border-gray-300 text-black focus:ring-black">
-                        <div>
-                            <span class="text-xs font-bold">💄 Settore Estetica</span>
-                            <p class="text-[8px] text-gray-400">Laser ROA, igiene strumenti, cabine benessere</p>
-                        </div>
-                    </label>
-                    <!-- Ristorazione -->
-                    <label class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition">
-                        <input type="checkbox" name="overlay_active_verticals" value="ristorazione" class="rounded border-gray-300 text-black focus:ring-black">
-                        <div>
-                            <span class="text-xs font-bold">🍳 Ristorazione (Ho.Re.Ca.)</span>
-                            <p class="text-[8px] text-gray-400">Cucine, manipolazione cibi, scivolamento, MMC</p>
-                        </div>
-                    </label>
-                    <!-- Ufficio -->
-                    <label class="flex items-center gap-3 p-3 bg-white border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition">
-                        <input type="checkbox" name="overlay_active_verticals" value="ufficio" class="rounded border-gray-300 text-black focus:ring-black">
-                        <div>
-                            <span class="text-xs font-bold">💼 Uffici e Servizi</span>
-                            <p class="text-[8px] text-gray-400">Videoterminalisti, ergonomia sedute, stress lavoro</p>
-                        </div>
-                    </label>
-                </div>
-            </div>
-
             <!-- Referenti Sicurezza -->
-            <div class="space-y-3 pt-2 border-t border-gray-50">
+            <div class="space-y-3">
                 <span class="label-micro flex items-center gap-1.5"><i class="fas fa-users-gear"></i> Referenti Nominati</span>
                 
                 <div class="space-y-1">
@@ -1420,10 +1373,10 @@
                     ${meta.emoji}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="label-micro truncate">${formatCategoryLabel(service.categoria_padre || '')}</p>
-                    <h3 class="font-black text-xs uppercase tracking-tight leading-snug mt-0.5 truncate">${service.service_name}</h3>
+                    <p class="label-micro truncate">Sicurezza e Conformità</p>
+                    <h3 class="font-black text-xs uppercase tracking-tight leading-snug mt-0.5 truncate">${vertical.title}</h3>
                     <div class="flex items-center gap-2 mt-2">
-                        <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                             <div class="h-full bg-black rounded-full progress-fill" style="width: ${pct}%"></div>
                         </div>
                         <span class="text-[8px] font-black text-gray-500 shrink-0">${pct}%</span>
@@ -2546,21 +2499,7 @@
             }
             document.getElementById('settings-addetti').value = addetti;
 
-            // Popola le verticali attive
-            let activeVerts = ownerData.activeVerticals || ownerData.active_verticals || ownerData.verticals || [];
-            activeVerts = activeVerts.map(v => {
-                const normalized = v === 'common' ? 'comune' : (v === 'dental' ? 'dentale' : (v === 'beauty' ? 'estetica' : (v === 'food' ? 'ristorazione' : (v === 'professional' ? 'ufficio' : v))));
-                return normalized;
-            });
-
-            const checkboxes = document.querySelectorAll('input[name="overlay_active_verticals"]');
-            checkboxes.forEach(cb => {
-                if (cb.value === 'comune') {
-                    cb.checked = true;
-                } else {
-                    cb.checked = activeVerts.includes(cb.value);
-                }
-            });
+            // Le verticali non vengono mostrate in questo pannello per richiesta utente
 
             // Mostra lo sfondo
             const backdrop = document.getElementById('settings-backdrop');
@@ -2599,13 +2538,16 @@
             const rls = document.getElementById('settings-rls').value.trim();
             const addetti = document.getElementById('settings-addetti').value.split(',').map(s => s.trim()).filter(Boolean);
 
-            const activeVerts = ['comune'];
-            const checkboxes = document.querySelectorAll('input[name="overlay_active_verticals"]:checked');
-            checkboxes.forEach(cb => {
-                if (cb.value !== 'comune') {
-                    activeVerts.push(cb.value);
-                }
+            // Recupera le verticali attive direttamente dalla memoria locale senza sovrascriverle
+            let activeVerts = ownerData.activeVerticals || ownerData.active_verticals || ownerData.verticals || ['comune'];
+            activeVerts = activeVerts.map(v => {
+                const normalized = v === 'common' ? 'comune' : (v === 'dental' ? 'dentale' : (v === 'beauty' ? 'estetica' : (v === 'food' ? 'ristorazione' : (v === 'professional' ? 'ufficio' : v))));
+                return normalized;
             });
+            if (!activeVerts.includes('comune')) {
+                activeVerts.unshift('comune');
+            }
+            activeVerts = [...new Set(activeVerts)];
 
             const securityMetadata = {
                 rspp: rspp,
