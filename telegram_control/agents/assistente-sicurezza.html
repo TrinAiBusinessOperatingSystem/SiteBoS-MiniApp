@@ -410,9 +410,11 @@
                 <div id="global-progress-bar" class="h-full bg-black rounded-full progress-fill" style="width: 0%"></div>
             </div>
 
-            <!-- Tab categorie -->
-            <div id="category-tabs" class="flex gap-2 overflow-x-auto no-scrollbar pb-1 pt-0.5">
-                <!-- Popolato da JS -->
+            <!-- Selettore Categoria (Menu a tendina) -->
+            <div class="pb-2 pt-1">
+                <select id="category-dropdown" onchange="switchCategory(this.value)" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition appearance-none">
+                    <!-- Popolato da JS -->
+                </select>
             </div>
         </header>
 
@@ -675,10 +677,18 @@
             "dentale":      { emoji: "🦷", name: "Settore Dentale", chairs_label: "Sale Operatorie (Riuniti)" },
             "estetica":     { emoji: "💄", name: "Settore Estetica", chairs_label: "Cabine Estetiche (Lettini)" },
             "ristorazione": { emoji: "🍳", name: "Ristorazione", chairs_label: "Cucine / Tavoli Attivi" },
-            "ufficio":      { emoji: "💼", name: "Uffici e Servizi", chairs_label: "Postazioni Ufficio Attive" }
+            "ufficio":      { emoji: "💼", name: "Uffici e Servizi", chairs_label: "Postazioni Ufficio Attive" },
+            "sanitario":    { emoji: "🏥", name: "Sanità & Salute", chairs_label: "Ambulatori / Studi Attivi" }
         };
 
         const parametriVerticali = {
+            "sanitario": {
+                D: 3,
+                C: 2,
+                desc_d: "Patogeni ematogeni e biologici a danno grave, rischi chimici da sterilizzanti",
+                desc_c: "Contatto costante con pazienti, manipolazione di aghi, taglienti e sostanze disinfettanti ad alto livello",
+                normativa_rif: "D.Lgs. 81/08 Titolo X (Agenti Biologici), D.Lgs. 81/08 Titolo IX (Agenti Chimici), Legge Gelli-Bianco"
+            },
             "dentale": {
                 D: 3,
                 C: 2,
@@ -817,6 +827,18 @@
                     "Utilizzo di imbracature di sicurezza anticaduta certificate collegate ad idoneo punto di ancoraggio tramite cordino con assorbitore di energia.",
                     "Armatura sistematica delle pareti degli scavi con profondità superiore a 1.5 metri."
                 ]
+            },
+            "health": {
+                riferimento_legislativo: "D.Lgs. 81/08 Titolo X (Agenti Biologici), Titolo IX (Sostanze Pericolose), Legge 24/2017 (Gelli-Bianco - Sicurezza delle cure e responsabilità professionale).",
+                definizione: "Le strutture sanitarie e ambulatoriali espongono gli operatori a rischi biologici elevati da contatti con fluidi biologici e aerosol, rischi chimici connessi alla sterilizzazione e all'uso di disinfettanti di alto livello, nonché rischi di puntura accidentale con aghi o taglienti.",
+                agenti: "Virus a trasmissione ematica (HBV, HCV, HIV), batteri multi-resistenti, aerosol infettivi, disinfettanti chimici (glutaraldeide, acido peracetico), radiazioni ottiche ed elettromedicali.",
+                modalita: "Punture accidentali con aghi o strumenti taglienti infetti durante procedure cliniche o smaltimento; inalazione di aerosol microbiologico; dermatite da contatto causata da lavaggi frequenti e guanti in lattice; rischi legati all'uso di gas medicali.",
+                misure_prevenzione: [
+                    "Utilizzo sistematico di dispositivi di sicurezza taglienti autoretraibili o schermati (aghi e bisturi di sicurezza).",
+                    "Disponibilità e addestramento all'uso corretto di DPI di III Categoria (camici idrorepellenti, visiere, mascherine FFP2/FFP3, guanti monouso in nitrile privi di polvere).",
+                    "Adozione di un protocollo rigoroso per la gestione degli infortuni occupazionali a rischio biologico (profilassi post-esposizione).",
+                    "Presenza di contenitori rigidi imperforabili per lo smaltimento di aghi e taglienti posizionati nel punto d'uso."
+                ]
             }
         };
 
@@ -826,8 +848,55 @@
         FATTORI_RISCHIO_BOILERPLATE["estetica"] = FATTORI_RISCHIO_BOILERPLATE["beauty"];
         FATTORI_RISCHIO_BOILERPLATE["ristorazione"] = FATTORI_RISCHIO_BOILERPLATE["food"];
         FATTORI_RISCHIO_BOILERPLATE["ufficio"] = FATTORI_RISCHIO_BOILERPLATE["professional"];
+        FATTORI_RISCHIO_BOILERPLATE["sanitario"] = FATTORI_RISCHIO_BOILERPLATE["health"];
 
         const verticalsRegistry = {
+            "sanitario": {
+                id: "sanitario",
+                title: "Settore Sanitario e Salute",
+                law_references: "D.Lgs. 81/08 Titolo X (Biologico), D.Lgs. 81/08 Titolo IX (Chimico), Legge Gelli-Bianco",
+                risks: [
+                    {
+                        risk_id: "bio_sanitario",
+                        name: "Rischio Biologico (Infezioni, Aghi e Taglienti)",
+                        danno_base: 3,
+                        checklist: [
+                            {
+                                question_id: "san_q1",
+                                text: "Vengono utilizzati aghi e taglienti dotati di dispositivi di sicurezza integrati (es. aghi autoretraibili o con camicia protettiva)?",
+                                weight: 0.4
+                            },
+                            {
+                                question_id: "san_q2",
+                                text: "I contenitori rigidi imperforabili per lo smaltimento di aghi e taglienti sono posizionati nelle immediate vicinanze dell'area d'uso?",
+                                weight: 0.3
+                            },
+                            {
+                                question_id: "san_q3",
+                                text: "È formalizzato ed esposto un protocollo operativo per la gestione immediata delle punture/ferite accidentali a rischio biologico?",
+                                weight: 0.3
+                            }
+                        ]
+                    },
+                    {
+                        risk_id: "chimico_sanitario",
+                        name: "Rischio Chimico e Disinfettanti ad Alto Livello",
+                        danno_base: 2,
+                        checklist: [
+                            {
+                                question_id: "san_q4",
+                                text: "Sono disponibili e consultabili le schede di sicurezza (SDS) aggiornate di tutti i detergenti chirurgici e sterilizzanti chimici in uso?",
+                                weight: 0.5
+                            },
+                            {
+                                question_id: "san_q5",
+                                text: "Il personale dispone di dispositivi di protezione idonei (guanti EN ISO 374, visiere/schermi) per la manipolazione di agenti chimici?",
+                                weight: 0.5
+                            }
+                        ]
+                    }
+                ]
+            },
             "comune": {
                 id: "comune",
                 title: "Misure Comuni (Sede e Sicurezza Generale)",
@@ -1050,21 +1119,38 @@
             if (k === 'beauty' || k === 'estetica') return 'estetica';
             if (k === 'food' || k === 'hospitality' || k === 'ristorazione') return 'ristorazione';
             if (k === 'professional' || k === 'ufficio') return 'ufficio';
+            if (k === 'health' || k === 'sanitario' || k === 'salute') return 'sanitario';
             return null;
         }
 
         function calculateDynamicProbability(riskChecklist, vKey) {
-            const state = checklistState[vKey] || {};
             let sum = 0;
             
             riskChecklist.forEach(q => {
-                const isAnsweredYes = !!state[q.question_id];
+                let isAnsweredYes = false;
+                
+                // 1. Cerca nello stato del vertical key direttamente (se presente)
+                if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
+                    isAnsweredYes = true;
+                }
+                
+                // 2. Altrimenti cerca in tutti i servizi attivi che appartengono a questo vertical
+                if (!isAnsweredYes) {
+                    catalogActive.forEach(s => {
+                        if (getVerticalForService(s) === vKey) {
+                            const state = checklistState[s.service_sku] || {};
+                            if (state[q.question_id] || state[q.question_id.replace('_', '-')] || state[q.question_id.toLowerCase()]) {
+                                isAnsweredYes = true;
+                            }
+                        }
+                    });
+                }
+                
                 const weight = q.weight || 0;
                 sum += weight * (isAnsweredYes ? 1 : 0);
             });
 
             const rawP = 4 - (3 * sum);
-            // Arrotonda per eccesso all'intero più vicino e limita nell'intervallo [1, 4]
             const p = Math.max(1, Math.min(4, Math.round(rawP)));
             return p;
         }        // ── STATO APPLICAZIONE ─────────────────────────────────────────────────────
@@ -1183,21 +1269,22 @@
         // ── PERSISTENZA LOCALE ────────────────────────────────────────────────────
         function saveLocalChecklistState() {
             try {
-                const tenant = getTenantData();
-                const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-                const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-                uniqueVerts.forEach(vKey => {
-                    if (!checklistState[vKey]) return;
-                    const vertical = verticalsRegistry[vKey];
-                    if (!vertical) return;
-
-                    vertical.risks.forEach(risk => {
-                        risk.checklist.forEach(q => {
-                            const val = !!checklistState[vKey][q.question_id];
-                            const storageKey = `sitebos_sec_${ash || 'dev'}_${vKey}_${q.question_id}`;
-                            localStorage.setItem(storageKey, val ? 'true' : 'false');
-                        });
+                catalogActive.forEach(s => {
+                    const sku = s.service_sku;
+                    if (!checklistState[sku]) return;
+                    const dossier = getDossierBySku(sku);
+                    let listItems = [];
+                    if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                        listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
+                    } else {
+                        listItems = [
+                            { id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }
+                        ];
+                    }
+                    listItems.forEach(q => {
+                        const val = !!checklistState[sku][q.id || q.question_id];
+                        const storageKey = `sitebos_sec_${ash || 'dev'}_${sku}_${q.id || q.question_id}`;
+                        localStorage.setItem(storageKey, val ? 'true' : 'false');
                     });
                 });
             } catch (e) { }
@@ -1206,21 +1293,22 @@
         function loadLocalChecklistState() {
             try {
                 checklistState = {};
-                const tenant = getTenantData();
-                const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-                const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-                uniqueVerts.forEach(vKey => {
-                    checklistState[vKey] = {};
-                    const vertical = verticalsRegistry[vKey];
-                    if (!vertical) return;
-
-                    vertical.risks.forEach(risk => {
-                        risk.checklist.forEach(q => {
-                            const storageKey = `sitebos_sec_${ash || 'dev'}_${vKey}_${q.question_id}`;
-                            const value = localStorage.getItem(storageKey);
-                            checklistState[vKey][q.question_id] = (value === 'true');
-                        });
+                catalogActive.forEach(s => {
+                    const sku = s.service_sku;
+                    checklistState[sku] = {};
+                    const dossier = getDossierBySku(sku);
+                    let listItems = [];
+                    if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                        listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
+                    } else {
+                        listItems = [
+                            { id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }
+                        ];
+                    }
+                    listItems.forEach(q => {
+                        const storageKey = `sitebos_sec_${ash || 'dev'}_${sku}_${q.id || q.question_id}`;
+                        const value = localStorage.getItem(storageKey);
+                        checklistState[sku][q.id || q.question_id] = (value === 'true');
                     });
                 });
             } catch (e) {
@@ -1238,45 +1326,49 @@
         function buildCategoryTabs() {
             const tenant = getTenantData();
             const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-            // Always put ALL and comune first, then map other active verticals
-            const listToRender = ['ALL', 'comune', ...activeVerts.filter(v => v !== 'comune')];
-            const uniqueList = [...new Set(listToRender)];
+            const uniqueList = [...new Set(['ALL', 'comune', ...activeVerts])];
 
-            const container = document.getElementById('category-tabs');
-            container.innerHTML = '';
+            const select = document.getElementById('category-dropdown');
+            if (!select) return;
+            select.innerHTML = '';
 
             uniqueList.forEach(key => {
                 const meta = verticalsMeta[key] || { emoji: "🏢", name: key };
-                const isActive = key === activeCategory;
-                const pill = document.createElement('button');
-                pill.className = 'tab-pill' + (isActive ? ' active' : '');
-                
-                pill.innerHTML = key === 'ALL' 
-                    ? `<span class="mr-1">🗂</span>TUTTI`
-                    : `<span class="mr-1">${meta.emoji}</span>${meta.name.replace('Settore ', '').toUpperCase()}`;
-                
-                pill.onclick = () => switchCategory(key);
-                pill.id = `tab-${key}`;
-                container.appendChild(pill);
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.selected = (key === activeCategory);
+                opt.textContent = `${meta.emoji} ${meta.name.toUpperCase()}`;
+                select.appendChild(opt);
             });
         }
 
         function switchCategory(cat) {
             activeCategory = cat;
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            // Aggiorna tab visivi
-            document.querySelectorAll('.tab-pill').forEach(p => p.classList.remove('active'));
-            const activeTab = document.getElementById(`tab-${cat}`);
-            if (activeTab) activeTab.classList.add('active');
             renderServiceList();
         }
 
-        function formatCategoryLabel(cat) {
-            // "[SOP] Igiene..." → "⚙ SOP Igiene..."
-            return cat.replace(/\[(\w+)\]\s?/, (_, tag) => {
-                const icons = { SOP: '📋', SER: '🔬' };
-                return (icons[tag] || '▸') + ' ';
-            });
+        function getVerticalForService(service) {
+            if (!service) return 'comune';
+            const cat = (service.categoria_padre || '').toLowerCase();
+            const name = (service.service_name || '').toLowerCase();
+
+            if (cat.includes('sanitario') || cat.includes('health') || cat.includes('clinico') || cat.includes('medico') || cat.includes('salute') || cat.includes('fisioterap') || name.includes('sanitario') || name.includes('clinico') || name.includes('medico') || name.includes('fisioterap') || name.includes('salute')) {
+                return 'sanitario';
+            }
+            if (cat.includes('dentale') || cat.includes('odontoiatria') || name.includes('dentale') || name.includes('odontoiatria') || name.includes('steril')) {
+                return 'dentale';
+            }
+            if (cat.includes('estetica') || cat.includes('beauty') || name.includes('estetica') || name.includes('estetico')) {
+                return 'estetica';
+            }
+            if (cat.includes('food') || cat.includes('ristorazione') || name.includes('cucina') || name.includes('food')) {
+                return 'ristorazione';
+            }
+            if (cat.includes('ufficio') || cat.includes('professional') || name.includes('ufficio') || name.includes('consulenza') || name.includes('magazzino')) {
+                return 'ufficio';
+            }
+            return 'comune';
         }
 
         // ── RENDER LISTA SERVIZI ──────────────────────────────────────────────────
@@ -1284,146 +1376,57 @@
             const grid = document.getElementById('services-grid');
             grid.innerHTML = '';
 
-            // Se siamo su TUTTI (ALL), mostriamo la card premium per la stampa del Libro DVR completo
-            if (activeCategory === 'ALL') {
-                const printCard = document.createElement('div');
-                printCard.className = 'card-noir p-4 flex items-center justify-between gap-3 bg-black text-white border-black';
-                printCard.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-xl shrink-0">
-                            📚
-                        </div>
-                        <div class="min-w-0">
-                            <h4 class="font-black text-xs uppercase tracking-tight leading-snug">Libro DVR Completo</h4>
-                            <p class="text-[8px] opacity-60 uppercase tracking-wider">Copertina + capitoli attivi</p>
-                        </div>
-                    </div>
-                    <button onclick="printDVR()" class="px-3.5 py-2 bg-white text-black font-black uppercase text-[8px] tracking-widest rounded-xl hover:bg-neutral-100 active:scale-95 transition shrink-0">
-                        <i class="fas fa-print mr-1"></i> Stampa
-                    </button>
-                `;
-                grid.appendChild(printCard);
+            // Filtra i servizi in base alla categoria selezionata nel menu a tendina
+            let filtered = catalogActive;
+            if (activeCategory !== 'ALL') {
+                filtered = catalogActive.filter(s => getVerticalForService(s) === activeCategory);
             }
 
-            const tenant = getTenantData();
-            const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-            const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-            // Determinazione dei settori da mostrare
-            let listToShow = [];
-
-            if (activeCategory === 'ALL') {
-                listToShow = uniqueVerts;
-            } else {
-                if (uniqueVerts.includes(activeCategory)) {
-                    listToShow = [activeCategory];
-                }
-            }
-
-            if (listToShow.length === 0) {
-                const emptyDiv = document.createElement('div');
-                emptyDiv.innerHTML = `<div class="text-center py-10 text-gray-300">
-                    <i class="fas fa-search text-3xl mb-3"></i>
-                    <p class="text-xs font-bold uppercase tracking-widest">Nessun settore attivo</p>
-                </div>`;
-                grid.appendChild(emptyDiv);
-                updateStatsStrip();
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div class="text-center py-10 text-gray-400 text-xs">Nessun servizio attivo in questo settore.</div>';
                 return;
             }
 
-            listToShow.forEach(vKey => {
-                const card = buildServiceCard(vKey);
-                if (card) grid.appendChild(card);
-            });
+            filtered.forEach(service => {
+                const vKey = getVerticalForService(service);
+                const meta = verticalsMeta[vKey] || { emoji: "⚙️" };
+                const sku = service.service_sku;
 
-            // Aggiorna statistiche
-            updateStatsStrip();
-        }
+                // Calcolo progressi locali basati sulla memoria
+                const state = checklistState[sku] || {};
+                const total = 3; 
+                const done = Object.values(state).filter(Boolean).length;
+                const pct = Math.round((done / total) * 100);
 
-        function buildServiceCard(vKey) {
-            const vertical = verticalsRegistry[vKey];
-            if (!vertical) return null;
-            const meta = verticalsMeta[vKey] || { emoji: "🏢", name: vKey };
-
-            let total = 0;
-            let done = 0;
-            vertical.risks.forEach(risk => {
-                risk.checklist.forEach(q => {
-                    total++;
-                    if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
-                        done++;
-                    }
-                });
-            });
-
-            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-            const isComplete = total > 0 && done === total;
-
-            // Colore status
-            let statusClass = 'bg-gray-100 text-gray-400';
-            let statusLabel = 'Da avviare';
-            if (isComplete) { statusClass = 'bg-green-50 text-green-600'; statusLabel = 'Completato ✓'; }
-            else if (done > 0) { statusClass = 'bg-orange-50 text-orange-500'; statusLabel = `${done}/${total} azioni`; }
-
-            const div = document.createElement('div');
-            div.className = 'card-noir service-card p-4 flex items-center gap-4 group';
-            div.onclick = () => openServiceDetail(vKey);
-            div.innerHTML = `
-                <div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shrink-0 group-active:bg-black transition-colors">
-                    ${meta.emoji}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="label-micro truncate">Sicurezza e Conformità</p>
-                    <h3 class="font-black text-xs uppercase tracking-tight leading-snug mt-0.5 truncate">${vertical.title}</h3>
-                    <div class="flex items-center gap-2 mt-2">
-                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="h-full bg-black rounded-full progress-fill" style="width: ${pct}%"></div>
+                const div = document.createElement('div');
+                div.className = 'card-noir service-card p-4 flex items-center gap-4 group';
+                div.onclick = () => openServiceDetail(service); // Passa l'intero oggetto del servizio
+                div.innerHTML = `
+                    <div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shrink-0">
+                        ${meta.emoji}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="label-micro truncate">${service.categoria_padre || 'Generale'}</p>
+                        <h3 class="font-black text-xs uppercase tracking-tight leading-snug mt-0.5 truncate text-black">${service.service_name}</h3>
+                        <div class="flex items-center gap-2 mt-2">
+                            <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                                <div class="h-full bg-black rounded-full progress-fill" style="width: ${pct}%"></div>
+                            </div>
+                            <span class="text-[8px] font-black text-gray-500 shrink-0">${pct}%</span>
                         </div>
-                        <span class="text-[8px] font-black text-gray-500 shrink-0">${pct}%</span>
                     </div>
-                    <div class="mt-1.5">
-                        <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${statusClass}">${statusLabel}</span>
-                    </div>
-                </div>
-                <i class="fas fa-chevron-right text-gray-200 text-xs group-active:text-black transition-colors shrink-0"></i>
-            `;
-            return div;
-        }
-
-        function updateStatsStrip() {
-            const tenant = getTenantData();
-            const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-            const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-            const total = uniqueVerts.length;
-            let done = 0;
-            let pending = 0;
-
-            uniqueVerts.forEach(vKey => {
-                const vertical = verticalsRegistry[vKey];
-                if (!vertical) return;
-                
-                let totalChks = 0;
-                let doneChks = 0;
-                vertical.risks.forEach(risk => {
-                    risk.checklist.forEach(q => {
-                        totalChks++;
-                        if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
-                            doneChks++;
-                        }
-                    });
-                });
-                
-                if (totalChks > 0 && doneChks === totalChks) {
-                    done++;
-                } else {
-                    pending++;
-                }
+                    <i class="fas fa-chevron-right text-gray-200 text-xs group-active:text-black transition-colors shrink-0"></i>
+                `;
+                grid.appendChild(div);
             });
 
-            document.getElementById('stat-services').textContent = total;
-            document.getElementById('stat-done').textContent = done;
-            document.getElementById('stat-pending').textContent = pending;
+            // Aggiorna contatori in cima alla pagina
+            document.getElementById('stat-services').textContent = filtered.length;
+            document.getElementById('stat-done').textContent = filtered.filter(s => {
+                const state = checklistState[s.service_sku] || {};
+                return Object.values(state).filter(Boolean).length === 3;
+            }).length;
+            document.getElementById('stat-pending').textContent = filtered.length - parseInt(document.getElementById('stat-done').textContent);
         }
 
         // ── DETAIL TAB SWITCHER ────────────────────────────────────────────────────
@@ -1437,66 +1440,60 @@
         }
 
         // ── OPEN DETAIL ───────────────────────────────────────────────────────────
-        function openServiceDetail(vKey) {
-            currentServiceSku = vKey;
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-
+        function openServiceDetail(service) {
+            currentServiceSku = service.service_sku;
+            const vKey = getVerticalForService(service);
             const vertical = verticalsRegistry[vKey];
-            if (!vertical) return;
-            const meta = verticalsMeta[vKey] || { emoji: "🏢", name: vKey };
+            const meta = verticalsMeta[vKey] || { emoji: "⚙️" };
 
             // Ripristina sempre la tab checklist all'apertura
             switchDetailTab('checklist');
 
-            // Hero
-            const parentCategory = vKey === 'comune' ? 'Infrastruttura' : 'Servizio Specialistico';
-            document.getElementById('detail-category').textContent = formatCategoryLabel(parentCategory);
-            document.getElementById('detail-service-name').textContent = vertical.title;
-            
-            // Get Code ATECO if applicable
-            let subtext = `Settore: ${vKey.toUpperCase()}`;
-            if (vKey === 'dentale') subtext += ' (ATECO 86.23.00)';
-            else if (vKey === 'estetica') subtext += ' (ATECO 96.02.02)';
-            else if (vKey === 'ristorazione') subtext += ' (ATECO 56.10.11)';
-            else if (vKey === 'ufficio') subtext += ' (ATECO 82.11.00)';
-            document.getElementById('detail-sku').textContent = subtext;
+            document.getElementById('detail-category').textContent = service.categoria_padre || 'Generale';
+            document.getElementById('detail-service-name').textContent = service.service_name;
+            document.getElementById('detail-sku').textContent = `SKU: ${currentServiceSku}`;
             document.getElementById('detail-emoji').textContent = meta.emoji;
 
             // Meta badges
             const metaEl = document.getElementById('detail-meta');
-            metaEl.innerHTML = '';
-            metaEl.classList.add('hidden');
+            if (metaEl) {
+                metaEl.innerHTML = '';
+                metaEl.classList.add('hidden');
+            }
 
             // Regulatory
-            buildRegulatoryGridForVertical(vertical.law_references);
+            if (vertical) {
+                buildRegulatoryGridForVertical(vertical.law_references);
+                // Matrice INAIL
+                buildInailMatrixForVerticalDetail(vKey);
+                // Regional notes
+                buildRegionalSectionForVertical(vKey);
+                // Risk warnings
+                const warnings = vertical.risks.map(r => r.name);
+                buildWarnings(warnings);
+            }
 
-            // Matrice INAIL
-            buildInailMatrixForVerticalDetail(vKey);
+            // Caricamento checklist da dossier reale in Product_Reserch
+            const dossier = getDossierBySku(currentServiceSku);
+            let listItems = [];
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist.map(item => ({
+                    id: item.id,
+                    area: item.area || 'Compliance',
+                    action: item.action || '',
+                    owner: item.owner || 'Operatore'
+                }));
+            } else {
+                // Default in assenza di dossier specifico
+                listItems = [
+                    { id: 'Q1', area: 'Sicurezza', action: 'Verificare conformità attrezzature e presenza di DPI idonei.', owner: 'Operatore' },
+                    { id: 'Q2', area: 'Procedura', action: 'Eseguire la procedura secondo il protocollo operativo standard approvato.', owner: 'Operatore' },
+                    { id: 'Q3', area: 'Tracciabilità', action: 'Registrare l\'avvenuta operazione sul registro di conformità dello studio.', owner: 'Operatore' }
+                ];
+            }
 
-            // Checklist
-            const allChecklistItems = [];
-            vertical.risks.forEach(risk => {
-                risk.checklist.forEach(q => {
-                    allChecklistItems.push({
-                        id: q.question_id,
-                        area: risk.name,
-                        action: q.text,
-                        owner: 'Datore di Lavoro',
-                        weight: q.weight
-                    });
-                });
-            });
-            buildChecklist(allChecklistItems, vKey);
-
-            // Regional notes
-            buildRegionalSectionForVertical(vKey);
-
-            // Risk warnings
-            const warnings = vertical.risks.map(r => r.name);
-            buildWarnings(warnings);
-
-            // Aggiorna progress nel detail
-            updateDetailProgress(vKey, allChecklistItems);
+            buildChecklist(listItems, currentServiceSku);
+            updateDetailProgress(currentServiceSku, listItems);
 
             // Genera documento DVR (tab 2)
             buildDVRPageForVerticalDetail(vKey);
@@ -1860,114 +1857,9 @@
         // ── STAMPA LIBRO DVR COMPLETO ─────────────────────────────────────────────
         function printDVR() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            
             const tenantData = getTenantData();
-
-            const printFrame = document.createElement('iframe');
-            printFrame.style.position = 'fixed';
-            printFrame.style.right = '0';
-            printFrame.style.bottom = '0';
-            printFrame.style.width = '0';
-            printFrame.style.height = '0';
-            printFrame.style.border = '0';
-            document.body.appendChild(printFrame);
-
-            const frameDoc = printFrame.contentDocument || printFrame.contentWindow.document;
-            
-            let libroHTML = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>DVR - ${tenantData.ragioneSociale}</title>
-                    <style>
-                        body { 
-                            margin: 0; 
-                            padding: 0; 
-                            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-                            background: white; 
-                            color: #000;
-                        }
-                        .dvr-cover { 
-                            padding: 20mm; 
-                            box-sizing: border-box; 
-                            display: flex; 
-                            flex-direction: column; 
-                            justify-content: space-between; 
-                            height: 250mm;
-                        }
-                        .dvr-chapter { 
-                            padding: 20mm; 
-                            box-sizing: border-box; 
-                            page-break-before: always;
-                            page-break-inside: avoid;
-                        }
-                        .dvr-chapter:first-of-type {
-                            page-break-before: avoid !important;
-                        }
-                        table { 
-                            width: 100%; 
-                            border-collapse: collapse; 
-                            margin: 15px 0; 
-                        }
-                        th, td { 
-                            border: 1px solid #e2e8f0; 
-                            padding: 8px 12px; 
-                            text-align: left; 
-                            font-size: 11px;
-                        }
-                        th { 
-                            background-color: #f8fafc; 
-                            font-weight: bold;
-                        }
-                        @media print {
-                            .dvr-cover { 
-                                page-break-after: always; 
-                            }
-                            .dvr-chapter { 
-                                page-break-before: always; 
-                                page-break-inside: avoid;
-                            }
-                            .dvr-chapter:first-of-type {
-                                page-break-before: avoid !important;
-                            }
-                            .signature-container, .dvr-footer { page-break-inside: avoid !important; break-inside: avoid !important; }
-                            .dvr-section-title { page-break-inside: avoid !important; break-inside: avoid !important; page-break-after: avoid !important; break-after: avoid !important; }
-                            .dvr-chk-row, tr { page-break-inside: avoid !important; break-inside: avoid !important; }
-                        }
-                    </style>
-                </head>
-                <body>
-            `;
-
-            // 1. Pagina di Copertina Aziendale
-            libroHTML += buildDvrCover(tenantData);
-
-            // 2. Modulo delle Misure Comuni (Infrastruttura, Antincendio, Rilevamento)
-            libroHTML += buildDvrChapter('comune');
-
-            // 3. Generazione e append dei moduli verticali abilitati sul tenant
-            tenantData.activeVerticals.forEach(v => {
-                if (v === 'common' || v === 'comune') return; 
-                libroHTML += buildDvrChapter(v);
-            });
-
-            libroHTML += `
-                </body>
-                </html>
-            `;
-
-            frameDoc.write(libroHTML);
-            frameDoc.close();
-
-            // Avvio del dialogo di stampa
-            setTimeout(() => {
-                printFrame.contentWindow.focus();
-                printFrame.contentWindow.print();
-                setTimeout(() => {
-                    document.body.removeChild(printFrame);
-                }, 1500);
-            }, 500);
+            // Chiamata al motore esterno passandogli i dati correnti
+            DVRPrintEngine.generateAndPrint(tenantData, catalogActive, checklistState);
         }
 
         // ── NUOVA FUNZIONE: STAMPA SINGOLO CAPITOLO / SERVIZIO SELEZIONATO ──
@@ -2156,15 +2048,15 @@
             });
         }
 
-        function toggleCheck(vKey, chkId) {
-            if (!checklistState[vKey]) checklistState[vKey] = {};
-            checklistState[vKey][chkId] = !checklistState[vKey][chkId];
-            const isChecked = checklistState[vKey][chkId];
+        function toggleCheck(sku, chkId) {
+            if (!checklistState[sku]) checklistState[sku] = {};
+            checklistState[sku][chkId] = !checklistState[sku][chkId];
+            const isChecked = checklistState[sku][chkId];
 
             // Aggiorna visivo box
-            const box = document.getElementById(`chk-${vKey}-${chkId}`);
-            const row = document.getElementById(`row-${vKey}-${chkId}`);
-            const actionText = document.getElementById(`action-text-${vKey}-${chkId}`);
+            const box = document.getElementById(`chk-${sku}-${chkId}`);
+            const row = document.getElementById(`row-${sku}-${chkId}`);
+            const actionText = document.getElementById(`action-text-${sku}-${chkId}`);
 
             if (box) box.classList.toggle('checked', isChecked);
             if (row) row.classList.toggle('done', isChecked);
@@ -2173,6 +2065,9 @@
 
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
+            const service = catalogActive.find(s => s.service_sku === sku);
+            const vKey = getVerticalForService(service);
+
             // Recalculate dynamic probability in detail view if it's visible
             buildInailMatrixForVerticalDetail(vKey);
             
@@ -2180,24 +2075,24 @@
             buildDVRPageForVerticalDetail(vKey);
 
             // Aggiorna progress del servizio
-            const vertical = verticalsRegistry[vKey];
-            if (vertical) {
-                const allChecklistItems = [];
-                vertical.risks.forEach(risk => {
-                    risk.checklist.forEach(q => {
-                        allChecklistItems.push(q);
-                    });
-                });
-                updateDetailProgress(vKey, allChecklistItems);
+            const dossier = getDossierBySku(sku);
+            let listItems = [];
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
+            } else {
+                listItems = [
+                    { id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }
+                ];
             }
+            updateDetailProgress(sku, listItems);
 
             // Auto-salvataggio locale
             saveLocalChecklistState();
         }
 
-        function updateDetailProgress(vKey, checklist) {
-            const state = checklistState[vKey] || {};
-            const done = checklist.filter(c => state[c.question_id || c.id]).length;
+        function updateDetailProgress(sku, checklist) {
+            const state = checklistState[sku] || {};
+            const done = checklist.filter(c => state[c.id || c.question_id]).length;
             const total = checklist.length;
             const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
@@ -2209,28 +2104,37 @@
 
         function resetServiceChecklist() {
             if (!currentServiceSku) return;
-            const vKey = currentServiceSku;
-            safeConfirm('Resettare tutte le spunte per questo settore?', (confirmed) => {
+            const sku = currentServiceSku;
+            safeConfirm('Resettare tutte le spunte per questo servizio?', (confirmed) => {
                 if (!confirmed) return;
-                checklistState[vKey] = {};
+                checklistState[sku] = {};
                 saveLocalChecklistState();
                 
+                const service = catalogActive.find(s => s.service_sku === sku);
+                const vKey = getVerticalForService(service);
                 const vertical = verticalsRegistry[vKey];
+
+                const dossier = getDossierBySku(sku);
+                let listItems = [];
+                if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                    listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist.map(item => ({
+                        id: item.id,
+                        area: item.area || 'Compliance',
+                        action: item.action || '',
+                        owner: item.owner || 'Operatore'
+                    }));
+                } else {
+                    listItems = [
+                        { id: 'Q1', area: 'Sicurezza', action: 'Verificare conformità attrezzature e presenza di DPI idonei.', owner: 'Operatore' },
+                        { id: 'Q2', area: 'Procedura', action: 'Eseguire la procedura secondo il protocollo operativo standard approvato.', owner: 'Operatore' },
+                        { id: 'Q3', area: 'Tracciabilità', action: 'Registrare l\'avvenuta operazione sul registro di conformità dello studio.', owner: 'Operatore' }
+                    ];
+                }
+
+                buildChecklist(listItems, sku);
+                updateDetailProgress(sku, listItems);
+
                 if (vertical) {
-                    const allChecklistItems = [];
-                    vertical.risks.forEach(risk => {
-                        risk.checklist.forEach(q => {
-                            allChecklistItems.push({
-                                id: q.question_id,
-                                area: risk.name,
-                                action: q.text,
-                                owner: 'Datore di Lavoro',
-                                weight: q.weight
-                            });
-                        });
-                    });
-                    buildChecklist(allChecklistItems, vKey);
-                    updateDetailProgress(vKey, allChecklistItems);
                     buildInailMatrixForVerticalDetail(vKey);
                     buildDVRPageForVerticalDetail(vKey);
                 }
@@ -2263,21 +2167,22 @@
             let totalChks = 0;
             let doneChks = 0;
 
-            const tenant = getTenantData();
-            const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-            const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-            uniqueVerts.forEach(vKey => {
-                const vertical = verticalsRegistry[vKey];
-                if (!vertical) return;
-
-                vertical.risks.forEach(risk => {
-                    risk.checklist.forEach(q => {
-                        totalChks++;
-                        if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
-                            doneChks++;
-                        }
-                    });
+            catalogActive.forEach(s => {
+                const sku = s.service_sku;
+                const dossier = getDossierBySku(sku);
+                let listItems = [];
+                if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                    listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
+                } else {
+                    listItems = [
+                        { id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }
+                    ];
+                }
+                listItems.forEach(q => {
+                    totalChks++;
+                    if (checklistState[sku] && checklistState[sku][q.id || q.question_id]) {
+                        doneChks++;
+                    }
                 });
             });
 
@@ -2335,6 +2240,9 @@
             const cat = (service.categoria_padre || '').toLowerCase();
             const name = (service.service_name || '').toLowerCase();
             
+            if (cat.includes('sanitario') || cat.includes('health') || cat.includes('salute') || cat.includes('clinico') || cat.includes('medico') || cat.includes('fisioterap') || name.includes('sanitario') || name.includes('clinico') || name.includes('medico')) {
+                return 'health';
+            }
             if (cat.includes('dentale') || cat.includes('odontoiatria') || cat.includes('dental') || name.includes('dentale') || name.includes('odontoiatria')) {
                 return 'dental';
             }
@@ -2615,6 +2523,6 @@
             }
         }
     </script>
-
+    <script src="dvr-print-engine.js"></script>
 </body>
 </html>
