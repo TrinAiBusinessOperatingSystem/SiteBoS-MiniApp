@@ -2462,6 +2462,242 @@
                 btn.disabled = false;
             }
         }
+
+        // ── 7 FUNZIONI DI SUPPORTO DI SICUREZZA ──
+
+        function goBackToList() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            document.getElementById('view-detail').classList.add('hidden');
+            document.getElementById('view-list').classList.remove('hidden');
+            currentServiceSku = null;
+            if (tg.BackButton) {
+                tg.BackButton.hide();
+            }
+            renderServiceList();
+            updateGlobalProgress();
+        }
+
+        function printDVR() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            const tenant = getTenantData();
+            DVRPrintEngine.generateAndPrint(tenant, catalogActive, checklistState);
+        }
+
+        function printSingleDVR() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            window.print();
+        }
+
+        function buildRegulatoryGridForVertical(lawsString) {
+            const grid = document.getElementById('regulatory-grid');
+            grid.innerHTML = '';
+            if (!lawsString || !lawsString.trim()) {
+                grid.innerHTML = '<p class="text-[10px] text-gray-400 italic py-2">Nessuna normativa specifica disponibile.</p>';
+                return;
+            }
+            const laws = lawsString.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+            laws.forEach(law => {
+                const el = document.createElement('div');
+                el.className = 'reg-pill space-y-0.5';
+                el.innerHTML = `
+                    <p class="font-black text-[8px] uppercase tracking-widest text-gray-400">⚖️ Riferimento Normativo</p>
+                    <p class="text-[10px] text-gray-700 font-medium leading-snug">${law}</p>
+                `;
+                grid.appendChild(el);
+            });
+        }
+
+        function buildInailMatrixForVerticalDetail(vKey) {
+            const vertical = verticalsRegistry[vKey];
+            if (!vertical) return;
+
+            const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '', normativa_rif: '' };
+            
+            const allChecklistItems = [];
+            vertical.risks.forEach(risk => {
+                risk.checklist.forEach(q => {
+                    allChecklistItems.push(q);
+                });
+            });
+
+            const p = calculateDynamicProbability(allChecklistItems, vKey);
+            const d = param.D || 2;
+            const c = param.C || 1;
+            const r = p * d;
+
+            document.getElementById('inail-val-d').textContent = d;
+            document.getElementById('inail-val-c').textContent = c;
+            document.getElementById('inail-val-p').textContent = p;
+            document.getElementById('inail-val-r').textContent = r;
+
+            const badge = document.getElementById('inail-risk-badge');
+            badge.className = 'risk-badge-wrap';
+            let riskLabel = 'BASSO';
+            if (r >= 8) {
+                badge.classList.add('risk-high');
+                riskLabel = 'ALTO';
+            } else if (r >= 4) {
+                badge.classList.add('risk-mid');
+                riskLabel = 'MEDIO';
+            } else {
+                badge.classList.add('risk-low');
+                riskLabel = 'BASSO';
+            }
+            document.getElementById('inail-risk-label').textContent = `RISCHIO: ${riskLabel}`;
+
+            const pointer = document.getElementById('inail-risk-pointer');
+            if (pointer) {
+                const leftPct = Math.min(95, Math.max(5, ((r - 1) / 15) * 90));
+                pointer.style.left = `${leftPct}%`;
+            }
+
+            const dossier = getDossierBySku(vKey);
+            let justification = '';
+            if (dossier && dossier.Razionale_Matematico && dossier.Razionale_Matematico.R_Rischio_Finale) {
+                justification = dossier.Razionale_Matematico.R_Rischio_Finale.nota_gemini || '';
+            }
+            if (!justification) {
+                justification = `Il rischio calcolato si attesta a R = ${r} (Danno D = ${d}, Probabilità P = ${p}). Danno atteso: ${param.desc_d || 'Patologie/infortuni generici'}. Livello di esposizione/contaminazione: ${param.desc_c || 'Contatto ordinario'}. Riferimento principale: ${param.normativa_rif || 'D.Lgs. 81/08'}.`;
+            }
+
+            const justEl = document.getElementById('inail-justification');
+            if (justEl) {
+                justEl.textContent = justification;
+                justEl.classList.remove('hidden');
+            }
+
+            document.getElementById('rischio-inail-section').classList.remove('hidden');
+        }
+
+        function buildRegionalSectionForVertical(vKey) {
+            const dossier = getDossierBySku(vKey);
+            let localNotes = '';
+            let wasteNotes = '';
+
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.regional_specifications) {
+                const reg = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.regional_specifications;
+                localNotes = reg.local_authority_notes || '';
+                wasteNotes = reg.waste_disposal || '';
+            }
+
+            if (!localNotes) {
+                if (vKey === 'dentale' || vKey === 'dental') {
+                    localNotes = "Notifica obbligatoria di installazione radiologica ad ATS locale e nomina dell'Esperto di Radioprotezione ex D.Lgs 101/2020.";
+                    wasteNotes = "Gestione del Registro carico/scarico per rifiuti sanitari pericolosi a rischio infettivo (CER 180103*). Smaltimento tramite ditta autorizzata con scadenze semestrali.";
+                } else if (vKey === 'health') {
+                    localNotes = "Autorizzazione sanitaria regionale per apertura ambulatorio e conformità ai requisiti strutturali e tecnologici minimi ex Legge Gelli-Bianco.";
+                    wasteNotes = "Presenza di contenitori rigidi a perdere per aghi e taglienti infettivi. Smaltimento periodico certificato.";
+                } else if (vKey === 'beauty' || vKey === 'estetica') {
+                    localNotes = "Conformità delle apparecchiature laser alla scheda tecnica n. 23 del D.M. 206/2015 e nomina del Tecnico Sicurezza Laser (TSL).";
+                    wasteNotes = "Smaltimento di aghi da trucco permanente e lame sgorbie come rifiuti speciali taglienti a rischio infettivo.";
+                } else {
+                    localNotes = "Vigili del Fuoco, ATS territorialmente competente per controlli ordinari e ispezioni igienico-sanitarie.";
+                    wasteNotes = "Smaltimento dei rifiuti ordinari e speciali in conformità al D.Lgs. 152/06 e regolamenti comunali.";
+                }
+            }
+
+            const section = document.getElementById('regional-section');
+            const authEl = document.getElementById('regional-authority');
+            const wasteEl = document.getElementById('regional-waste');
+
+            if (localNotes || wasteNotes) {
+                if (localNotes) {
+                    authEl.innerHTML = `<strong>Autorità Competente:</strong> ${localNotes}`;
+                    authEl.classList.remove('hidden');
+                } else {
+                    authEl.classList.add('hidden');
+                }
+
+                if (wasteNotes) {
+                    wasteEl.innerHTML = `<strong>Gestione Rifiuti & Smaltimento:</strong> ${wasteNotes}`;
+                    wasteEl.classList.remove('hidden');
+                } else {
+                    wasteEl.classList.add('hidden');
+                }
+
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+
+        function buildDVRPageForVerticalDetail(vKey) {
+            const body = document.getElementById('dvr-document-body');
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+
+            const vertical = verticalsRegistry[vKey];
+            if (!vertical) return;
+
+            const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '' };
+            const tenant = getTenantData();
+
+            const allChecklistItems = [];
+            vertical.risks.forEach(risk => {
+                risk.checklist.forEach(q => {
+                    allChecklistItems.push(q);
+                });
+            });
+            const p = calculateDynamicProbability(allChecklistItems, vKey);
+            const d = param.D || 2;
+            const r = p * d;
+            const rLabel = r >= 8 ? 'Alto' : (r >= 4 ? 'Medio' : 'Basso');
+            const riskClass = r >= 8 ? 'dvr-risk-high' : (r >= 4 ? 'dvr-risk-mid' : 'dvr-risk-low');
+
+            const state = checklistState[vKey] || {};
+
+            body.innerHTML = `
+                <div style="text-align:center;padding-bottom:12px;border-bottom:2px solid #000;margin-bottom:16px">
+                    <div class="dvr-label">Documento di Valutazione dei Rischi</div>
+                    <h2>VALUTAZIONE COMPARTO DI SICUREZZA</h2>
+                    <div style="font-size:9px;font-weight:700;color:#6b7280;margin-top:4px">Comparto: ${vertical.title.toUpperCase()}</div>
+                    <div style="font-size:8px;color:#a3a3a3;margin-top:2px">Redatto il ${dateStr} — ex D.Lgs. 81/2008</div>
+                </div>
+
+                <div class="dvr-section-title"><i class="fas fa-building mr-1"></i>Anagrafica Aziendale</div>
+                <div class="dvr-field"><span class="dvr-field-label">Ragione Sociale</span><span class="dvr-field-value">${tenant.ragioneSociale}</span></div>
+                <div class="dvr-field"><span class="dvr-field-label">Sede Operativa</span><span class="dvr-field-value">${tenant.indirizzo}</span></div>
+                <div class="dvr-field"><span class="dvr-field-label">RSPP Nominato</span><span class="dvr-field-value">${tenant.generalMetadata.rspp}</span></div>
+                <div class="dvr-field"><span class="dvr-field-label">Medico Competente</span><span class="dvr-field-value">${tenant.generalMetadata.medicoCompetente}</span></div>
+                <div class="dvr-field"><span class="dvr-field-label">RLS Nominato</span><span class="dvr-field-value">${tenant.generalMetadata.rls}</span></div>
+
+                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Valutazione del Rischio (R = P × D)</div>
+                <div class="dvr-field"><span class="dvr-field-label">Gravità Danno (D)</span><span class="dvr-field-value">${d} / 4</span></div>
+                <div class="dvr-field"><span class="dvr-field-label">Probabilità Accadimento (P)</span><span class="dvr-field-value">${p} / 4</span></div>
+                <div class="dvr-field">
+                    <span class="dvr-field-label">Indice di Rischio Risultante (R)</span>
+                    <span class="dvr-field-value"><span class="dvr-risk-cell ${riskClass}">${r} — ${rLabel}</span></span>
+                </div>
+
+                <div class="dvr-section-title"><i class="fas fa-tasks mr-1"></i>Stato delle Misure di Prevenzione</div>
+                ${allChecklistItems.map((c, i) => {
+                const isDone = !!state[c.question_id];
+                return `
+                        <div class="dvr-chk-row">
+                            <span class="dvr-chk-num">${String(i + 1).padStart(2, '0')}.</span>
+                            <div style="flex:1">
+                                <p style="font-weight:600;margin:0;color:#111827">${c.text}</p>
+                                <div style="display:flex;gap:6px;margin-top:4px">
+                                    <span style="font-size:7px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:4px;font-weight:bold">Peso: ${c.weight}</span>
+                                    <span style="font-size:7px;background:${isDone ? '#dcfce7' : '#fee2e2'};color:${isDone ? '#15803d' : '#b91c1c'};padding:1px 5px;border-radius:4px;font-weight:bold">${isDone ? 'Attuata ✓' : 'In attesa'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+            }).join('')}
+
+                <div class="dvr-footer">
+                    <div class="dvr-signature-box">
+                        <span class="dvr-label">Il Datore di Lavoro</span>
+                        <div style="font-size:8px;color:#a3a3a3;margin-top:6px">${tenant.ragioneSociale}</div>
+                    </div>
+                    <div class="dvr-signature-box">
+                        <span class="dvr-label">Firme di Controllo</span>
+                        <div style="font-size:8px;color:#a3a3a3;margin-top:6px">RSPP / MC / RLS</div>
+                    </div>
+                </div>
+            `;
+        }
     </script>
     <script src="dvr-print-engine.js"></script>
 </body>
