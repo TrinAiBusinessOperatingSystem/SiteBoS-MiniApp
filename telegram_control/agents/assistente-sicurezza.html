@@ -1957,6 +1957,32 @@
             const state = checklistState[sku] || {};
             const tenant = getTenantData();
 
+            // 1. Calcoliamo i valori fisici di partenza del comparto padre
+            const vKey = getVerticalForService(service);
+            const param = parametriVerticali[vKey] || { D: 2, C: 1 };
+            const dPartenza = param.D || 2;
+            const cPartenza = param.C || 1;
+            const rPartenza = 4 * dPartenza; // Rischio massimo iniziale (Probabilità = 4)
+
+            // 2. Leggiamo i valori finali correnti calcolati a monitor (se disponibili, altrimenti fallback)
+            const dVal = document.getElementById('inail-val-d')?.textContent || dPartenza;
+            const cVal = document.getElementById('inail-val-c')?.textContent || cPartenza;
+            const pVal = document.getElementById('inail-val-p')?.textContent || "4";
+            const rVal = document.getElementById('inail-val-r')?.textContent || rPartenza;
+            const justVal = document.getElementById('inail-justification')?.textContent || "";
+
+            // Determiniamo la classe CSS del rischio residuo per la stampa
+            let rLabel = "BASSO";
+            let rClass = "dvr-risk-low";
+            const rNum = parseInt(rVal);
+            if (rNum >= 8) {
+                rLabel = "ALTO";
+                rClass = "dvr-risk-high";
+            } else if (rNum >= 4) {
+                rLabel = "MEDIO";
+                rClass = "dvr-risk-mid";
+            }
+
             body.innerHTML = `
                 <div style="text-align:center;padding-bottom:12px;border-bottom:2px solid #000;margin-bottom:16px">
                     <div class="dvr-label">Documento di Valutazione dei Rischi</div>
@@ -1968,6 +1994,35 @@
                 <div class="dvr-section-title"><i class="fas fa-building mr-1"></i>Anagrafica Aziendale</div>
                 <div class="dvr-field"><span class="dvr-field-label">Ragione Sociale</span><span class="dvr-field-value">${tenant.ragioneSociale}</span></div>
                 <div class="dvr-field"><span class="dvr-field-label">Sede Operativa</span><span class="dvr-field-value">${tenant.indirizzo}</span></div>
+
+                <!-- SEZIONE: CONFRONTO DINAMICO IMPATTO RISCHIO (DA -> A) -->
+                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Analisi di Impatto e Mitigazione del Rischio (INAIL)</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0;">
+                    <!-- Stato di Partenza (Worst Case) -->
+                    <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af;">1. Stato di Partenza (Senza Misure)</span>
+                        <div style="font-size: 14px; font-weight: 900; color: #b91c1c; margin-top: 4px;">R = ${rPartenza}</div>
+                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dPartenza} | Probabilità: 4 (Max)</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #b91c1c; text-transform: uppercase; margin-top: 4px;">Rischio Iniziale Alto</div>
+                    </div>
+                    
+                    <!-- Stato Residuo Attuale (Mitigato) -->
+                    <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a;">2. Stato Residuo (Con Misure Attive)</span>
+                        <div style="font-size: 14px; font-weight: 900; color: #15803d; margin-top: 4px;">R = ${rVal}</div>
+                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dVal} | Probabilità: ${pVal}</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-top: 4px;">Rischio Attuale ${rLabel}</div>
+                    </div>
+                </div>
+                
+                <!-- Giustificazione di Gemini che spiega formalmente l'impatto dello spuntamento -->
+                ${justVal ? `
+                <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
+                    <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
+                    ${justVal}
+                </div>
+                ` : ''}
 
                 <div class="dvr-section-title"><i class="fas fa-tasks mr-1"></i>Stato delle Misure di Prevenzione</div>
                 ${listItems.map((c, i) => {
@@ -2066,9 +2121,9 @@
         async function toggleCheck(sku, chkId) {
             if (!checklistState[sku]) checklistState[sku] = {};
 
-            // Disabilitiamo temporaneamente i click sulla riga per evitare click multipli durante il caricamento
-            const row = document.getElementById(`row-${sku}-${chkId}`);
-            if (row) row.style.pointerEvents = "none";
+            // 1. Congela l'intera checklist per evitare click multipli o paralleli su altre caselle
+            const container = document.getElementById('checklist-container');
+            if (container) container.style.pointerEvents = "none";
 
             // Inseriamo un micro-spinner nero dentro la casella per dare feedback visivo immediato
             const box = document.getElementById(`chk-${sku}-${chkId}`);
@@ -2081,31 +2136,19 @@
             checklistState[sku][chkId] = !checklistState[sku][chkId];
             const isChecked = checklistState[sku][chkId];
 
-            // Recupera la giustificazione attualmente visibile a schermo prima dell'aggiornamento
-            const justEl = document.getElementById('inail-justification');
-            const previousJustification = (justEl && justEl.textContent) ? justEl.textContent.trim() : "Non ci sono analisi precedenti.";
-
             // Stato di caricamento visivo sulla scheda INAIL
             const pointer = document.getElementById('inail-risk-pointer');
             if (pointer) pointer.style.opacity = "0.5";
+            const justEl = document.getElementById('inail-justification');
             if (justEl) justEl.textContent = "Ricalcolo del rischio in corso su MongoDB...";
 
-            // Estrazione dati intelligente (Comparto Generale vs Servizio Catalogo)
+            // Estrazione dati dal Catalogo e dal Dossier
+            const service = catalogActive.find(s => s.service_sku === sku) || {};
             const dossier = getDossierBySku(sku);
-            let serviceName = "";
-            let category = "";
-            let vKey = "comune";
 
-            if (verticalsRegistry[sku]) {
-                serviceName = verticalsRegistry[sku].title;
-                category = "Infrastruttura e Sicurezza Generale";
-                vKey = sku;
-            } else {
-                const service = catalogActive.find(s => s.service_sku === sku) || {};
-                serviceName = service.service_name || "";
-                category = service.categoria_padre || "";
-                vKey = getVerticalForService(service);
-            }
+            const serviceName = service.service_name || "";
+            const category = service.categoria_padre || "";
+            const vKey = getVerticalForService(service);
 
             // Calcolo parametri di partenza locali da passare al backend
             const param = parametriVerticali[vKey] || { D: 2, C: 1 };
@@ -2126,25 +2169,13 @@
                 listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
             }
 
-            // Recupero mirato dell'etichetta e della descrizione testuale della domanda cliccata
-            let targetLabel = "Compliance";
-            let targetDescription = "";
+            const targetItem = listItems.find(item => (item.id || item.question_id) === chkId) || {};
+            const targetLabel = targetItem.area || "Compliance";
+            const targetDescription = targetItem.action || targetItem.text || "";
 
-            if (verticalsRegistry[sku]) {
-                // Se fa parte delle misure di sede comuni, cerca direttamente nel registro delle verticali
-                verticalsRegistry[sku].risks.forEach(risk => {
-                    const found = risk.checklist.find(q => q.question_id === chkId);
-                    if (found) {
-                        targetDescription = found.text;
-                        targetLabel = risk.name;
-                    }
-                });
-            } else {
-                // Se si tratta di un servizio del catalogo, cerca nella lista degli item del dossier
-                const targetItem = listItems.find(item => (item.id || item.question_id) === chkId) || {};
-                targetLabel = targetItem.area || "Compliance";
-                targetDescription = targetItem.action || targetItem.text || "";
-            }
+            // Recupera la giustificazione attualmente visibile a schermo prima dell'aggiornamento
+            const justElText = document.getElementById('inail-justification');
+            const previousJustification = (justElText && justElText.textContent) ? justElText.textContent.trim() : "Non ci sono analisi precedenti.";
 
             try {
                 const payload = {
@@ -2190,27 +2221,31 @@
                 console.error("Errore analisi:", err);
                 if (justEl) justEl.textContent = "Impossibile allineare il rischio. Salva per confermare.";
             } finally {
-                // Ripristiniamo la casella nel suo stato finale (checked o empty) e riattiviamo i click
+                // Ripristiniamo la casella nel suo stato finale (checked o empty)
                 if (box) {
                     box.innerHTML = ''; // Rimuove lo spinner
                     box.classList.toggle('checked', isChecked);
                 }
-                if (row) {
-                    row.classList.toggle('done', isChecked);
-                    row.style.pointerEvents = "auto";
+
+                // Aggiorniamo graficamente la riga cliccata
+                const rowElement = document.getElementById(`row-${sku}-${chkId}`);
+                if (rowElement) {
+                    rowElement.classList.toggle('done', isChecked);
                     const actionText = document.getElementById(`action-text-${sku}-${chkId}`);
                     if (actionText) {
                         actionText.classList.toggle('line-through', isChecked);
                         actionText.classList.toggle('opacity-50', isChecked);
                     }
                 }
+
+                // Sblocchiamo l'intera checklist riattivando i click su tutte le caselle
+                if (container) container.style.pointerEvents = "auto";
             }
 
             // Aggiorna progressi e anteprima DVR
             updateDetailProgress(sku, listItems);
-            const serviceObj = catalogActive.find(s => s.service_sku === sku);
-            if (serviceObj && serviceObj.service_sku) {
-                buildSingleServiceDVRPage(serviceObj, listItems);
+            if (service.service_sku) {
+                buildSingleServiceDVRPage(service, listItems);
             }
         }
 
