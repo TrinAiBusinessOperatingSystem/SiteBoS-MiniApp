@@ -28,162 +28,286 @@ const DVRPrintEngine = {
         "construction": { emoji: "🚧", name: "Edilizia e Impiantistica" }
     },
 
-    // Boilerplate metodologico e scientifico diviso per capitoli
-    preambles: {
-        riferimenti_legge: `
-            Il presente Documento di Valutazione dei Rischi (DVR) è redatto in adempimento agli obblighi non delegabili del Datore di Lavoro sanciti dall'Art. 17 e dall'Art. 28 del D.Lgs. 9 aprile 2008, n. 81 (Testo Unico sulla Salute e Sicurezza sul Lavoro) e successive modifiche ed integrazioni.
-            La valutazione specifica del rischio biologico e delle ferite da taglio e punta fa riferimento alle disposizioni del Titolo X (Esposizione ad Agenti Biologici) e del Titolo X-bis (Protezione dalle ferite da taglio e da punta nel settore ospedaliero e sanitario), introdotto in recepimento della Direttiva 2010/32/UE.
-        `,
-        obiettivi: `
-            La redazione del documento persegue i seguenti scopi fondamentali:
-            1. Individuare in modo analitico le mansioni aziendali esposte al rischio di contatto con agenti patogeni e taglienti.
-            2. Fornire un inquadramento metodologico e scientifico rigoroso che attesti la reale entità del rischio.
-            3. Strutturare un piano di miglioramento continuo per consolidare gli standard di prevenzione.
-            4. Costituire un quadro informativo chiaro e trasparente a disposizione degli Organi di Vigilanza (ATS, Ispettorato del Lavoro) in sede ispettiva.
-        `,
-        metodologia_inail: `
-            La quantificazione semi-quantitativa del rischio adotta la metodologia integrata "Bio-ritmo", sviluppata originariamente da INAIL e ARPAL.
-            Il rischio (R) è definito come il prodotto del Danno potenziale (D) per la Probabilità di accadimento (P): R = P x D.
-            Il Danno (D) è determinato in base alla classe di pericolosità dell'agente biologico più elevato potenzialmente riscontrabile (da Gruppo 1 a Gruppo 4, ai sensi dell'Allegato XLVI).
-            La Probabilità (P) è stimata attraverso l'analisi dei fattori di barriera, igiene, addestramento e l'uso di Dispositivi di Protezione Individuale (DPI).
-        `,
-        metodologia_sperimentale: `
-            Gli studi sperimentali promossi a livello nazionale (in particolare da ANDI in collaborazione con Arpae) hanno analizzato la dispersione del bio-aerosol generato dagli strumenti rotanti e dagli ablatori a ultrasuoni.
-            I test condotti posizionando piastre di Petri e campionatori microbici in corrispondenza del volto dell'operatore e dell'assistente (simulati da manichini) hanno dimostrato che l'adozione congiunta di aspirazione ad alta portata e DPI facciali (visiere e maschere chirurgiche o facciali filtranti FFP2/FFP3) abbatte la carica batterica a valori biologicamente irrilevanti (< 0.5 UFC/cmq).
-        `,
-        metodologia_statistica: `
-            La Banca Dati Statistica dell'INAIL propone le analisi del numero di infortuni e malattie professionali relativi agli ultimi anni per tutti i Lavoratori appartenenti al settore 'Sanità e Assistenza sociale'.
-            Dall'analisi delle denunce e dei casi definiti, si evidenzia come il rischio di contrarre patologie gravi per esposizione ad agenti biologici in ambienti a controllo procedurale elevato (es. odontoiatria e medicina ambulatoriale) sia quantificabile statisticamente in una percentuale estremamente bassa del totale nazionale, confermando l'efficacia preventiva delle procedure di isolamento e sanificazione correnti.
-        `
+    // Parametri fisici fissi ereditati dai comparti
+    parametriVerticali: {
+        "comune": { D: 2, C: 1, desc_d: "Infortuni o patologie professionali generiche", normativa_rif: "D.Lgs. 81/08 Titolo II (Luoghi di lavoro)" },
+        "generic": { D: 2, C: 1, desc_d: "Infortuni lievi (scivolamento, caduta in piano) o disturbi transitori", normativa_rif: "D.Lgs. 81/08 Titolo II (Luoghi di lavoro)" },
+        "dental": { D: 3, C: 2, desc_d: "Patogeni ematogeni e respiratori a danno grave (HBV, HCV, HIV)", normativa_rif: "D.Lgs. 81/08 Titolo X (Agenti Biologici)" },
+        "health": { D: 3, C: 2, desc_d: "Patogeni ematogeni e biologici a danno grave, rischi chimici da sterilizzanti", normativa_rif: "D.Lgs. 81/08 Titolo X (Agenti Biologici), Legge Gelli-Bianco" },
+        "beauty": { D: 2, C: 2, desc_d: "Patogeni a danno moderato (infezioni micotiche, batteriche cutanee)", normativa_rif: "D.Lgs. 81/08 Titolo VIII Capo IV (Radiazioni Ottiche Laser)" },
+        "food": { D: 3, C: 2, desc_d: "Tossinfezioni e infezioni a trasmissione alimentare (Salmonella, E. Coli)", normativa_rif: "Regolamento CE 852/2004 (HACCP)" },
+        "hospitality": { D: 2, C: 1, desc_d: "Rischi da sovraccarico del rachide, rischio biologico da Legionellosi", normativa_rif: "D.Lgs. 81/08 Titolo VI (MMC), Linee Guida Legionellosi" },
+        "professional": { D: 1, C: 1, desc_d: "Disturbi muscolo-scheletrici minori, affaticamento visivo", normativa_rif: "D.Lgs. 81/08 Titolo VII (Videoterminali)" },
+        "workshop": { D: 3, C: 2, desc_d: "Schiacciamento, traumi gravi, esposizione chimica e rumore/vibrazioni", normativa_rif: "D.Lgs. 81/08 Titolo III (Attrezzature)" },
+        "construction": { D: 3, C: 2, desc_d: "Cadute dall'alto, seppellimento, elettrocuzione e inalazione polveri", normativa_rif: "D.Lgs. 81/08 Titolo IV (Cantieri)" }
     },
 
-    // Schede dettagliate e approfondite per ciascun comparto di sicurezza
-    sectorData: {
-        "comune": {
-            titolo: "Misure Comuni di Infrastruttura, Impianti e Sicurezza Antincendio",
-            riferimento: "D.Lgs. 81/08 Titolo I (Principi Comuni) e Titolo II (Luoghi di Lavoro), D.M. 3 Settembre 2021 (Decreto GSA - Gestione Sicurezza Antincendio), D.P.R. 462/01 (Verifiche Messa a Terra)",
-            scienza: "La valutazione comprende i rischi trasversali legati alla stabilità e idoneità igienico-funzionale dei locali, la conformità dell'impianto elettrico di alimentazione con dispositivi di sezionamento e differenziali coordinati con l'impianto di terra, il rischio di propagazione di fumo e calore in caso di innesco accidentale (cortocircuito, sovraccarico, fiamme libere), e l'adeguatezza delle vie d'esodo. Si considera inoltre il rischio biologico da Legionellosi (Legionella pneumophila) legato agli accumuli di condensazione e alle torri o evaporatori degli impianti di climatizzazione e ventilazione forzata (VMC).",
-            misure: [
-                "Verifica periodica biennale o quinquennale dell'impianto di messa a terra ai sensi del D.P.R. 462/01 con organismo di controllo abilitato.",
-                "Manutenzione e controllo semestrale dei presidi antincendio (estintori portatili, idranti, porte tagliafuoco, uscite di sicurezza) ai sensi della norma UNI 9994-1.",
-                "Sanificazione e pulizia trimestrale dei filtri d'aria e delle bacinelle di raccolta condensa dei condizionatori con registrazioni formali.",
-                "Nomina e addestramento teorico-pratico degli addetti alla gestione delle emergenze (primo soccorso e antincendio) ai sensi dei decreti ministeriali vigenti."
-            ]
-        },
-        "generic": {
-            titolo: "Misure di Sicurezza Generali per Attività Operative non Sanitarie",
-            riferimento: "D.Lgs. 81/08 Titolo II (Luoghi di lavoro) e Allegato IV (Requisiti dei luoghi di lavoro)",
-            scienza: "Inquadra i rischi associati a lavorazioni generiche e attività di servizio non classificate in comparti specialistici. Rileva i pericoli da scivolamento e caduta in piano (pavimentazioni non livellate, cavi scoperti, presenza di liquidi), movimentazione manuale di pacchi e carichi minori con rischio di sovraccarico del rachide, rischi legati all'utilizzo di attrezzature di lavoro portatili ed esposizione a microclima sfavorevole (correnti d'aria, sbalzi termici, umidità non regolata).",
-            misure: [
-                "Mantenimento di passaggi, corridoi e vie di fuga sgombri da materiali e ostacoli fisici o ingombri.",
-                "Fornitura di calzature chiuse con suola antiscivolo adatte per le attività operative quotidiane.",
-                "Formazione di base dei lavoratori sulla movimentazione manuale dei carichi (MMC) ai sensi del Titolo VI del D.Lgs. 81/08.",
-                "Verifica annuale dell'efficienza e della stabilità delle scaffalature e dei sistemi di stoccaggio materiali."
-            ]
-        },
-        "dental": {
-            titolo: "Comparto Odontoiatrico, Clinico e Chirurgico",
-            riferimento: "D.Lgs. 81/08 Titolo X (Agenti Biologici), D.Lgs. 101/20 (Protezione dalle Radiazioni Ionizzanti), Titolo X-bis (Dispositivi Taglienti)",
-            scienza: "Le attività cliniche odontoiatriche comportano una elevata esposizione a rischio biologico da agenti patogeni di Gruppo 2 e 3 (HBV, HCV, HIV, Mycobacterium tuberculosis) presenti nel sangue e nella saliva dei pazienti. Il pericolo si concretizza per via aerea (inalazione di bio-aerosol ad alta velocità generato da manipoli rotanti e ablatori a ultrasuoni) e per via parenterale (lesioni percutanee da aghi e taglienti). Si rileva inoltre l'esposizione a radiazioni ionizzanti per radiografia endorale e tomografia computerizzata a fascio conico (CBCT) e il rischio chimico derivante dall'uso di disinfettanti ad alto livello (es. acido peracetico, aldeidi) e resine acriliche.",
-            misure: [
-                "Impiego obbligatorio e continuo di Dispositivi di Protezione Individuale (DPI) di III categoria (facciali filtranti FFP2 o FFP3 conformi a UNI EN 149, schermi facciali protettivi, camici monouso idrorepellenti).",
-                "Adozione di protocolli rigorosi di termodisinfezione e sterilizzazione in autoclave Classe B con convalida annuale (IQ/OQ/PQ) e test fisici giornalieri (Helix Test, Vacuum Test).",
-                "Trattamento chimico continuo dell'acqua dei riuniti (sistemi ad anidride di cloro o perossido di idrogeno) con flussaggio prolungato a inizio giornata.",
-                "Abolizione della pratica del reincappucciamento manuale degli aghi con adozione di aghi di sicurezza e contenitori rigidi per taglienti conformi a UNI EN ISO 23907.",
-                "Nomina dell'Esperto di Radioprotezione ai sensi del D.Lgs. 101/20, monitoraggio dosimetrico individuale trimestrale e sorveglianza medica specifica."
-            ]
-        },
-        "health": {
-            titolo: "Comparto Sanitario e Poliambulatori Medici Generali",
-            riferimento: "D.Lgs. 81/08 Titolo X (Agenti Biologici), Titolo IX (Sostanze Pericolose), Legge 24/2017 (Gelli-Bianco)",
-            scienza: "Le attività ambulatoriali e di diagnosi medica generica espongono gli operatori a rischi di contagio biologico per contatto diretto con secrezioni, fluidi corporei o mucose dei pazienti, oltre all'esposizione ad agenti patogeni respiratori aerei (influenza, pertosse, morbillo, SARS-CoV-2). Si evidenzia il rischio chimico da preparati istologici (es. formalina, classificata come cancerogena), detergenti industriali e disinfettanti per la sanificazione delle strumentazioni diagnostiche e dei lettini da visita, nonché rischi ergonomici legati alla mobilizzazione assistita di pazienti ipomobili.",
-            misure: [
-                "Adozione di copriletti e lenzuolini monouso per ogni paziente e sanificazione immediata del lettino con disinfettante a base alcolica o cloro-derivato.",
-                "Utilizzo di guanti monouso in nitrile o lattice senza polvere ad alta sensibilità per ogni esame obiettivo o prelievo.",
-                "Installazione di cappe aspiranti localizzate o sistemi di estrazione forzata nei laboratori o aree di manipolazione di formalina o reagenti volatili.",
-                "Formazione specifica del personale sulle tecniche di movimentazione dei pazienti e utilizzo di ausili di sollevamento (es. teli a scorrimento, sollevatori attivi).",
-                "Programma sistematico di vaccinazione per il personale esposto (anti-epatite B, anti-influenzale, rosolia, morbillo, parotite)."
-            ]
-        },
-        "beauty": {
-            titolo: "Comparto Estetica, Benessere e Trattamenti Estetici",
-            riferimento: "Legge 1 del 04/01/1990, D.M. 206/2015 (Regolamento apparecchiature), D.Lgs. 81/08 Titolo VIII Capo IV (Radiazioni Ottiche Artificiali)",
-            scienza: "I trattamenti estetici implicano rischi fisici rilevanti connessi alle apparecchiature laser (Classe 3B e Classe 4 per epilazione e rimozione pigmenti) e luce pulsata (IPL), in grado di provocare gravi lesioni oculari (danno retinico irreversibile) o ustioni cutanee a causa di irraggiamento diretto o riflesso. Si riscontra un rischio biologico significativo dovuto al contatto percutaneo e transcutaneo (es. micropigmentazione, pedicure profonda, rimozione cuticole) con potenziale contatto con sangue o secrezioni, e rischio chimico connesso all'inalazione di vapori (es. solventi per unghie, esalazioni trattamenti cheratinici) e all'uso di detergenti allergizzanti.",
-            misure: [
-                "Uso obbligatorio di occhiali protettivi con densità ottica (OD) certificata e specifica per la lunghezza d'onda del laser in funzione, sia per l'operatore che per il cliente.",
-                "Segregazione della cabina laser con interblocco della porta d'ingresso o sistema di segnalazione luminosa 'Laser Attivo' all'esterno.",
-                "Nomina del Tecnico Sicurezza Laser (TSL) o dell'Addetto alla Sicurezza Laser (ASL) ai sensi delle norme CEI EN 60825-1.",
-                "Protocollo rigido di sterilizzazione a caldo (autoclave Classe B) per strumenti taglienti riutilizzabili (sgorbie, tronchesine) o impiego esclusivo di monouso.",
-                "Aspirazione localizzata sui tavoli da manicure per l'abbattimento di polveri acriliche e vapori di solventi chimici."
-            ]
-        },
-        "food": {
-            titolo: "Comparto Ristorazione, Cucine ed Ho.Re.Ca.",
-            riferimento: "Regolamento CE 852/2004 (HACCP), D.Lgs. 81/08 Titolo III (Attrezzature), Titolo VIII Capo II (Rumore)",
-            scienza: "L'attività in cucina espone gli operatori a rischi infortunistici elevati dovuti a tagli con coltelleria o affettatrici e a ustioni da contatto con superfici roventi, oli bollenti o vapore. Il microclima caldo-umido severo genera affaticamento e rischio di disidratazione. Il rischio biologico è legato alla manipolazione di alimenti crudi potenzialmente infetti da batteri enteropatogeni (Salmonella, Escherichia Coli, Campylobacter).",
-            misure: [
-                "Presenza e funzionamento costante dei pressamerce e dei dispositivi di blocco meccanico sulle affettatrici.",
-                "Uso obbligatorio di guanti protettivi in maglia d'acciaio o Kevlar durante le operazioni di taglio e disosso.",
-                "Pavimentazione antisdrucciolo con coefficiente di attrito R11 o R12 e griglie di sgrondo per i liquidi nelle zone cucina e lavaggio.",
-                "Fornitura di DPI resistenti al calore (guanti termici, grembiuli alluminizzati) e scarpe antinfortunistiche con suola antiscivolo e puntale protettivo."
-            ]
-        },
-        "hospitality": {
-            titolo: "Comparto Ospitalità, Strutture Ricettive e Alberghiere",
-            riferimento: "D.Lgs. 81/08 Titolo VI (Movimentazione Manuale dei Carichi), Titolo X (Agenti Biologici), Linee Guida prevenzione Legionellosi 2015",
-            scienza: "I lavoratori addetti ai piani e alle camere sono esposti a significativi rischi ergonomici (sovraccarico biomeccanico degli arti superiori e della colonna vertebrale) a causa delle posture incongrue e sforzi ripetuti per il rifacimento dei letti e la pulizia. Nelle strutture ricettive si evidenzia inoltre il rischio biologico da Legionellosi negli impianti idrici e di climatizzazione, oltre al rischio chimico dovuto all'inalazione e contatto con detergenti industriali e disinfettanti concentrati.",
-            misure: [
-                "Formazione del personale sulle tecniche di sollevamento e movimentazione dei carichi (sollevamento materassi, movimentazione carrelli).",
-                "Verifica, pulizia e decalcificazione trimestrale di tutti i soffioni delle docce, filtri e terminali idrici per prevenire accumuli di Legionella.",
-                "Fornitura di guanti resistenti all'usura e agenti chimici per il personale di pulizia e occhiali di protezione per la diluizione dei detergenti concentrati.",
-                "Adozione di carrelli agevolati, leggeri e dotati di ruote pivotanti scorrevoli per limitare gli sforzi di spinta."
-            ]
-        },
-        "professional": {
-            titolo: "Comparto Uffici, Amministrazione e Servizi Professionali",
-            riferimento: "D.Lgs. 81/08 Titolo VII (Attrezzature munite di videoterminali), UNI EN ISO 9241 (Requisiti ergonomici)",
-            scienza: "I rischi principali sono legati all'ergonomia delle postazioni lavorative con potenziale insorgenza di disturbi muscolo-scheletrici (cervicalgie, lombalgie, sindrome del tunnel carpale) dovuti all'uso prolungato di videoterminali (VDT). L'affaticamento visivo (astenia visiva) è causato da contrasti di luce non idonei o riflessi sugli schermi. Si rilevano inoltre rischi da stress lavoro-correlato correlati a carichi di lavoro mentali o scadenze pressanti, e rischi legati alla qualità dell'aria indoor (sindrome dell'edificio malato).",
-            misure: [
-                "Fornitura di sedie operative conformi (sedile regolabile in altezza e inclinazione, schienale regolabile con supporto lombare, base a 5 razze su ruote).",
-                "Pianificazione e adozione di pause obbligatorie di 15 minuti ogni 120 minuti di lavoro continuativo al videoterminale.",
-                "Corretto posizionamento dello schermo rispetto alle fonti di luce naturale (perpendicolare alle finestre) per evitare abbagliamenti e riflessi.",
-                "Valutazione sistematica del rischio stress lavoro-correlato utilizzando la metodologia e la lista di controllo INAIL."
-            ]
-        },
-        "workshop": {
-            titolo: "Comparto Officine Meccaniche e Autoriparazione",
-            riferimento: "D.Lgs. 81/08 Titolo III (Attrezzature), Titolo IX (Sostanze pericolose), Titolo VIII Capo II (Rumore) e Capo III (Vibrazioni)",
-            scienza: "Le officine espongono gli operatori a rischi fisici elevati legati al rumore continuo e impulsivo delle attrezzature, e alle vibrazioni meccaniche trasmesse al sistema mano-braccio (HAV - avvitatori pneumatici, smerigliatrici) e corpo intero (WBV - guida di ponti sollevatori o mezzi semoventi). Sussiste un elevato rischio chimico per l'uso e contatto con oli minerali esausti (miscele cancerogene), solventi per sgrassaggio, carburanti e inalazione di gas di scarico (monossido di carbonio, particolato diesel). I rischi infortunistici comprendono lo schiacciamento per caduta di carichi sospesi o mal posizionati sui ponti sollevatori.",
-            misure: [
-                "Verifica annuale di integrità e stabilità strutturale dei ponti sollevatori e dei compressori d'aria (verifiche periodiche INAIL).",
-                "Installazione di impianti di aspirazione localizzata dei gas di scarico da collegare direttamente ai terminali delle marmitte dei veicoli.",
-                "Misurazione strumentale quadriennale dei livelli di rumore e vibrazioni (sistema mano-braccio e corpo intero) ai sensi del Titolo VIII del D.Lgs. 81/08.",
-                "Uso obbligatorio di DPI specifici: scarpe antinfortunistiche S3, guanti protettivi in nitrile resistenti agli idrocarburi, cuffie antirumore certificate, occhiali protettivi anti-scheggia.",
-                "Sostituzione di solventi clorurati o tossici con detergenti a base acquosa biodegradabili."
-            ]
-        },
-        "construction": {
-            titolo: "Comparto Cantieri Edili e Installazione Impiantistica",
-            riferimento: "D.Lgs. 81/08 Titolo IV (Cantieri temporanei o mobili), UNI EN 12811 (Ponteggi)",
-            scienza: "I cantieri temporanei o mobili presentano rischi elevatissimi e ad alta severità di danno. Il rischio principale è rappresentato dalla caduta dall'alto (lavori ad altezza > 2 metri su ponteggi, scale o coperture) e dallo sfondamento di solai o tetti. Si rilevano rischi di seppellimento durante gli scavi, rischio elettrico per contatti diretti o indiretti con linee elettriche aeree o interrate, e rischio biologico da polveri di silicio (Silice Libera Cristallina, causa di silicosi) prodotte dalle lavorazioni di cemento, pietre e mattoni.",
-            misure: [
-                "Redazione obbligatoria del Piano Operativo di Sicurezza (POS) prima dell'ingresso in cantiere e rispetto del Piano di Sicurezza e Coordinamento (PSC).",
-                "Installazione di sistemi di protezione collettiva anticaduta (parapetti provvisori UNI EN 13374, reti di sicurezza) o linee vita certificate UNI EN 795.",
-                "Utilizzo obbligatorio di imbracature anticaduta collegate a punti di ancoraggio sicuri con cordini dotati di assorbitore di energia.",
-                "Armatura e puntellazione sistematica delle pareti degli scavi con profondità superiore a 1.5 metri.",
-                "Uso di mascherine FFP3 per la protezione delle vie respiratorie durante il taglio, demolizione o miscelazione di cementi per evitare l'inalazione di silice."
-            ]
+    // ══════════════════════════════════════════════════════════════════════
+    // GENERAZIONE CAPITOLO SINGOLO SERVIZIO (Enriched & Standalone)
+    // ══════════════════════════════════════════════════════════════════════
+    printSingleService: async function (tenant, service, checklistState) {
+        if (window.showLoader) window.showLoader("Generazione PDF Servizio...");
+
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+
+        const sku = service.service_sku;
+        const state = checklistState[sku] || {};
+
+        // Estrazione dati dal dossier
+        let serviceDescription = "Servizio clinico-operativo specializzato.";
+        let riskWarnings = [];
+        let listItems = [];
+        let rawLaws = "D.Lgs. 81/08 (T.U. Sicurezza Lavoro), Linee Guida di settore.";
+
+        if (typeof getDossierBySku === 'function') {
+            const dossier = getDossierBySku(sku);
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE) {
+                const comp = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE;
+                serviceDescription = comp.positioning || "";
+                riskWarnings = comp.risk_warnings || [];
+                listItems = comp.compliance_checklist || [];
+                if (comp.regulatory_framework) {
+                    const framework = comp.regulatory_framework;
+                    rawLaws = [
+                        framework.medical_device_directive,
+                        framework.professional_liability,
+                        framework.deontology_rules,
+                        framework.gdpr_compliance
+                    ].filter(Boolean).join(', ');
+                }
+            }
+        }
+
+        // Calcolo parametri di rischio
+        const vKey = typeof getVerticalForService === 'function' ? this.normalizeKey(getVerticalForService(service)) : 'comune';
+        const param = this.parametriVerticali[vKey] || { D: 2, C: 1 };
+        const dPartenza = param.D || 2;
+        const rPartenza = 4 * dPartenza;
+
+        // Recupero dei valori dinamici salvati nel DB
+        const savedSkuData = (checklistState && checklistState[sku]) ? checklistState[sku] : null;
+        const dVal = savedSkuData?.D || dPartenza;
+        const pVal = savedSkuData?.P || 4;
+        const rVal = savedSkuData?.R || rPartenza;
+        const justVal = savedSkuData?.overall_justification || "";
+
+        let rLabel = rVal >= 8 ? 'Alto' : (rVal >= 4 ? 'Medio' : 'Basso');
+        const rBg = rVal >= 8 ? '#fee2e2' : (rVal >= 4 ? '#ffedd5' : '#dcfce7');
+        const rColor = rVal >= 8 ? '#b91c1c' : (rVal >= 4 ? '#9a3412' : '#15803d');
+
+        let html = `
+            <!DOCTYPE html>
+            <html lang="it">
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a202c; line-height: 1.5; font-size: 11px; margin: 0; padding: 0; }
+                    .page { width: 210mm; height: 297mm; padding: 20mm 15mm; box-sizing: border-box; background: #fff; }
+                    .header-doc { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px; }
+                    .header-doc h2 { font-size: 14px; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: 0.05em; }
+                    .header-doc p { font-size: 9px; color: #718096; margin: 4px 0 0 0; font-weight: bold; }
+                    .section-title { font-size: 11px; font-weight: 900; text-transform: uppercase; color: #2b6cb0; border-left: 3px solid #2b6cb0; padding-left: 8px; margin-top: 20px; margin-bottom: 10px; }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                    th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; vertical-align: top; }
+                    th { background-color: #edf2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; }
+                    ul { padding-left: 20px; margin-bottom: 10px; }
+                    li { margin-bottom: 4px; }
+                </style>
+            </head>
+            <body>
+                <div class="page">
+                    <div class="header-doc">
+                        <span style="font-size: 8px; font-weight: bold; color: #718096; text-transform: uppercase; letter-spacing: 0.1em;">D.Lgs. 9 aprile 2008, n. 81 e s.m.i.</span>
+                        <h2>Capitolo Specifico: ${service.service_name.toUpperCase()}</h2>
+                        <p>Redatto per: ${tenant.ragioneSociale} — Sede: ${tenant.indirizzo}</p>
+                    </div>
+
+                    <div class="section-title">1. Descrizione del Servizio e Attività Clinico-Operativa</div>
+                    <p style="text-align: justify;">${serviceDescription || "Prestazione specialistica erogata all'interno dei locali attrezzati dell'attività."}</p>
+
+                    <div class="section-title">2. Quadro Normativo di Riferimento</div>
+                    <p>Le procedure operative e i protocolli di prevenzione attuati fanno riferimento alle seguenti disposizioni legislative:</p>
+                    <ul style="font-size: 10px;">
+                        ${rawLaws.split(',').map(l => `<li><strong>${l.trim()}</strong></li>`).join('')}
+                    </ul>
+
+                    <div class="section-title">3. Valutazione d'Impatto e Mitigazione del Rischio (INAIL R = P x D)</div>
+                    <p>Il confronto evidenzia l'efficacia delle misure applicate nel ridurre la probabilità d'accadimento rispetto allo scenario di partenza:</p>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0;">
+                        <!-- Stato di Partenza -->
+                        <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                            <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af; display:block;">1. Stato di Partenza (Senza Misure)</span>
+                            <div style="font-size: 16px; font-weight: 900; color: #b91c1c; margin-top: 6px;">R = ${rPartenza}</div>
+                            <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dPartenza} | Probabilità: 4 (Max)</div>
+                            <div style="font-size: 8px; font-weight: bold; color: #b91c1c; text-transform: uppercase; margin-top: 4px;">Rischio Iniziale Alto</div>
+                        </div>
+                        
+                        <!-- Stato Residuo -->
+                        <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
+                            <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a; display:block;">2. Stato Residuo (Con Misure)</span>
+                            <div style="font-size: 16px; font-weight: 900; color: ${rColor}; margin-top: 6px;">R = ${rVal}</div>
+                            <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dVal} | Probabilità: ${pVal}</div>
+                            <div style="font-size: 8px; font-weight: bold; color: ${rColor}; text-transform: uppercase; margin-top: 4px;">Rischio Attuale ${rLabel}</div>
+                        </div>
+                    </div>
+
+                    ${justVal ? `
+                    <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
+                        <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
+                        ${justVal}
+                    </div>
+                    ` : ''}
+                </div>
+
+                <div class="page" style="page-break-before: always;">
+                    <div class="section-title">4. Avvertenze di Rischio e Pericoli da Affrontare</div>
+                    <p>Le seguenti vulnerabilità operative costituiscono i principali vettori di infortunio o sanzione da monitorare costantemente:</p>
+                    <div style="margin: 12px 0;">
+                        ${riskWarnings.length > 0 ? riskWarnings.map(w => `
+                            <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 8px 12px; font-size: 9.5px; color: #7f1d1d; margin-bottom: 8px; display: flex; gap: 6px;">
+                                <span>⚠️</span> <span style="font-weight: 600;">${w}</span>
+                            </div>
+                        `).join('') : '<p style="font-style: italic; color: #718096;">Nessuna avvertenza critica registrata per questo protocollo.</p>'}
+                    </div>
+
+                    <div class="section-title">5. Stato delle Misure e delle Spunte di Conformità</div>
+                    <p>Si riporta lo stato reale delle barriere fisiche e procedurali verificate per questa prestazione:</p>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 10%;">ID</th>
+                                <th style="width: 25%;">Area</th>
+                                <th style="width: 50%;">Azione Prescritta</th>
+                                <th style="width: 15%;">Stato</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${listItems.map(item => {
+            const isDone = !!state[item.id || item.question_id];
+            return `
+                                    <tr>
+                                        <td style="font-family: monospace; font-size: 9px; font-weight: bold;">${item.id || item.question_id}</td>
+                                        <td style="font-size: 9.5px; font-weight: bold; color: #4a5568;">${item.area || 'Compliance'}</td>
+                                        <td style="font-size: 9.5px; font-weight: 600;">${item.action || item.text || ""}</td>
+                                        <td style="font-size: 9px; font-weight: bold; color: ${isDone ? '#16a34a' : '#dc2626'};">
+                                            ${isDone ? 'ATTUATA ✓' : 'IN ATTESA'}
+                                        </td>
+                                    </tr>
+                                `;
+        }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </body>
+            </html>
+        `;
+
+        // Generazione fisica del PDF
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:16px;';
+        overlay.innerHTML = '⏳ Generazione PDF Capitolo...';
+        document.body.appendChild(overlay);
+
+        const container = document.createElement('div');
+        container.style.cssText = 'position:fixed;top:0;left:0;width:794px;opacity:0;pointer-events:none;z-index:99998;';
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        try {
+            await new Promise(r => setTimeout(r, 600));
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const pages = container.querySelectorAll('.page');
+
+            for (let i = 0; i < pages.length; i++) {
+                overlay.innerHTML = `⏳ Pagina ${i + 1} di ${pages.length}...`;
+                const canvas = await html2canvas(pages[i], {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    windowWidth: 794
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.88);
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            }
+
+            const tgApp = window.Telegram?.WebApp;
+            const isMobile = (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) ||
+                /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+            if (isMobile) {
+                try {
+                    const webhookUrl = typeof WEBHOOK_URL !== 'undefined' ? WEBHOOK_URL : 'https://prod.workflow.trinai.it/webhook/7f254dec-e28f-452a-afb9-2a2a90206cbb';
+                    const sessionAsh = typeof ash !== 'undefined' ? ash : (new URLSearchParams(window.location.search)).get('ash') || 'dev';
+                    const initData = tgApp?.initData || '';
+                    const pdfBase64Uri = pdf.output('datauristring');
+                    const base64Data = pdfBase64Uri.split(',')[1];
+                    const filename = `DVR_Capitolo_${service.service_name.replace(/\s+/g, '_')}.pdf`;
+
+                    const webhookPayload = {
+                        action: 'document_to_valut',
+                        base64: base64Data,
+                        mimetype: 'application/pdf',
+                        filename: filename,
+                        ash: sessionAsh,
+                        _auth: initData
+                    };
+
+                    fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(webhookPayload)
+                    });
+
+                    if (tgApp && tgApp.showAlert) {
+                        tgApp.showAlert("✓ Capitolo generato con successo! Lo riceverai a breve nella chat del bot.");
+                    } else {
+                        alert("✓ Capitolo generato con successo ed inviato al server.");
+                    }
+                } catch (err) {
+                    console.error('Error mobile single print:', err);
+                }
+            } else {
+                const pdfBytes = pdf.output('arraybuffer');
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DVR_Capitolo_${service.service_name.replace(/\s+/g, '_')}.pdf`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            }
+        } catch (err) {
+            console.error('Single PDF Error:', err);
+            alert('Errore generazione capitolo: ' + err.message);
+        } finally {
+            document.body.removeChild(container);
+            document.body.removeChild(overlay);
+            if (window.hideLoader) window.hideLoader();
         }
     },
 
-    // Genera l'HTML e avvia la stampa
+    // ══════════════════════════════════════════════════════════════════════
+    // GENERAZIONE LIBRO COMPLETO (Organically Integrating Active Services)
+    // ══════════════════════════════════════════════════════════════════════
     generateAndPrint: async function (tenant, catalog, checklistState) {
         if (window.showLoader) window.showLoader("Generazione Libro DVR...");
 
         const now = new Date();
         const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        // Costruzione dell'HTML (identica all'originale, ma senza iframe)
+        // Costruzione dell'HTML
         let html = `
             <!DOCTYPE html>
             <html lang="it">
@@ -191,136 +315,27 @@ const DVRPrintEngine = {
                 <meta charset="utf-8">
                 <title>Libro DVR Completo - ${tenant.ragioneSociale}</title>
                 <style>
-                    body {
-                        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-                        color: #1a202c;
-                        line-height: 1.6;
-                        font-size: 11px;
-                        background: #fff;
-                        margin: 0;
-                        padding: 0;
-                    }
-                    .page {
-                        width: 210mm;
-                        height: 297mm;
-                        padding: 20mm 15mm;
-                        box-sizing: border-box;
-                        position: relative;
-                        background: #fff;
-                    }
-                    /* Copertina */
-                    .cover {
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: space-between;
-                    }
+                    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a202c; line-height: 1.5; font-size: 11px; background: #fff; margin: 0; padding: 0; }
+                    .page { width: 210mm; height: 297mm; padding: 20mm 15mm; box-sizing: border-box; position: relative; background: #fff; }
+                    .cover { display: flex; flex-direction: column; justify-content: space-between; }
                     .cover-header { text-align: center; }
-                    .cover-title {
-                        font-size: 26px;
-                        font-weight: 900;
-                        color: #1a365d;
-                        letter-spacing: -0.02em;
-                        margin-top: 40px;
-                        line-height: 1.2;
-                        text-transform: uppercase;
-                    }
-                    .cover-subtitle {
-                        font-size: 12px;
-                        color: #4a5568;
-                        margin-top: 10px;
-                        font-weight: 600;
-                    }
-                    .info-box {
-                        background-color: #f7fafc;
-                        border: 1px solid #e2e8f0;
-                        border-radius: 12px;
-                        padding: 20px;
-                        margin: 30px 0;
-                    }
-                    .info-title {
-                        font-size: 11px;
-                        font-weight: 900;
-                        text-transform: uppercase;
-                        color: #2b6cb0;
-                        border-bottom: 2px solid #edf2f7;
-                        padding-bottom: 6px;
-                        margin-bottom: 12px;
-                        letter-spacing: 0.05em;
-                    }
-                    .info-row {
-                        display: flex;
-                        justify-content: space-between;
-                        padding: 5px 0;
-                        border-bottom: 1px solid #edf2f7;
-                    }
+                    .cover-title { font-size: 24px; font-weight: 900; color: #1a365d; letter-spacing: -0.02em; margin-top: 40px; line-height: 1.2; text-transform: uppercase; }
+                    .cover-subtitle { font-size: 11px; color: #4a5568; margin-top: 10px; font-weight: 600; }
+                    .info-box { background-color: #f7fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 18px; margin: 25px 0; }
+                    .info-title { font-size: 10px; font-weight: 900; text-transform: uppercase; color: #2b6cb0; border-bottom: 2px solid #edf2f7; padding-bottom: 6px; margin-bottom: 12px; letter-spacing: 0.05em; }
+                    .info-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #edf2f7; }
                     .info-row:last-child { border-bottom: none; }
                     .info-label { font-weight: bold; color: #4a5568; }
                     .info-value { font-weight: 600; color: #1a202c; }
-                    
-                    /* Capitolo */
-                    .chapter-title {
-                        font-size: 18px;
-                        font-weight: 900;
-                        color: #2b6cb0;
-                        border-bottom: 3px solid #3182ce;
-                        padding-bottom: 8px;
-                        margin-bottom: 15px;
-                        text-transform: uppercase;
-                    }
-                    .section-subtitle {
-                        font-size: 12px;
-                        font-weight: 900;
-                        color: #4a5568;
-                        margin-top: 20px;
-                        margin-bottom: 8px;
-                        text-transform: uppercase;
-                        border-left: 3px solid #2b6cb0;
-                        padding-left: 8px;
-                    }
+                    .chapter-title { font-size: 16px; font-weight: 900; color: #2b6cb0; border-bottom: 3px solid #3182ce; padding-bottom: 6px; margin-bottom: 15px; text-transform: uppercase; }
+                    .section-subtitle { font-size: 11px; font-weight: 900; color: #4a5568; margin-top: 18px; margin-bottom: 8px; text-transform: uppercase; border-left: 3px solid #2b6cb0; padding-left: 8px; }
                     p { text-align: justify; margin-bottom: 10px; }
-                    
-                    /* Tabelle */
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin: 15px 0;
-                    }
-                    th, td {
-                        border: 1px solid #e2e8f0;
-                        padding: 8px 10px;
-                        text-align: left;
-                        vertical-align: top;
-                    }
-                    th {
-                        background-color: #edf2f7;
-                        font-weight: bold;
-                        font-size: 10px;
-                        text-transform: uppercase;
-                        letter-spacing: 0.02em;
-                    }
-                    
-                    /* Firme */
-                    .signature-area {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 20px;
-                        margin-top: 40px;
-                    }
-                    .signature-box {
-                        border: 1px solid #cbd5e0;
-                        border-radius: 8px;
-                        padding: 15px;
-                        min-height: 50px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: space-between;
-                    }
-                    .signature-label {
-                        font-size: 8px;
-                        font-weight: bold;
-                        text-transform: uppercase;
-                        color: #718096;
-                    }
+                    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+                    th, td { border: 1px solid #e2e8f0; padding: 7px; text-align: left; vertical-align: top; }
+                    th { background-color: #edf2f7; font-weight: bold; font-size: 9px; text-transform: uppercase; }
+                    .signature-area { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 30px; }
+                    .signature-box { border: 1px solid #cbd5e0; border-radius: 8px; padding: 12px; min-height: 50px; display: flex; flex-direction: column; justify-content: space-between; }
+                    .signature-label { font-size: 7px; font-weight: bold; text-transform: uppercase; color: #718096; }
                 </style>
             </head>
             <body>
@@ -337,7 +352,7 @@ const DVRPrintEngine = {
         html += `
             <div class="page cover">
                 <div class="cover-header">
-                    <span style="font-size: 10px; font-weight: bold; letter-spacing: 0.15em; color: #718096; text-transform: uppercase;">D.Lgs. 9 aprile 2008, n. 81 e s.m.i.</span>
+                    <span style="font-size: 9px; font-weight: bold; letter-spacing: 0.15em; color: #718096; text-transform: uppercase;">D.Lgs. 9 aprile 2008, n. 81 e s.m.i.</span>
                     <h1 class="cover-title">Documento di Valutazione dei Rischi</h1>
                     <p class="cover-subtitle">Valutazione dei Rischi da Esposizione ad Agenti Biologici e da Ferite da Taglio e da Punta</p>
                 </div>
@@ -389,7 +404,7 @@ const DVRPrintEngine = {
         `;
 
         // ══════════════════════════════════════════════════════════════════════
-        // PAGINA 3: METODOLOGIE DI VALUTAZIONE (INAIL, SPERIMENTALE, STATISTICA)
+        // PAGINA 3: METODOLOGIE DI VALUTAZIONE
         // ══════════════════════════════════════════════════════════════════════
         html += `
             <div class="page">
@@ -404,12 +419,11 @@ const DVRPrintEngine = {
 
                 <div class="section-subtitle">1.3 Metodologia Statistica (Analisi Infortuni Nazionale)</div>
                 <p>${this.preambles.metodologia_statistica}</p>
-                <p>L'incidenza clinica reale per gli operatori sanitari e per le attività ad elevato controllo procedurale si attesta su percentuali prossime allo zero, validando l'assoluta efficacia preventiva delle misure igieniche e di autocontrollo correntemente adottate.</p>
             </div>
         `;
 
         // ══════════════════════════════════════════════════════════════════════
-        // PAGINE SUCCESSIVE: SEZIONI SPECIFICHE PER SETTORI ATTIVI (DINAMICI)
+        // SEZIONI STRUTTURATE DEI SETTORI E RELATIVI SERVIZI CLINICI (SOP/SER)
         // ══════════════════════════════════════════════════════════════════════
         const activeSectors = [...new Set(['comune', ...tenant.activeVerticals.map(v => this.normalizeKey(v))])];
 
@@ -417,6 +431,7 @@ const DVRPrintEngine = {
             const sec = this.sectorData[vKey];
             if (!sec) return;
 
+            // Filtriamo tutti i servizi del catalogo appartenenti a questo specifico comparto
             const sectorServices = catalog.filter(s => {
                 if (typeof getVerticalForService === 'function') {
                     const normalizedSvcKey = DVRPrintEngine.normalizeKey(getVerticalForService(s));
@@ -425,74 +440,228 @@ const DVRPrintEngine = {
                 return vKey === 'comune';
             });
 
-            let d = (vKey === 'dental' || vKey === 'health' || vKey === 'workshop' || vKey === 'construction' || vKey === 'food') ? 3 : 2;
-            if (vKey === 'professional') d = 1;
+            // 1. CARICAMENTO DEL RISCHIO STRUTTURALE DEL COMPARTO PADRE
+            const savedSectorData = (checklistState && checklistState[vKey]) ? checklistState[vKey] : null;
 
-            let totalChecks = 0;
-            let checkedCount = 0;
+            let dPartenza = (vKey === 'dental' || vKey === 'health' || vKey === 'workshop' || vKey === 'construction' || vKey === 'food') ? 3 : 2;
+            if (vKey === 'professional') dPartenza = 1;
+            let rPartenza = 4 * dPartenza;
 
-            if (sectorServices.length > 0) {
-                sectorServices.forEach(s => {
-                    const state = checklistState[s.service_sku] || {};
-                    totalChecks += 3;
-                    checkedCount += Object.values(state).filter(Boolean).length;
-                });
+            let d = dPartenza;
+            let p = 4;
+            let r = rPartenza;
+            let justification = "";
+
+            if (savedSkuDataExists(savedSkuData)) {
+                d = savedSkuData.D;
+                p = savedSkuData.P || 4;
+                r = savedSkuData.R || (d * p);
+                justification = savedSkuData.overall_justification || "";
             } else {
-                const state = checklistState[vKey] || {};
-                totalChecks = 3;
-                checkedCount = Object.values(state).filter(Boolean).length;
+                // Fallback proporzionale locale
+                let totalChecks = 0;
+                let checkedCount = 0;
+                if (sectorServices.length > 0) {
+                    sectorServices.forEach(s => {
+                        const state = checklistState[s.service_sku] || {};
+                        totalChecks += 3;
+                        checkedCount += Object.values(state).filter(Boolean).length;
+                    });
+                } else {
+                    const state = checklistState[vKey] || {};
+                    totalChecks = 3;
+                    checkedCount = Object.values(state).filter(Boolean).length;
+                }
+                const fraction = totalChecks > 0 ? (checkedCount / totalChecks) : 0;
+                p = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
+                r = p * d;
             }
 
-            const fraction = totalChecks > 0 ? (checkedCount / totalChecks) : 0;
-            const p = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
-            const r = p * d;
             const rLabel = r >= 8 ? 'Alto' : (r >= 4 ? 'Medio' : 'Basso');
-            const rBg = r >= 8 ? '#fee2e2' : (r >= 4 ? '#ffedd5' : '#dcfce7');
+            const rColor = r >= 8 ? '#b91c1c' : (r >= 4 ? '#9a3412' : '#166534');
 
             html += `
-                <div class="page">
-                    <h2 class="chapter-title">Sezione: ${sec.titolo}</h2>
-                    <p style="font-size: 10px; color: #718096; margin-top: -10px; font-weight: bold;">Riferimento: ${sec.riferimento}</p>
+                <div class="page" style="page-break-before: always;">
+                    <h2 class="chapter-title">Sotto-Capitolo: ${sec.titolo}</h2>
+                    <p style="font-size: 9px; color: #718096; margin-top: -10px; font-weight: bold; text-transform: uppercase;">Riferimento normativo: ${sec.riferimento}</p>
                     
-                    <div class="section-subtitle">1. Razionale e Analisi di Esposizione</div>
+                    <div class="section-subtitle">1. Analisi di Esposizione del Settore</div>
                     <p>${sec.scienza}</p>
 
-                    <div class="section-subtitle">2. Stima Quantitativa del Rischio (Metodo INAIL R = P x D)</div>
-                    <p>La valutazione basata sullo stato reale di attuazione delle misure preventive e dei controlli operativi restituisce i seguenti indici:</p>
+                    <div class="section-subtitle">2. Stima del Rischio Strutturale di Sede (Metodo INAIL)</div>
+                    <p>La valutazione basata sullo stato di attuazione delle misure e dei controlli generali della sede restituisce i seguenti indici:</p>
                     
-                    <table style="margin: 10px 0;">
-                        <thead>
-                            <tr>
-                                <th>Gravità Danno (D)</th>
-                                <th>Probabilità Stimata (P)</th>
-                                <th>Indice di Rischio (R)</th>
-                                <th>Grado Residuo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td style="text-align: center; font-weight: bold; font-size: 12px;">${d} / 4</td>
-                                <td style="text-align: center; font-weight: bold; font-size: 12px;">${p} / 4</td>
-                                <td style="text-align: center; font-weight: 900; font-size: 14px; background: ${rBg};">${r}</td>
-                                <td style="font-weight: bold; text-transform: uppercase;">${rLabel}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0;">
+                        <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                            <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af; display:block;">1. Rischio Iniziale (Senza Misure)</span>
+                            <div style="font-size: 16px; font-weight: 900; color: #b91c1c; margin-top: 6px;">R = ${rPartenza}</div>
+                            <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dPartenza} | Probabilità: 4</div>
+                        </div>
+                        <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
+                            <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a; display:block;">2. Rischio Residuo (Con Misure)</span>
+                            <div style="font-size: 16px; font-weight: 900; color: ${rColor}; margin-top: 6px;">R = ${r}</div>
+                            <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${d} | Probabilità: ${p}</div>
+                        </div>
+                    </div>
 
-                    <div class="section-subtitle">3. Misure di Prevenzione e Protezione Obbligatorie</div>
-                    <p>Si riepilogano le principali barriere preventive prescritte per la tutela della salute del personale operante in questo settore:</p>
+                    ${justification ? `
+                    <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
+                        <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
+                        ${justification}
+                    </div>
+                    ` : ''}
+
+                    <div class="section-subtitle">3. Misure Generali Obbligatorie Prescritte</div>
                     <ul style="padding-left: 20px; font-size: 10.5px;">
-                        ${sec.misure.map(m => `<li style="margin-bottom: 6px;">${m}</li>`).join('')}
+                        ${sec.misure.map(m => `<li style="margin-bottom: 5px;">${m}</li>`).join('')}
                     </ul>
                 </div>
             `;
+
+            // ══════════════════════════════════════════════════════════════════════
+            // INTEGRAZIONE DINAMICA DEI SINGOLI SERVIZI (SOP/SER) APPARTENENTI AL SETTORE
+            // ══════════════════════════════════════════════════════════════════════
+            if (vKey !== 'comune' && sectorServices.length > 0) {
+                sectorServices.forEach((service) => {
+                    const sSku = service.service_sku;
+                    const sState = checklistState[sSku] || {};
+                    const sDossier = getDossierBySku(sSku);
+
+                    let sDescription = "Servizio clinico-operativo specializzato.";
+                    let sWarnings = [];
+                    let sListItems = [];
+                    let sLaws = "D.Lgs. 81/08 (T.U. Sicurezza Lavoro), Linee Guida di settore.";
+
+                    if (sDossier && sDossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE) {
+                        const comp = sDossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE;
+                        sDescription = comp.positioning || "";
+                        sWarnings = comp.risk_warnings || [];
+                        sListItems = comp.compliance_checklist || [];
+                        if (comp.regulatory_framework) {
+                            const framework = comp.regulatory_framework;
+                            sLaws = [
+                                framework.medical_device_directive,
+                                framework.professional_liability,
+                                framework.deontology_rules,
+                                framework.gdpr_compliance
+                            ].filter(Boolean).join(', ');
+                        }
+                    }
+
+                    // Caricamento del rischio specifico di quel servizio salvato nel DB
+                    const savedServiceData = (checklistState && checklistState[sSku]) ? checklistState[sSku] : null;
+
+                    let sd = dPartenza;
+                    let sp = 4;
+                    let sr = rPartenza;
+                    let sJustification = "";
+
+                    if (savedSkuDataExists(savedServiceData)) {
+                        sd = savedServiceData.D;
+                        sp = savedServiceData.P || 4;
+                        sr = savedServiceData.R || (sd * sp);
+                        sJustification = savedServiceData.overall_justification || "";
+                    } else {
+                        // Fallback proporzionale locale se manca record nel DB
+                        const total = sListItems.length;
+                        const checkedCount = sListItems.filter(item => sState[item.id || item.question_id]).length;
+                        if (total > 0 && checkedCount > 0) {
+                            const fraction = checkedCount / total;
+                            sp = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
+                        }
+                        sr = sp * sd;
+                    }
+
+                    const srLabel = sr >= 8 ? 'Alto' : (sr >= 4 ? 'Medio' : 'Basso');
+                    const srColor = sr >= 8 ? '#b91c1c' : (sr >= 4 ? '#9a3412' : '#166534');
+
+                    html += `
+                        <div class="page" style="page-break-before: always;">
+                            <h2 class="chapter-title">Scheda Tecnica: ${service.service_name.toUpperCase()}</h2>
+                            <p style="font-size: 8px; color: #718096; margin-top: -10px; font-weight: bold; text-transform: uppercase;">SKU: ${sSku} — Categoria: ${service.categoria_padre || "Protocollo Clinico"}</p>
+                            
+                            <div class="section-subtitle">1. Inquadramento Operativo e Descrizione</div>
+                            <p>${sDescription}</p>
+
+                            <div class="section-subtitle">2. Riferimenti Normativi Specifici</div>
+                            <p style="font-size: 10px; line-height: 1.4;">${sLaws}</p>
+
+                            <div class="section-subtitle">3. Analisi Matematica del Rischio Residuo (R = P x D)</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 15px 0;">
+                                <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px;">
+                                    <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af; display:block;">1. Rischio Iniziale (Senza Misure)</span>
+                                    <div style="font-size: 16px; font-weight: 900; color: #b91c1c; margin-top: 6px;">R = ${rPartenza}</div>
+                                    <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${sd} | Probabilità: 4</div>
+                                </div>
+                                <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px;">
+                                    <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a; display:block;">2. Rischio Residuo (Con Misure)</span>
+                                    <div style="font-size: 16px; font-weight: 900; color: ${srColor}; margin-top: 6px;">R = ${sr}</div>
+                                    <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${sd} | Probabilità: ${sp}</div>
+                                </div>
+                            </div>
+
+                            ${sJustification ? `
+                            <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
+                                <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
+                                ${sJustification}
+                            </div>
+                            ` : ''}
+
+                            <div class="section-subtitle">4. Avvertenze di Rischio Obbligatorie</div>
+                            <div style="margin: 10px 0;">
+                                ${sWarnings.map(w => `
+                                    <div style="background: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 6px 10px; font-size: 9px; color: #7f1d1d; margin-bottom: 6px; display: flex; gap: 6px;">
+                                        <span>⚠️</span> <span style="font-weight: 600;">${w}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <div class="page" style="page-break-before: always;">
+                            <div class="section-title" style="font-size: 11px; font-weight: 900; text-transform: uppercase; color: #2b6cb0; border-left: 3px solid #2b6cb0; padding-left: 8px; margin-bottom: 10px;">5. Tabella di Conformità e Stato delle Misure</div>
+                            <p>Si riporta lo stato d'attuazione reale dei controlli e delle barriere fisiche per questo servizio:</p>
+                            
+                            <table style="font-size: 9.5px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">ID</th>
+                                        <th style="width: 25%;">Area</th>
+                                        <th style="width: 50%;">Azione di Conformità</th>
+                                        <th style="width: 15%;">Stato</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${sListItems.map(item => {
+                        const isDone = !!sState[item.id || item.question_id];
+                        return `
+                                            <tr>
+                                                <td style="font-family: monospace; font-weight: bold;">${item.id || item.question_id}</td>
+                                                <td style="font-weight: bold; color: #4a5568;">${item.area || 'Compliance'}</td>
+                                                <td style="font-weight: 600;">${item.action || item.text || ""}</td>
+                                                <td style="font-weight: bold; color: ${isDone ? '#16a34a' : '#dc2626'};">
+                                                    ${isDone ? 'ATTUATA ✓' : 'IN ATTESA'}
+                                                </td>
+                                            </tr>
+                                        `;
+                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                });
+            }
         });
 
+        // Helper interno per validazione
+        function savedSkuDataExists(dataObj) {
+            return (dataObj && dataObj.D !== undefined);
+        }
+
         // ══════════════════════════════════════════════════════════════════════
-        // ULTIMA PAGINA: PIANO DI MIGLIORAMENTO, CONCLUSIONI E FIRME
+        // ULTIMA PAGINA: PIANO DI MIGLIORAMENTO, CONCLUSIONI E FIRME (UNIFICATE)
         // ══════════════════════════════════════════════════════════════════════
         html += `
-            <div class="page">
+            <div class="page" style="page-break-before: always;">
                 <h2 class="chapter-title">Programma di Miglioramento e Firme</h2>
                 
                 <div class="section-subtitle">Pianificazione dei Controlli Periodici</div>
@@ -531,7 +700,7 @@ const DVRPrintEngine = {
                 </table>
 
                 <div class="section-subtitle">Dichiarazione di Approvazione</div>
-                <p>I sottoscritti attestano di avuti collaborato attivamente all'analisi dei fattori di rischio e all'elaborazione del presente documento di valutazione, impegnandosi all'applicazione e alla verifica costante di quanto in esso prescritto.</p>
+                <p>I sottoscritti attestano di aver collaborato attivamente all'analisi dei fattori di rischio e all'elaborazione del presente documento di valutazione, impegnandosi all'applicazione e alla verifica costante di quanto in esso prescritto.</p>
 
                 <div class="signature-area">
                     <div class="signature-box">
@@ -582,7 +751,6 @@ const DVRPrintEngine = {
         document.body.appendChild(container);
 
         try {
-            // Attendi rendering reale nel DOM
             await new Promise(r => setTimeout(r, 600));
 
             const { jsPDF } = window.jspdf;
@@ -606,11 +774,10 @@ const DVRPrintEngine = {
             }
 
             const tgApp = window.Telegram?.WebApp;
-            const isMobile = (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) || 
-                             /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+            const isMobile = (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) ||
+                /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
             if (isMobile) {
-                // Ramo Mobile: Genera unicamente la stringa Base64 e invia al webhook (la gestione del file sarà delegata al bot)
                 try {
                     const webhookUrl = typeof WEBHOOK_URL !== 'undefined' ? WEBHOOK_URL : 'https://prod.workflow.trinai.it/webhook/7f254dec-e28f-452a-afb9-2a2a90206cbb';
                     const sessionAsh = typeof ash !== 'undefined' ? ash : (new URLSearchParams(window.location.search)).get('ash') || 'dev';
@@ -618,7 +785,7 @@ const DVRPrintEngine = {
                     const pdfBase64Uri = pdf.output('datauristring');
                     const base64Data = pdfBase64Uri.split(',')[1];
                     const filename = `DVR_${tenant.ragioneSociale.replace(/\s+/g, '_')}.pdf`;
-                    
+
                     const webhookPayload = {
                         action: 'document_to_valut',
                         base64: base64Data,
@@ -647,7 +814,6 @@ const DVRPrintEngine = {
                     console.error('Mobile upload process error:', err);
                 }
             } else {
-                // Ramo Desktop: download locale tramite Blob ed ancora <a>
                 const pdfBytes = pdf.output('arraybuffer');
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                 const url = URL.createObjectURL(blob);
@@ -660,9 +826,7 @@ const DVRPrintEngine = {
                 a.click();
                 document.body.removeChild(a);
 
-                setTimeout(() => {
-                    URL.revokeObjectURL(url);
-                }, 5000);
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
             }
 
         } catch (err) {
