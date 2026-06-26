@@ -177,21 +177,13 @@ const DVRPrintEngine = {
     },
 
     // Genera l'HTML e avvia la stampa
-    generateAndPrint: function (tenant, catalog, checklistState) {
+    generateAndPrint: async function (tenant, catalog, checklistState) {
+        if (window.showLoader) window.showLoader("Generazione Libro DVR...");
+
         const now = new Date();
         const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        const printFrame = document.createElement('iframe');
-        printFrame.style.position = 'fixed';
-        printFrame.style.right = '0';
-        printFrame.style.bottom = '0';
-        printFrame.style.width = '0';
-        printFrame.style.height = '0';
-        printFrame.style.border = '0';
-        document.body.appendChild(printFrame);
-
-        const frameDoc = printFrame.contentDocument || printFrame.contentWindow.document;
-
+        // Costruzione dell'HTML (identica all'originale, ma senza iframe)
         let html = `
             <!DOCTYPE html>
             <html lang="it">
@@ -199,28 +191,28 @@ const DVRPrintEngine = {
                 <meta charset="utf-8">
                 <title>Libro DVR Completo - ${tenant.ragioneSociale}</title>
                 <style>
-                    @page { size: A4; margin: 20mm 15mm; }
                     body {
                         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
                         color: #1a202c;
                         line-height: 1.6;
                         font-size: 11px;
                         background: #fff;
+                        margin: 0;
+                        padding: 0;
                     }
                     .page {
-                        page-break-after: always;
+                        width: 210mm;
+                        height: 297mm;
+                        padding: 20mm 15mm;
                         box-sizing: border-box;
-                    }
-                    .page:last-of-type {
-                        page-break-after: avoid !important;
+                        position: relative;
+                        background: #fff;
                     }
                     /* Copertina */
                     .cover {
-                        height: 250mm;
                         display: flex;
                         flex-direction: column;
                         justify-content: space-between;
-                        padding: 10mm 5mm;
                     }
                     .cover-header { text-align: center; }
                     .cover-title {
@@ -292,7 +284,6 @@ const DVRPrintEngine = {
                         width: 100%;
                         border-collapse: collapse;
                         margin: 15px 0;
-                        page-break-inside: avoid;
                     }
                     th, td {
                         border: 1px solid #e2e8f0;
@@ -314,7 +305,6 @@ const DVRPrintEngine = {
                         grid-template-columns: 1fr 1fr;
                         gap: 20px;
                         margin-top: 40px;
-                        page-break-inside: avoid;
                     }
                     .signature-box {
                         border: 1px solid #cbd5e0;
@@ -339,7 +329,6 @@ const DVRPrintEngine = {
         // ══════════════════════════════════════════════════════════════════════
         // PAGINA 1: COPERTINA E ANAGRAFICA
         // ══════════════════════════════════════════════════════════════════════
-        // Risolviamo l'elenco testuale per la copertina
         const mappedSectorNames = tenant.activeVerticals.map(v => {
             const normalized = this.normalizeKey(v);
             return this.metaLocal[normalized]?.name || v;
@@ -422,14 +411,12 @@ const DVRPrintEngine = {
         // ══════════════════════════════════════════════════════════════════════
         // PAGINE SUCCESSIVE: SEZIONI SPECIFICHE PER SETTORI ATTIVI (DINAMICI)
         // ══════════════════════════════════════════════════════════════════════
-        // Costruiamo la lista normalizzata delle verticali da valutare
         const activeSectors = [...new Set(['comune', ...tenant.activeVerticals.map(v => this.normalizeKey(v))])];
 
         activeSectors.forEach((vKey) => {
             const sec = this.sectorData[vKey];
             if (!sec) return;
 
-            // Filtro e mappa dei servizi appartenenti a questo specifico settore
             const sectorServices = catalog.filter(s => {
                 if (typeof getVerticalForService === 'function') {
                     const normalizedSvcKey = DVRPrintEngine.normalizeKey(getVerticalForService(s));
@@ -438,7 +425,6 @@ const DVRPrintEngine = {
                 return vKey === 'comune';
             });
 
-            // Calcolo Indice di Rischio per il settore
             let d = (vKey === 'dental' || vKey === 'health' || vKey === 'workshop' || vKey === 'construction' || vKey === 'food') ? 3 : 2;
             if (vKey === 'professional') d = 1;
 
@@ -448,12 +434,10 @@ const DVRPrintEngine = {
             if (sectorServices.length > 0) {
                 sectorServices.forEach(s => {
                     const state = checklistState[s.service_sku] || {};
-                    // Stima su 3 controlli tipici per servizio
                     totalChecks += 3;
                     checkedCount += Object.values(state).filter(Boolean).length;
                 });
             } else {
-                // Se non ci sono servizi catalogati, si assume la checklist comune di fallback
                 const state = checklistState[vKey] || {};
                 totalChecks = 3;
                 checkedCount = Object.values(state).filter(Boolean).length;
@@ -547,7 +531,7 @@ const DVRPrintEngine = {
                 </table>
 
                 <div class="section-subtitle">Dichiarazione di Approvazione</div>
-                <p>I sottoscritti attestano di aver collaborato attivamente all'analisi dei fattori di rischio e all'elaborazione del presente documento di valutazione, impegnandosi all'applicazione e alla verifica costante di quanto in esso prescritto.</p>
+                <p>I sottoscritti attestano di avuti collaborato attivamente all'analisi dei fattori di rischio e all'elaborazione del presente documento di valutazione, impegnandosi all'applicazione e alla verifica costante di quanto in esso prescritto.</p>
 
                 <div class="signature-area">
                     <div class="signature-box">
@@ -586,16 +570,61 @@ const DVRPrintEngine = {
             </html>
         `;
 
-        frameDoc.write(html);
-        frameDoc.close();
+        // NUOVO: invece di iframe + window.print(), usi html2canvas + jsPDF
+        try {
+            const { jsPDF } = window.jspdf;
 
-        // Attesa del caricamento dell'Iframe e lancio del dialogo di stampa
-        setTimeout(() => {
-            printFrame.contentWindow.focus();
-            printFrame.contentWindow.print();
-            setTimeout(() => {
-                document.body.removeChild(printFrame);
-            }, 2000);
-        }, 500);
+            // Crea un div temporaneo invisibile ma presente nel DOM per consentire a html2canvas di renderizzarlo
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '0';
+            container.style.width = '794px'; // Larghezza fissa A4 a 96dpi
+            container.innerHTML = html;
+            document.body.appendChild(container);
+
+            // Aspetta il rendering del layout
+            await new Promise(r => setTimeout(r, 300));
+
+            const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const pages = container.querySelectorAll('.page');
+
+            for (let i = 0; i < pages.length; i++) {
+                const canvas = await html2canvas(pages[i], {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                });
+                const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+            }
+
+            document.body.removeChild(container);
+
+            // Gestione del file in Telegram WebApp
+            const pdfBlob = pdf.output('blob');
+            const url = URL.createObjectURL(pdfBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `DVR_${tenant.ragioneSociale}.pdf`;
+
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                // Rilevamento Telegram Mini App mobile per aggirare il blocco download
+                window.open(url, '_blank');
+            } else {
+                link.click();
+            }
+            setTimeout(() => URL.revokeObjectURL(url), 5000);
+        } catch (err) {
+            console.error(err);
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
+                window.Telegram.WebApp.showAlert("Errore durante la generazione del PDF: " + err.message);
+            } else {
+                alert("Errore durante la generazione del PDF: " + err.message);
+            }
+        } finally {
+            if (window.hideLoader) window.hideLoader();
+        }
     }
 };

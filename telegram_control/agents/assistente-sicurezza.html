@@ -2483,9 +2483,79 @@
             DVRPrintEngine.generateAndPrint(tenant, catalogActive, checklistState);
         }
 
-        function printSingleDVR() {
+        async function printSingleDVR() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            window.print();
+            
+            // Trova il pulsante per cambiare il testo temporaneamente
+            const btn = document.querySelector('button[onclick="printSingleDVR()"]');
+            let originalText = "";
+            if (btn) {
+                originalText = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Generazione...';
+                btn.disabled = true;
+            }
+            
+            if (window.showLoader) window.showLoader("Generazione PDF Capitolo...");
+
+            try {
+                const el = document.getElementById('dvr-document-body');
+                if (!el) throw new Error("Elemento dvr-document-body non trovato.");
+
+                // Renderizza l'elemento a canvas ad alta risoluzione
+                const canvas = await html2canvas(el, {
+                    scale: 2,
+                    useCORS: true,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+                
+                const imgWidth = 210;
+                const pageHeight = 297;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                const tenant = getTenantData();
+                const pdfBlob = pdf.output('blob');
+                const url = URL.createObjectURL(pdfBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `DVR_Capitolo_${tenant.ragioneSociale}.pdf`;
+                
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
+                    window.open(url, '_blank');
+                } else {
+                    link.click();
+                }
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            } catch (err) {
+                console.error(err);
+                if (tg && tg.showAlert) {
+                    tg.showAlert("Errore esportazione PDF: " + err.message);
+                } else {
+                    alert("Errore esportazione PDF: " + err.message);
+                }
+            } finally {
+                if (btn) {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+                if (window.hideLoader) window.hideLoader();
+            }
         }
 
         function buildRegulatoryGridForVertical(lawsString) {
@@ -2699,6 +2769,8 @@
             `;
         }
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="dvr-print-engine.js"></script>
 </body>
 
