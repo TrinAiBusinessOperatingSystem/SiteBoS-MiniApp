@@ -2530,25 +2530,30 @@
                 }
 
                 const tenant = getTenantData();
-                // Gestione del file (ottimizzata per mobile WebView e desktop)
-                const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
-                const isTelegramMobile = isTelegram && (window.Telegram.WebApp.platform === 'android' || window.Telegram.WebApp.platform === 'ios');
+                // Download universale — funziona su desktop, Telegram desktop e mobile
+                const pdfBytes = pdf.output('arraybuffer');
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
 
-                if (isTelegramMobile) {
-                    const pdfBlob = pdf.output('blob');
-                    const url = URL.createObjectURL(pdfBlob);
-                    try {
-                        const newWindow = window.open(url, '_blank');
-                        if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                            window.location.href = url;
-                        }
-                    } catch (e) {
-                        window.location.href = url;
-                    }
-                    setTimeout(() => URL.revokeObjectURL(url), 10000);
-                } else {
-                    pdf.save(`DVR_Capitolo_${tenant.ragioneSociale}.pdf`);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `DVR_Capitolo_${tenant.ragioneSociale.replace(/\s+/g, '_')}.pdf`;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // Telegram Mobile: usa il metodo nativo se disponibile
+                const tgApp = window.Telegram?.WebApp;
+                if (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) {
+                    // Apri PDF in visualizzatore esterno tramite URL object
+                    tgApp.openLink(url); // apre nel browser esterno del telefono
                 }
+
+                // Fallback: se dopo 5s il download è gestito, rilascia l'URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 5000);
             } catch (err) {
                 console.error(err);
                 if (tg && tg.showAlert) {

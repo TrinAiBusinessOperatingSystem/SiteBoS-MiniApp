@@ -570,65 +570,72 @@ const DVRPrintEngine = {
             </html>
         `;
 
-        // NUOVO: invece di iframe + window.print(), usi html2canvas + jsPDF
+        // Costruisci il container VISIBILE ma coperto da overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);z-index:99999;display:flex;align-items:center;justify-content:center;font-family:sans-serif;font-size:16px;';
+        overlay.innerHTML = '⏳ Generazione PDF in corso...';
+        document.body.appendChild(overlay);
+
+        const container = document.createElement('div');
+        container.style.cssText = 'position:fixed;top:0;left:0;width:794px;opacity:0;pointer-events:none;z-index:99998;';
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
         try {
+            // Attendi rendering reale nel DOM
+            await new Promise(r => setTimeout(r, 600));
+
             const { jsPDF } = window.jspdf;
-
-            // Crea un div temporaneo invisibile ma presente nel DOM per consentire a html2canvas di renderizzarlo
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            container.style.top = '0';
-            container.style.width = '794px'; // Larghezza fissa A4 a 96dpi
-            container.innerHTML = html;
-            document.body.appendChild(container);
-
-            // Aspetta il rendering del layout
-            await new Promise(r => setTimeout(r, 300));
-
             const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
             const pages = container.querySelectorAll('.page');
 
+            if (pages.length === 0) throw new Error('Nessuna pagina trovata nel documento.');
+
             for (let i = 0; i < pages.length; i++) {
+                overlay.innerHTML = `⏳ Pagina ${i + 1} di ${pages.length}...`;
                 const canvas = await html2canvas(pages[i], {
                     scale: 2,
                     useCORS: true,
-                    backgroundColor: '#ffffff'
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    windowWidth: 794
                 });
-                const imgData = canvas.toDataURL('image/jpeg', 0.85);
+                const imgData = canvas.toDataURL('image/jpeg', 0.88);
                 if (i > 0) pdf.addPage();
                 pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
             }
 
-            document.body.removeChild(container);
+            // Download universale — funziona su desktop, Telegram desktop e mobile
+            const pdfBytes = pdf.output('arraybuffer');
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            const url = URL.createObjectURL(blob);
 
-            // Gestione del file (ottimizzata per mobile WebView e desktop)
-            const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
-            const isTelegramMobile = isTelegram && (window.Telegram.WebApp.platform === 'android' || window.Telegram.WebApp.platform === 'ios');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `DVR_${tenant.ragioneSociale.replace(/\s+/g, '_')}.pdf`;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
 
-            if (isTelegramMobile) {
-                const pdfBlob = pdf.output('blob');
-                const url = URL.createObjectURL(pdfBlob);
-                try {
-                    const newWindow = window.open(url, '_blank');
-                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-                        window.location.href = url;
-                    }
-                } catch (e) {
-                    window.location.href = url;
-                }
-                setTimeout(() => URL.revokeObjectURL(url), 10000);
-            } else {
-                pdf.save(`DVR_${tenant.ragioneSociale}.pdf`);
+            // Telegram Mobile: usa il metodo nativo se disponibile
+            const tgApp = window.Telegram?.WebApp;
+            if (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) {
+                // Apri PDF in visualizzatore esterno tramite URL object
+                tgApp.openLink(url); // apre nel browser esterno del telefono
             }
+
+            // Fallback: se dopo 1s il download non parte (WebView mobile), apri in tab
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+            }, 5000);
+
         } catch (err) {
-            console.error(err);
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
-                window.Telegram.WebApp.showAlert("Errore durante la generazione del PDF: " + err.message);
-            } else {
-                alert("Errore durante la generazione del PDF: " + err.message);
-            }
+            console.error('DVR PDF Error:', err);
+            alert('Errore generazione PDF: ' + err.message);
         } finally {
+            document.body.removeChild(container);
+            document.body.removeChild(overlay);
             if (window.hideLoader) window.hideLoader();
         }
     }
