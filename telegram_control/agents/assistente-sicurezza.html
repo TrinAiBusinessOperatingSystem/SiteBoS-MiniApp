@@ -1263,10 +1263,24 @@
                 ownerData = data.owner_data || {};
                 mitigationControls = data.mitigation_control || [];
 
-                // Salviamo la collezione separata delle checklist nella sua variabile globale dedicata
-                serverChecklistState = data.checklist_state || data.saved_checklists || {};
+                // 1. Estrae i dati dal DB (che ora è un Array)
+                const rawServerState = data.checklist_state || data.risk || data.saved_checklists || [];
 
-                // Carica lo stato delle spunte
+                // 2. CONVERTE L'ARRAY IN DIZIONARIO PER IL FRONTEND
+                serverChecklistState = {};
+                if (Array.isArray(rawServerState)) {
+                    rawServerState.forEach(item => {
+                        if (item && item.service_sku) {
+                            // Usiamo lo SKU come chiave di memoria interna dell'app
+                            serverChecklistState[item.service_sku] = item;
+                        }
+                    });
+                } else if (typeof rawServerState === 'object') {
+                    // Fallback se per caso arrivasse il vecchio formato
+                    serverChecklistState = rawServerState;
+                }
+
+                // 3. Carica lo stato delle spunte (checkbox)
                 loadChecklistState(serverChecklistState);
 
                 // Aggiorna UI
@@ -1431,6 +1445,7 @@
             try {
                 checklistState = {};
 
+                // Inizializza lo stato locale
                 catalogActive.forEach(s => {
                     checklistState[s.service_sku] = {};
                 });
@@ -1444,27 +1459,39 @@
                 });
 
                 if (serverState && typeof serverState === 'object') {
-                    Object.keys(serverState).forEach(skuOrKey => {
-                        if (!checklistState[skuOrKey]) {
-                            checklistState[skuOrKey] = {};
-                        }
-                        const subState = serverState[skuOrKey] || {};
+                    // Mappa di normalizzazione anti-errori (Mette a riparo da futuri scherzi di Langchain)
+                    const skuMap = {};
+                    catalogActive.forEach(s => {
+                        const cleanSku = s.service_sku.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+                        skuMap[cleanSku] = s.service_sku;
+                    });
+                    skuMap['comune'] = 'comune';
 
-                        // Riconosce automaticamente se le risposte sono annidate sotto "answers" (nuova struttura) o se è la vecchia struttura piatta
+                    // Applica le spunte dal server all'interfaccia utente
+                    Object.keys(serverState).forEach(dbKey => {
+                        const cleanDbKey = dbKey.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+                        const realSku = skuMap[cleanDbKey] || dbKey;
+
+                        if (!checklistState[realSku]) {
+                            checklistState[realSku] = {};
+                        }
+
+                        const subState = serverState[dbKey] || {};
+                        // Estrae le risposte dal nodo "answers" del nostro nuovo formato
                         const answersSource = subState.answers || subState;
 
                         if (answersSource && typeof answersSource === 'object') {
                             Object.keys(answersSource).forEach(chkId => {
-                                // Esclude i metadati numerici e di calcolo in caso di vecchia struttura piatta
-                                if (['D', 'C', 'P', 'R', 'overall_justification', 'service_name', 'service_category', 'service_description', 'risk_warnings', 'starting_damage', 'starting_contamination', 'starting_risk'].includes(chkId)) {
+                                // Evita di confondere i metadati di rischio con le spunte della checklist
+                                if (['D', 'C', 'P', 'R', 'overall_justification', 'service_name', 'service_category', 'service_description', 'risk_warnings', 'starting_damage', 'starting_contamination', 'starting_risk', 'service_sku'].includes(chkId)) {
                                     return;
                                 }
                                 const val = answersSource[chkId];
                                 if (val !== null && val !== undefined) {
                                     if (typeof val === 'object') {
-                                        checklistState[skuOrKey][chkId] = !!(val.checked || val.value);
+                                        checklistState[realSku][chkId] = !!(val.checked || val.value);
                                     } else {
-                                        checklistState[skuOrKey][chkId] = !!val;
+                                        checklistState[realSku][chkId] = !!val;
                                     }
                                 }
                             });
