@@ -2693,13 +2693,129 @@
             DVRPrintEngine.generateAndPrint(tenant, catalogActive, checklistState);
         }
 
+        // Generatore dell'anteprima a schermo (tab Documento DVR) per il singolo servizio del catalogo
+        function buildSingleServiceDVRPage(service, listItems) {
+            const body = document.getElementById('dvr-document-body');
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+
+            const sku = service.service_sku;
+            const state = checklistState[sku] || {};
+            const tenant = getTenantData();
+
+            // Calcoliamo i valori fisici di partenza del comparto padre
+            const vKey = getVerticalForService(service);
+            const param = parametriVerticali[vKey] || { D: 2, C: 1 };
+            const dPartenza = param.D || 2;
+            const cPartenza = param.C || 1;
+            const rPartenza = 4 * dPartenza; // Rischio massimo iniziale (Probabilità = 4)
+
+            // Legge i dati di rischio storicizzati sul database (Sorgente di verità primaria per l'anteprima)
+            const savedSkuData = (serverChecklistState && serverChecklistState[sku]) ? serverChecklistState[sku] : null;
+
+            let d = dPartenza;
+            let c = cPartenza;
+            let p = 4;
+            let r = rPartenza;
+            let justification = "";
+
+            if (savedSkuData && (savedSkuData.D !== undefined || savedSkuData.overall_justification)) {
+                d = savedSkuData.D || dPartenza;
+                c = savedSkuData.C || cPartenza;
+                p = savedSkuData.P || 4;
+                r = savedSkuData.R || (d * p);
+                justification = savedSkuData.overall_justification || "";
+            } else {
+                // Calcolo locale temporaneo (fallback)
+                const total = listItems.length;
+                const checkedCount = listItems.filter(item => state[item.id || item.question_id]).length;
+                if (total > 0 && checkedCount > 0) {
+                    const fraction = checkedCount / total;
+                    p = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
+                }
+                r = p * d;
+                justification = `Rischio di partenza valutato a livello di sicurezza di comparto. Livello iniziale massimo pari a R = ${4 * d}. Il rischio attuale calcolato in base alle misure implementate si attesta a R = ${r} (Danno D = ${d}, Probabilità residua P = ${p}). Clicca sulle singole azioni per avviare il ricalcolo analitico in tempo reale su MongoDB.`;
+            }
+
+            // Determiniamo la classe CSS del rischio residuo per la stampa
+            let rLabel = "BASSO";
+            let rClass = "dvr-risk-low";
+            if (r >= 8) {
+                rLabel = "ALTO";
+                rClass = "dvr-risk-high";
+            } else if (r >= 4) {
+                rLabel = "MEDIO";
+                rClass = "dvr-risk-mid";
+            }
+
+            body.innerHTML = `
+                <div style="text-align:center;padding-bottom:12px;border-bottom:2px solid #000;margin-bottom:16px">
+                    <div class="dvr-label">Documento di Valutazione dei Rischi</div>
+                    <h2>VALUTAZIONE SPECIFICA PRESTAZIONE</h2>
+                    <div style="font-size:9px;font-weight:700;color:#6b7280;margin-top:4px">Servizio: ${service.service_name.toUpperCase()}</div>
+                    <div style="font-size:8px;color:#a3a3a3;margin-top:2px">Redatto il ${dateStr} — ex D.Lgs. 81/2008</div>
+                </div>
+
+                <div class="dvr-section-title"><i class="fas fa-building mr-1"></i>Anagrafica Aziendale</div>
+                <div class="dvr-field"><span class="dvr-field-label">Ragione Sociale</span><span class="dvr-field-value">${tenant.ragioneSociale}</span></div>
+                <div class="dvr-field"><span class="dvr-field-label">Sede Operativa</span><span class="dvr-field-value">${tenant.indirizzo}</span></div>
+
+                <!-- SEZIONE: CONFRONTO DINAMICO IMPATTO RISCHIO (DA -> A) -->
+                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Analisi di Impatto e Mitigazione del Rischio (INAIL)</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0;">
+                    <!-- Stato di Partenza (Worst Case) -->
+                    <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af; display:block;">1. Stato di Partenza (Senza Misure)</span>
+                        <div style="font-size: 14px; font-weight: 900; color: #b91c1c; margin-top: 4px;">R = ${rPartenza}</div>
+                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dPartenza} | Probabilità: 4 (Max)</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #b91c1c; text-transform: uppercase; margin-top: 4px;">Rischio Iniziale Alto</div>
+                    </div>
+                    
+                    <!-- Stato Residuo Attuale (Mitigato) -->
+                    <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a; display:block;">2. Stato Residuo (Con Misure)</span>
+                        <div style="font-size: 14px; font-weight: 900; color: #15803d; margin-top: 4px;">R = ${r}</div>
+                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${d} | Probabilità: ${p}</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-top: 4px;">Rischio Attuale ${rLabel}</div>
+                    </div>
+                </div>
+                
+                <!-- Giustificazione di Gemini che spiega formalmente l'impatto della mitigazione -->
+                ${justification ? `
+                <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
+                    <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
+                    ${justification}
+                </div>
+                ` : ''}
+
+                <div class="dvr-section-title"><i class="fas fa-tasks mr-1"></i>Stato delle Misure di Prevenzione</div>
+                ${listItems.map((c, i) => {
+                const isDone = !!state[c.id];
+                return `
+                        <div class="dvr-chk-row">
+                            <span class="dvr-chk-num">${String(i + 1).padStart(2, '0')}.</span>
+                            <div style="flex:1">
+                                <p style="font-weight:600;margin:0;color:#111827">${c.action}</p>
+                                <div style="display:flex;gap:6px;margin-top:4px">
+                                    <span style="font-size:7px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:4px;font-weight:bold">${c.area}</span>
+                                    <span style="font-size:7px;background:${isDone ? '#dcfce7' : '#fee2e2'};color:${isDone ? '#15803d' : '#b91c1c'};padding:1px 5px;border-radius:4px;font-weight:bold">${isDone ? 'Attuata' : 'In attesa'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+            }).join('')}
+            `;
+        }
+
+        // Funzione che gestisce l'evento di click sul bottone di stampa del singolo capitolo
         function printSingleDVR() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             const tenant = getTenantData();
             const service = catalogActive.find(s => s.service_sku === currentServiceSku);
 
             if (service) {
-                // Avvia la generazione professionale e completa dal motore esterno
+                // Avvia la generazione PDF corretta, prelevando l'elemento visibile appena popolato
                 DVRPrintEngine.printSingleService(tenant, service, checklistState);
             } else {
                 safeAlert("Errore: impossibile identificare il servizio corrente.");
