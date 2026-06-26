@@ -1968,6 +1968,13 @@
 
             const serviceName = service.service_name || "";
             const category = service.categoria_padre || "";
+            const vKey = getVerticalForService(service);
+
+            // Calcolo parametri di partenza locali da passare al backend
+            const param = parametriVerticali[vKey] || { D: 2, C: 1 };
+            const dPartenza = param.D || 2;
+            const cPartenza = param.C || 1;
+            const rPartenza = 4 * dPartenza; // Il rischio massimo iniziale (con Probabilità = 4)
 
             let serviceDescription = "";
             let riskWarnings = [];
@@ -1997,12 +2004,19 @@
                     service_description: serviceDescription,
                     risk_warnings: riskWarnings,
 
+                    // Dati della specifica spunta in analisi
                     target_question_id: chkId,
                     target_checked: isChecked,
                     target_label: targetLabel,
                     target_description: targetDescription,
 
-                    checklist_state: checklistState[sku] // Invia l'intero stato per consentire il calcolo cumulativo
+                    // Parametri di partenza fisici ereditati dal comparto padre
+                    starting_damage: dPartenza,
+                    starting_contamination: cPartenza,
+                    starting_risk: rPartenza,
+
+                    // Stato complessivo piatto (solo ID e booleani)
+                    checklist_state: checklistState[sku]
                 };
 
                 const response = await fetch(WEBHOOK_URL, {
