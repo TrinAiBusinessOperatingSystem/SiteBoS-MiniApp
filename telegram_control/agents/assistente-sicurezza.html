@@ -1936,28 +1936,29 @@
 
         async function toggleCheck(sku, chkId) {
             if (!checklistState[sku]) checklistState[sku] = {};
+
+            // Disabilitiamo temporaneamente i click sulla riga per evitare click multipli durante il caricamento
+            const row = document.getElementById(`row-${sku}-${chkId}`);
+            if (row) row.style.pointerEvents = "none";
+
+            // Inseriamo un micro-spinner nero dentro la casella per dare feedback visivo immediato
+            const box = document.getElementById(`chk-${sku}-${chkId}`);
+            if (box) {
+                box.innerHTML = '<i class="fas fa-spinner fa-spin text-[10px] text-black"></i>';
+                box.style.borderColor = "#000000";
+            }
+
+            // Cambiamo lo stato logico locale
             checklistState[sku][chkId] = !checklistState[sku][chkId];
             const isChecked = checklistState[sku][chkId];
 
-            // 1. Aggiornamento visivo immediato (UX reattiva)
-            const box = document.getElementById(`chk-${sku}-${chkId}`);
-            const row = document.getElementById(`row-${sku}-${chkId}`);
-            const actionText = document.getElementById(`action-text-${sku}-${chkId}`);
-
-            if (box) box.classList.toggle('checked', isChecked);
-            if (row) row.classList.toggle('done', isChecked);
-            if (actionText) actionText.classList.toggle('line-through', isChecked);
-            if (actionText) actionText.classList.toggle('opacity-50', isChecked);
-
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-
-            // 2. Stato di caricamento visivo sulla matrice INAIL
+            // Stato di caricamento visivo sulla scheda INAIL
             const pointer = document.getElementById('inail-risk-pointer');
             if (pointer) pointer.style.opacity = "0.5";
             const justEl = document.getElementById('inail-justification');
-            if (justEl) justEl.textContent = "Analisi del rischio in corso su MongoDB...";
+            if (justEl) justEl.textContent = "Ricalcolo del rischio in corso su MongoDB...";
 
-            // 3. Estrazione metadati dal Catalogo e dal Dossier
+            // Estrazione dati dal Catalogo e dal Dossier
             const service = catalogActive.find(s => s.service_sku === sku) || {};
             const dossier = getDossierBySku(sku);
 
@@ -1977,12 +1978,10 @@
                 listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
             }
 
-            // 4. Identificazione dei metadati della sola spunta cliccata
             const targetItem = listItems.find(item => (item.id || item.question_id) === chkId) || {};
             const targetLabel = targetItem.area || "Compliance";
             const targetDescription = targetItem.action || targetItem.text || "";
 
-            // 5. Chiamata asincrona d'analisi con Payload Ottimizzato
             try {
                 const payload = {
                     _auth: tg.initData,
@@ -1994,14 +1993,12 @@
                     service_description: serviceDescription,
                     risk_warnings: riskWarnings,
 
-                    // Dati della spunta singola attualmente analizzata
                     target_question_id: chkId,
                     target_checked: isChecked,
                     target_label: targetLabel,
                     target_description: targetDescription,
 
-                    // Stato complessivo piatto (solo ID e booleani)
-                    checklist_state: checklistState[sku]
+                    checklist_state: checklistState[sku] // Invia l'intero stato per consentire il calcolo cumulativo
                 };
 
                 const response = await fetch(WEBHOOK_URL, {
@@ -2010,19 +2007,32 @@
                     body: JSON.stringify(payload)
                 });
 
-                if (!response.ok) throw new Error("Errore nell'analisi del rischio");
+                if (!response.ok) throw new Error("Errore nell'analisi");
 
                 const result = await response.json();
-
-                // 6. Aggiorna la matrice INAIL sul client con i dati del server
                 applyServerRiskAnalysis(result);
 
             } catch (err) {
                 console.error("Errore analisi:", err);
-                if (justEl) justEl.textContent = "Impossibile allineare il rischio in tempo reale. Salva per confermare.";
+                if (justEl) justEl.textContent = "Impossibile allineare il rischio. Salva per confermare.";
+            } finally {
+                // Ripristiniamo la casella nel suo stato finale (checked o empty) e riattiviamo i click
+                if (box) {
+                    box.innerHTML = ''; // Rimuove lo spinner
+                    box.classList.toggle('checked', isChecked);
+                }
+                if (row) {
+                    row.classList.toggle('done', isChecked);
+                    row.style.pointerEvents = "auto";
+                    const actionText = document.getElementById(`action-text-${sku}-${chkId}`);
+                    if (actionText) {
+                        actionText.classList.toggle('line-through', isChecked);
+                        actionText.classList.toggle('opacity-50', isChecked);
+                    }
+                }
             }
 
-            // 7. Aggiorna progressi e anteprima DVR del singolo servizio
+            // Aggiorna progressi e anteprima DVR
             updateDetailProgress(sku, listItems);
             if (service.service_sku) {
                 buildSingleServiceDVRPage(service, listItems);
