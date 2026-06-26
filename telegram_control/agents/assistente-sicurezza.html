@@ -1939,7 +1939,7 @@
             checklistState[sku][chkId] = !checklistState[sku][chkId];
             const isChecked = checklistState[sku][chkId];
 
-            // 1. Aggiornamento visivo immediato della casella (UX fluida)
+            // 1. Aggiornamento visivo immediato (UX reattiva)
             const box = document.getElementById(`chk-${sku}-${chkId}`);
             const row = document.getElementById(`row-${sku}-${chkId}`);
             const actionText = document.getElementById(`action-text-${sku}-${chkId}`);
@@ -1951,50 +1951,80 @@
 
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
-            // 2. Mostra uno stato di ricalcolo temporaneo sulla matrice INAIL
+            // 2. Stato di caricamento visivo sulla matrice INAIL
             const pointer = document.getElementById('inail-risk-pointer');
             if (pointer) pointer.style.opacity = "0.5";
             const justEl = document.getElementById('inail-justification');
-            if (justEl) justEl.textContent = "Ricalcolo del rischio in corso su MongoDB...";
+            if (justEl) justEl.textContent = "Analisi del rischio in corso su MongoDB...";
 
-            // 3. Chiamata asincrona d'analisi al Server
+            // 3. Estrazione metadati dal Catalogo e dal Dossier
+            const service = catalogActive.find(s => s.service_sku === sku) || {};
+            const dossier = getDossierBySku(sku);
+
+            const serviceName = service.service_name || "";
+            const category = service.categoria_padre || "";
+
+            let serviceDescription = "";
+            let riskWarnings = [];
+            let listItems = [];
+
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE) {
+                const comp = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE;
+                serviceDescription = comp.positioning || "";
+                riskWarnings = comp.risk_warnings || [];
+                listItems = comp.compliance_checklist || [];
+            } else {
+                listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
+            }
+
+            // 4. Identificazione dei metadati della sola spunta cliccata
+            const targetItem = listItems.find(item => (item.id || item.question_id) === chkId) || {};
+            const targetLabel = targetItem.area || "Compliance";
+            const targetDescription = targetItem.action || targetItem.text || "";
+
+            // 5. Chiamata asincrona d'analisi con Payload Ottimizzato
             try {
+                const payload = {
+                    _auth: tg.initData,
+                    ash: ash,
+                    action: 'analyze',
+                    service_sku: sku,
+                    service_name: serviceName,
+                    service_category: category,
+                    service_description: serviceDescription,
+                    risk_warnings: riskWarnings,
+
+                    // Dati della spunta singola attualmente analizzata
+                    target_question_id: chkId,
+                    target_checked: isChecked,
+                    target_label: targetLabel,
+                    target_description: targetDescription,
+
+                    // Stato complessivo piatto (solo ID e booleani)
+                    checklist_state: checklistState[sku]
+                };
+
                 const response = await fetch(WEBHOOK_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        _auth: tg.initData,
-                        ash: ash,
-                        action: 'analyze',
-                        service_sku: sku,
-                        question_id: chkId,
-                        checklist_state: checklistState[sku] // Invia tutto lo stato corrente di questo SKU
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) throw new Error("Errore nell'analisi del rischio");
 
                 const result = await response.json();
 
-                // 4. Aggiorna la matrice INAIL con i dati scientifici calcolati dal Server
+                // 6. Aggiorna la matrice INAIL sul client con i dati del server
                 applyServerRiskAnalysis(result);
 
             } catch (err) {
                 console.error("Errore analisi:", err);
-                if (justEl) justEl.textContent = "Impossibile calcolare il rischio in tempo reale. Salva per allineare.";
+                if (justEl) justEl.textContent = "Impossibile allineare il rischio in tempo reale. Salva per confermare.";
             }
 
-            // 5. Aggiorna i progressi e il DVR stampabile del singolo servizio
-            const service = catalogActive.find(s => s.service_sku === sku);
-            const dossier = getDossierBySku(sku);
-            let listItems = [];
-            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
-                listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
-            } else {
-                listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
-            }
+            // 7. Aggiorna progressi e anteprima DVR del singolo servizio
             updateDetailProgress(sku, listItems);
-            if (service) {
+            if (service.service_sku) {
                 buildSingleServiceDVRPage(service, listItems);
             }
         }
