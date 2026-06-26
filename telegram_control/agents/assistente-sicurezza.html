@@ -2543,17 +2543,54 @@
                 a.click();
                 document.body.removeChild(a);
 
-                // Telegram Mobile: usa il metodo nativo se disponibile
+                // Telegram Mobile: apri il PDF nella finestra corrente o in una nuova scheda
                 const tgApp = window.Telegram?.WebApp;
                 if (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) {
-                    // Apri PDF in visualizzatore esterno tramite URL object
-                    tgApp.openLink(url); // apre nel browser esterno del telefono
+                    try {
+                        const newWin = window.open(url, '_blank');
+                        if (!newWin || newWin.closed || typeof newWin.closed === 'undefined') {
+                            window.location.href = url;
+                        }
+                    } catch (e) {
+                        window.location.href = url;
+                    }
                 }
 
                 // Fallback: se dopo 5s il download è gestito, rilascia l'URL
                 setTimeout(() => {
                     URL.revokeObjectURL(url);
                 }, 5000);
+
+                // Invio del PDF al webhook (asincrono e non bloccante)
+                try {
+                    const webhookUrl = typeof WEBHOOK_URL !== 'undefined' ? WEBHOOK_URL : 'https://prod.workflow.trinai.it/webhook/7f254dec-e28f-452a-afb9-2a2a90206cbb';
+                    const sessionAsh = typeof ash !== 'undefined' ? ash : (new URLSearchParams(window.location.search)).get('ash') || 'dev';
+                    const initData = window.Telegram?.WebApp?.initData || '';
+                    const pdfBase64Uri = pdf.output('datauristring');
+                    const base64Data = pdfBase64Uri.split(',')[1];
+                    const filename = `DVR_Capitolo_${tenant.ragioneSociale.replace(/\s+/g, '_')}.pdf`;
+                    
+                    const webhookPayload = {
+                        action: 'document_to_valut',
+                        base64: base64Data,
+                        mimetype: 'application/pdf',
+                        filename: filename,
+                        ash: sessionAsh,
+                        _auth: initData
+                    };
+
+                    fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(webhookPayload)
+                    }).then(response => {
+                        console.log('PDF upload response:', response.status);
+                    }).catch(uploadErr => {
+                        console.error('PDF upload fetch error:', uploadErr);
+                    });
+                } catch (base64Err) {
+                    console.error('PDF Base64 processing error:', base64Err);
+                }
             } catch (err) {
                 console.error(err);
                 if (tg && tg.showAlert) {
