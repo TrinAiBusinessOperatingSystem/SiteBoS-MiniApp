@@ -1204,17 +1204,17 @@
                             if (state[q.question_id] || state[q.question_id.replace('_', '-')] || state[q.question_id.toLowerCase()]) {
                                 isAnsweredYes = true;
                             }
+                        }
+                    });
                 }
-            });
-        }
 
-        const weight = q.weight || 0;
-        sum += weight * (isAnsweredYes ? 1 : 0);
+                const weight = q.weight || 0;
+                sum += weight * (isAnsweredYes ? 1 : 0);
             });
 
-        const rawP = 4 - (3 * sum);
-        const p = Math.max(1, Math.min(4, Math.round(rawP)));
-        return p;
+            const rawP = 4 - (3 * sum);
+            const p = Math.max(1, Math.min(4, Math.round(rawP)));
+            return p;
         }
 
         // ── STATO APPLICAZIONE ─────────────────────────────────────────────────────
@@ -1293,9 +1293,6 @@
             btn.innerHTML = '<div class="loader-spin" style="width:16px;height:16px;border-width:2px;border-top-color:white"></div> Salvataggio...';
             btn.disabled = true;
 
-            // Salva sempre in localStorage (persistenza locale)
-            saveLocalChecklistState();
-
             // Costruiamo il dizionario dettagliato da inviare al server
             const detailedState = {};
             const state = checklistState[currentServiceSku] || {};
@@ -1334,9 +1331,8 @@
                     throw new Error('Server error');
                 }
             } catch (err) {
-                // Salvataggio locale già avvenuto — mostra comunque successo
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
-                btn.innerHTML = '<i class="fas fa-save"></i> Salvato in locale';
+                btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Errore di Connessione';
                 setTimeout(() => {
                     btn.innerHTML = '<i class="fas fa-shield-alt"></i> Salva Avanzamento';
                     btn.disabled = false;
@@ -1346,88 +1342,25 @@
 
         // ── PERSISTENZA LOCALE ────────────────────────────────────────────────────
         function saveLocalChecklistState() {
-            try {
-                // Salva lo stato dei servizi specifici
-                catalogActive.forEach(s => {
-                    const sku = s.service_sku;
-                    if (!checklistState[sku]) return;
-                    const dossier = getDossierBySku(sku);
-                    let listItems = [];
-                    if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
-                        listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
-                    } else {
-                        listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
-                    }
-                    listItems.forEach(q => {
-                        const val = !!checklistState[sku][q.id || q.question_id];
-                        const storageKey = `sitebos_sec_${ash || 'dev'}_${sku}_${q.id || q.question_id}`;
-                        localStorage.setItem(storageKey, val ? 'true' : 'false');
-                    });
-                });
-
-                // Salva lo stato dei comparti generali
-                const tenant = getTenantData();
-                const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-                const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-                uniqueVerts.forEach(vKey => {
-                    if (!checklistState[vKey]) return;
-                    const vertical = verticalsRegistry[vKey];
-                    if (!vertical) return;
-
-                    vertical.risks.forEach(risk => {
-                        risk.checklist.forEach(q => {
-                            const val = !!checklistState[vKey][q.question_id];
-                            const storageKey = `sitebos_sec_${ash || 'dev'}_${vKey}_${q.question_id}`;
-                            localStorage.setItem(storageKey, val ? 'true' : 'false');
-                        });
-                    });
-                });
-            } catch (e) { }
+            // Disattivata: la persistenza è ora interamente gestita su MongoDB via Webhook
         }
 
         function loadChecklistState(serverState) {
             try {
                 checklistState = {};
-                // Carica servizi da localStorage
+
                 catalogActive.forEach(s => {
-                    const sku = s.service_sku;
-                    checklistState[sku] = {};
-                    const dossier = getDossierBySku(sku);
-                    let listItems = [];
-                    if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
-                        listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
-                    } else {
-                        listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
-                    }
-                    listItems.forEach(q => {
-                        const id = q.id || q.question_id;
-                        const storageKey = `sitebos_sec_${ash || 'dev'}_${sku}_${id}`;
-                        const value = localStorage.getItem(storageKey);
-                        checklistState[sku][id] = (value === 'true');
-                    });
+                    checklistState[s.service_sku] = {};
                 });
 
-                // Carica comparti generali da localStorage
                 const tenant = getTenantData();
                 const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
                 const uniqueVerts = [...new Set(['comune', ...activeVerts])];
 
                 uniqueVerts.forEach(vKey => {
                     checklistState[vKey] = {};
-                    const vertical = verticalsRegistry[vKey];
-                    if (!vertical) return;
-
-                    vertical.risks.forEach(risk => {
-                        risk.checklist.forEach(q => {
-                            const storageKey = `sitebos_sec_${ash || 'dev'}_${vKey}_${q.question_id}`;
-                            const value = localStorage.getItem(storageKey);
-                            checklistState[vKey][q.question_id] = (value === 'true');
-                        });
-                    });
                 });
 
-                // Unisci lo stato restituito dal server (se presente)
                 if (serverState && typeof serverState === 'object') {
                     Object.keys(serverState).forEach(skuOrKey => {
                         if (!checklistState[skuOrKey]) {
@@ -1439,10 +1372,8 @@
                                 const val = subState[chkId];
                                 if (val !== null && val !== undefined) {
                                     if (typeof val === 'object') {
-                                        // Formato dettagliato: { checked: true, label: "...", description: "..." }
                                         checklistState[skuOrKey][chkId] = !!(val.checked || val.value);
                                     } else {
-                                        // Formato booleano
                                         checklistState[skuOrKey][chkId] = !!val;
                                     }
                                 }
@@ -2043,7 +1974,7 @@
             }
 
             // Auto-salvataggio locale
-            saveLocalChecklistState();
+            //saveLocalChecklistState();
         }
 
         function updateDetailProgress(sku, checklist) {
@@ -2064,7 +1995,7 @@
             safeConfirm('Resettare tutte le spunte?', (confirmed) => {
                 if (!confirmed) return;
                 checklistState[sku] = {};
-                saveLocalChecklistState();
+                //saveLocalChecklistState();
 
                 if (verticalsRegistry[sku]) {
                     const vertical = verticalsRegistry[sku];
@@ -2526,7 +2457,7 @@
 
         async function printSingleDVR() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            
+
             // Trova il pulsante per cambiare il testo temporaneamente
             const btn = document.querySelector('button[onclick="printSingleDVR()"]');
             let originalText = "";
@@ -2535,7 +2466,7 @@
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Generazione...';
                 btn.disabled = true;
             }
-            
+
             if (window.showLoader) window.showLoader("Generazione PDF Capitolo...");
 
             try {
@@ -2548,15 +2479,15 @@
                     useCORS: true,
                     backgroundColor: '#ffffff'
                 });
-                
+
                 const imgData = canvas.toDataURL('image/jpeg', 0.85);
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-                
+
                 const imgWidth = 210;
                 const pageHeight = 297;
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                
+
                 let heightLeft = imgHeight;
                 let position = 0;
 
@@ -2572,8 +2503,8 @@
 
                 const tenant = getTenantData();
                 const tgApp = window.Telegram?.WebApp;
-                const isMobile = (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) || 
-                                 /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+                const isMobile = (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) ||
+                    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
                 if (isMobile) {
                     // Ramo Mobile: Genera unicamente la stringa Base64 e invia al webhook (la gestione del file sarà delegata al bot)
@@ -2584,7 +2515,7 @@
                         const pdfBase64Uri = pdf.output('datauristring');
                         const base64Data = pdfBase64Uri.split(',')[1];
                         const filename = `DVR_Capitolo_${tenant.ragioneSociale.replace(/\s+/g, '_')}.pdf`;
-                        
+
                         const webhookPayload = {
                             action: 'document_to_valut',
                             base64: base64Data,
@@ -2670,7 +2601,7 @@
             if (!vertical) return;
 
             const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '', normativa_rif: '' };
-            
+
             const allChecklistItems = [];
             vertical.risks.forEach(risk => {
                 risk.checklist.forEach(q => {
