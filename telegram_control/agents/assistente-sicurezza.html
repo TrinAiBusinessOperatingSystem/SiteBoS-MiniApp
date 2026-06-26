@@ -1699,8 +1699,16 @@
             // Regional notes
             buildRegionalSectionForVertical(vKey);
 
-            // Risk warnings
-            const warnings = vertical.risks.map(r => r.name);
+            // Avvertenze Rischi (Allineato al dossier e al payload di n8n)
+            const dossier = getDossierBySku(vKey);
+            let warnings = [];
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.risk_warnings) {
+                // Preleva le avvertenze dettagliate dal dossier
+                warnings = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.risk_warnings;
+            } else {
+                // Fallback sul nome macroscopico del rischio se non c'è il dossier
+                warnings = vertical.risks.map(r => r.name);
+            }
             buildWarnings(warnings);
 
             // Aggiorna progress nel detail
@@ -1999,13 +2007,24 @@
             const justEl = document.getElementById('inail-justification');
             if (justEl) justEl.textContent = "Ricalcolo del rischio in corso su MongoDB...";
 
-            // Estrazione dati dal Catalogo e dal Dossier
-            const service = catalogActive.find(s => s.service_sku === sku) || {};
+            // Estrazione dati intelligente (Comparto Generale vs Servizio Catalogo)
             const dossier = getDossierBySku(sku);
+            let serviceName = "";
+            let category = "";
+            let vKey = "comune";
 
-            const serviceName = service.service_name || "";
-            const category = service.categoria_padre || "";
-            const vKey = getVerticalForService(service);
+            if (verticalsRegistry[sku]) {
+                // Se fa parte delle misure di sede generali
+                serviceName = verticalsRegistry[sku].title;
+                category = "Infrastruttura e Sicurezza Generale";
+                vKey = sku;
+            } else {
+                // Se si tratta di un servizio clinico/operativo del catalogo
+                const service = catalogActive.find(s => s.service_sku === sku) || {};
+                serviceName = service.service_name || "";
+                category = service.categoria_padre || "";
+                vKey = getVerticalForService(service);
+            }
 
             // Calcolo parametri di partenza locali da passare al backend
             const param = parametriVerticali[vKey] || { D: 2, C: 1 };
