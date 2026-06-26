@@ -2946,6 +2946,9 @@
             if (!vertical) return;
 
             const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '', normativa_rif: '' };
+            const dPartenza = param.D || 2;
+            const cPartenza = param.C || 1;
+            const rPartenza = 4 * dPartenza;
 
             const allChecklistItems = [];
             vertical.risks.forEach(risk => {
@@ -2954,52 +2957,46 @@
                 });
             });
 
-            const p = calculateDynamicProbability(allChecklistItems, vKey);
-            const d = param.D || 2;
-            const c = param.C || 1;
-            const r = p * d;
+            // 1. Controlla se esiste già un'analisi di rischio salvata su MongoDB (collezione separata delle checklist)
+            const savedSkuData = (serverChecklistState && serverChecklistState[vKey]) ? serverChecklistState[vKey] : null;
 
-            document.getElementById('inail-val-d').textContent = d;
-            document.getElementById('inail-val-c').textContent = c;
-            document.getElementById('inail-val-p').textContent = p;
-            document.getElementById('inail-val-r').textContent = r;
+            let d = dPartenza;
+            let c = cPartenza;
+            let p = 4;
+            let r = rPartenza;
+            let justification = "";
 
-            const badge = document.getElementById('inail-risk-badge');
-            badge.className = 'risk-badge-wrap';
-            let riskLabel = 'BASSO';
-            if (r >= 8) {
-                badge.classList.add('risk-high');
-                riskLabel = 'ALTO';
-            } else if (r >= 4) {
-                badge.classList.add('risk-mid');
-                riskLabel = 'MEDIO';
+            if (savedSkuData && (savedSkuData.D !== undefined || savedSkuData.overall_justification)) {
+                // Se c'è un'analisi salvata, carica quei valori esatti
+                d = savedSkuData.D || dPartenza;
+                c = savedSkuData.C || cPartenza;
+                p = savedSkuData.P || 4;
+                r = savedSkuData.R || (d * p);
+                justification = savedSkuData.overall_justification || "";
             } else {
-                badge.classList.add('risk-low');
-                riskLabel = 'BASSO';
-            }
-            document.getElementById('inail-risk-label').textContent = `RISCHIO: ${riskLabel}`;
+                // Fallback locale in assenza di salvataggi
+                p = calculateDynamicProbability(allChecklistItems, vKey);
+                r = p * d;
 
-            const pointer = document.getElementById('inail-risk-pointer');
-            if (pointer) {
-                const leftPct = ((p - 1) / 3) * 80 + 10;
-                pointer.style.left = `${leftPct}%`;
-            }
-
-            const dossier = getDossierBySku(vKey);
-            let justification = '';
-            if (dossier && dossier.Razionale_Matematico && dossier.Razionale_Matematico.R_Rischio_Finale) {
-                justification = dossier.Razionale_Matematico.R_Rischio_Finale.nota_gemini || '';
-            }
-            if (!justification) {
-                justification = `Il rischio calcolato si attesta a R = ${r} (Danno D = ${d}, Probabilità P = ${p}). Danno atteso: ${param.desc_d || 'Patologie/infortuni generici'}. Livello di esposizione/contaminazione: ${param.desc_c || 'Contatto ordinario'}. Riferimento principale: ${param.normativa_rif || 'D.Lgs. 81/08'}.`;
+                const dossier = getDossierBySku(vKey);
+                if (dossier && dossier.Razionale_Matematico && dossier.Razionale_Matematico.R_Rischio_Finale) {
+                    justification = dossier.Razionale_Matematico.R_Rischio_Finale.nota_gemini || '';
+                }
+                if (!justification) {
+                    justification = `Il rischio calcolato si attesta a R = ${r} (Danno D = ${d}, Probabilità P = ${p}). Danno atteso: ${param.desc_d || 'Infortuni/patologie'}. Riferimento principale: ${param.normativa_rif || 'D.Lgs. 81/08'}.`;
+                }
             }
 
-            const justEl = document.getElementById('inail-justification');
-            if (justEl) {
-                justEl.textContent = justification;
-                justEl.classList.remove('hidden');
-            }
+            // 2. Applica i dati visivi alla matrice INAIL
+            applyServerRiskAnalysis({
+                D: d,
+                C: c,
+                P: p,
+                R: r,
+                justification: justification
+            });
 
+            // Assicuriamoci che la sezione sia visibile
             document.getElementById('rischio-inail-section').classList.remove('hidden');
         }
 
@@ -3064,19 +3061,38 @@
             if (!vertical) return;
 
             const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '' };
+            const dPartenza = param.D || 2;
+            const cPartenza = param.C || 1;
+            const rPartenza = 4 * dPartenza;
+
             const tenant = getTenantData();
 
+            // Raccoglie tutti gli item della checklist di questo comparto
             const allChecklistItems = [];
             vertical.risks.forEach(risk => {
                 risk.checklist.forEach(q => {
                     allChecklistItems.push(q);
                 });
             });
-            const p = calculateDynamicProbability(allChecklistItems, vKey);
-            const d = param.D || 2;
-            const r = p * d;
-            const rLabel = r >= 8 ? 'Alto' : (r >= 4 ? 'Medio' : 'Basso');
-            const riskClass = r >= 8 ? 'dvr-risk-high' : (r >= 4 ? 'dvr-risk-mid' : 'dvr-risk-low');
+
+            // Leggiamo i coefficienti e la giustificazione correnti a schermo (aggiornati da MongoDB o ricalcolo)
+            const dVal = document.getElementById('inail-val-d')?.textContent || dPartenza;
+            const cVal = document.getElementById('inail-val-c')?.textContent || cPartenza;
+            const pVal = document.getElementById('inail-val-p')?.textContent || "4";
+            const rVal = document.getElementById('inail-val-r')?.textContent || rPartenza;
+            const justVal = document.getElementById('inail-justification')?.textContent || "";
+
+            // Determiniamo la classe CSS del rischio residuo per la stampa
+            let rLabel = "BASSO";
+            let rClass = "dvr-risk-low";
+            const rNum = parseInt(rVal);
+            if (rNum >= 8) {
+                rLabel = "ALTO";
+                rClass = "dvr-risk-high";
+            } else if (rNum >= 4) {
+                rLabel = "MEDIO";
+                rClass = "dvr-risk-mid";
+            }
 
             const state = checklistState[vKey] || {};
 
@@ -3095,13 +3111,34 @@
                 <div class="dvr-field"><span class="dvr-field-label">Medico Competente</span><span class="dvr-field-value">${tenant.generalMetadata.medicoCompetente}</span></div>
                 <div class="dvr-field"><span class="dvr-field-label">RLS Nominato</span><span class="dvr-field-value">${tenant.generalMetadata.rls}</span></div>
 
-                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Valutazione del Rischio (R = P × D)</div>
-                <div class="dvr-field"><span class="dvr-field-label">Gravità Danno (D)</span><span class="dvr-field-value">${d} / 4</span></div>
-                <div class="dvr-field"><span class="dvr-field-label">Probabilità Accadimento (P)</span><span class="dvr-field-value">${p} / 4</span></div>
-                <div class="dvr-field">
-                    <span class="dvr-field-label">Indice di Rischio Risultante (R)</span>
-                    <span class="dvr-field-value"><span class="dvr-risk-cell ${riskClass}">${r} — ${rLabel}</span></span>
+                <!-- SEZIONE: CONFRONTO DINAMICO IMPATTO RISCHIO (DA -> A) -->
+                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Analisi di Impatto e Mitigazione del Rischio (INAIL)</div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0;">
+                    <!-- Stato di Partenza (Worst Case) -->
+                    <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af;">1. Stato di Partenza (Senza Misure)</span>
+                        <div style="font-size: 14px; font-weight: 900; color: #b91c1c; margin-top: 4px;">R = ${rPartenza}</div>
+                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dPartenza} | Probabilità: 4 (Max)</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #b91c1c; text-transform: uppercase; margin-top: 4px;">Rischio Iniziale Alto</div>
+                    </div>
+                    
+                    <!-- Stato Residuo Attuale (Mitigato) -->
+                    <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a;">2. Stato Residuo (Con Misure Attive)</span>
+                        <div style="font-size: 14px; font-weight: 900; color: #15803d; margin-top: 4px;">R = ${rVal}</div>
+                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dVal} | Probabilità: ${pVal}</div>
+                        <div style="font-size: 8px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-top: 4px;">Rischio Attuale ${rLabel}</div>
+                    </div>
                 </div>
+                
+                <!-- Giustificazione di Gemini che spiega formalmente l'impatto della mitigazione -->
+                ${justVal ? `
+                <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
+                    <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
+                    ${justVal}
+                </div>
+                ` : ''}
 
                 <div class="dvr-section-title"><i class="fas fa-tasks mr-1"></i>Stato delle Misure di Prevenzione</div>
                 ${allChecklistItems.map((c, i) => {
@@ -3112,7 +3149,7 @@
                             <div style="flex:1">
                                 <p style="font-weight:600;margin:0;color:#111827">${c.text}</p>
                                 <div style="display:flex;gap:6px;margin-top:4px">
-                                    <span style="font-size:7px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:4px;font-weight:bold">Peso: ${c.weight}</span>
+                                    <span style="font-size:7px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:4px;font-weight:bold">Peso: ${c.weight || '0.3'}</span>
                                     <span style="font-size:7px;background:${isDone ? '#dcfce7' : '#fee2e2'};color:${isDone ? '#15803d' : '#b91c1c'};padding:1px 5px;border-radius:4px;font-weight:bold">${isDone ? 'Attuata ✓' : 'In attesa'}</span>
                                 </div>
                             </div>
