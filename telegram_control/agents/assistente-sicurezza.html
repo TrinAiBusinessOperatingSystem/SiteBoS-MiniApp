@@ -2001,11 +2001,14 @@
             checklistState[sku][chkId] = !checklistState[sku][chkId];
             const isChecked = checklistState[sku][chkId];
 
+            // Recupera la giustificazione attualmente visibile a schermo prima dell'aggiornamento
+            const justEl = document.getElementById('inail-justification');
+            const previousJustification = (justEl && justEl.textContent) ? justEl.textContent.trim() : "Non ci sono analisi precedenti.";
+
             // Stato di caricamento visivo sulla scheda INAIL
             const pointer = document.getElementById('inail-risk-pointer');
             if (pointer) pointer.style.opacity = "0.5";
-            const justEl = document.getElementById('inail-justification');
-            if (justEl) justEl.textContent = "Ricalcolo del rischio in corso su SiteBoS Assistant...";
+            if (justEl) justEl.textContent = "Ricalcolo del rischio in corso su MongoDB...";
 
             // Estrazione dati intelligente (Comparto Generale vs Servizio Catalogo)
             const dossier = getDossierBySku(sku);
@@ -2029,9 +2032,6 @@
             const dPartenza = param.D || 2;
             const cPartenza = param.C || 1;
             const rPartenza = 4 * dPartenza; // Il rischio massimo iniziale (con Probabilità = 4)
-            // Recupera la giustificazione attualmente visibile a schermo
-            const justEl = document.getElementById('inail-justification');
-            const previousJustification = (justEl && justEl.textContent) ? justEl.textContent.trim() : "Non ci sono analisi precedenti.";
 
             let serviceDescription = "";
             let riskWarnings = [];
@@ -2082,12 +2082,14 @@
                     target_checked: isChecked,
                     target_label: targetLabel,
                     target_description: targetDescription,
-                    previous_justification: previousJustification,
 
                     // Parametri di partenza fisici ereditati dal comparto padre
                     starting_damage: dPartenza,
                     starting_contamination: cPartenza,
                     starting_risk: rPartenza,
+
+                    // Passiamo la giustificazione precedente per consentire la riformulazione cumulativa
+                    previous_justification: previousJustification,
 
                     // Stato complessivo piatto (solo ID e booleani)
                     checklist_state: checklistState[sku]
@@ -2126,8 +2128,9 @@
 
             // Aggiorna progressi e anteprima DVR
             updateDetailProgress(sku, listItems);
-            if (service.service_sku) {
-                buildSingleServiceDVRPage(service, listItems);
+            const serviceObj = catalogActive.find(s => s.service_sku === sku);
+            if (serviceObj && serviceObj.service_sku) {
+                buildSingleServiceDVRPage(serviceObj, listItems);
             }
         }
 
