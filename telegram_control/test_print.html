@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Print Engine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="agents/dvr-print-engine.js"></script>
+</head>
+<body style="font-family: sans-serif; padding: 40px; background: #fafafa;">
+    <h1>Test Generazione PDF DVR</h1>
+    <button id="btn-run" style="padding: 12px 24px; font-size: 16px; cursor: pointer;">Genera e Stampa Libro DVR</button>
+    <div id="loader" style="display: none; margin-top: 20px; font-weight: bold; color: blue;">
+        <span id="loader-text">Generazione in corso...</span>
+    </div>
+    
+    <script>
+        // Mock loaders
+        window.showLoader = function(text) {
+            document.getElementById('loader-text').innerText = text;
+            document.getElementById('loader').style.display = 'block';
+            console.log("Loader shown:", text);
+        };
+        window.hideLoader = function() {
+            document.getElementById('loader').style.display = 'none';
+            console.log("Loader hidden");
+        };
+
+        // Mock function needed by dvr-print-engine.js
+        window.getVerticalForService = function(service) {
+            if (!service) return 'comune';
+            const cat = (service.categoria_padre || '').toLowerCase();
+            if (cat.includes('odontoiatria') || cat.includes('dentale')) return 'dentale';
+            if (cat.includes('sanitario') || cat.includes('health')) return 'sanitario';
+            return 'comune';
+        };
+
+        const tenant = {
+            ragioneSociale: "POLIAMBULATORIO TEST S.R.L.",
+            pIva: "12345678901",
+            indirizzo: "Via della Salute 100, Milano (MI)",
+            activeVerticals: ["comune", "dental", "health"],
+            generalMetadata: {
+                rspp: "Sig. Mario Rossi",
+                rls: "Sig. Luigi Verdi",
+                medicoCompetente: "Dott. Franco Neri",
+                addettiEmergenza: ["Sig.ra Anna Gialli (Primo Soccorso)", "Sig. Paolo Blu (Antincendio)"]
+            }
+        };
+
+        const catalog = [
+            { service_sku: "dent1", service_name: "Visita Odontoiatrica Specialistica", categoria_padre: "Odontoiatria" },
+            { service_sku: "med1", service_name: "Prelievo Ematico Ambulatoriale", categoria_padre: "Sanitario" }
+        ];
+
+        const checklistState = {
+            "dent1": { "dent_q1": true, "dent_q2": false },
+            "med1": { "san_q1": true, "san_q2": true }
+        };
+
+        document.getElementById('btn-run').onclick = async () => {
+            console.log("Starting generateAndPrint...");
+            try {
+                await DVRPrintEngine.generateAndPrint(tenant, catalog, checklistState);
+                console.log("Finished generateAndPrint successfully.");
+            } catch (e) {
+                console.error("Error during generateAndPrint:", e);
+            }
+        };
+    </script>
+</body>
+</html>
