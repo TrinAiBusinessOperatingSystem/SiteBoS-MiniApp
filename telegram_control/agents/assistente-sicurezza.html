@@ -1293,24 +1293,104 @@
             btn.innerHTML = '<div class="loader-spin" style="width:16px;height:16px;border-width:2px;border-top-color:white"></div> Salvataggio...';
             btn.disabled = true;
 
-            // Costruiamo il dizionario dettagliato da inviare al server
-            const detailedState = {};
-            const state = checklistState[currentServiceSku] || {};
-            currentChecklistItems.forEach(item => {
-                const id = item.id || item.question_id;
-                detailedState[id] = {
-                    checked: !!state[id],
-                    label: item.area || 'Compliance',
-                    description: item.action || item.text || ''
-                };
-            });
+            const sku = currentServiceSku;
+            const dossier = getDossierBySku(sku);
 
+            // 1. Estrazione metadati intelligenti dal Catalogo e dal Dossier
+            let serviceName = "";
+            let category = "";
+            let vKey = "comune";
+
+            if (verticalsRegistry[sku]) {
+                serviceName = verticalsRegistry[sku].title;
+                category = "Infrastruttura e Sicurezza Generale";
+                vKey = sku;
+            } else {
+                const service = catalogActive.find(s => s.service_sku === sku) || {};
+                serviceName = service.service_name || "";
+                category = service.categoria_padre || "";
+                vKey = getVerticalForService(service);
+            }
+
+            // Calcolo parametri fisici di partenza
+            const param = parametriVerticali[vKey] || { D: 2, C: 1 };
+            const dPartenza = param.D || 2;
+            const cPartenza = param.C || 1;
+            const rPartenza = 4 * dPartenza;
+
+            let serviceDescription = "";
+            let riskWarnings = [];
+            let listItems = [];
+
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE) {
+                const comp = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE;
+                serviceDescription = comp.positioning || "";
+                riskWarnings = comp.risk_warnings || [];
+                listItems = comp.compliance_checklist || [];
+            } else {
+                listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
+            }
+
+            // 2. Lettura parametri e giustificazione corrente calcolati a schermo
+            const dCorrente = parseInt(document.getElementById('inail-val-d')?.textContent) || dPartenza;
+            const cCorrente = parseInt(document.getElementById('inail-val-c')?.textContent) || cPartenza;
+            const pCorrente = parseInt(document.getElementById('inail-val-p')?.textContent) || 4;
+            const rCorrente = parseInt(document.getElementById('inail-val-r')?.textContent) || rPartenza;
+            const justEl = document.getElementById('inail-justification');
+            const justCorrente = justEl ? justEl.textContent.trim() : "";
+
+            // 3. Costruzione dello stato checklist dettagliato (Misure comuni vs Servizi del catalogo)
+            const detailedState = {};
+            const state = checklistState[sku] || {};
+
+            if (verticalsRegistry[sku]) {
+                // Se si tratta di un comparto di sede, estrae i testi dal registro delle verticali
+                verticalsRegistry[sku].risks.forEach(risk => {
+                    risk.checklist.forEach(q => {
+                        detailedState[q.question_id] = {
+                            checked: !!state[q.question_id],
+                            label: risk.name,
+                            description: q.text
+                        };
+                    });
+                });
+            } else {
+                // Se si tratta di un servizio del catalogo, estrae i testi dal dossier
+                listItems.forEach(item => {
+                    const id = item.id || item.question_id;
+                    detailedState[id] = {
+                        checked: !!state[id],
+                        label: item.area || 'Compliance',
+                        description: item.action || item.text || ''
+                    };
+                });
+            }
+
+            // 4. Invio del pacchetto completo al Server
             try {
                 const payload = {
                     _auth: tg.initData,
                     ash: ash,
                     action: 'save_checklist',
-                    service_sku: currentServiceSku,
+                    service_sku: sku,
+                    service_name: serviceName,
+                    service_category: category,
+                    service_description: serviceDescription,
+                    risk_warnings: riskWarnings,
+
+                    // Parametri di partenza
+                    starting_damage: dPartenza,
+                    starting_contamination: cPartenza,
+                    starting_risk: rPartenza,
+
+                    // Parametri finali calcolati a schermo e giustificazione
+                    current_damage: dCorrente,
+                    current_contamination: cCorrente,
+                    current_probability: pCorrente,
+                    current_risk: rCorrente,
+                    current_justification: justCorrente,
+
+                    // Checklist dettagliata
                     checklist_state: detailedState
                 };
 
