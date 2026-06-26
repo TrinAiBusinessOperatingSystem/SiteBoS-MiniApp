@@ -1220,8 +1220,9 @@
         // ── STATO APPLICAZIONE ─────────────────────────────────────────────────────
         let catalogActive = [];       // array servizi dal server
         let productResearch = [];     // array dossier
-        let ownerData = {};           // dati aziendali
-        let checklistState = {};      // { [service_sku]: { [chk_id]: bool } }
+        let ownerData = {};           // dati aziendali (Collezione anagrafica)
+        let serverChecklistState = {}; // Collezione separata di MongoDB con lo stato salvato delle checklist
+        let checklistState = {};      // { [service_sku]: { [chk_id]: bool } } (Stato locale di UI)
         let currentServiceSku = null; // servizio aperto nel dettaglio
         let activeCategory = 'ALL';   // tab categoria attiva
         let currentChecklistItems = []; // checklist items correnti del dettaglio
@@ -1235,7 +1236,7 @@
             await loadData();
         };
 
-        // ── FETCH DATI ────────────────────────────────────────────────────────────
+        // ── FETCH DATI ────────────────────────────────────────────────────
         async function loadData() {
             showLoader('Caricamento dati di sicurezza...');
             try {
@@ -1254,16 +1255,16 @@
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
                 const rawData = await response.json();
-
-                // n8n restituisce un array con un unico oggetto
                 const data = Array.isArray(rawData) ? rawData[0] : rawData;
 
                 catalogActive = data.catalog_active || [];
                 productResearch = data.Product_Reserch || [];
                 ownerData = data.owner_data || {};
 
-                // Carica stato checklist unendo locale e server
-                const serverChecklistState = data.checklist_state || data.saved_checklists || ownerData.checklist_state || null;
+                // Salviamo la collezione separata delle checklist nella sua variabile globale dedicata
+                serverChecklistState = data.checklist_state || data.saved_checklists || {};
+
+                // Carica lo stato delle spunte
                 loadChecklistState(serverChecklistState);
 
                 // Aggiorna UI
@@ -1279,7 +1280,6 @@
             } catch (err) {
                 hideLoader();
                 document.getElementById('app-content').classList.remove('hidden');
-                // Mostra stato vuoto con messaggio
                 showEmptyState(`Impossibile caricare i dati. Riprova più tardi.\n(${err.message})`);
             }
         }
@@ -1923,13 +1923,12 @@
             const vKey = getVerticalForService(service);
 
             // 1. Recupera i parametri fisici di base ereditati dal comparto padre
-            const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '' };
+            const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '', normativa_rif: '' };
             const dPartenza = param.D || 2;
             const cPartenza = param.C || 1;
             const rPartenza = 4 * dPartenza;
 
-            // 2. Verifica se esiste già uno stato di rischio e giustificazione salvato nel database (ownerData)
-            const serverChecklistState = ownerData.checklist_state || ownerData.saved_checklists || null;
+            // 2. Legge i valori di rischio e giustificazione dalla collezione separata delle checklist
             const savedSkuData = (serverChecklistState && serverChecklistState[sku]) ? serverChecklistState[sku] : null;
 
             let d = dPartenza;
@@ -1938,13 +1937,13 @@
             let r = rPartenza;
             let justification = "";
 
-            if (savedSkuStateExists(savedSkuState)) {
+            if (savedSkuData && (savedSkuData.D !== undefined || savedSkuData.overall_justification)) {
                 // Se esiste un salvataggio precedente nel DB, carica quei valori esatti
-                d = savedSkuState.D || dPartenza;
-                c = savedSkuState.C || cPartenza;
-                p = result.P || 4; // Se presente
-                r = result.R || (d * p);
-                justification = result.overall_justification || "";
+                d = savedSkuData.D || dPartenza;
+                c = savedSkuData.C || cPartenza;
+                p = savedSkuData.P || 4;
+                r = savedSkuData.R || (d * p);
+                justification = savedSkuData.overall_justification || "";
             } else {
                 // Fallback locale in assenza di record su DB (calcolo basato sulle risposte locali)
                 const state = checklistState[sku] || {};
@@ -1957,11 +1956,6 @@
                 }
                 r = p * d;
                 justification = `Rischio di partenza valutato a livello di sicurezza di comparto. Livello iniziale massimo pari a R = ${4 * d}. Il rischio attuale calcolato in base alle misure implementate si attesta a R = ${r} (Danno D = ${d}, Probabilità residua P = ${p}). Clicca sulle singole azioni per avviare il ricalcolo analitico in tempo reale su MongoDB.`;
-            }
-
-            // Helper interno per verificare la validità del salvataggio DB
-            function savedSkuStateExists(stateObj) {
-                return (stateObj && (stateObj.D !== undefined || stateObj.overall_justification));
             }
 
             // 3. Applica visivamente i dati alla matrice INAIL sul client
