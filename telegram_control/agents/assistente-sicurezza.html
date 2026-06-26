@@ -1224,6 +1224,7 @@
         let checklistState = {};      // { [service_sku]: { [chk_id]: bool } }
         let currentServiceSku = null; // servizio aperto nel dettaglio
         let activeCategory = 'ALL';   // tab categoria attiva
+        let currentChecklistItems = []; // checklist items correnti del dettaglio
 
         // ── INIT ──────────────────────────────────────────────────────────────────
         window.onload = async () => {
@@ -1261,8 +1262,9 @@
                 productResearch = data.Product_Reserch || [];
                 ownerData = data.owner_data || {};
 
-                // Carica stato checklist da localStorage
-                loadLocalChecklistState();
+                // Carica stato checklist unendo locale e server
+                const serverChecklistState = data.checklist_state || data.saved_checklists || ownerData.checklist_state || null;
+                loadChecklistState(serverChecklistState);
 
                 // Aggiorna UI
                 updateHeaderSubtitle();
@@ -1294,13 +1296,25 @@
             // Salva sempre in localStorage (persistenza locale)
             saveLocalChecklistState();
 
+            // Costruiamo il dizionario dettagliato da inviare al server
+            const detailedState = {};
+            const state = checklistState[currentServiceSku] || {};
+            currentChecklistItems.forEach(item => {
+                const id = item.id || item.question_id;
+                detailedState[id] = {
+                    checked: !!state[id],
+                    label: item.area || 'Compliance',
+                    description: item.action || item.text || ''
+                };
+            });
+
             try {
                 const payload = {
                     _auth: tg.initData,
                     ash: ash,
                     action: 'save_checklist',
                     service_sku: currentServiceSku,
-                    checklist_state: checklistState[currentServiceSku] || {}
+                    checklist_state: detailedState
                 };
 
                 const response = await fetch(WEBHOOK_URL, {
@@ -1372,10 +1386,10 @@
             } catch (e) { }
         }
 
-        function loadLocalChecklistState() {
+        function loadChecklistState(serverState) {
             try {
                 checklistState = {};
-                // Carica servizi
+                // Carica servizi da localStorage
                 catalogActive.forEach(s => {
                     const sku = s.service_sku;
                     checklistState[sku] = {};
@@ -1387,13 +1401,14 @@
                         listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
                     }
                     listItems.forEach(q => {
-                        const storageKey = `sitebos_sec_${ash || 'dev'}_${sku}_${q.id || q.question_id}`;
+                        const id = q.id || q.question_id;
+                        const storageKey = `sitebos_sec_${ash || 'dev'}_${sku}_${id}`;
                         const value = localStorage.getItem(storageKey);
-                        checklistState[sku][q.id || q.question_id] = (value === 'true');
+                        checklistState[sku][id] = (value === 'true');
                     });
                 });
 
-                // Carica comparti generali
+                // Carica comparti generali da localStorage
                 const tenant = getTenantData();
                 const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
                 const uniqueVerts = [...new Set(['comune', ...activeVerts])];
@@ -1411,8 +1426,32 @@
                         });
                     });
                 });
+
+                // Unisci lo stato restituito dal server (se presente)
+                if (serverState && typeof serverState === 'object') {
+                    Object.keys(serverState).forEach(skuOrKey => {
+                        if (!checklistState[skuOrKey]) {
+                            checklistState[skuOrKey] = {};
+                        }
+                        const subState = serverState[skuOrKey];
+                        if (subState && typeof subState === 'object') {
+                            Object.keys(subState).forEach(chkId => {
+                                const val = subState[chkId];
+                                if (val !== null && val !== undefined) {
+                                    if (typeof val === 'object') {
+                                        // Formato dettagliato: { checked: true, label: "...", description: "..." }
+                                        checklistState[skuOrKey][chkId] = !!(val.checked || val.value);
+                                    } else {
+                                        // Formato booleano
+                                        checklistState[skuOrKey][chkId] = !!val;
+                                    }
+                                }
+                            });
+                        }
+                    });
+                }
             } catch (e) {
-                checklistState = {};
+                console.error("Errore nel caricamento dello stato delle checklist:", e);
             }
         }
 
@@ -1723,6 +1762,7 @@
                     });
                 });
             });
+            currentChecklistItems = allChecklistItems;
             buildChecklist(allChecklistItems, vKey);
 
             // Regional notes
@@ -1817,6 +1857,7 @@
                 ];
             }
 
+            currentChecklistItems = listItems;
             buildChecklist(listItems, currentServiceSku);
             updateDetailProgress(currentServiceSku, listItems);
 
@@ -2437,7 +2478,7 @@
                 ownerData.verticals = activeVerts;
 
                 // Forza caricamento checklist se ci sono nuove verticali
-                loadLocalChecklistState();
+                loadChecklistState(ownerData.checklist_state || null);
 
                 // Aggiorna interfaccia e progresso
                 updateHeaderSubtitle();
