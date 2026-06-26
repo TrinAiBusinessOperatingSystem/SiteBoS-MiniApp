@@ -602,20 +602,25 @@ const DVRPrintEngine = {
 
             document.body.removeChild(container);
 
-            // Gestione del file in Telegram WebApp
-            const pdfBlob = pdf.output('blob');
-            const url = URL.createObjectURL(pdfBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `DVR_${tenant.ragioneSociale}.pdf`;
+            // Gestione del file (ottimizzata per mobile WebView e desktop)
+            const isTelegram = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData;
+            const isTelegramMobile = isTelegram && (window.Telegram.WebApp.platform === 'android' || window.Telegram.WebApp.platform === 'ios');
 
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) {
-                // Rilevamento Telegram Mini App mobile per aggirare il blocco download
-                window.open(url, '_blank');
+            if (isTelegramMobile) {
+                const pdfBlob = pdf.output('blob');
+                const url = URL.createObjectURL(pdfBlob);
+                try {
+                    const newWindow = window.open(url, '_blank');
+                    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+                        window.location.href = url;
+                    }
+                } catch (e) {
+                    window.location.href = url;
+                }
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
             } else {
-                link.click();
+                pdf.save(`DVR_${tenant.ragioneSociale}.pdf`);
             }
-            setTimeout(() => URL.revokeObjectURL(url), 5000);
         } catch (err) {
             console.error(err);
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.showAlert) {
