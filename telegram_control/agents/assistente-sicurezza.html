@@ -902,7 +902,7 @@
         const FATTORI_RISCHIO_BOILERPLATE = {
             "common": {
                 riferimento_legislativo: "D.Lgs. 81/08 Titolo I (Principi Comuni) e Titolo II (Luoghi di Lavoro), D.M. 3 Settembre 2021 (Decreto GSA - Gestione Sicurezza Antincendio), D.M. 37/08 (Impianti Elettrici).",
-                definizione: "La valutazione comprende i rischi trasversali legati all'infrastruttura della sede lavorativa, inclusi gli impianti elettrici di alimentazione, i sistemi di rilevazione e spegnimento incendi, le vie di fuga e le emergenze mediche o di evacuazione.",
+                definizione: "La valutazione comprende i rischi trasversali legati all'infrastruttura della sede lavorativa, inclusi gli impianti elettrici di alimentazione, i sistemi di rilevazione e spegnimento incendi, le via di fuga e le emergenze mediche o di evacuazione.",
                 agenti: "Rischio elettrico (contatto diretto o indiretto), rischio incendio (fiamme libere, cortocircuiti), rischi ergonomici e di scivolamento/caduta in piano.",
                 modalita: "Innesco accidentale di incendi per sovraccarico elettrico, traumi osteoarticolari dovuti a pavimentazioni sconnesse o bagnate, elettrocuzione per assenza di idonea messa a terra o differenziali non revisionati.",
                 misure_prevenzione: [
@@ -1645,6 +1645,12 @@
         }
 
         // ── DETAIL TAB SWITCHER ────────────────────────────────────────────────────
+        function switchCategory(cat) {
+            activeCategory = cat;
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            renderServiceList();
+        }
+
         function switchDetailTab(tab) {
             const isChecklist = tab === 'checklist';
             document.getElementById('detail-tab-checklist').classList.toggle('hidden', !isChecklist);
@@ -1820,6 +1826,43 @@
             }
 
             document.getElementById('view-detail').scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function initializeServiceRiskMatrix(service, listItems) {
+            const sku = service.service_sku;
+            const vKey = getVerticalForService(service);
+
+            // 1. Recupera i parametri di danno (D) e contaminazione (C) del comparto padre
+            const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '' };
+            const d = param.D || 2;
+            const c = param.C || 1;
+
+            // 2. Conta quante spunte sono attualmente attive in locale per questo servizio
+            const state = checklistState[sku] || {};
+            const total = listItems.length;
+            const checkedCount = listItems.filter(item => state[item.id || item.question_id]).length;
+
+            // 3. Se non ci sono spunte attive, la probabilità (P) è al massimo (4), altrimenti è proporzionale
+            let p = 4;
+            if (total > 0 && checkedCount > 0) {
+                const fraction = checkedCount / total;
+                p = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
+            }
+
+            const r = p * d;
+            const rLabel = r >= 8 ? 'Alto' : (r >= 4 ? 'Medio' : 'Basso');
+
+            // 4. Genera una spiegazione provvisoria di partenza (in attesa dell'azione 'analyze' al primo click)
+            const startingJustification = `Rischio di partenza valutato a livello di sicurezza di comparto. Livello iniziale massimo pari a R = ${4 * d}. Il rischio attuale calcolato in base alle misure implementate si attesta a R = ${r} (Danno D = ${d}, Probabilità residua P = ${p}). Clicca sulle singole azioni per avviare il ricalcolo analitico in tempo reale su MongoDB.`;
+
+            // 5. Applica i dati visivamente sfruttando la funzione esistente
+            applyServerRiskAnalysis({
+                D: d,
+                C: c,
+                P: p,
+                R: r,
+                justification: startingJustification
+            });
         }
 
         // Generatore del documento dvr specifico per il singolo servizio del catalogo
@@ -2095,11 +2138,12 @@
                 label.textContent = `RISCHIO: ${riskLabel}`;
             }
 
-            // Riposiziona il cursore visivo sulla barra sfumata
+            // Riposiziona il cursore visivo sulla barra sfumata basandosi sulla Probabilità (P)
             const pointer = document.getElementById('inail-risk-pointer');
             if (pointer) {
                 pointer.style.opacity = "1";
-                const leftPct = Math.min(95, Math.max(5, ((r - 1) / 15) * 90));
+                // P va da 1 (sicuro, a sinistra) a 4 (pericoloso, a destra)
+                const leftPct = ((p - 1) / 3) * 80 + 10;
                 pointer.style.left = `${leftPct}%`;
             }
 
@@ -2446,10 +2490,6 @@
             document.getElementById('loader').style.display = 'flex';
         }
 
-        function hideLoader() {
-            document.getElementById('loader').style.display = 'none';
-        }
-
         // ── IMPOSTAZIONI OVERLAY FUNCTIONS ─────────────────────────────────────────
         function openSettingsOverlay() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
@@ -2778,7 +2818,7 @@
 
             const pointer = document.getElementById('inail-risk-pointer');
             if (pointer) {
-                const leftPct = Math.min(95, Math.max(5, ((r - 1) / 15) * 90));
+                const leftPct = ((p - 1) / 3) * 80 + 10;
                 pointer.style.left = `${leftPct}%`;
             }
 
