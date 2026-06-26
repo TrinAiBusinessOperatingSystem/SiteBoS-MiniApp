@@ -1934,12 +1934,12 @@
             });
         }
 
-        function toggleCheck(sku, chkId) {
+        async function toggleCheck(sku, chkId) {
             if (!checklistState[sku]) checklistState[sku] = {};
             checklistState[sku][chkId] = !checklistState[sku][chkId];
             const isChecked = checklistState[sku][chkId];
 
-            // Aggiorna visivo box
+            // 1. Aggiornamento visivo immediato della casella (UX fluida)
             const box = document.getElementById(`chk-${sku}-${chkId}`);
             const row = document.getElementById(`row-${sku}-${chkId}`);
             const actionText = document.getElementById(`action-text-${sku}-${chkId}`);
@@ -1951,30 +1951,110 @@
 
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
-            const service = catalogActive.find(s => s.service_sku === sku);
-            const vKey = getVerticalForService(service);
+            // 2. Mostra uno stato di ricalcolo temporaneo sulla matrice INAIL
+            const pointer = document.getElementById('inail-risk-pointer');
+            if (pointer) pointer.style.opacity = "0.5";
+            const justEl = document.getElementById('inail-justification');
+            if (justEl) justEl.textContent = "Ricalcolo del rischio in corso su MongoDB...";
 
-            // Recalculate dynamic probability in detail view if it's visible
-            if (verticalsRegistry[sku]) {
-                buildInailMatrixForVerticalDetail(sku);
-                buildDVRPageForVerticalDetail(sku);
-            } else {
-                buildInailMatrixForVerticalDetail(vKey);
-                buildDVRPageForVerticalDetail(vKey);
+            // 3. Chiamata asincrona d'analisi al Server
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        action: 'analyze',
+                        service_sku: sku,
+                        question_id: chkId,
+                        checklist_state: checklistState[sku] // Invia tutto lo stato corrente di questo SKU
+                    })
+                });
 
-                const dossier = getDossierBySku(sku);
-                let listItems = [];
-                if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
-                    listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
-                } else {
-                    listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
-                }
-                updateDetailProgress(sku, listItems);
-                buildSingleServiceDVRPage(service, listItems);
+                if (!response.ok) throw new Error("Errore nell'analisi del rischio");
+
+                const result = await response.json();
+
+                // 4. Aggiorna la matrice INAIL con i dati scientifici calcolati dal Server
+                applyServerRiskAnalysis(result);
+
+            } catch (err) {
+                console.error("Errore analisi:", err);
+                if (justEl) justEl.textContent = "Impossibile calcolare il rischio in tempo reale. Salva per allineare.";
             }
 
-            // Auto-salvataggio locale
-            //saveLocalChecklistState();
+            // 5. Aggiorna i progressi e il DVR stampabile del singolo servizio
+            const service = catalogActive.find(s => s.service_sku === sku);
+            const dossier = getDossierBySku(sku);
+            let listItems = [];
+            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
+            } else {
+                listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
+            }
+            updateDetailProgress(sku, listItems);
+            if (service) {
+                buildSingleServiceDVRPage(service, listItems);
+            }
+        }
+
+        function applyServerRiskAnalysis(result) {
+            // Estrae i valori calcolati dal server o imposta fallback ragionevoli
+            const d = result.D || result.Danno || 2;
+            const c = result.C || result.Contaminazione || 1;
+            const p = result.P || result.Probabilita || 2;
+            const r = result.R || result.Rischio || (d * p);
+            const justification = result.justification || result.motivazione || "";
+
+            // Aggiorna i testi dei coefficienti
+            const dEl = document.getElementById('inail-val-d');
+            const cEl = document.getElementById('inail-val-c');
+            const pEl = document.getElementById('inail-val-p');
+            const rEl = document.getElementById('inail-val-r');
+
+            if (dEl) dEl.textContent = d;
+            if (cEl) cEl.textContent = c;
+            if (pEl) pEl.textContent = p;
+            if (rEl) rEl.textContent = r;
+
+            // Aggiorna il badge colorato del rischio
+            const badge = document.getElementById('inail-risk-badge');
+            const label = document.getElementById('inail-risk-label');
+            if (badge && label) {
+                badge.className = 'risk-badge-wrap';
+                let riskLabel = 'BASSO';
+                if (r >= 8) {
+                    badge.classList.add('risk-high');
+                    riskLabel = 'ALTO';
+                } else if (r >= 4) {
+                    badge.classList.add('risk-mid');
+                    riskLabel = 'MEDIO';
+                } else {
+                    badge.classList.add('risk-low');
+                    riskLabel = 'BASSO';
+                }
+                label.textContent = `RISCHIO: ${riskLabel}`;
+            }
+
+            // Riposiziona il cursore visivo sulla barra sfumata
+            const pointer = document.getElementById('inail-risk-pointer');
+            if (pointer) {
+                pointer.style.opacity = "1";
+                const leftPct = Math.min(95, Math.max(5, ((r - 1) / 15) * 90));
+                pointer.style.left = `${leftPct}%`;
+            }
+
+            // Mostra la giustificazione clinica/normativa restituita da Gemini/Server
+            const justEl = document.getElementById('inail-justification');
+            if (justEl) {
+                justEl.textContent = justification;
+                justEl.classList.toggle('hidden', !justification);
+            }
+
+            // Assicuriamoci che la sezione della matrice sia visibile
+            const section = document.getElementById('rischio-inail-section');
+            if (section) section.classList.remove('hidden');
         }
 
         function updateDetailProgress(sku, checklist) {
