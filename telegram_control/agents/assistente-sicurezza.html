@@ -1221,6 +1221,7 @@
         let catalogActive = [];       // array servizi dal server
         let productResearch = [];     // array dossier
         let ownerData = {};           // dati aziendali (Collezione anagrafica)
+        let mitigationControls = [];
         let serverChecklistState = {}; // Collezione separata di MongoDB con lo stato salvato delle checklist
         let checklistState = {};      // { [service_sku]: { [chk_id]: bool } } (Stato locale di UI)
         let currentServiceSku = null; // servizio aperto nel dettaglio
@@ -1260,6 +1261,7 @@
                 catalogActive = data.catalog_active || [];
                 productResearch = data.Product_Reserch || [];
                 ownerData = data.owner_data || {};
+                mitigationControls = data.mitigation_control || [];
 
                 // Salviamo la collezione separata delle checklist nella sua variabile globale dedicata
                 serverChecklistState = data.checklist_state || data.saved_checklists || {};
@@ -2690,7 +2692,8 @@
         function printDVR() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             const tenant = getTenantData();
-            DVRPrintEngine.generateAndPrint(tenant, catalogActive, checklistState);
+            // Passiamo ownerData e le mitigazioni al motore di stampa
+            DVRPrintEngine.generateAndPrint(tenant, catalogActive, checklistState, ownerData, mitigationControls);
         }
 
         // Generatore dell'anteprima a schermo (tab Documento DVR) per il singolo servizio del catalogo
@@ -2703,109 +2706,88 @@
             const state = checklistState[sku] || {};
             const tenant = getTenantData();
 
-            // Calcoliamo i valori fisici di partenza del comparto padre
             const vKey = getVerticalForService(service);
             const param = parametriVerticali[vKey] || { D: 2, C: 1 };
             const dPartenza = param.D || 2;
-            const cPartenza = param.C || 1;
-            const rPartenza = 4 * dPartenza; // Rischio massimo iniziale (Probabilità = 4)
+            const rPartenza = 4 * dPartenza;
 
-            // Legge i dati di rischio storicizzati sul database (Sorgente di verità primaria per l'anteprima)
             const savedSkuData = (serverChecklistState && serverChecklistState[sku]) ? serverChecklistState[sku] : null;
 
-            let d = dPartenza;
-            let c = cPartenza;
-            let p = 4;
-            let r = rPartenza;
-            let justification = "";
+            let d = dPartenza; let p = 4; let r = rPartenza; let justification = "";
 
-            if (savedSkuData && (savedSkuData.D !== undefined || savedSkuData.overall_justification)) {
-                d = savedSkuData.D || dPartenza;
-                c = savedSkuData.C || cPartenza;
-                p = savedSkuData.P || 4;
-                r = savedSkuData.R || (d * p);
-                justification = savedSkuData.overall_justification || "";
+            if (savedSkuData && savedSkuData.D !== undefined) {
+                d = savedSkuData.D; p = savedSkuData.P || 4; r = savedSkuData.R || (d * p); justification = savedSkuData.overall_justification || "";
             } else {
-                // Calcolo locale temporaneo (fallback)
                 const total = listItems.length;
                 const checkedCount = listItems.filter(item => state[item.id || item.question_id]).length;
-                if (total > 0 && checkedCount > 0) {
-                    const fraction = checkedCount / total;
-                    p = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
-                }
+                if (total > 0 && checkedCount > 0) p = Math.max(1, Math.min(4, Math.round(4 - (3 * (checkedCount / total)))));
                 r = p * d;
-                justification = `Rischio di partenza valutato a livello di sicurezza di comparto. Livello iniziale massimo pari a R = ${4 * d}. Il rischio attuale calcolato in base alle misure implementate si attesta a R = ${r} (Danno D = ${d}, Probabilità residua P = ${p}). Clicca sulle singole azioni per avviare il ricalcolo analitico in tempo reale su MongoDB.`;
+                justification = "Valutazione elaborata in tempo reale in base alle spunte applicate.";
             }
 
-            // Determiniamo la classe CSS del rischio residuo per la stampa
-            let rLabel = "BASSO";
-            let rClass = "dvr-risk-low";
-            if (r >= 8) {
-                rLabel = "ALTO";
-                rClass = "dvr-risk-high";
-            } else if (r >= 4) {
-                rLabel = "MEDIO";
-                rClass = "dvr-risk-mid";
-            }
+            let rLabel = r >= 8 ? "ALTO" : (r >= 4 ? "MEDIO" : "BASSO");
 
-            body.innerHTML = `
+            // Estrai le mitigazioni per questo servizio specifico
+            const mitigations = (mitigationControls || []).find(m => m.service_sku === sku)?.controlli_mitigazione || [];
+
+            let html = `
                 <div style="text-align:center;padding-bottom:12px;border-bottom:2px solid #000;margin-bottom:16px">
                     <div class="dvr-label">Documento di Valutazione dei Rischi</div>
-                    <h2>VALUTAZIONE SPECIFICA PRESTAZIONE</h2>
+                    <h2 style="color:#1e3a8a;">SCHEDA PROTOCOLLO</h2>
                     <div style="font-size:9px;font-weight:700;color:#6b7280;margin-top:4px">Servizio: ${service.service_name.toUpperCase()}</div>
-                    <div style="font-size:8px;color:#a3a3a3;margin-top:2px">Redatto il ${dateStr} — ex D.Lgs. 81/2008</div>
+                    <div style="font-size:8px;color:#a3a3a3;margin-top:2px">Redatto il ${dateStr} — ID: ${sku}</div>
                 </div>
 
-                <div class="dvr-section-title"><i class="fas fa-building mr-1"></i>Anagrafica Aziendale</div>
-                <div class="dvr-field"><span class="dvr-field-label">Ragione Sociale</span><span class="dvr-field-value">${tenant.ragioneSociale}</span></div>
-                <div class="dvr-field"><span class="dvr-field-label">Sede Operativa</span><span class="dvr-field-value">${tenant.indirizzo}</span></div>
-
-                <!-- SEZIONE: CONFRONTO DINAMICO IMPATTO RISCHIO (DA -> A) -->
-                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Analisi di Impatto e Mitigazione del Rischio (INAIL)</div>
+                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Analisi di Impatto e Mitigazione</div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0;">
-                    <!-- Stato di Partenza (Worst Case) -->
-                    <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af; display:block;">1. Stato di Partenza (Senza Misure)</span>
-                        <div style="font-size: 14px; font-weight: 900; color: #b91c1c; margin-top: 4px;">R = ${rPartenza}</div>
-                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dPartenza} | Probabilità: 4 (Max)</div>
-                        <div style="font-size: 8px; font-weight: bold; color: #b91c1c; text-transform: uppercase; margin-top: 4px;">Rischio Iniziale Alto</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;">
+                    <div style="background:#fafafa; border: 1px solid #e5e7eb; border-left: 3px solid #9ca3af; border-radius: 6px; padding: 8px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af;">1. Rischio Iniziale</span>
+                        <div style="font-size: 14px; font-weight: 900; color: #b91c1c;">R = ${rPartenza}</div>
+                        <div style="font-size: 7px; color: #4b5563;">Danno: ${dPartenza} | Prob: 4</div>
                     </div>
-                    
-                    <!-- Stato Residuo Attuale (Mitigato) -->
-                    <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
-                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a; display:block;">2. Stato Residuo (Con Misure)</span>
-                        <div style="font-size: 14px; font-weight: 900; color: #15803d; margin-top: 4px;">R = ${r}</div>
-                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${d} | Probabilità: ${p}</div>
-                        <div style="font-size: 8px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-top: 4px;">Rischio Attuale ${rLabel}</div>
+                    <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-left: 3px solid #22c55e; border-radius: 6px; padding: 8px;">
+                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a;">2. Rischio Residuo</span>
+                        <div style="font-size: 14px; font-weight: 900; color: ${r >= 8 ? '#b91c1c' : (r >= 4 ? '#d97706' : '#15803d')};">R = ${r}</div>
+                        <div style="font-size: 7px; color: #4b5563;">Danno: ${d} | Prob: ${p}</div>
                     </div>
                 </div>
                 
-                <!-- Giustificazione di Gemini che spiega formalmente l'impatto della mitigazione -->
-                ${justification ? `
-                <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
-                    <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
-                    ${justification}
-                </div>
-                ` : ''}
+                ${justification ? `<div style="font-size: 8px; color: #0369a1; background: #f0f9ff; padding: 8px; border-radius: 6px; font-style: italic; margin-bottom: 12px;"><strong>Ratio:</strong> ${justification}</div>` : ''}
 
-                <div class="dvr-section-title"><i class="fas fa-tasks mr-1"></i>Stato delle Misure di Prevenzione</div>
+                <div class="dvr-section-title"><i class="fas fa-tasks mr-1"></i>Stato Conformità (Checklist)</div>
                 ${listItems.map((c, i) => {
-                const isDone = !!state[c.id];
+                const isDone = !!state[c.id || c.question_id];
                 return `
                         <div class="dvr-chk-row">
                             <span class="dvr-chk-num">${String(i + 1).padStart(2, '0')}.</span>
                             <div style="flex:1">
-                                <p style="font-weight:600;margin:0;color:#111827">${c.action}</p>
+                                <p style="font-weight:600;margin:0;color:#111827;font-size:9px;">${c.action || c.text}</p>
                                 <div style="display:flex;gap:6px;margin-top:4px">
-                                    <span style="font-size:7px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:4px;font-weight:bold">${c.area}</span>
-                                    <span style="font-size:7px;background:${isDone ? '#dcfce7' : '#fee2e2'};color:${isDone ? '#15803d' : '#b91c1c'};padding:1px 5px;border-radius:4px;font-weight:bold">${isDone ? 'Attuata' : 'In attesa'}</span>
+                                    <span style="font-size:7px;background:#f1f5f9;color:#475569;padding:2px 5px;border-radius:4px;font-weight:bold">${c.area || 'Compliance'}</span>
+                                    <span style="font-size:7px;background:${isDone ? '#dcfce7' : '#fee2e2'};color:${isDone ? '#15803d' : '#b91c1c'};padding:2px 5px;border-radius:4px;font-weight:bold">${isDone ? 'Attuata ✓' : 'In attesa ✗'}</span>
                                 </div>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
             }).join('')}
             `;
+
+            // Se ci sono mitigazioni specifiche dal server, le renderizziamo nell'anteprima
+            if (mitigations.length > 0) {
+                html += `<div class="dvr-section-title" style="margin-top:16px;"><i class="fas fa-shield-alt mr-1"></i>Protocollo Operativo di Mitigazione</div>`;
+                html += mitigations.map(mit => `
+                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px;">
+                        <div style="font-size:8px; font-weight:900; color:#1e3a8a; text-transform:uppercase; margin-bottom:2px;">Fase: ${mit.fase_operativa}</div>
+                        <div style="font-size:9px; color:#334155; margin-bottom:4px;"><strong>Controllo:</strong> ${mit.check_prestabilito}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                            <div style="font-size:7px; color:#16a34a; font-weight:bold; background:#f0fdf4; padding:2px 4px; border-radius:3px;">${mit.criterio_accettazione}</div>
+                            <div style="font-size:7px; color:#64748b; font-weight:bold; background:#f1f5f9; padding:2px 4px; border-radius:3px;"><i class="fas fa-camera mr-1"></i>${mit.tipo_evidenza}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            body.innerHTML = html;
         }
 
         // Funzione che gestisce l'evento di click sul bottone di stampa del singolo capitolo
@@ -2815,8 +2797,8 @@
             const service = catalogActive.find(s => s.service_sku === currentServiceSku);
 
             if (service) {
-                // Avvia la generazione PDF corretta, prelevando l'elemento visibile appena popolato
-                DVRPrintEngine.printSingleService(tenant, service, checklistState);
+                // Passiamo le mitigazioni per il capitolo singolo
+                DVRPrintEngine.printSingleService(tenant, service, checklistState, mitigationControls);
             } else {
                 safeAlert("Errore: impossibile identificare il servizio corrente.");
             }
