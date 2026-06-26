@@ -1446,10 +1446,18 @@
                         if (!checklistState[skuOrKey]) {
                             checklistState[skuOrKey] = {};
                         }
-                        const subState = serverState[skuOrKey];
-                        if (subState && typeof subState === 'object') {
-                            Object.keys(subState).forEach(chkId => {
-                                const val = subState[chkId];
+                        const subState = serverState[skuOrKey] || {};
+
+                        // Riconosce automaticamente se le risposte sono annidate sotto "answers" (nuova struttura) o se è la vecchia struttura piatta
+                        const answersSource = subState.answers || subState;
+
+                        if (answersSource && typeof answersSource === 'object') {
+                            Object.keys(answersSource).forEach(chkId => {
+                                // Esclude i metadati numerici e di calcolo in caso di vecchia struttura piatta
+                                if (['D', 'C', 'P', 'R', 'overall_justification', 'service_name', 'service_category', 'service_description', 'risk_warnings', 'starting_damage', 'starting_contamination', 'starting_risk'].includes(chkId)) {
+                                    return;
+                                }
+                                const val = answersSource[chkId];
                                 if (val !== null && val !== undefined) {
                                     if (typeof val === 'object') {
                                         checklistState[skuOrKey][chkId] = !!(val.checked || val.value);
@@ -1914,36 +1922,55 @@
             const sku = service.service_sku;
             const vKey = getVerticalForService(service);
 
-            // 1. Recupera i parametri di danno (D) e contaminazione (C) del comparto padre
+            // 1. Recupera i parametri fisici di base ereditati dal comparto padre
             const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '' };
-            const d = param.D || 2;
-            const c = param.C || 1;
+            const dPartenza = param.D || 2;
+            const cPartenza = param.C || 1;
+            const rPartenza = 4 * dPartenza;
 
-            // 2. Conta quante spunte sono attualmente attive in locale per questo servizio
-            const state = checklistState[sku] || {};
-            const total = listItems.length;
-            const checkedCount = listItems.filter(item => state[item.id || item.question_id]).length;
+            // 2. Verifica se esiste già uno stato di rischio e giustificazione salvato nel database (ownerData)
+            const serverChecklistState = ownerData.checklist_state || ownerData.saved_checklists || null;
+            const savedSkuData = (serverChecklistState && serverChecklistState[sku]) ? serverChecklistState[sku] : null;
 
-            // 3. Se non ci sono spunte attive, la probabilità (P) è al massimo (4), altrimenti è proporzionale
+            let d = dPartenza;
+            let c = cPartenza;
             let p = 4;
-            if (total > 0 && checkedCount > 0) {
-                const fraction = checkedCount / total;
-                p = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
+            let r = rPartenza;
+            let justification = "";
+
+            if (savedSkuStateExists(savedSkuState)) {
+                // Se esiste un salvataggio precedente nel DB, carica quei valori esatti
+                d = savedSkuState.D || dPartenza;
+                c = savedSkuState.C || cPartenza;
+                p = result.P || 4; // Se presente
+                r = result.R || (d * p);
+                justification = result.overall_justification || "";
+            } else {
+                // Fallback locale in assenza di record su DB (calcolo basato sulle risposte locali)
+                const state = checklistState[sku] || {};
+                const total = listItems.length;
+                const checkedCount = listItems.filter(item => state[item.id || item.question_id]).length;
+
+                if (total > 0 && checkedCount > 0) {
+                    const fraction = checkedCount / total;
+                    p = Math.max(1, Math.min(4, Math.round(4 - (3 * fraction))));
+                }
+                r = p * d;
+                justification = `Rischio di partenza valutato a livello di sicurezza di comparto. Livello iniziale massimo pari a R = ${4 * d}. Il rischio attuale calcolato in base alle misure implementate si attesta a R = ${r} (Danno D = ${d}, Probabilità residua P = ${p}). Clicca sulle singole azioni per avviare il ricalcolo analitico in tempo reale su MongoDB.`;
             }
 
-            const r = p * d;
-            const rLabel = r >= 8 ? 'Alto' : (r >= 4 ? 'Medio' : 'Basso');
+            // Helper interno per verificare la validità del salvataggio DB
+            function savedSkuStateExists(stateObj) {
+                return (stateObj && (stateObj.D !== undefined || stateObj.overall_justification));
+            }
 
-            // 4. Genera una spiegazione provvisoria di partenza (in attesa dell'azione 'analyze' al primo click)
-            const startingJustification = `Rischio di partenza valutato a livello di sicurezza di comparto. Livello iniziale massimo pari a R = ${4 * d}. Il rischio attuale calcolato in base alle misure implementate si attesta a R = ${r} (Danno D = ${d}, Probabilità residua P = ${p}). Clicca sulle singole azioni per avviare il ricalcolo analitico in tempo reale su MongoDB.`;
-
-            // 5. Applica i dati visivamente sfruttando la funzione esistente
+            // 3. Applica visivamente i dati alla matrice INAIL sul client
             applyServerRiskAnalysis({
                 D: d,
                 C: c,
                 P: p,
                 R: r,
-                justification: startingJustification
+                justification: justification
             });
         }
 
