@@ -2014,12 +2014,10 @@
             let vKey = "comune";
 
             if (verticalsRegistry[sku]) {
-                // Se fa parte delle misure di sede generali
                 serviceName = verticalsRegistry[sku].title;
                 category = "Infrastruttura e Sicurezza Generale";
                 vKey = sku;
             } else {
-                // Se si tratta di un servizio clinico/operativo del catalogo
                 const service = catalogActive.find(s => s.service_sku === sku) || {};
                 serviceName = service.service_name || "";
                 category = service.categoria_padre || "";
@@ -2045,9 +2043,25 @@
                 listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
             }
 
-            const targetItem = listItems.find(item => (item.id || item.question_id) === chkId) || {};
-            const targetLabel = targetItem.area || "Compliance";
-            const targetDescription = targetItem.action || targetItem.text || "";
+            // Recupero mirato dell'etichetta e della descrizione testuale della domanda cliccata
+            let targetLabel = "Compliance";
+            let targetDescription = "";
+
+            if (verticalsRegistry[sku]) {
+                // Se fa parte delle misure di sede comuni, cerca direttamente nel registro delle verticali
+                verticalsRegistry[sku].risks.forEach(risk => {
+                    const found = risk.checklist.find(q => q.question_id === chkId);
+                    if (found) {
+                        targetDescription = found.text;
+                        targetLabel = risk.name;
+                    }
+                });
+            } else {
+                // Se si tratta di un servizio del catalogo, cerca nella lista degli item del dossier
+                const targetItem = listItems.find(item => (item.id || item.question_id) === chkId) || {};
+                targetLabel = targetItem.area || "Compliance";
+                targetDescription = targetItem.action || targetItem.text || "";
+            }
 
             try {
                 const payload = {
@@ -2060,7 +2074,7 @@
                     service_description: serviceDescription,
                     risk_warnings: riskWarnings,
 
-                    // Dati della specifica spunta in analisi
+                    // Dati della specifica spunta in analisi (testi reali)
                     target_question_id: chkId,
                     target_checked: isChecked,
                     target_label: targetLabel,
