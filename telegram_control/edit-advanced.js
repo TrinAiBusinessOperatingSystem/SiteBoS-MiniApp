@@ -1,12 +1,33 @@
 // --- GLOBAL CALCULATION LOGIC & STATE SYNCHRONISATION ---
 
+function isPrimaryOperatorSkill(skill, vertical) {
+    const sk = (skill || "").toLowerCase();
+    const vert = (vertical || "generic").toLowerCase();
+    
+    // Dental specific
+    if (vert === 'dental') {
+        return sk.includes("medico") || sk.includes("odontoiatra");
+    }
+    // Other verticals based on domain keywords
+    if (vert === 'beauty') return sk.includes("estetista");
+    if (vert === 'health') return sk.includes("terapista") || sk.includes("specialista") || sk.includes("medico");
+    if (vert === 'food') return sk.includes("chef") || sk.includes("cuoco");
+    if (vert === 'hospitality') return sk.includes("responsabile") || sk.includes("ricevimento");
+    if (vert === 'professional') return sk.includes("consulente") || sk.includes("professionista");
+    if (vert === 'workshop') return sk.includes("meccanico") || sk.includes("tecnico");
+    if (vert === 'construction') return sk.includes("capo") || sk.includes("artigiano");
+    
+    // Fallback/Generic keywords
+    return sk.includes("primary") || sk.includes("esecutore") || sk.includes("medico") || sk.includes("odontoiatra") || sk.includes("professionista");
+}
+
 function calculateSubprocessStaffCosts(sub) {
     const staff = sub.calculation_breakdown?.staff_cost || 0;
     const stages = sub.stages || [];
     
     let hasSteps = false;
-    let medicoCalc = 0;
-    let asoCalc = 0;
+    let primaryCalc = 0;
+    let secondaryCalc = 0;
     
     const rates = currentData.operating_benchmarks?.operators_hourly_rates || {};
     const defaultRates = {
@@ -14,6 +35,7 @@ function calculateSubprocessStaffCosts(sub) {
         "Assistente_ASO": 16.9,
         "Segretaria_Amministrativa": 14.95
     };
+    const vertical = (currentData.vertical || 'generic').toLowerCase();
     
     stages.forEach(stg => {
         (stg.steps || []).forEach(step => {
@@ -22,51 +44,63 @@ function calculateSubprocessStaffCosts(sub) {
                 const skills = step.required_skills || [];
                 skills.forEach(skill => {
                     hasSteps = true;
-                    const rate = parseFloat(rates[skill]) || parseFloat(defaultRates[skill]) || (skill.toLowerCase().includes("medico") || skill.toLowerCase().includes("odontoiatra") ? 62.4 : 16.9);
+                    let rate = parseFloat(rates[skill]) || parseFloat(defaultRates[skill]);
+                    if (isNaN(rate)) {
+                        rate = isPrimaryOperatorSkill(skill, vertical) ? 62.4 : 16.9;
+                    }
                     const cost = (rate / 60) * time;
                     
-                    if (skill.toLowerCase().includes("medico") || skill.toLowerCase().includes("odontoiatra")) {
-                        medicoCalc += cost;
+                    if (isPrimaryOperatorSkill(skill, vertical)) {
+                        primaryCalc += cost;
                     } else {
-                        asoCalc += cost;
+                        secondaryCalc += cost;
                     }
                 });
             }
         });
     });
     
-    const totalCalc = medicoCalc + asoCalc;
+    const totalCalc = primaryCalc + secondaryCalc;
     if (hasSteps && totalCalc > 0) {
+        const primaryVal = staff * (primaryCalc / totalCalc);
+        const secondaryVal = staff * (secondaryCalc / totalCalc);
         return {
-            medico: staff * (medicoCalc / totalCalc),
-            aso: staff * (asoCalc / totalCalc)
+            medico: primaryVal,
+            aso: secondaryVal,
+            primaryOperator: primaryVal,
+            secondaryOperator: secondaryVal
         };
     }
     
     // Fallback to name/sku classification
     const name = (sub.subprocess_name || "").toLowerCase();
     const sku = (sub.subprocess_sku || "").toLowerCase();
-    const isStaff = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
-                    name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
-                    name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
-                    name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
-                    sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
-    if (isStaff) {
-        return { medico: 0, aso: staff };
+    const isSecondary = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
+                        name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
+                        name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
+                        name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
+                        sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
+    if (isSecondary) {
+        return { medico: 0, aso: staff, primaryOperator: 0, secondaryOperator: staff };
     } else {
-        return { medico: staff, aso: 0 };
+        return { medico: staff, aso: 0, primaryOperator: staff, secondaryOperator: 0 };
     }
 }
 
-function getAnalyticalMedicoFee() {
+function getAnalyticalPrimaryOperatorFee() {
     if (!currentData) return 0;
     const steps = currentData.bill_of_materials?.bom_steps || [];
-    let totalMedico = 0;
+    let totalPrimaryOperator = 0;
     steps.forEach(sub => {
         const split = calculateSubprocessStaffCosts(sub);
-        totalMedico += split.medico;
+        totalPrimaryOperator += split.primaryOperator;
     });
-    return totalMedico;
+    return totalPrimaryOperator;
+}
+
+// Retrocompatibility alias
+function getAnalyticalMedicoFee() {
+    return getAnalyticalPrimaryOperatorFee();
 }
 
 function updateCompensoFromPct() {
@@ -110,12 +144,12 @@ function recalculateAll(drivenByEuro = false) {
         const clinicoValEl = document.getElementById('label-compenso-clinico-val');
         const clinicoPctEl = document.getElementById('label-compenso-clinico-pct');
         if (clinicoValEl || clinicoPctEl) {
-            const analyticalMedico = getAnalyticalMedicoFee();
+            const analyticalPrimaryOperator = getAnalyticalPrimaryOperatorFee();
             if (clinicoValEl) {
-                clinicoValEl.value = currFmt.format(analyticalMedico);
+                clinicoValEl.value = currFmt.format(analyticalPrimaryOperator);
             }
             if (clinicoPctEl) {
-                clinicoPctEl.value = unit_tariffa > 0 ? ((analyticalMedico / unit_tariffa) * 100).toFixed(1) + '%' : '0.0%';
+                clinicoPctEl.value = unit_tariffa > 0 ? ((analyticalPrimaryOperator / unit_tariffa) * 100).toFixed(1) + '%' : '0.0%';
             }
         }
     } else {
@@ -140,27 +174,27 @@ function recalculateAll(drivenByEuro = false) {
     const costoAccantonamentoGaranzia = (unit_tariffa * garanziaPct) / 100;
     
     // --- INTEGRATION: Saturazione Agenda su Costo Orario Sedia ---
-    const costoOraBaseline = parseFloat(document.getElementById('in-poltrona').value) || 0;
+    const workstationHourlyRateBaseline = parseFloat(document.getElementById('in-poltrona').value) || 0;
     const saturazioneEl = document.getElementById('in-saturazione-pct');
     const saturazionePct = saturazioneEl ? parseFloat(saturazioneEl.value) : 100;
     // Se lo studio è saturo al 70%, il costo orario reale della sedia attiva sale
-    const costoOraSaturata = saturazionePct > 0 ? (costoOraBaseline / (saturazionePct / 100)) : costoOraBaseline;
+    const workstationHourlyRateSaturated = saturazionePct > 0 ? (workstationHourlyRateBaseline / (saturazionePct / 100)) : workstationHourlyRateBaseline;
     
     // --- INTEGRATION: Tempo Sedia Lordo (Tempo Clinico + Tempo Setup) ---
     const tempoClinico = parseFloat(document.getElementById('in-tempo').value) || 0;
     const setupEl = document.getElementById('in-setup-tempo');
     const tempoSetup = setupEl ? parseFloat(setupEl.value) : 0;
-    const tempoSediaLordo = tempoClinico + tempoSetup;
+    const grossWorkstationTime = tempoClinico + tempoSetup;
 
     const localBurdenHourly = parseFloat(currentData.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
-    const costoSediaTotaleOrario = costoOraSaturata + localBurdenHourly;
+    const workstationTotalHourlyRate = workstationHourlyRateSaturated + localBurdenHourly;
 
     // Costi Variabili Diretti inclusivi di accantonamento rischio clinico
     const varCosts = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
     unit_mdc = unit_tariffa - varCosts;
     
     // Costo Fisso sedia allocato calcolato sul Tempo Sedia Lordo
-    unit_costofisso = (costoSediaTotaleOrario / 60) * tempoSediaLordo;
+    unit_costofisso = (workstationTotalHourlyRate / 60) * grossWorkstationTime;
     const reddito = unit_mdc - unit_costofisso;
     
     // Tassazione & ENPAM
@@ -272,7 +306,7 @@ function recalculateAll(drivenByEuro = false) {
     const localBurdenRateEl = document.getElementById('local-burden-rate');
     if (localBurdenRateEl) {
         if (detectedVertical === 'dental') {
-            localBurdenRateEl.innerText = `+ ${currFmt.format(localBurdenHourly)} / h sedia (Saturata: ${currFmt.format(costoSediaTotaleOrario)}/h)`;
+            localBurdenRateEl.innerText = `+ ${currFmt.format(localBurdenHourly)} / h sedia (Saturata: ${currFmt.format(workstationTotalHourlyRate)}/h)`;
         } else {
             localBurdenRateEl.innerText = `+ ${currFmt.format(localBurdenHourly)} / ora postazione`;
         }
@@ -281,7 +315,7 @@ function recalculateAll(drivenByEuro = false) {
     // Aggiornamento Header
     document.getElementById('header-mdc').innerText = currFmt.format(unit_mdc);
     if (detectedVertical === 'dental') {
-        document.getElementById('header-time').innerText = tempoSediaLordo + ' min (lordi)';
+        document.getElementById('header-time').innerText = grossWorkstationTime + ' min (lordi)';
     } else {
         document.getElementById('header-time').innerText = tempoClinico + ' min';
     }
@@ -355,54 +389,67 @@ function recalculateAll(drivenByEuro = false) {
         healthCard.style.borderColor = '#ef4444';
     }
 
-    updateSimulation(costoSediaTotaleOrario, tempoSediaLordo, varCosts);
+    updateSimulation(workstationTotalHourlyRate, grossWorkstationTime, varCosts);
 }
 
-function recalculateConsolidatedChairRate() {
-    let primaryLocationRate = 0;
+function recalculateConsolidatedWorkstationRate() {
+    const ob = currentData.operating_benchmarks || {};
+    if (!ob.decomposed_environments_costs) ob.decomposed_environments_costs = {};
+    if (!ob.decomposed_machinery_costs) ob.decomposed_machinery_costs = {};
+
+    // Aggiorna decomposed_environments_costs dagli input degli ambienti
     const locations = currentData.environments || [];
-    
-    // Individua la tariffa dell'ambulatorio clinico principale
     locations.forEach((loc, idx) => {
         const inputEl = document.getElementById(`input-loc-rate-${idx}`);
         const rate = inputEl ? parseFloat(inputEl.value) : (loc.estimated_internal_cost_rate || 0);
-        
-        const name = (loc.loc_name || "").toLowerCase();
-        if (name.includes("studio") || name.includes("ambulatorio") || name.includes("clinico")) {
-            primaryLocationRate = rate;
+        if (loc.loc_name) {
+            const key = loc.loc_name.replace(/\s+/g, '_');
+            ob.decomposed_environments_costs[key] = rate;
         }
     });
-    
-    // Fallback sulla prima area se nessun nome corrisponde
-    if (primaryLocationRate === 0 && locations.length > 0) {
-        const firstInput = document.getElementById('input-loc-rate-0');
-        primaryLocationRate = firstInput ? parseFloat(firstInput.value) : (locations[0].estimated_internal_cost_rate || 0);
-    }
 
-    // Somma la quota oraria di ammortamento dei dispositivi sedia fisici
-    let totalAssetsRate = 0;
+    // Aggiorna decomposed_machinery_costs dagli input degli asset
     const assets = currentData.assets || [];
     assets.forEach((ast, idx) => {
         const inputEl = document.getElementById(`input-ast-cost-${idx}`);
         const rate = inputEl ? parseFloat(inputEl.value) : (ast.estimated_internal_cost || 0);
-        
-        const name = (ast.asset_name || "").toLowerCase();
-        if (name.includes("riunito") || name.includes("autoclave") || name.includes("compressore") || name.includes("aspirazione") || name.includes("depurazione") || name.includes("poltrona")) {
-            totalAssetsRate += rate;
+        if (ast.asset_name) {
+            const key = ast.asset_name.replace(/\s+/g, '_');
+            ob.decomposed_machinery_costs[key] = rate;
         }
     });
 
-    const consolidatedRate = primaryLocationRate + totalAssetsRate;
-    if (consolidatedRate > 0) {
-        document.getElementById('in-poltrona').value = consolidatedRate.toFixed(2);
+    // Calcola il consolidato sommando i dettagli di ambienti e macchinari
+    let totalEnvironmentsRate = 0;
+    for (let key in ob.decomposed_environments_costs) {
+        totalEnvironmentsRate += parseFloat(ob.decomposed_environments_costs[key]) || 0;
     }
+
+    let totalMachineryRate = 0;
+    for (let key in ob.decomposed_machinery_costs) {
+        totalMachineryRate += parseFloat(ob.decomposed_machinery_costs[key]) || 0;
+    }
+
+    const consolidatedRate = totalEnvironmentsRate + totalMachineryRate;
+    
+    const inPoltronaEl = document.getElementById('in-poltrona');
+    if (inPoltronaEl && consolidatedRate > 0) {
+        inPoltronaEl.value = consolidatedRate.toFixed(2);
+    }
+    
+    return consolidatedRate;
+}
+
+// Retrocompatibility alias
+function recalculateConsolidatedChairRate() {
+    return recalculateConsolidatedWorkstationRate();
 }
 
 function updateBOMFromInputs() {
-    let totalMedico = 0;
-    let totalASO = 0;
+    let totalPrimaryFee = 0;
+    let totalSecondaryFee = 0;
     let totalConsumables = 0;
-    let totalChairTime = 0;
+    let totalWorkstationTime = 0;
 
     const rates = currentData.operating_benchmarks?.operators_hourly_rates || {};
     const defaultRates = {
@@ -410,6 +457,7 @@ function updateBOMFromInputs() {
         "Assistente_ASO": 16.9,
         "Segretaria_Amministrativa": 14.95
     };
+    const vertical = (currentData.vertical || 'generic').toLowerCase();
 
     const steps = currentData.bill_of_materials?.bom_steps || [];
     steps.forEach((sub, idx) => {
@@ -428,8 +476,10 @@ function updateBOMFromInputs() {
                     // Calcolo del costo del personale dello step in base alle tariffe orarie
                     const skills = step.required_skills || [];
                     skills.forEach(skill => {
-                        const rate = parseFloat(rates[skill]) || parseFloat(defaultRates[skill]) || 
-                                     (skill.toLowerCase().includes("medico") || skill.toLowerCase().includes("odontoiatra") ? 62.4 : 16.9);
+                        let rate = parseFloat(rates[skill]) || parseFloat(defaultRates[skill]);
+                        if (isNaN(rate)) {
+                            rate = isPrimaryOperatorSkill(skill, vertical) ? 62.4 : 16.9;
+                        }
                         calculatedStaffCost += (rate / 60) * stepTime;
                     });
                 }
@@ -454,13 +504,14 @@ function updateBOMFromInputs() {
         const depr = parseFloat(document.getElementById(`input-bom-depr-${idx}`).value) || 0;
         const staff = parseFloat(document.getElementById(`input-bom-staff-${idx}`).value) || 0;
         const time = parseFloat(document.getElementById(`input-bom-time-${idx}`).value) || 0;
-        const chairTime = parseFloat(document.getElementById(`input-bom-chair-time-${idx}`).value) || 0;
+        const workstationTime = parseFloat(document.getElementById(`input-bom-chair-time-${idx}`).value) || 0;
 
         if (!sub.calculation_breakdown) sub.calculation_breakdown = {};
         sub.calculation_breakdown.consumables = consumables;
         sub.calculation_breakdown.depreciation = depr;
         sub.calculation_breakdown.staff_cost = staff;
-        sub.calculation_breakdown.chair_time_mins = chairTime;
+        sub.calculation_breakdown.workstation_time_mins = workstationTime;
+        sub.calculation_breakdown.chair_time_mins = workstationTime; // retrocompatibility
         sub.estimated_total_time_minutes = time;
 
         const singleCost = consumables + depr + staff;
@@ -471,22 +522,22 @@ function updateBOMFromInputs() {
             labelCostEl.innerText = `€ ${singleCost.toFixed(2)}`;
         }
 
-        // Calcolo della ripartizione medico / staff di supporto
+        // Calcolo della ripartizione operatore primario / secondario
         const split = calculateSubprocessStaffCosts(sub);
-        totalMedico += split.medico;
-        totalASO += split.aso;
+        totalPrimaryFee += split.primaryOperator;
+        totalSecondaryFee += split.secondaryOperator;
 
         totalConsumables += consumables;
-        totalChairTime += chairTime; 
+        totalWorkstationTime += workstationTime; 
     });
 
     // Se non sono presenti sottoprocessi, verifica se esistono contributi dai meta-operatori
-    if (totalASO === 0) {
+    if (totalSecondaryFee === 0) {
         const metaList = currentData.market_and_fiscal_intelligence?.meta_operators_overhead || currentData.qualitative_parser_output?.meta_operators_overhead || [];
         metaList.forEach(op => {
             const role = (op.role || "").toLowerCase();
-            if (!role.includes("medico") && !role.includes("odontoiatra")) {
-                totalASO += op.allocated_cost || 0;
+            if (!isPrimaryOperatorSkill(role, vertical)) {
+                totalSecondaryFee += op.allocated_cost || 0;
             }
         });
     }
@@ -494,15 +545,15 @@ function updateBOMFromInputs() {
     // 2. Propaga i nuovi valori aggregati agli input della sidebar
     const compensoEl = document.getElementById('in-compenso');
     if (compensoEl) {
-        compensoEl.value = totalMedico.toFixed(2);
+        compensoEl.value = totalPrimaryFee.toFixed(2);
     }
     const compensoPctEl = document.getElementById('in-compenso-pct');
     if (compensoPctEl) {
         const currentTariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-        compensoPctEl.value = currentTariffa > 0 ? ((totalMedico / currentTariffa) * 100).toFixed(2) : 0;
+        compensoPctEl.value = currentTariffa > 0 ? ((totalPrimaryFee / currentTariffa) * 100).toFixed(2) : 0;
     }
-    document.getElementById('in-costo-aso').value = totalASO.toFixed(2);
-    document.getElementById('in-tempo').value = totalChairTime;
+    document.getElementById('in-costo-aso').value = totalSecondaryFee.toFixed(2);
+    document.getElementById('in-tempo').value = totalWorkstationTime;
 
     recalculateAll();
     checkDirty();
@@ -577,24 +628,7 @@ function updateLocationsFromInputs() {
         document.getElementById(`label-loc-cost-${idx}`).innerText = `€ ${loc.estimated_internal_cost.toFixed(2)}`;
     });
 
-    const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
-    if (detectedVertical === 'dental') {
-        // Ricalcola dinamicamente la tariffa oraria consolidata sedia
-        recalculateConsolidatedChairRate();
-    } else {
-        // Average the rates for generic
-        let totalLocRateSum = 0;
-        let count = 0;
-        locations.forEach((loc, idx) => {
-            const inputEl = document.getElementById(`input-loc-rate-${idx}`);
-            const rate = inputEl ? parseFloat(inputEl.value) : (loc.estimated_internal_cost_rate || 0);
-            totalLocRateSum += rate;
-            count++;
-        });
-        if (count > 0) {
-            document.getElementById('in-poltrona').value = (totalLocRateSum / count).toFixed(2);
-        }
-    }
+    recalculateConsolidatedWorkstationRate();
 
     recalculateAll();
     checkDirty();
@@ -610,11 +644,7 @@ function updateAssetsFromInputs() {
         document.getElementById(`label-ast-cost-${idx}`).innerText = `€ ${ast.estimated_internal_cost.toFixed(2)} /h`;
     });
 
-    const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
-    if (detectedVertical === 'dental') {
-        // Ricalcola dinamicamente la tariffa oraria consolidata sedia
-        recalculateConsolidatedChairRate();
-    }
+    recalculateConsolidatedWorkstationRate();
 
     recalculateAll();
     checkDirty();
@@ -634,9 +664,10 @@ function updateMetaFromInputs() {
     const steps = currentData.bill_of_materials?.bom_steps || [];
     if (steps.length === 0) {
         let fallbackASO = 0;
+        const vertical = (currentData.vertical || 'generic').toLowerCase();
         metaList.forEach(op => {
             const role = (op.role || "").toLowerCase();
-            if (!role.includes("medico") && !role.includes("odontoiatra")) {
+            if (!isPrimaryOperatorSkill(role, vertical)) {
                 fallbackASO += op.allocated_cost || 0;
             }
         });
@@ -647,7 +678,7 @@ function updateMetaFromInputs() {
     checkDirty();
 }
 
-function updateSimulation(costoSediaTotaleOrario, tempoSediaLordo, varCosts) {
+function updateSimulation(workstationTotalHourlyRate, grossWorkstationTime, varCosts) {
     const volume = parseInt(document.getElementById('volume-slider').value);
     document.getElementById('slider-val').innerText = volume;
 
@@ -675,8 +706,8 @@ function updateSimulation(costoSediaTotaleOrario, tempoSediaLordo, varCosts) {
     const loss5El = document.getElementById('no-show-5-loss');
     const loss10El = document.getElementById('no-show-10-loss');
     if (loss5El || loss10El) {
-        const baseCost = costoSediaTotaleOrario !== undefined ? costoSediaTotaleOrario : 0;
-        const totalTime = tempoSediaLordo !== undefined ? tempoSediaLordo : 0;
+        const baseCost = workstationTotalHourlyRate !== undefined ? workstationTotalHourlyRate : 0;
+        const totalTime = grossWorkstationTime !== undefined ? grossWorkstationTime : 0;
         const noShowRate5Loss = volume * 0.05 * (unit_mdc + ((baseCost / 60) * totalTime));
         const noShowRate10Loss = volume * 0.10 * (unit_mdc + ((baseCost / 60) * totalTime));
         if (loss5El) loss5El.innerText = currFmt.format(noShowRate5Loss);
@@ -688,11 +719,20 @@ function updateBalanceSheetFromInputs() {
     const ob = currentData.operating_benchmarks || {};
     const raccordo = ob.balance_sheet_raccordo || {};
     
-    // 1. Cattura i totali originari per poter calcolare i rapporti di variazione
-    const originalFacilityTot = (raccordo.costi_gestione_stanza_IIC139 || 0) + (raccordo.canone_figurativo_immobile_IIC012 || 0);
-    const originalEquipmentTot = (raccordo.canoni_leasing_annui_IIC133 || 0) + (raccordo.ammortamenti_materiali_annui_IIC138 || 0);
+    // Funzioni helper di classificazione dinamica dei conti reali
+    const isFacilityAccount = (key) => key.startsWith('606') || key.startsWith('621') || key === '631.00103';
+    const isEquipmentAccount = (key) => key.startsWith('601') || key.startsWith('605');
 
-    // 2. Legge i nuovi valori inseriti dall'utente e li salva in memoria
+    // 1. Calcola i totali originari prima della modifica
+    let originalFacilityTot = 0;
+    let originalEquipmentTot = 0;
+    for (let key in raccordo) {
+        const val = parseFloat(raccordo[key]) || 0;
+        if (isFacilityAccount(key)) originalFacilityTot += val;
+        if (isEquipmentAccount(key)) originalEquipmentTot += val;
+    }
+
+    // 2. Legge i nuovi valori digitati dall'utente nella tabella e aggiorna la memoria
     for (let key in raccordo) {
         const inputEl = document.getElementById(`input-raccordo-${key}`);
         if (inputEl) {
@@ -700,11 +740,23 @@ function updateBalanceSheetFromInputs() {
         }
     }
 
-    // 3. Calcola i nuovi totali di bilancio modificati
-    const newFacilityTot = (raccordo.costi_gestione_stanza_IIC139 || 0) + (raccordo.canone_figurativo_immobile_IIC012 || 0);
-    const newEquipmentTot = (raccordo.canoni_leasing_annui_IIC133 || 0) + (raccordo.ammortamenti_materiali_annui_IIC138 || 0);
+    // 3. Calcola i nuovi totali modificati
+    let newFacilityTot = 0;
+    let newEquipmentTot = 0;
+    let newTotalOverhead = 0;
+    
+    for (let key in raccordo) {
+        const val = parseFloat(raccordo[key]) || 0;
+        if (isFacilityAccount(key)) newFacilityTot += val;
+        if (isEquipmentAccount(key)) newEquipmentTot += val;
+        
+        // L'overhead strutturale annuo totale esclude i costi degli ammortamenti e del personale
+        if (!isEquipmentAccount(key) && !key.startsWith('610')) {
+            newTotalOverhead += val;
+        }
+    }
 
-    // 4. Ricalibra proporzionalmente i costi orari degli ambienti in base ai nuovi costi di gestione stanza/mura
+    // 4. Ricalibra proporzionalmente i costi orari degli ambienti (Variazione Gestione Mura/Utenze)
     if (originalFacilityTot > 0) {
         const facilityRatio = newFacilityTot / originalFacilityTot;
         const locations = currentData.environments || [];
@@ -719,12 +771,16 @@ function updateBalanceSheetFromInputs() {
                 const timeEl = document.getElementById(`input-loc-time-${idx}`);
                 const time = timeEl ? parseFloat(timeEl.value) : 0;
                 loc.estimated_internal_cost = (newRate / 60) * time;
-                document.getElementById(`label-loc-cost-${idx}`).innerText = `€ ${loc.estimated_internal_cost.toFixed(2)}`;
+                
+                const labelLocCost = document.getElementById(`label-loc-cost-${idx}`);
+                if (labelLocCost) {
+                    labelLocCost.innerText = `€ ${loc.estimated_internal_cost.toFixed(2)}`;
+                }
             }
         });
     }
 
-    // 5. Ricalbra proporzionalmente gli ammortamenti orari degli asset in base ai nuovi leasing/ammortamenti
+    // 5. Ricalibra proporzionalmente gli ammortamenti degli asset (Variazione Leasing/Ammortamenti)
     if (originalEquipmentTot > 0) {
         const equipmentRatio = newEquipmentTot / originalEquipmentTot;
         const assets = currentData.assets || [];
@@ -736,24 +792,19 @@ function updateBalanceSheetFromInputs() {
                 inputEl.value = newRate.toFixed(2);
                 
                 ast.estimated_internal_cost = newRate;
-                document.getElementById(`label-ast-cost-${idx}`).innerText = `€ ${newRate.toFixed(2)} /h`;
+                const labelAstCost = document.getElementById(`label-ast-cost-${idx}`);
+                if (labelAstCost) {
+                    labelAstCost.innerText = `€ ${newRate.toFixed(2)} /h`;
+                }
             }
         });
     }
 
-    // 6. Ricalcola la tariffa oraria consolidata sedia risultante se verticale dental
-    const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
-    if (detectedVertical === 'dental') {
-        recalculateConsolidatedChairRate();
-    }
-
-    // 7. Aggiorna l'input dei Costi Fissi Strutturali Annui nella barra laterale
-    const newTotalOverhead = (raccordo.canoni_leasing_annui_IIC133 || 0) + 
-                             (raccordo.ammortamenti_materiali_annui_IIC138 || 0) + 
-                             (raccordo.canone_figurativo_immobile_IIC012 || 0) + 
-                             (raccordo.costi_gestione_stanza_IIC139 || 0);
-    
+    // 6. Aggiorna l'input dei Costi Fissi Strutturali Annui nella barra laterale
     document.getElementById('in-fissi-annui').value = newTotalOverhead.toFixed(2);
+
+    // 7. Ricalcola la tariffa oraria consolidata della postazione principale
+    recalculateConsolidatedWorkstationRate();
 
     // 8. Esegue il ricalcolo generale dei margini, BEP e tasse
     recalculateAll();
@@ -873,7 +924,9 @@ function getPayloadToSave() {
 
     // Update operating benchmarks
     if (!currentData.operating_benchmarks) currentData.operating_benchmarks = {};
-    currentData.operating_benchmarks.chair_hourly_rate_consolidated = poltrona;
+    currentData.operating_benchmarks.workstation_hourly_rate_consolidated = poltrona;
+    currentData.operating_benchmarks.chair_hourly_rate_consolidated = poltrona; // compatibility
+    currentData.operating_benchmarks.active_workstations_count = currentData.operating_benchmarks.active_workstations_count || currentData.operating_benchmarks.number_of_chairs || 3;
 
     // 2. Tab: BOM
     const steps = currentData.bill_of_materials?.bom_steps || [];
@@ -898,7 +951,8 @@ function getPayloadToSave() {
             sub.calculation_breakdown.consumables = consumables;
             sub.calculation_breakdown.depreciation = depr;
             sub.calculation_breakdown.staff_cost = staff;
-            sub.calculation_breakdown.chair_time_mins = chairTime;
+            sub.calculation_breakdown.workstation_time_mins = chairTime;
+            sub.calculation_breakdown.chair_time_mins = chairTime; // compatibility
             sub.estimated_total_time_minutes = time;
             sub.estimated_internal_cost = consumables + depr + staff;
         });
@@ -971,6 +1025,26 @@ function getPayloadToSave() {
         currentData.market_and_fiscal_intelligence.fiscal_analysis.social_security_rate = enpam / 100;
         currentData.market_and_fiscal_intelligence.fiscal_analysis.total_estimated_tax_burden_ratio = (tasse + enpam) / 100;
     }
+
+    // 8. Synchronize strategic analysis keys (polymorphic NoSQL fields)
+    const stratClin = currentData.strategic_clinical_analysis || {};
+    if (!currentData.strategic_operations_analysis) {
+        currentData.strategic_operations_analysis = {};
+    }
+    const stratOps = currentData.strategic_operations_analysis;
+
+    stratOps.operations_financial_health_rating = stratOps.operations_financial_health_rating || stratClin.clinical_financial_health_rating || "MODERATE_MARGINS";
+    stratOps.pricing_and_tariff_strategy_advisory = stratClin.pricing_and_tariff_strategy_advisory || stratOps.pricing_and_tariff_strategy_advisory || "";
+    stratOps.extra_options_operations_evaluation = stratOps.extra_options_operations_evaluation || stratClin.extra_options_clinical_evaluation || [];
+    stratOps.operations_cost_optimization_recommendations = stratClin.clinical_cost_optimization_recommendations || stratOps.operations_cost_optimization_recommendations || [];
+
+    stratClin.clinical_financial_health_rating = stratOps.operations_financial_health_rating;
+    stratClin.pricing_and_tariff_strategy_advisory = stratOps.pricing_and_tariff_strategy_advisory;
+    stratClin.extra_options_clinical_evaluation = stratOps.extra_options_operations_evaluation;
+    stratClin.clinical_cost_optimization_recommendations = stratOps.operations_cost_optimization_recommendations;
+
+    currentData.strategic_clinical_analysis = stratClin;
+    currentData.strategic_operations_analysis = stratOps;
 
     return currentData;
 }
