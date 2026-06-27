@@ -1,3 +1,332 @@
+const dvrCommonStyles = `
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            color: #0f172a;
+            line-height: 1.5;
+            font-size: 9.5pt;
+            background: #fff;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+        
+        .page {
+            width: 210mm;
+            height: 297mm;
+            padding: 20mm 18mm;
+            box-sizing: border-box;
+            background: #fff;
+            position: relative;
+            page-break-after: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        /* Cover page style */
+        .cover {
+            justify-content: space-between;
+            padding: 24mm 18mm;
+        }
+        
+        .cover-header {
+            text-align: center;
+        }
+        
+        .cover-title {
+            font-size: 24pt;
+            font-weight: 900;
+            letter-spacing: -0.03em;
+            line-height: 1.15;
+            color: #0f172a;
+            margin-top: 50px;
+            text-transform: uppercase;
+        }
+        
+        .cover-subtitle {
+            font-size: 12pt;
+            color: #475569;
+            margin-top: 20px;
+            font-weight: 500;
+            line-height: 1.5;
+            border-top: 2px solid #0f172a;
+            padding-top: 20px;
+        }
+
+        /* Common Headers & Text */
+        .header-doc {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .header-doc h2 {
+            font-size: 11pt;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin: 0;
+            letter-spacing: 0.05em;
+            color: #0f172a;
+        }
+        
+        .header-doc span {
+            font-size: 8pt;
+            color: #64748b;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .chapter-title {
+            font-size: 14pt;
+            font-weight: 900;
+            color: #0f172a;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 6px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: -0.01em;
+        }
+        
+        .section-subtitle {
+            font-size: 9.5pt;
+            font-weight: 800;
+            color: #0f172a;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-left: 3px solid #0f172a;
+            padding-left: 8px;
+        }
+        
+        p {
+            text-align: justify;
+            margin-bottom: 10px;
+            font-size: 9pt;
+            color: #334155;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            margin: 15px 0;
+        }
+        
+        .info-title {
+            font-size: 8pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dashed #e2e8f0;
+            font-size: 8.5pt;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #64748b;
+        }
+        
+        .info-value {
+            font-weight: 700;
+            color: #0f172a;
+            text-align: right;
+            max-width: 65%;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 8.5pt;
+        }
+        
+        th, td {
+            border: 1px solid #e2e8f0;
+            padding: 8px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        th {
+            background-color: #f8fafc;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #0f172a;
+            letter-spacing: 0.03em;
+            font-size: 8pt;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        
+        /* Risk Grid & Badges */
+        .risk-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin: 14px 0;
+        }
+        
+        .risk-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+        }
+        
+        .risk-card.initial {
+            background: #f8fafc;
+            border-left: 4px solid #64748b;
+        }
+        
+        .risk-card.residual {
+            border-left: 4px solid;
+        }
+        
+        .risk-card.residual.low {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            border-left-color: #16a34a;
+            color: #166534;
+        }
+        
+        .risk-card.residual.mid {
+            background: #fff7ed;
+            border-color: #fed7aa;
+            border-left-color: #d97706;
+            color: #9a3412;
+        }
+        
+        .risk-card.residual.high {
+            background: #fef2f2;
+            border-color: #fecdd3;
+            border-left-color: #e11d48;
+            color: #991b1b;
+        }
+        
+        .risk-val {
+            font-size: 16pt;
+            font-weight: 900;
+            margin: 6px 0 2px 0;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 6px;
+            font-size: 7.5pt;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+        }
+        
+        .badge-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .badge-info {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        
+        .warning-box {
+            background: #fff1f2;
+            border: 1px solid #fecdd3;
+            border-left: 4px solid #e11d48;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 8.5pt;
+            color: #9f1239;
+            margin-bottom: 8px;
+        }
+        
+        .justification-box {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-left: 4px solid #0284c7;
+            border-radius: 8px;
+            padding: 12px;
+            font-style: italic;
+            font-size: 8.5pt;
+            color: #0369a1;
+            margin-bottom: 16px;
+        }
+        
+        /* Footer & Signatures */
+        .signature-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .signature-box {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            min-height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            background: #f8fafc;
+        }
+        
+        .signature-label {
+            font-size: 7.5pt;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #64748b;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 4px;
+            letter-spacing: 0.05em;
+        }
+        
+        .footer-page {
+            font-size: 7.5pt;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+        }
+    </style>
+`;
+
 const DVRPrintEngine = {
     // ════ HELPER DI BASE ════
     normalizeKey: function (key) {
@@ -36,6 +365,14 @@ const DVRPrintEngine = {
         "food": { D: 3, C: 2, desc_d: "Tossinfezioni, trasmissione alimentare, tagli, ustioni", normativa_rif: "Regolamento CE 852/2004 (HACCP)" }
     },
 
+    chunkArray: function (array, size) {
+        const chunks = [];
+        for (let i = 0; i < array.length; i += size) {
+            chunks.push(array.slice(i, i + size));
+        }
+        return chunks;
+    },
+
     // ══════════════════════════════════════════════════════════════════════
     // 1. STAMPA DEL SINGOLO SERVIZIO / CAPITOLO (ALTA QUALITÀ)
     // ══════════════════════════════════════════════════════════════════════
@@ -67,7 +404,7 @@ const DVRPrintEngine = {
             }
         }
 
-        // --- NUOVO: SE È UN COMPARTO MACRO, PRENDE LE DOMANDE DAL REGISTRO VERTICALI ---
+        // --- SE È UN COMPARTO MACRO, PRENDE LE DOMANDE DAL REGISTRO VERTICALI ---
         if (listItems.length === 0 && typeof verticalsRegistry !== 'undefined' && verticalsRegistry[sku]) {
             verticalsRegistry[sku].risks.forEach(risk => {
                 risk.checklist.forEach(q => {
@@ -88,7 +425,7 @@ const DVRPrintEngine = {
         const dPartenza = param.D || 2;
         const rPartenza = 4 * dPartenza;
 
-        // --- IL FIX È QUI ---
+        // --- LETTURA VALORI DATABASE ---
         const savedSkuData = (serverChecklistState && serverChecklistState[sku]) ? serverChecklistState[sku] : null;
         let dVal = dPartenza; let pVal = 4; let rVal = rPartenza; let justVal = "";
 
@@ -103,149 +440,228 @@ const DVRPrintEngine = {
         }
 
         const rLabel = rVal >= 8 ? 'ALTO' : (rVal >= 4 ? 'MEDIO' : 'BASSO');
-        const rColor = rVal >= 8 ? '#e11d48' : (rVal >= 4 ? '#d97706' : '#16a34a');
+        const rSeverityClass = rVal >= 8 ? 'high' : (rVal >= 4 ? 'mid' : 'low');
 
-        // Estrazione Mitigazioni per il singolo foglio
         const mitigationData = (mitigationControls || []).find(m => m.service_sku === sku);
+        const operatoriCoinvolti = mitigationData?.operatori_coinvolti || [];
+        const attrezzatureCoinvolte = mitigationData?.attrezzature_coinvolte || [];
 
-        // Costruzione HTML Foglio Singolo
+        let singlePageCount = 1;
+
+        // Costruzione HTML Foglio Singolo (Diviso in Pagine separate per evitare spaginazione)
         let html = `
             <!DOCTYPE html>
             <html lang="it">
             <head>
                 <meta charset="utf-8">
-                <style>
-                    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; font-size: 10pt; background: #fff; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-                    .page { width: 210mm; height: 297mm; padding: 18mm 15mm; box-sizing: border-box; background: #fff; position: relative; page-break-after: always; }
-                    .header-doc { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 12px; margin-bottom: 25px; }
-                    .header-doc h2 { font-size: 18pt; font-weight: 900; text-transform: uppercase; margin: 0; letter-spacing: 0.05em; color: #1e3a8a; }
-                    .header-doc p { font-size: 9pt; color: #64748b; margin: 4px 0 0 0; font-weight: bold; }
-                    .section-subtitle { font-size: 12pt; font-weight: bold; color: #0f172a; margin-top: 25px; margin-bottom: 10px; border-left: 4px solid #3b82f6; padding-left: 10px; page-break-after: avoid; }
-                    p { text-align: justify; margin-bottom: 12px; font-size: 10pt; }
-                    
-                    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 9pt; page-break-inside: auto; }
-                    tr { page-break-inside: avoid; page-break-after: auto; }
-                    th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: top; }
-                    th { background-color: #f1f5f9; font-weight: bold; text-transform: uppercase; color: #334155; border-bottom: 2px solid #94a3b8; }
-                    tbody tr:nth-child(even) { background-color: #f8fafc; }
-                    
-                    .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; page-break-inside: avoid; }
-                    .risk-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
-                    .risk-card.initial { background: #fafafa; border-left: 4px solid #94a3b8; }
-                    .risk-card.residual { background: #f0fdf4; border-left: 4px solid #22c55e; border-color: #bbf7d0; }
-                    .risk-val { font-size: 20pt; font-weight: 900; margin: 10px 0 5px 0; }
-                    
-                    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
-                    .warning-box { background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; padding: 12px 15px; font-size: 9.5pt; color: #9f1239; margin-bottom: 10px; page-break-inside: avoid; }
-                    .justification-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 15px; font-style: italic; font-size: 9.5pt; color: #0369a1; margin-bottom: 20px; page-break-inside: avoid; }
-                    .footer-page { position: absolute; bottom: 15mm; left: 15mm; right: 15mm; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 5px; display: flex; justify-content: space-between; }
-                </style>
+                ${dvrCommonStyles}
             </head>
             <body>
                 <!-- Pagina 1: Analisi e Rischio -->
                 <div class="page">
-                    <div class="header-doc">
-                        <span style="font-size: 8pt; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em;">Estratto Documento Valutazione Rischi (D.Lgs. 81/08)</span>
-                        <h2>SCHEDA PROTOCOLLO: ${service.service_name.toUpperCase()}</h2>
-                        <p>Redatto per: ${tenant.ragioneSociale} — Data: ${dateStr}</p>
+                    <div class="page-content">
+                        <div class="header-doc">
+                            <span>Estratto DVR — D.Lgs. 81/08</span>
+                            <h2>SCHEDA PROTOCOLLO</h2>
+                        </div>
+                        
+                        <h2 class="chapter-title">${service.service_name.toUpperCase()}</h2>
+
+                        <div class="section-subtitle">1. Inquadramento Operativo e Normativo</div>
+                        <div class="info-box" style="margin-top: 0;">
+                            <div class="info-row"><span class="info-label">ID Identificativo:</span><span class="info-value" style="font-family: monospace;">${sku}</span></div>
+                            <div class="info-row"><span class="info-label">Inquadramento:</span><span class="info-value">${serviceDescription}</span></div>
+                            <div class="info-row"><span class="info-label">Riferimenti Normativi:</span><span class="info-value">${rawLaws}</span></div>
+                        </div>
+
+                        <div class="section-subtitle">2. Analisi d'Impatto e Mitigazione del Rischio (Matrice INAIL)</div>
+                        <div class="risk-grid">
+                            <div class="risk-card initial">
+                                <div style="font-size: 8pt; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">1. Rischio Potenziale (Senza Misure)</div>
+                                <div class="risk-val" style="color: #64748b;">R = ${rPartenza}</div>
+                                <div style="font-size: 8.5pt; color: #475569;">Danno (D): <strong>${dPartenza}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>4</strong></div>
+                            </div>
+                            <div class="risk-card residual ${rSeverityClass}">
+                                <div style="font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">2. Rischio Residuo (Con Misure)</div>
+                                <div class="risk-val">R = ${rVal} <span style="font-size: 10pt; font-weight: 800;">(${rLabel})</span></div>
+                                <div style="font-size: 8.5pt;">Danno (D): <strong>${dVal}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>${pVal}</strong></div>
+                            </div>
+                        </div>
+                        
+                        ${justVal ? `<div class="justification-box"><strong>Ratio della Mitigazione:</strong> ${justVal}</div>` : ''}
+
+                        ${riskWarnings.length > 0 ? `
+                            <div class="section-subtitle">3. Avvertenze e Pericoli Critici Operativi</div>
+                            ${riskWarnings.map(w => `<div class="warning-box">⚠️ ${w}</div>`).join('')}
+                        ` : ''}
                     </div>
 
-                    <div class="section-subtitle">1. Inquadramento Operativo e Normativo</div>
-                    <p><strong>Descrizione:</strong> ${serviceDescription}</p>
-                    <p><strong>Riferimenti Legislativi:</strong> ${rawLaws}</p>
+                    <div class="footer-page">
+                        <span>${tenant.ragioneSociale}</span>
+                        <span>Estratto DVR — Pagina ${singlePageCount++}</span>
+                    </div>
+                </div>
 
-                    <div class="section-subtitle">2. Analisi d'Impatto e Mitigazione del Rischio (Matrice INAIL)</div>
-                    <div class="risk-grid">
-                        <div class="risk-card initial">
-                            <div style="font-size: 8pt; font-weight: bold; color: #64748b; text-transform: uppercase;">1. Rischio Potenziale (Assenza Misure)</div>
-                            <div class="risk-val" style="color: #94a3b8;">R = ${rPartenza}</div>
-                            <div style="font-size: 9pt; color: #475569;">Danno (D): <strong>${dPartenza}</strong> &nbsp;|&nbsp; Probabilità: <strong>4</strong></div>
+                <!-- Pagina Risorse Specifiche del Protocollo (Operatori + Attrezzature) -->
+                ${(operatoriCoinvolti.length > 0 || attrezzatureCoinvolte.length > 0) ? `
+                <div class="page">
+                    <div class="page-content">
+                        <div class="header-doc">
+                            <span>Estratto DVR — D.Lgs. 81/08</span>
+                            <h2>SCHEDA PROTOCOLLO</h2>
                         </div>
-                        <div class="risk-card residual">
-                            <div style="font-size: 8pt; font-weight: bold; color: #16a34a; text-transform: uppercase;">2. Rischio Residuo (Con Misure)</div>
-                            <div class="risk-val" style="color: ${rColor};">R = ${rVal} <span style="font-size:12pt;">(${rLabel})</span></div>
-                            <div style="font-size: 9pt; color: #475569;">Danno (D): <strong>${dVal}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>${pVal}</strong></div>
+                        
+                        <h2 class="chapter-title">${service.service_name.toUpperCase()}</h2>
+                        
+                        <div class="section-subtitle">Risorse Specifiche del Protocollo</div>
+                        <p>Elenco delle figure professionali necessarie e delle attrezzature/macchinari di reparto impiegati nello svolgimento delle mansioni associate:</p>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; height: 350px;">
+                            <div class="info-box" style="margin: 0; display: flex; flex-direction: column;">
+                                <div class="info-title" style="color:#0f172a; border-bottom: 2px solid #0f172a; font-size: 9pt;">👥 Operatori e Figure</div>
+                                ${operatoriCoinvolti.length > 0 ? `
+                                    <ul style="margin: 0; padding-left: 18px; font-size: 9pt; color: #334155; line-height: 1.6; flex: 1;">
+                                        ${operatoriCoinvolti.map(op => `<li style="margin-bottom: 6px;"><strong>${op}</strong></li>`).join('')}
+                                    </ul>
+                                ` : `
+                                    <div style="font-size: 9pt; color: #94a3b8; font-style: italic; padding: 20px 10px;">Nessun operatore specifico.</div>
+                                `}
+                            </div>
+                            <div class="info-box" style="margin: 0; display: flex; flex-direction: column;">
+                                <div class="info-title" style="color:#0f172a; border-bottom: 2px solid #0f172a; font-size: 9pt;">⚙️ Attrezzature di Reparto</div>
+                                ${attrezzatureCoinvolte.length > 0 ? `
+                                    <ul style="margin: 0; padding-left: 18px; font-size: 9pt; color: #334155; line-height: 1.6; flex: 1;">
+                                        ${attrezzatureCoinvolte.map(eq => `<li style="margin-bottom: 6px;"><strong>${eq}</strong></li>`).join('')}
+                                    </ul>
+                                ` : `
+                                    <div style="font-size: 9pt; color: #94a3b8; font-style: italic; padding: 20px 10px;">Nessuna attrezzatura specifica.</div>
+                                `}
+                            </div>
                         </div>
                     </div>
                     
-                    ${justVal ? `<div class="justification-box"><strong>Ratio della Mitigazione:</strong> ${justVal}</div>` : ''}
-
-                    ${riskWarnings.length > 0 ? `
-                        <div class="section-subtitle">3. Avvertenze e Pericoli Critici Operativi</div>
-                        ${riskWarnings.map(w => `<div class="warning-box">⚠️ ${w}</div>`).join('')}
-                    ` : ''}
-
-                    <div class="footer-page"><span>${tenant.ragioneSociale} - Scheda Singola</span><span>Estratto DVR</span></div>
+                    <div class="footer-page">
+                        <span>${tenant.ragioneSociale}</span>
+                        <span>Estratto DVR — Pagina ${singlePageCount++}</span>
+                    </div>
                 </div>
+                ` : ''}
+        `;
 
-                <!-- Pagina 2: Misure e Checklist -->
+        // Pagine Checklist (Chunked per evitare overflow su capitoli lunghi)
+        const checklistChunks = this.chunkArray(listItems, 10);
+        checklistChunks.forEach((chunk, index) => {
+            const isFirst = index === 0;
+            html += `
+                <!-- Pagina Checklist -->
                 <div class="page">
-                    <div class="section-subtitle">4. Stato delle Conformità Strutturali (Checklist)</div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width: 15%;">ID</th>
-                                <th style="width: 25%;">Area</th>
-                                <th style="width: 45%;">Azione di Conformità Requisita</th>
-                                <th style="width: 15%; text-align:center;">Stato</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${listItems.map(item => {
-            const isDone = !!state[item.id || item.question_id];
-            return `
-                                    <tr>
-                                        <td style="font-family: monospace; font-size: 8pt; font-weight: bold;">${item.id || item.question_id}</td>
-                                        <td><strong>${item.area || 'Compliance'}</strong></td>
-                                        <td>${item.action || item.text || ""}</td>
-                                        <td style="text-align:center;">
-                                            ${isDone
-                    ? '<span class="badge" style="background:#dcfce7; color:#16a34a;">ATTUATA ✓</span>'
-                    : '<span class="badge" style="background:#fee2e2; color:#dc2626;">IN ATTESA ✗</span>'}
-                                        </td>
-                                    </tr>
-                                `;
-        }).join('')}
-                        </tbody>
-                    </table>
-
-                    ${(mitigationData && mitigationData.controlli_mitigazione) ? `
-                        <div class="section-subtitle" style="margin-top:30px;">5. Protocollo Specifico di Mitigazione Fase per Fase</div>
+                    <div class="page-content">
+                        <div class="header-doc">
+                            <span>Estratto DVR — D.Lgs. 81/08</span>
+                            <h2>SCHEDA PROTOCOLLO</h2>
+                        </div>
+                        
+                        <h2 class="chapter-title">${service.service_name.toUpperCase()} ${isFirst ? '' : '(Continua)'}</h2>
+                        
+                        <div class="section-subtitle">4. Stato delle Conformità Strutturali (Checklist) ${isFirst ? '' : '(Continua)'}</div>
                         <table>
                             <thead>
                                 <tr>
-                                    <th style="width:25%">Fase Operativa</th>
-                                    <th style="width:30%">Check / Evidenza Richiesta</th>
-                                    <th style="width:25%">Criterio di Accettazione</th>
-                                    <th style="width:20%">Responsabile</th>
+                                    <th style="width: 15%;">ID</th>
+                                    <th style="width: 25%;">Area</th>
+                                    <th style="width: 45%;">Azione di Conformità Requisita</th>
+                                    <th style="width: 15%; text-align:center;">Stato</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${mitigationData.controlli_mitigazione.map(mit => `
-                                    <tr>
-                                        <td><strong>${mit.fase_operativa}</strong></td>
-                                        <td>${mit.check_prestabilito}<br><span class="badge" style="background:#e0f2fe; color:#0369a1; margin-top:4px;">Tipo: ${mit.tipo_evidenza}</span></td>
-                                        <td style="color:#1e3a8a; font-weight:600;">${mit.criterio_accettazione}</td>
-                                        <td>${mit.operatore_responsabile}</td>
-                                    </tr>
-                                `).join('')}
+                                ${chunk.map(item => {
+                                    const isDone = !!state[item.id || item.question_id];
+                                    return `
+                                        <tr>
+                                            <td style="font-family: monospace; font-size: 8pt; font-weight: bold;">${item.id || item.question_id}</td>
+                                            <td><strong>${item.area || 'Compliance'}</strong></td>
+                                            <td>${item.action || item.text || ""}</td>
+                                            <td style="text-align:center;">
+                                                ${isDone
+                                                    ? '<span class="badge badge-success">ATTUATA ✓</span>'
+                                                    : '<span class="badge badge-danger">IN ATTESA ✗</span>'}
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
                             </tbody>
                         </table>
-                    ` : ''}
 
-                    <div style="margin-top:40px; border-top:1px solid #e2e8f0; padding-top:10px; font-size:8pt; color:#64748b; text-align:center;">
-                        La presente scheda costituisce parte integrante e sostanziale del Documento di Valutazione dei Rischi aziendale.
+                        <div style="margin-top:30px; border-top:1px solid #e2e8f0; padding-top:12px; font-size:8pt; color:#64748b; text-align:center;">
+                            La presente scheda costituisce parte integrante e sostanziale del Documento di Valutazione dei Rischi aziendale.
+                        </div>
                     </div>
                     
-                    <div class="footer-page"><span>${tenant.ragioneSociale} - Scheda Singola</span><span>Estratto DVR</span></div>
+                    <div class="footer-page">
+                        <span>${tenant.ragioneSociale}</span>
+                        <span>Estratto DVR — Pagina ${singlePageCount++}</span>
+                    </div>
                 </div>
-            </body>
-            </html>
-        `;
+            `;
+        });
+
+        // Pagine Mitigazione (Chunked per evitare overflow)
+        if (mitigationData && mitigationData.controlli_mitigazione && mitigationData.controlli_mitigazione.length > 0) {
+            const mitigationChunks = this.chunkArray(mitigationData.controlli_mitigazione, 5);
+            mitigationChunks.forEach((chunk, index) => {
+                const isFirst = index === 0;
+                html += `
+                    <!-- Pagina Protocollo Specifico di Mitigazione -->
+                    <div class="page">
+                        <div class="page-content">
+                            <div class="header-doc">
+                                <span>Estratto DVR — D.Lgs. 81/08</span>
+                                <h2>SCHEDA PROTOCOLLO</h2>
+                            </div>
+                            
+                            <h2 class="chapter-title">${service.service_name.toUpperCase()} ${isFirst ? '' : '(Continua)'}</h2>
+                            
+                            <div class="section-subtitle">5. Protocollo Specifico di Mitigazione Fase per Fase ${isFirst ? '' : '(Continua)'}</div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:25%">Fase Operativa</th>
+                                        <th style="width:30%">Check / Evidenza Richiesta</th>
+                                        <th style="width:25%">Criterio di Accettazione</th>
+                                        <th style="width:20%">Responsabile</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${chunk.map(mit => `
+                                        <tr>
+                                            <td><strong>${mit.fase_operativa}</strong></td>
+                                            <td>${mit.check_prestabilito}<br><span class="badge badge-info" style="margin-top:4px;">Tipo: ${mit.tipo_evidenza}</span></td>
+                                            <td style="color:#0f172a; font-weight:600;">${mit.criterio_accettazione}</td>
+                                            <td>${mit.operatore_responsabile}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                            
+                            <div style="margin-top:30px; border-top:1px solid #e2e8f0; padding-top:12px; font-size:8pt; color:#64748b; text-align:center;">
+                                La presente scheda costituisce parte integrante e sostanziale del Documento di Valutazione dei Rischi aziendale.
+                            </div>
+                        </div>
+                        
+                        <div class="footer-page">
+                            <span>${tenant.ragioneSociale}</span>
+                            <span>Estratto DVR — Pagina ${singlePageCount++}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        html += `</body></html>`;
 
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.98);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;';
-        overlay.innerHTML = '<div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #1e3a8a;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div><div id="pdf-progress" style="font-weight:bold;font-size:14px;color:#1e293b;">Digitalizzazione Alta Definizione...</div><style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>';
+        overlay.innerHTML = '<div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #0f172a;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div><div id="pdf-progress" style="font-weight:bold;font-size:14px;color:#0f172a;">Digitalizzazione Alta Definizione...</div><style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>';
         document.body.appendChild(overlay);
 
         const container = document.createElement('div');
@@ -358,150 +774,217 @@ const DVRPrintEngine = {
             <html lang="it">
             <head>
                 <meta charset="utf-8">
-                <style>
-                    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1e293b; line-height: 1.6; font-size: 10pt; background: #fff; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
-                    .page { width: 210mm; height: 297mm; padding: 18mm 15mm; box-sizing: border-box; background: #fff; position: relative; page-break-after: always;}
-                    h1, h2, h3 { color: #0f172a; margin-top: 0; }
-                    .cover-title { font-size: 26pt; font-weight: 900; letter-spacing: -0.5px; margin-top: 60px; line-height: 1.1; text-transform: uppercase; color: #1e3a8a; }
-                    .cover-subtitle { font-size: 14pt; color: #475569; margin-top: 15px; font-weight: 600; border-top: 2px solid #e2e8f0; padding-top: 15px;}
-                    .chapter-title { font-size: 16pt; font-weight: 900; color: #1e3a8a; border-bottom: 3px solid #3b82f6; padding-bottom: 8px; margin-bottom: 20px; text-transform: uppercase; }
-                    .section-subtitle { font-size: 12pt; font-weight: bold; color: #0f172a; margin-top: 25px; margin-bottom: 10px; border-left: 4px solid #3b82f6; padding-left: 10px; page-break-after: avoid; }
-                    
-                    .info-box { background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin: 20px 0; page-break-inside: avoid; }
-                    .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 11pt; }
-                    .info-row:last-child { border-bottom: none; }
-                    .info-label { font-weight: bold; color: #64748b; }
-                    .info-value { font-weight: 600; color: #0f172a; text-align: right; max-width: 65%; }
-                    p { text-align: justify; margin-bottom: 12px; font-size: 10pt; }
-                    
-                    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 9pt; page-break-inside: auto; }
-                    tr { page-break-inside: avoid; page-break-after: auto; }
-                    th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; vertical-align: top; }
-                    th { background-color: #f1f5f9; font-weight: bold; text-transform: uppercase; color: #334155; border-bottom: 2px solid #94a3b8; }
-                    tbody tr:nth-child(even) { background-color: #f8fafc; }
-                    
-                    .risk-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; page-break-inside: avoid; }
-                    .risk-card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; }
-                    .risk-card.initial { background: #fafafa; border-left: 4px solid #94a3b8; }
-                    .risk-card.residual { background: #f0fdf4; border-left: 4px solid #22c55e; border-color: #bbf7d0; }
-                    .risk-val { font-size: 20pt; font-weight: 900; margin: 10px 0 5px 0; }
-                    
-                    .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
-                    .warning-box { background: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; padding: 12px 15px; font-size: 9.5pt; color: #9f1239; margin-bottom: 10px; page-break-inside: avoid; }
-                    .justification-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 15px; font-style: italic; font-size: 9.5pt; color: #0369a1; margin-bottom: 20px; page-break-inside: avoid; }
-                    
-                    .signature-area { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; page-break-inside: avoid; }
-                    .signature-box { border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; min-height: 80px; display: flex; flex-direction: column; justify-content: flex-end; }
-                    .signature-label { font-size: 8pt; font-weight: bold; text-transform: uppercase; color: #64748b; margin-bottom: 40px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;}
-                    .footer-page { position: absolute; bottom: 15mm; left: 15mm; right: 15mm; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 5px; display: flex; justify-content: space-between; }
-                </style>
+                ${dvrCommonStyles}
             </head>
             <body>
         `;
 
         const mappedSectorNames = tenant.activeVerticals.map(v => this.metaLocal[this.normalizeKey(v)]?.name || v).join(', ');
 
-        // Pagina 1
+        // Pagina 1: Cover Page
         html += `
             <div class="page cover">
-                <div>
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <span class="badge" style="background: #1e3a8a; color: white;">DOCUMENTO UFFICIALE DI VALUTAZIONE</span>
-                        <div style="font-size: 9pt; font-weight: bold; color: #64748b; margin-top: 10px; letter-spacing: 1px;">EX D.LGS. 81/2008 E S.M.I.</div>
-                    </div>
+                <div class="cover-header">
+                    <span class="badge badge-info" style="font-size: 8pt; padding: 4px 8px; border-radius: 8px;">DOCUMENTO DI VALUTAZIONE DEI RISCHI</span>
+                    <div style="font-size: 8pt; font-weight: 800; color: #64748b; margin-top: 8px; letter-spacing: 0.1em; text-transform: uppercase;">EX D.LGS. 81/2008 E S.M.I.</div>
+                    
                     <h1 class="cover-title">Documento di Valutazione dei Rischi (D.V.R.)</h1>
                     <p class="cover-subtitle">Valutazione Specialistica dei Rischi Biologici, Meccanici e Strutturali inerenti ai Processi Operativi Aziendali</p>
                 </div>
 
-                <div class="info-box" style="margin-top: 40px;">
-                    <div class="info-title" style="font-size: 12pt; color: #1e3a8a;">Anagrafica Aziendale</div>
+                <div class="info-box">
+                    <div class="info-title">Anagrafica Aziendale</div>
                     <div class="info-row"><span class="info-label">Ragione Sociale:</span><span class="info-value">${tenant.ragioneSociale}</span></div>
                     <div class="info-row"><span class="info-label">P.IVA / C.F.:</span><span class="info-value">${tenant.pIva}</span></div>
                     <div class="info-row"><span class="info-label">Sede Operativa:</span><span class="info-value">${tenant.indirizzo}</span></div>
                     <div class="info-row"><span class="info-label">Aree di Rischio Mappate:</span><span class="info-value">${mappedSectorNames}</span></div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
                     <div class="info-box" style="margin: 0;">
-                        <div class="info-title">Figure della Sicurezza</div>
-                        <div style="margin-bottom: 8px;"><strong>RSPP:</strong><br>${tenant.generalMetadata.rspp}</div>
-                        <div><strong>RLS:</strong><br>${tenant.generalMetadata.rls}</div>
+                        <div class="info-title">Referenti Sicurezza</div>
+                        <div style="margin-bottom: 8px; font-size: 8.5pt;"><strong>RSPP:</strong><br>${tenant.generalMetadata?.rspp || '-'}</div>
+                        <div style="font-size: 8.5pt;"><strong>RLS:</strong><br>${tenant.generalMetadata?.rls || '-'}</div>
                     </div>
                     <div class="info-box" style="margin: 0;">
-                        <div class="info-title">Sorveglianza Sanitaria e Emergenze</div>
-                        <div style="margin-bottom: 8px;"><strong>Medico Competente:</strong><br>${tenant.generalMetadata.medicoCompetente}</div>
-                        <div><strong>Addetti Emergenze:</strong><br>${tenant.generalMetadata.addettiEmergenza.join(', ')}</div>
+                        <div class="info-title">Emergenze & Sorveglianza</div>
+                        <div style="margin-bottom: 8px; font-size: 8.5pt;"><strong>Medico Competente:</strong><br>${tenant.generalMetadata?.medicoCompetente || '-'}</div>
+                        <div style="font-size: 8.5pt;"><strong>Addetti Emergenze:</strong><br>${tenant.generalMetadata?.addettiEmergenza?.join(', ') || '-'}</div>
                     </div>
                 </div>
 
                 <div class="footer-page">
-                    <span>Generato digitalmente in data ${dateStr}</span>
+                    <span>Generato digitalmente il ${dateStr}</span>
                     <span>Pagina 1</span>
                 </div>
             </div>
         `;
 
-        // Pagina 2
-        html += `
-            <div class="page">
-                <h2 class="chapter-title">I. Metodologia e Risorse Aziendali</h2>
-                
-                <div class="section-subtitle">1.1 Metodologia di Valutazione (Algoritmo INAIL)</div>
-                <p>La valutazione del rischio per ogni comparto e protocollo clinico è stata effettuata adottando il modello a matrice (<strong>R = P × D</strong>). Il <strong>Danno (D)</strong> valuta la magnitudo clinica/legale della lesione attesa. La <strong>Probabilità (P)</strong> stima la frequenza di accadimento in base allo stato delle misure preventive attuate dall'azienda. La mitigazione mira ad abbattere il parametro P.</p>
+        let pageCount = 2;
 
-                <div class="section-subtitle">1.2 Organigramma Operativo e Mansioni Esaminate</div>
-                <p>Mappatura del personale direttamente coinvolto nelle procedure operative e soggetto a sorveglianza sanitaria/formazione:</p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:40%">Nominativo</th>
-                            <th style="width:35%">Qualifica / Ruolo</th>
-                            <th style="width:25%">Contratto</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${operators.length > 0 ? operators.map(op => `
-                            <tr>
-                                <td><strong>${op.OperatorName}</strong></td>
-                                <td>${op.Job} <br><span style="font-size:8pt; color:#64748b">${op.specialization || '-'}</span></td>
-                                <td>${op.contract || '-'}</td>
-                            </tr>
-                        `).join('') : '<tr><td colspan="3">Nessun operatore specificato in anagrafica.</td></tr>'}
-                    </tbody>
-                </table>
+        // Pagina 2 & Successive: Metodologia e Organigramma (Chunked)
+        if (operators.length === 0) {
+            html += `
+                <div class="page">
+                    <div class="page-content">
+                        <div class="header-doc">
+                            <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
+                            <h2>I. Metodologia e Risorse Aziendali</h2>
+                        </div>
+                        
+                        <div class="section-subtitle">1.1 Metodologia di Valutazione (Algoritmo INAIL)</div>
+                        <p>La valutazione del rischio per ogni comparto e protocollo clinico è stata effettuata adottando il modello a matrice (<strong>R = P × D</strong>). Il <strong>Danno (D)</strong> valuta la magnitudo clinica/legale della lesione attesa. La <strong>Probabilità (P)</strong> stima la frequenza di accadimento in base allo stato delle misure preventive attuate dall'azienda. La mitigazione mira ad abbattere il parametro P.</p>
 
-                <div class="section-subtitle" style="margin-top:30px;">1.3 Registro Attrezzature e Impiantistica (D.Lgs. 81/08 Titolo III)</div>
-                <p>Elenco delle attrezzature critiche presenti in struttura, soggette a direttive macchine o protocolli di manutenzione:</p>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:45%">Tipologia Macchinario / Dispositivo</th>
-                            <th style="width:20%">Reparto d'uso</th>
-                            <th style="width:15%">Acquisizione</th>
-                            <th style="width:20%">Status Giuridico</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${machinery.length > 0 ? machinery.map(mac => `
-                            <tr>
-                                <td><strong>${mac.type}</strong></td>
-                                <td><span class="badge" style="background:#e2e8f0; color:#475569;">${mac.vertical.toUpperCase()}</span></td>
-                                <td>${mac.year || '-'}</td>
-                                <td>${mac.ownership || '-'}</td>
-                            </tr>
-                        `).join('') : '<tr><td colspan="4">Nessun macchinario rilevante censito.</td></tr>'}
-                    </tbody>
-                </table>
-                <div class="footer-page">
-                    <span>${tenant.ragioneSociale} - DVR Operativo</span>
-                    <span>Pagina 2</span>
+                        <div class="section-subtitle">1.2 Organigramma Operativo e Mansioni Esaminate</div>
+                        <p>Mappatura del personale direttamente coinvolto nelle procedure operative e soggetto a sorveglianza sanitaria/formazione:</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:40%">Nominativo</th>
+                                    <th style="width:35%">Qualifica / Ruolo</th>
+                                    <th style="width:25%">Contratto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="3" style="text-align: center; color: #94a3b8; padding: 20px;">Nessun operatore specificato in anagrafica.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="footer-page">
+                        <span>${tenant.ragioneSociale}</span>
+                        <span>Pagina ${pageCount++}</span>
+                    </div>
                 </div>
-            </div>
-        `;
+            `;
+        } else {
+            const operatorChunks = this.chunkArray(operators, 7);
+            operatorChunks.forEach((chunk, index) => {
+                const isFirst = index === 0;
+                html += `
+                    <div class="page">
+                        <div class="page-content">
+                            <div class="header-doc">
+                                <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
+                                <h2>I. Metodologia e Risorse Aziendali ${isFirst ? '' : '(Continua)'}</h2>
+                            </div>
+                            
+                            ${isFirst ? `
+                                <div class="section-subtitle">1.1 Metodologia di Valutazione (Algoritmo INAIL)</div>
+                                <p>La valutazione del rischio per ogni comparto e protocollo clinico è stata effettuata adottando il modello a matrice (<strong>R = P × D</strong>). Il <strong>Danno (D)</strong> valuta la magnitudo clinica/legale della lesione attesa. La <strong>Probabilità (P)</strong> stima la frequenza di accadimento in base allo stato delle misure preventive attuate dall'azienda. La mitigazione mira ad abbattere il parametro P.</p>
+                            ` : ''}
+
+                            <div class="section-subtitle">1.2 Organigramma Operativo e Mansioni Esaminate ${isFirst ? '' : '(Continua)'}</div>
+                            <p>${isFirst ? 'Mappatura del personale direttamente coinvolto nelle procedure operative e soggetto a sorveglianza sanitaria/formazione:' : 'Prosecuzione dell\'organigramma del personale:'}</p>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:40%">Nominativo</th>
+                                        <th style="width:35%">Qualifica / Ruolo</th>
+                                        <th style="width:25%">Contratto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${chunk.map(op => `
+                                        <tr>
+                                            <td><strong>${op.OperatorName}</strong></td>
+                                            <td>${op.Job} <br><span style="font-size:8pt; color:#64748b">${op.specialization || '-'}</span></td>
+                                            <td>${op.contract || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="footer-page">
+                            <span>${tenant.ragioneSociale}</span>
+                            <span>Pagina ${pageCount++}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Pagine Registro Attrezzature (Chunked su pagine dedicate distinte per evitare spaginazioni)
+        if (machinery.length === 0) {
+            html += `
+                <div class="page">
+                    <div class="page-content">
+                        <div class="header-doc">
+                            <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
+                            <h2>I. Metodologia e Risorse Aziendali</h2>
+                        </div>
+
+                        <div class="section-subtitle">1.3 Registro Attrezzature e Impiantistica (D.Lgs. 81/08 Titolo III)</div>
+                        <p>Elenco delle attrezzature critiche presenti in struttura, soggette a direttive macchine o protocolli di manutenzione:</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:45%">Tipologia Macchinario / Dispositivo</th>
+                                    <th style="width:20%">Reparto d'uso</th>
+                                    <th style="width:15%">Acquisizione</th>
+                                    <th style="width:20%">Status Giuridico</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr><td colspan="4" style="text-align: center; color: #94a3b8; padding: 20px;">Nessun macchinario rilevante censito.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="footer-page">
+                        <span>${tenant.ragioneSociale}</span>
+                        <span>Pagina ${pageCount++}</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            const machineryChunks = this.chunkArray(machinery, 10);
+            machineryChunks.forEach((chunk, index) => {
+                const isFirst = index === 0;
+                html += `
+                    <div class="page">
+                        <div class="page-content">
+                            <div class="header-doc">
+                                <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
+                                <h2>I. Metodologia e Risorse Aziendali ${isFirst ? '' : '(Continua)'}</h2>
+                            </div>
+
+                            <div class="section-subtitle">1.3 Registro Attrezzature e Impiantistica ${isFirst ? '' : '(Continua)'}</div>
+                            <p>${isFirst ? 'Elenco delle attrezzature critiche presenti in struttura, soggette a direttive macchine o protocolli di manutenzione:' : 'Prosecuzione del registro attrezzature ed impiantistica aziendale:'}</p>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:45%">Tipologia Macchinario / Dispositivo</th>
+                                        <th style="width:20%">Reparto d'uso</th>
+                                        <th style="width:15%">Acquisizione</th>
+                                        <th style="width:20%">Status Giuridico</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${chunk.map(mac => `
+                                        <tr>
+                                            <td><strong>${mac.type}</strong></td>
+                                            <td><span class="badge" style="background:#e2e8f0; color:#475569; font-size: 7pt;">${mac.vertical.toUpperCase()}</span></td>
+                                            <td>${mac.year || '-'}</td>
+                                            <td>${mac.ownership || '-'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="footer-page">
+                            <span>${tenant.ragioneSociale}</span>
+                            <span>Pagina ${pageCount++}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
 
         // Pagine Servizi
         const activeSectors = [...new Set(['comune', ...tenant.activeVerticals.map(v => this.normalizeKey(v))])];
-        let pageCount = 3;
 
         activeSectors.forEach((vKey) => {
             const sectorServices = catalog.filter(s => {
@@ -532,10 +1015,25 @@ const DVRPrintEngine = {
                         }
                     }
 
+                    // --- SE È UN COMPARTO MACRO, PRENDE LE DOMANDE DAL REGISTRO VERTICALI ---
+                    if (sListItems.length === 0 && typeof verticalsRegistry !== 'undefined' && verticalsRegistry[sSku]) {
+                        verticalsRegistry[sSku].risks.forEach(risk => {
+                            risk.checklist.forEach(q => {
+                                sListItems.push({
+                                    id: q.question_id,
+                                    area: risk.name,
+                                    action: q.text,
+                                    owner: 'Datore di Lavoro'
+                                });
+                            });
+                        });
+                        sDescription = "Valutazione dei rischi strutturali, impiantistici e operativi del comparto.";
+                        rawLaws = verticalsRegistry[sSku].law_references || rawLaws;
+                    }
+
                     const param = this.parametriVerticali[vKey] || { D: 2 };
                     const dPartenza = param.D;
                     const rPartenza = 4 * dPartenza;
-                    // --- IL FIX È QUI ---
                     const savedServiceData = (serverChecklistState && serverChecklistState[sSku]) ? serverChecklistState[sSku] : null;
 
                     let sd = dPartenza; let sp = 4; let sr = rPartenza; let sJustification = "";
@@ -550,8 +1048,8 @@ const DVRPrintEngine = {
                         sJustification = "Valutazione elaborata in tempo reale in base alle spunte applicate.";
                     }
 
-                    const srColor = sr >= 8 ? '#e11d48' : (sr >= 4 ? '#d97706' : '#16a34a');
                     const srLabel = sr >= 8 ? 'ALTO' : (sr >= 4 ? 'MEDIO' : 'BASSO');
+                    const srSeverityClass = sr >= 8 ? 'high' : (sr >= 4 ? 'mid' : 'low');
 
                     sListItems.forEach(item => {
                         if (!sState[item.id || item.question_id]) {
@@ -559,167 +1057,288 @@ const DVRPrintEngine = {
                         }
                     });
 
+                    // --- PAGINA A: INQUADRAMENTO E RISCHIO ---
                     html += `
                         <div class="page">
-                            <h2 class="chapter-title">${service.service_name}</h2>
-                            
-                            <div class="info-box" style="margin-top:0;">
-                                <div class="info-row"><span class="info-label">ID Protocollo:</span><span class="info-value" style="font-family:monospace;">${sSku}</span></div>
-                                <div class="info-row"><span class="info-label">Inquadramento:</span><span class="info-value">${sDescription}</span></div>
-                                <div class="info-row"><span class="info-label">Normativa applicata:</span><span class="info-value">${rawLaws}</span></div>
-                            </div>
-
-                            <div class="section-subtitle">Stima del Rischio Specifico (INAIL)</div>
-                            <div class="risk-grid">
-                                <div class="risk-card initial">
-                                    <div style="font-size: 8pt; font-weight: bold; color: #64748b; text-transform: uppercase;">Rischio Potenziale (Senza Misure)</div>
-                                    <div class="risk-val" style="color: #94a3b8;">R = ${rPartenza}</div>
-                                    <div style="font-size: 9pt; color: #475569;">Danno (D): <strong>${dPartenza}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>4</strong> (Max)</div>
+                            <div class="page-content">
+                                <div class="header-doc">
+                                    <span>II. Protocolli di Sicurezza</span>
+                                    <h2>${service.service_name.toUpperCase()}</h2>
                                 </div>
-                                <div class="risk-card residual">
-                                    <div style="font-size: 8pt; font-weight: bold; color: #16a34a; text-transform: uppercase;">Rischio Residuo Attuale (Mitigato)</div>
-                                    <div class="risk-val" style="color: ${srColor};">R = ${sr} <span style="font-size:12pt;">(${srLabel})</span></div>
-                                    <div style="font-size: 9pt; color: #475569;">Danno (D): <strong>${sd}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>${sp}</strong></div>
+                                
+                                <div class="section-subtitle">1. Inquadramento Operativo e Normativo</div>
+                                <div class="info-box" style="margin-top:0;">
+                                    <div class="info-row"><span class="info-label">ID Protocollo:</span><span class="info-value" style="font-family:monospace;">${sSku}</span></div>
+                                    <div class="info-row"><span class="info-label">Inquadramento:</span><span class="info-value">${sDescription}</span></div>
+                                    <div class="info-row"><span class="info-label">Normativa Applicata:</span><span class="info-value">${rawLaws}</span></div>
                                 </div>
+
+                                <div class="section-subtitle">2. Stima del Rischio Specifico (INAIL)</div>
+                                <div class="risk-grid">
+                                    <div class="risk-card initial">
+                                        <div style="font-size: 8pt; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">Rischio Potenziale (Senza Misure)</div>
+                                        <div class="risk-val" style="color: #64748b;">R = ${rPartenza}</div>
+                                        <div style="font-size: 8.5pt; color: #475569;">Danno (D): <strong>${dPartenza}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>4</strong></div>
+                                    </div>
+                                    <div class="risk-card residual ${srSeverityClass}">
+                                        <div style="font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Rischio Residuo Attuale (Mitigato)</div>
+                                        <div class="risk-val">R = ${sr} <span style="font-size:10pt; font-weight:800;">(${srLabel})</span></div>
+                                        <div style="font-size: 8.5pt;">Danno (D): <strong>${sd}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>${sp}</strong></div>
+                                    </div>
+                                </div>
+                                
+                                ${sJustification ? `<div class="justification-box"><strong>Ratio della Mitigazione:</strong> ${sJustification}</div>` : ''}
+
+                                ${sWarnings.length > 0 ? `
+                                    <div class="section-subtitle">Avvertenze Critiche e Vulnerabilità</div>
+                                    ${sWarnings.map(w => `<div class="warning-box">⚠️ ${w}</div>`).join('')}
+                                ` : ''}
                             </div>
                             
-                            ${sJustification ? `<div class="justification-box"><strong>Ratio della Mitigazione:</strong> ${sJustification}</div>` : ''}
-
-                            ${sWarnings.length > 0 ? `
-                                <div class="section-subtitle">Vulnerabilità e Avvertenze Critiche</div>
-                                ${sWarnings.map(w => `<div class="warning-box">${w}</div>`).join('')}
-                            ` : ''}
-
-                            <div class="section-subtitle">Stato Misure di Prevenzione (Checklist)</div>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th style="width:15%">ID</th>
-                                        <th style="width:20%">Area</th>
-                                        <th style="width:50%">Azione Prescritta</th>
-                                        <th style="width:15%; text-align:center;">Stato</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${sListItems.map(item => {
-                        const isDone = !!sState[item.id || item.question_id];
-                        return `
-                                            <tr>
-                                                <td style="font-family:monospace; font-size:8pt;">${item.id || item.question_id}</td>
-                                                <td><strong>${item.area || 'N/A'}</strong></td>
-                                                <td>${item.action || item.text || ""}</td>
-                                                <td style="text-align:center;">
-                                                    ${isDone
-                                ? '<span class="badge" style="background:#dcfce7; color:#16a34a;">ATTUATA ✓</span>'
-                                : '<span class="badge" style="background:#fee2e2; color:#dc2626;">IN ATTESA ✗</span>'}
-                                                </td>
-                                            </tr>
-                                        `;
-                    }).join('')}
-                                </tbody>
-                            </table>
-                    `;
-
-                    if (mitigationData && mitigationData.controlli_mitigazione) {
-                        html += `
-                            <div class="section-subtitle" style="page-break-before: auto; margin-top:30px;">Procedure di Verifica e Mitigazione Fase per Fase</div>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th style="width:25%">Fase Operativa</th>
-                                        <th style="width:30%">Check / Evidenza Richiesta</th>
-                                        <th style="width:30%">Criterio di Accettazione</th>
-                                        <th style="width:15%">Responsabile</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${mitigationData.controlli_mitigazione.map(mit => `
-                                        <tr>
-                                            <td><strong>${mit.fase_operativa}</strong></td>
-                                            <td>${mit.check_prestabilito}<br><span class="badge" style="background:#e0f2fe; color:#0369a1; margin-top:4px;">Tipo: ${mit.tipo_evidenza}</span></td>
-                                            <td style="color:#1e3a8a; font-weight:600;">${mit.criterio_accettazione}</td>
-                                            <td>${mit.operatore_responsabile}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        `;
-                    }
-
-                    html += `
                             <div class="footer-page">
-                                <span>${tenant.ragioneSociale} - DVR Operativo</span>
+                                <span>${tenant.ragioneSociale}</span>
                                 <span>Pagina ${pageCount++}</span>
                             </div>
                         </div>
                     `;
+
+                    // --- PAGINA RISORSE SPECIFICHE (OPERATORI & ATTREZZATURE) ---
+                    const sOperatori = mitigationData?.operatori_coinvolti || [];
+                    const sAttrezzature = mitigationData?.attrezzature_coinvolte || [];
+
+                    if (sOperatori.length > 0 || sAttrezzature.length > 0) {
+                        html += `
+                            <div class="page">
+                                <div class="page-content">
+                                    <div class="header-doc">
+                                        <span>II. Protocolli di Sicurezza</span>
+                                        <h2>${service.service_name.toUpperCase()}</h2>
+                                    </div>
+                                    
+                                    <div class="section-subtitle">Risorse Specifiche del Protocollo</div>
+                                    <p>Elenco delle figure professionali necessarie e delle attrezzature/macchinari di reparto impiegati nello svolgimento delle mansioni associate:</p>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; height: 350px;">
+                                        <div class="info-box" style="margin: 0; display: flex; flex-direction: column;">
+                                            <div class="info-title" style="color:#0f172a; border-bottom: 2px solid #0f172a; font-size: 9pt;">👥 Operatori e Figure</div>
+                                            ${sOperatori.length > 0 ? `
+                                                <ul style="margin: 0; padding-left: 18px; font-size: 9pt; color: #334155; line-height: 1.6; flex: 1;">
+                                                    ${sOperatori.map(op => `<li style="margin-bottom: 6px;"><strong>${op}</strong></li>`).join('')}
+                                                </ul>
+                                            ` : `
+                                                <div style="font-size: 9pt; color: #94a3b8; font-style: italic; padding: 20px 10px;">Nessun operatore specifico.</div>
+                                            `}
+                                        </div>
+                                        <div class="info-box" style="margin: 0; display: flex; flex-direction: column;">
+                                            <div class="info-title" style="color:#0f172a; border-bottom: 2px solid #0f172a; font-size: 9pt;">⚙️ Attrezzature di Reparto</div>
+                                            ${sAttrezzature.length > 0 ? `
+                                                <ul style="margin: 0; padding-left: 18px; font-size: 9pt; color: #334155; line-height: 1.6; flex: 1;">
+                                                    ${sAttrezzature.map(eq => `<li style="margin-bottom: 6px;"><strong>${eq}</strong></li>`).join('')}
+                                                </ul>
+                                            ` : `
+                                                <div style="font-size: 9pt; color: #94a3b8; font-style: italic; padding: 20px 10px;">Nessuna attrezzatura specifica.</div>
+                                            `}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="footer-page">
+                                    <span>${tenant.ragioneSociale}</span>
+                                    <span>Pagina ${pageCount++}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    // --- PAGINA B: CHECKLIST (Chunked per evitare overflow) ---
+                    const checklistChunks = this.chunkArray(sListItems, 10);
+                    checklistChunks.forEach((chunk, index) => {
+                        const isFirst = index === 0;
+                        html += `
+                            <div class="page">
+                                <div class="page-content">
+                                    <div class="header-doc">
+                                        <span>II. Protocolli di Sicurezza</span>
+                                        <h2>${service.service_name.toUpperCase()} ${isFirst ? '' : '(Continua)'}</h2>
+                                    </div>
+                                    
+                                    <div class="section-subtitle">3. Stato Misure di Prevenzione (Checklist) ${isFirst ? '' : '(Continua)'}</div>
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th style="width:15%">ID</th>
+                                                <th style="width:20%">Area</th>
+                                                <th style="width:50%">Azione Prescritta</th>
+                                                <th style="width:15%; text-align:center;">Stato</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${chunk.map(item => {
+                                                const isDone = !!sState[item.id || item.question_id];
+                                                return `
+                                                    <tr>
+                                                        <td style="font-family:monospace; font-weight: bold; font-size:8pt;">${item.id || item.question_id}</td>
+                                                        <td><strong>${item.area || 'N/A'}</strong></td>
+                                                        <td>${item.action || item.text || ""}</td>
+                                                        <td style="text-align:center;">
+                                                            ${isDone
+                                                                ? '<span class="badge badge-success">ATTUATA ✓</span>'
+                                                                : '<span class="badge badge-danger">IN ATTESA ✗</span>'}
+                                                        </td>
+                                                    </tr>
+                                                `;
+                                            }).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="footer-page">
+                                    <span>${tenant.ragioneSociale}</span>
+                                    <span>Pagina ${pageCount++}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // --- PAGINA C: MITIGAZIONE (SE PRESENTE, Chunked) ---
+                    if (mitigationData && mitigationData.controlli_mitigazione && mitigationData.controlli_mitigazione.length > 0) {
+                        const mitigationChunks = this.chunkArray(mitigationData.controlli_mitigazione, 5);
+                        mitigationChunks.forEach((chunk, index) => {
+                            const isFirst = index === 0;
+                            html += `
+                                <div class="page">
+                                    <div class="page-content">
+                                        <div class="header-doc">
+                                            <span>II. Protocolli di Sicurezza</span>
+                                            <h2>${service.service_name.toUpperCase()} ${isFirst ? '' : '(Continua)'}</h2>
+                                        </div>
+                                        
+                                        <div class="section-subtitle">4. Procedure di Verifica e Mitigazione Fase per Fase ${isFirst ? '' : '(Continua)'}</div>
+                                        <table>
+                                            <thead>
+                                                <tr>
+                                                    <th style="width:25%">Fase Operativa</th>
+                                                    <th style="width:30%">Check / Evidenza Richiesta</th>
+                                                    <th style="width:30%">Criterio di Accettazione</th>
+                                                    <th style="width:15%">Responsabile</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                ${chunk.map(mit => `
+                                                    <tr>
+                                                        <td><strong>${mit.fase_operativa}</strong></td>
+                                                        <td>${mit.check_prestabilito}<br><span class="badge badge-info" style="margin-top:4px;">Tipo: ${mit.tipo_evidenza}</span></td>
+                                                        <td style="color:#0f172a; font-weight:600;">${mit.criterio_accettazione}</td>
+                                                        <td>${mit.operatore_responsabile}</td>
+                                                    </tr>
+                                                `).join('')}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div class="footer-page">
+                                        <span>${tenant.ragioneSociale}</span>
+                                        <span>Pagina ${pageCount++}</span>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
                 });
             }
         });
 
-        // Pagina Finale
+        // Pagina Finale: Piano di miglioramento / Firme (Chunked)
+        if (pianoDiMiglioramento.length > 0) {
+            const improvementChunks = this.chunkArray(pianoDiMiglioramento, 10);
+            improvementChunks.forEach((chunk, index) => {
+                const isFirst = index === 0;
+                html += `
+                    <div class="page">
+                        <div class="page-content">
+                            <div class="header-doc">
+                                <span>III. Chiusura Documento</span>
+                                <h2>Piano di Miglioramento Aziendale ${isFirst ? '' : '(Continua)'}</h2>
+                            </div>
+                            
+                            <div class="section-subtitle">Azioni Correttive Programmate (Non ancora attuate) ${isFirst ? '' : '(Continua)'}</div>
+                            <p>${isFirst ? 'Ai sensi del D.Lgs. 81/08, di seguito si formalizza il piano delle misure di prevenzione identificate ma attualmente non completate. La direzione si impegna a stanziare le risorse per la loro chiusura.' : 'Prosecuzione del piano delle misure di prevenzione programmate:'}</p>
+                            
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width:30%">Protocollo / Servizio Affetto</th>
+                                        <th style="width:15%">Area</th>
+                                        <th style="width:40%">Azione da Attuare</th>
+                                        <th style="width:15%">Assegnata A</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${chunk.map(azione => `
+                                        <tr>
+                                            <td><strong>${azione.serviceName}</strong></td>
+                                            <td><span class="badge" style="background:#f1f5f9; color:#475569;">${azione.area}</span></td>
+                                            <td style="color:#b91c1c; font-weight:600;">${azione.action}</td>
+                                            <td>${azione.owner}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="footer-page">
+                            <span>${tenant.ragioneSociale}</span>
+                            <span>Pagina ${pageCount++}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Pagina Finale 2 (o unica in caso di nessun miglioramento): Approvazione e Firme
         html += `
             <div class="page">
-                <h2 class="chapter-title">Piano di Miglioramento Aziendale</h2>
-                
-                <div class="section-subtitle">Azioni Correttive Programmate (Non ancora attuate)</div>
-                <p>Ai sensi del D.Lgs. 81/08, di seguito si formalizza il piano delle misure di prevenzione identificate ma attualmente <strong>non completate</strong>. La direzione si impegna a stanziare le risorse per la loro chiusura.</p>
-                
-                ${pianoDiMiglioramento.length > 0 ? `
-                    <table>
-                        <thead>
-                            <tr>
-                                <th style="width:30%">Protocollo / Servizio Affetto</th>
-                                <th style="width:15%">Area</th>
-                                <th style="width:40%">Azione da Attuare</th>
-                                <th style="width:15%">Assegnata A</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${pianoDiMiglioramento.map(azione => `
-                                <tr>
-                                    <td><strong>${azione.serviceName}</strong></td>
-                                    <td><span class="badge" style="background:#f1f5f9; color:#475569;">${azione.area}</span></td>
-                                    <td style="color:#b91c1c; font-weight:600;">${azione.action}</td>
-                                    <td>${azione.owner}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                ` : `
-                    <div class="info-box" style="background:#f0fdf4; border-color:#bbf7d0; text-align:center;">
-                        <h3 style="color:#16a34a; margin:0;">Tutte le misure di prevenzione previste risultano regolarmente attuate.</h3>
-                        <p style="margin:5px 0 0 0; color:#15803d;">Il piano di miglioramento si esaurisce nel mantenimento e controllo dei protocolli in essere.</p>
+                <div class="page-content">
+                    <div class="header-doc">
+                        <span>III. Chiusura Documento</span>
+                        <h2>Approvazione Formale e Firme</h2>
                     </div>
-                `}
 
-                <div class="section-subtitle" style="margin-top: 50px;">Firme e Approvazione Formale del Documento</div>
-                <p>I sottoscritti attestano di aver collaborato all'analisi dei fattori di rischio, all'elaborazione del documento e alla definizione del piano di miglioramento.</p>
+                    ${pianoDiMiglioramento.length === 0 ? `
+                        <div class="info-box" style="background:#f0fdf4; border-color:#bbf7d0; text-align:center; padding: 24px; margin-bottom: 30px;">
+                            <h3 style="color:#16a34a; margin:0; font-size: 11pt; font-weight: 800;">CONFORMITÀ MASSIMA RILEVATA</h3>
+                            <p style="margin:8px 0 0 0; color:#15803d; text-align: center;">Tutte le misure di prevenzione previste risultano regolarmente attuate ed operative. Il piano di miglioramento si esaurisce nel mantenimento ordinario e controllo dei protocolli in essere.</p>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="section-subtitle">Firme e Approvazione Formale del Documento</div>
+                    <p>I sottoscritti attestano di aver collaborato in sinergia all'analisi dei fattori di rischio, all'elaborazione del presente documento e alla definizione del piano di miglioramento, approvandone formalmente i contenuti in conformità al D.Lgs. 81/08.</p>
 
-                <div class="signature-area">
-                    <div class="signature-box">
-                        <span class="signature-label">Il Datore di Lavoro (Titolare)</span>
-                        <div style="font-size: 10pt; font-weight: bold; text-align: center;">${tenant.ragioneSociale}</div>
+                    <div class="signature-area">
+                        <div class="signature-box">
+                            <span class="signature-label">Il Datore di Lavoro (Titolare)</span>
+                            <div style="font-size: 9pt; font-weight: bold; text-align: center;">${tenant.ragioneSociale}</div>
+                        </div>
+                        <div class="signature-box">
+                            <span class="signature-label">Il Medico Competente Nominato</span>
+                            <div style="font-size: 9pt; font-weight: bold; text-align: center;">${tenant.generalMetadata?.medicoCompetente || '-'}</div>
+                        </div>
                     </div>
-                    <div class="signature-box">
-                        <span class="signature-label">Il Medico Competente Nominato</span>
-                        <div style="font-size: 10pt; font-weight: bold; text-align: center;">${tenant.generalMetadata.medicoCompetente}</div>
-                    </div>
-                </div>
 
-                <div class="signature-area" style="margin-top: 20px;">
-                    <div class="signature-box">
-                        <span class="signature-label">Il Responsabile S.P.P. (RSPP)</span>
-                        <div style="font-size: 10pt; font-weight: bold; text-align: center;">${tenant.generalMetadata.rspp}</div>
-                    </div>
-                    <div class="signature-box">
-                        <span class="signature-label">Il Rappresentante Lavoratori (RLS)</span>
-                        <div style="font-size: 10pt; font-weight: bold; text-align: center;">${tenant.generalMetadata.rls}</div>
+                    <div class="signature-area" style="margin-top: 20px;">
+                        <div class="signature-box">
+                            <span class="signature-label">Il Responsabile S.P.P. (RSPP)</span>
+                            <div style="font-size: 9pt; font-weight: bold; text-align: center;">${tenant.generalMetadata?.rspp || '-'}</div>
+                        </div>
+                        <div class="signature-box">
+                            <span class="signature-label">Il Rappresentante Lavoratori (RLS)</span>
+                            <div style="font-size: 9pt; font-weight: bold; text-align: center;">${tenant.generalMetadata?.rls || '-'}</div>
+                        </div>
                     </div>
                 </div>
                 
                 <div class="footer-page">
-                    <span>${tenant.ragioneSociale} - DVR Operativo</span>
+                    <span>${tenant.ragioneSociale}</span>
                     <span>Pagina ${pageCount}</span>
                 </div>
             </div>
@@ -727,7 +1346,7 @@ const DVRPrintEngine = {
 
         const overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.98);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;';
-        overlay.innerHTML = '<div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #2b6cb0;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div><div id="pdf-progress" style="font-weight:bold;font-size:14px;color:#1e293b;">Compilazione Documento Tecnico...</div><style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>';
+        overlay.innerHTML = '<div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #0f172a;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div><div id="pdf-progress" style="font-weight:bold;font-size:14px;color:#0f172a;">Compilazione Documento Tecnico...</div><style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>';
         document.body.appendChild(overlay);
 
         const container = document.createElement('div');
