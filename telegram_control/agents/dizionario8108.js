@@ -506,6 +506,14 @@ function buildFullDVRDocument(tenant, vertical) {
     const uniqueVerticals = [...new Set(activeVerticals)].filter(v => v !== 'comune');
     const verticalsToProcess = uniqueVerticals.length > 0 ? uniqueVerticals : ['generic'];
 
+    const chunkArray = (arr, size) => {
+        const chunks = [];
+        for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size));
+        }
+        return chunks;
+    };
+
     let htmlDocument = typeof buildCoverAndDisclaimer === 'function' ? buildCoverAndDisclaimer(tenant) : '';
 
     // =========================================================================
@@ -513,7 +521,7 @@ function buildFullDVRDocument(tenant, vertical) {
     // =========================================================================
     htmlDocument += (DVRIntroduzioneVerticali && DVRIntroduzioneVerticali['comune']) || '';
 
-    // Aggiungiamo le specifiche sull'Art. 26 (Interferenze) o Art. 30 (Modelli) per ciascun vertical
+    // Aggiungiamo le specifiche sull'Art. 26 (Interferenze) o Art. 30 (Modelli) per ciascun vertical senza page-break
     const printedIntros = new Set();
     verticalsToProcess.forEach(v => {
         let keyToPrint = v;
@@ -527,7 +535,7 @@ function buildFullDVRDocument(tenant, vertical) {
             }
             if (!printedIntros.has(keyToPrint)) {
                 printedIntros.add(keyToPrint);
-                htmlDocument += `<div class="page-break"></div>` + DVRIntroduzioneVerticali[keyToPrint];
+                htmlDocument += DVRIntroduzioneVerticali[keyToPrint].replace(/<div class="page-break"><\/div>/g, '');
             }
         }
     });
@@ -540,36 +548,58 @@ function buildFullDVRDocument(tenant, vertical) {
     // =========================================================================
     // 3. NORMATIVE SPECIFICHE PER IL VERTICALE (La tua "Dottrina" INAIL)
     // =========================================================================
+    const boilerplatesToPrint = [];
     const printedBoilerplates = new Set();
     verticalsToProcess.forEach(v => {
         if (typeof DVRBoilerplates !== 'undefined') {
             const b = DVRBoilerplates[v] || DVRBoilerplates['generic'];
             if (b && !printedBoilerplates.has(b.titolo)) {
                 printedBoilerplates.add(b.titolo);
-                htmlDocument += `<div class="page-break"></div>
-                    <h1>${b.titolo}</h1>
-                    <p><strong>Normativa Applicata:</strong> ${b.normativa_applicata || ''}</p>
-                    <p><strong>Premesse:</strong> ${b.premesse || ''}</p>
-                    <p><strong>Metodologia:</strong> ${b.metodologia || ''}</p>
-                    <p><strong>Misure Obbligatorie:</strong> ${b.misure_obbligatorie || ''}</p>`;
+                boilerplatesToPrint.push(b);
             }
         }
+    });
+
+    const bpChunks = chunkArray(boilerplatesToPrint, 2);
+    bpChunks.forEach(chunk => {
+        htmlDocument += `<div class="page-break"></div>`;
+        chunk.forEach(b => {
+            htmlDocument += `
+                <div style="margin-bottom: 20px; border-bottom: 1px dashed #cbd5e1; padding-bottom: 10px;">
+                    <h2 style="font-size: 11pt; color: #003366; margin-top: 0; margin-bottom: 6px; border-left: 3px solid #0059b3; padding-left: 8px;">${b.titolo}</h2>
+                    <p style="margin: 3px 0; font-size: 8.5pt;"><strong>Normativa Applicata:</strong> ${b.normativa_applicata || ''}</p>
+                    <p style="margin: 3px 0; font-size: 8.5pt;"><strong>Premesse:</strong> ${b.premesse || ''}</p>
+                    <p style="margin: 3px 0; font-size: 8.5pt;"><strong>Metodologia:</strong> ${b.metodologia || ''}</p>
+                    <p style="margin: 3px 0; font-size: 8.5pt;"><strong>Misure Obbligatorie:</strong> ${b.misure_obbligatorie || ''}</p>
+                </div>`;
+        });
     });
 
     // =========================================================================
     // 4. DISPOSIZIONI TECNICHE STRUTTURALI (Allegati D.Lgs 81/08)
     // =========================================================================
-    htmlDocument += `<div class="page-break"></div><h1>2.3 QUADRO NORMATIVO TECNICO DI RIFERIMENTO (Allegati D.Lgs. 81/08)</h1>`;
     if (typeof DVRDisposizioniVerticali !== 'undefined') {
-        htmlDocument += DVRDisposizioniVerticali['comune'] || '';
-        
+        const disposizioniToPrint = [];
         const printedDisposizioni = new Set();
         verticalsToProcess.forEach(v => {
             const keyToPrint = DVRDisposizioniVerticali[v] ? v : 'generic';
             if (!printedDisposizioni.has(keyToPrint)) {
                 printedDisposizioni.add(keyToPrint);
-                htmlDocument += DVRDisposizioniVerticali[keyToPrint] || '';
+                disposizioniToPrint.push(DVRDisposizioniVerticali[keyToPrint]);
             }
+        });
+
+        const dispList = [
+            DVRDisposizioniVerticali['comune'],
+            ...disposizioniToPrint
+        ];
+
+        const dispChunks = chunkArray(dispList, 2);
+        dispChunks.forEach(chunk => {
+            htmlDocument += `<div class="page-break"></div><h1>2.3 QUADRO NORMATIVO TECNICO DI RIFERIMENTO (Allegati D.Lgs. 81/08)</h1>`;
+            chunk.forEach(html => {
+                htmlDocument += html.replace(/<div class="page-break"><\/div>/g, '');
+            });
         });
     }
 
@@ -577,17 +607,29 @@ function buildFullDVRDocument(tenant, vertical) {
     // 5. DECRETI ATTUATIVI E FORMAZIONE
     // =========================================================================
     if (typeof DVRDecretiAttuativi !== 'undefined') {
-        htmlDocument += DVRDecretiAttuativi['comune'] || '';
-        
+        const decretiToPrint = [];
         const printedDecreti = new Set();
         verticalsToProcess.forEach(v => {
             if (DVRDecretiAttuativi[v]) {
                 const keyToPrint = v;
                 if (!printedDecreti.has(keyToPrint)) {
                     printedDecreti.add(keyToPrint);
-                    htmlDocument += DVRDecretiAttuativi[keyToPrint] || '';
+                    decretiToPrint.push(DVRDecretiAttuativi[keyToPrint]);
                 }
             }
+        });
+
+        const decList = [
+            DVRDecretiAttuativi['comune'],
+            ...decretiToPrint
+        ];
+
+        const decChunks = chunkArray(decList, 2);
+        decChunks.forEach(chunk => {
+            htmlDocument += `<div class="page-break"></div><h1>DECRETI ATTUATIVI E ACCORDI STATO-REGIONI</h1>`;
+            chunk.forEach(html => {
+                htmlDocument += html.replace(/<div class="page-break"><\/div>/g, '');
+            });
         });
     }
 
@@ -595,15 +637,26 @@ function buildFullDVRDocument(tenant, vertical) {
     // 6. NORMATIVE SPECIALI (GDPR, Rifiuti C.E.R.)
     // =========================================================================
     if (typeof DVRNormeSpeciali !== 'undefined') {
+        const specialiToPrint = [];
         const printedSpeciali = new Set();
         verticalsToProcess.forEach(v => {
             if (DVRNormeSpeciali[v]) {
                 const keyToPrint = v;
                 if (!printedSpeciali.has(keyToPrint)) {
                     printedSpeciali.add(keyToPrint);
-                    htmlDocument += DVRNormeSpeciali[keyToPrint] || '';
+                    specialiToPrint.push(DVRNormeSpeciali[keyToPrint]);
                 }
             }
+        });
+
+        const specChunks = chunkArray(specialiToPrint, 2);
+        specChunks.forEach(chunk => {
+            htmlDocument += `<div class="page-break"></div><h1>ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI</h1>`;
+            chunk.forEach(html => {
+                htmlDocument += html.replace(/<div class="page-break"><\/div>/g, '')
+                                    .replace(/<h1>3. ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI<\/h1>/g, '')
+                                    .replace(/<h1>ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI<\/h1>/g, '');
+            });
         });
     }
 
