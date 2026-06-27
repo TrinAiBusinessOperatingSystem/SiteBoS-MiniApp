@@ -440,8 +440,8 @@ const DVRPrintEngine = {
             rawLaws = verticalsRegistry[sku].law_references || rawLaws;
         }
 
-        const vKey = typeof getVerticalForService === 'function' ? this.normalizeKey(getVerticalForService(service)) : 'comune';
-        const param = this.parametriVerticali[vKey] || { D: 2, C: 1 };
+        const vKey = typeof getVerticalForService === 'function' ? DVRPrintEngine.normalizeKey(getVerticalForService(service)) : 'comune';
+        const param = DVRPrintEngine.parametriVerticali[vKey] || { D: 2, C: 1 };
         const dPartenza = param.D || 2;
         const rPartenza = 4 * dPartenza;
 
@@ -569,7 +569,7 @@ const DVRPrintEngine = {
         `;
 
         // Pagine Checklist (Chunked per evitare overflow su capitoli lunghi)
-        const checklistChunks = this.chunkArray(listItems, 10);
+        const checklistChunks = DVRPrintEngine.chunkArray(listItems, 10);
         checklistChunks.forEach((chunk, index) => {
             const isFirst = index === 0;
             html += `
@@ -627,7 +627,7 @@ const DVRPrintEngine = {
 
         // Pagine Mitigazione (Chunked per evitare overflow)
         if (mitigationData && mitigationData.controlli_mitigazione && mitigationData.controlli_mitigazione.length > 0) {
-            const mitigationChunks = this.chunkArray(mitigationData.controlli_mitigazione, 5);
+            const mitigationChunks = DVRPrintEngine.chunkArray(mitigationData.controlli_mitigazione, 5);
             mitigationChunks.forEach((chunk, index) => {
                 const isFirst = index === 0;
                 html += `
@@ -799,7 +799,7 @@ const DVRPrintEngine = {
             <body>
         `;
 
-        const mappedSectorNames = tenant.activeVerticals.map(v => this.metaLocal[this.normalizeKey(v)]?.name || v).join(', ');
+        const mappedSectorNames = tenant.activeVerticals.map(v => DVRPrintEngine.metaLocal[DVRPrintEngine.normalizeKey(v)]?.name || v).join(', ');
 
         // Pagina 1: Cover Page
         html += `
@@ -831,7 +831,23 @@ const DVRPrintEngine = {
                         <div style="margin-bottom: 8px; font-size: 8.5pt;"><strong>Medico Competente:</strong><br>${tenant.generalMetadata?.medicoCompetente || '-'}</div>
                         <div style="font-size: 8.5pt;"><strong>Addetti Emergenze:</strong><br>${tenant.generalMetadata?.addettiEmergenza?.join(', ') || '-'}</div>
                     </div>
-                  // 1. INTRODUZIONE LEGALE (Titolo I)
+                </div>
+
+                <div class="footer-page">
+                    <span>Generato digitalmente il ${dateStr}</span>
+                    <span>Pagina 1</span>
+                </div>
+            </div>
+        `;
+
+        let pageCount = 2;
+        const activeVerticals = (tenant.activeVerticals && tenant.activeVerticals.length > 0)
+            ? tenant.activeVerticals.map(v => DVRPrintEngine.normalizeKey(v))
+            : ['generic'];
+        const uniqueVerticals = [...new Set(activeVerticals)].filter(v => v !== 'comune');
+        const verticalsToProcess = uniqueVerticals.length > 0 ? uniqueVerticals : ['generic'];
+
+        // 1. INTRODUZIONE LEGALE (Titolo I)
         let introHtml = (typeof DVRIntroduzioneVerticali !== 'undefined' ? DVRIntroduzioneVerticali['comune'] : '') || '';
         introHtml = introHtml.replace(/<div class="page-break"><\/div>/g, '');
 
@@ -855,7 +871,7 @@ const DVRPrintEngine = {
         });
 
         // Combina l'introduzione comune e tutti i verticali attivi sulla stessa pagina
-        html += this.renderLegalPage(introHtml + verticalIntrosHtml, "I. Misure Generali & Perimetro Legale", tenant.ragioneSociale, pageCount++);
+        html += DVRPrintEngine.renderLegalPage(introHtml + verticalIntrosHtml, "I. Misure Generali & Perimetro Legale", tenant.ragioneSociale, pageCount++);
 
         // 2. METODOLOGIA E CRITERI (ISPESL / Matrice R=PxD)
         const metodologiaPage1 = `
@@ -944,8 +960,8 @@ const DVRPrintEngine = {
                 <strong>Valutazione dei rischi:</strong> valutazione globale e documentata di tutti i rischi per la salute e sicurezza dei lavoratori, finalizzata ad individuare le adeguate misure di prevenzione e di protezione e ad elaborare il programma delle misure atte a garantire il miglioramento nel tempo (Art. 2, lett. q, D.Lgs. 81/08).
             </p>
         `;
-        html += this.renderLegalPage(metodologiaPage1, "I. Metodologia di Valutazione (ISPESL)", tenant.ragioneSociale, pageCount++);
-        html += this.renderLegalPage(metodologiaPage2, "I. Metodologia di Valutazione (ISPESL)", tenant.ragioneSociale, pageCount++);
+        html += DVRPrintEngine.renderLegalPage(metodologiaPage1, "I. Metodologia di Valutazione (ISPESL)", tenant.ragioneSociale, pageCount++);
+        html += DVRPrintEngine.renderLegalPage(metodologiaPage2, "I. Metodologia di Valutazione (ISPESL)", tenant.ragioneSociale, pageCount++);
 
         // 3. NORMATIVA DEL VERTICALE (Boilerplates)
         const boilerplatesToPrint = [];
@@ -961,7 +977,7 @@ const DVRPrintEngine = {
         });
 
         // Raggruppa i boilerplates: max 2 per pagina
-        const bpChunks = this.chunkArray(boilerplatesToPrint, 2);
+        const bpChunks = DVRPrintEngine.chunkArray(boilerplatesToPrint, 2);
         bpChunks.forEach((chunk, idx) => {
             let chunkHtml = '';
             chunk.forEach(b => {
@@ -975,7 +991,7 @@ const DVRPrintEngine = {
                     </div>
                 `;
             });
-            html += this.renderLegalPage(chunkHtml, `II. Quadro Normativo del Settore (Parte ${idx + 1})`, tenant.ragioneSociale, pageCount++);
+            html += DVRPrintEngine.renderLegalPage(chunkHtml, `II. Quadro Normativo del Settore (Parte ${idx + 1})`, tenant.ragioneSociale, pageCount++);
         });
 
         // 4. DISPOSIZIONI TECNICHE STRUTTURALI (Allegati)
@@ -987,7 +1003,7 @@ const DVRPrintEngine = {
                 if (!printedDisposizioni.has(keyToPrint)) {
                     printedDisposizioni.add(keyToPrint);
                     disposizioniToPrint.push({
-                        title: this.metaLocal[keyToPrint]?.name || keyToPrint,
+                        title: DVRPrintEngine.metaLocal[keyToPrint]?.name || keyToPrint,
                         html: DVRDisposizioniVerticali[keyToPrint]
                     });
                 }
@@ -999,7 +1015,7 @@ const DVRPrintEngine = {
                 ...disposizioniToPrint
             ];
 
-            const dispChunks = this.chunkArray(dispList, 2);
+            const dispChunks = DVRPrintEngine.chunkArray(dispList, 2);
             dispChunks.forEach((chunk, idx) => {
                 let chunkHtml = `
                     <h1 style="margin-top:0; font-size: 13pt;">QUADRO NORMATIVO TECNICO DI RIFERIMENTO</h1>
@@ -1008,7 +1024,7 @@ const DVRPrintEngine = {
                 chunk.forEach(item => {
                     chunkHtml += item.html.replace(/<div class="page-break"><\/div>/g, '');
                 });
-                html += this.renderLegalPage(chunkHtml, "III. Disposizioni Tecniche e Allegati", tenant.ragioneSociale, pageCount++);
+                html += DVRPrintEngine.renderLegalPage(chunkHtml, "III. Disposizioni Tecniche e Allegati", tenant.ragioneSociale, pageCount++);
             });
         }
 
@@ -1022,7 +1038,7 @@ const DVRPrintEngine = {
                     if (!printedDecreti.has(keyToPrint)) {
                         printedDecreti.add(keyToPrint);
                         decretiToPrint.push({
-                            title: this.metaLocal[keyToPrint]?.name || keyToPrint,
+                            title: DVRPrintEngine.metaLocal[keyToPrint]?.name || keyToPrint,
                             html: DVRDecretiAttuativi[keyToPrint]
                         });
                     }
@@ -1034,7 +1050,7 @@ const DVRPrintEngine = {
                 ...decretiToPrint
             ];
 
-            const decChunks = this.chunkArray(decList, 2);
+            const decChunks = DVRPrintEngine.chunkArray(decList, 2);
             decChunks.forEach((chunk, idx) => {
                 let chunkHtml = `
                     <h1 style="margin-top:0; font-size: 13pt;">DECRETI ATTUATIVI E ACCORDI STATO-REGIONI</h1>
@@ -1043,7 +1059,7 @@ const DVRPrintEngine = {
                 chunk.forEach(item => {
                     chunkHtml += item.html.replace(/<div class="page-break"><\/div>/g, '');
                 });
-                html += this.renderLegalPage(chunkHtml, "IV. Accordi Stato-Regioni e Decreti", tenant.ragioneSociale, pageCount++);
+                html += DVRPrintEngine.renderLegalPage(chunkHtml, "IV. Accordi Stato-Regioni e Decreti", tenant.ragioneSociale, pageCount++);
             });
         }
 
@@ -1061,7 +1077,7 @@ const DVRPrintEngine = {
                 }
             });
 
-            const specChunks = this.chunkArray(specialiToPrint, 2);
+            const specChunks = DVRPrintEngine.chunkArray(specialiToPrint, 2);
             specChunks.forEach((chunk, idx) => {
                 let chunkHtml = `
                     <h1 style="margin-top:0; font-size: 13pt;">ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI</h1>
@@ -1072,7 +1088,7 @@ const DVRPrintEngine = {
                                          .replace(/<h1>3. ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI<\/h1>/g, '')
                                          .replace(/<h1>ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI<\/h1>/g, '');
                 });
-                html += this.renderLegalPage(chunkHtml, "V. Adempimenti Speciali (GDPR/CER)", tenant.ragioneSociale, pageCount++);
+                html += DVRPrintEngine.renderLegalPage(chunkHtml, "V. Adempimenti Speciali (GDPR/CER)", tenant.ragioneSociale, pageCount++);
             });
         }
 
@@ -1109,7 +1125,7 @@ const DVRPrintEngine = {
                 </div>
             `;
         } else {
-            const operatorChunks = this.chunkArray(operators, 7);
+            const operatorChunks = DVRPrintEngine.chunkArray(operators, 7);
             operatorChunks.forEach((chunk, index) => {
                 const isFirst = index === 0;
                 html += `
@@ -1185,7 +1201,7 @@ const DVRPrintEngine = {
                 </div>
             `;
         } else {
-            const machineryChunks = this.chunkArray(machinery, 10);
+            const machineryChunks = DVRPrintEngine.chunkArray(machinery, 10);
             machineryChunks.forEach((chunk, index) => {
                 const isFirst = index === 0;
                 html += `
@@ -1211,7 +1227,7 @@ const DVRPrintEngine = {
                                     ${chunk.map(mac => `
                                         <tr>
                                             <td><strong>${mac.type}</strong></td>
-                                            <td><span class="badge" style="background:#e2e8f0; color:#475569; font-size: 7pt;">${mac.vertical.toUpperCase()}</span></td>
+                                            <td><span class="badge" style="background:#e2e8f0; color:#475569; font-size: 7pt;">${(mac.vertical || 'comune').toUpperCase()}</span></td>
                                             <td>${mac.year || '-'}</td>
                                             <td>${mac.ownership || '-'}</td>
                                         </tr>
@@ -1230,11 +1246,11 @@ const DVRPrintEngine = {
         }
 
         // Pagine Servizi
-        const activeSectors = [...new Set(['comune', ...tenant.activeVerticals.map(v => this.normalizeKey(v))])];
+        const activeSectors = [...new Set(['comune', ...tenant.activeVerticals.map(v => DVRPrintEngine.normalizeKey(v))])];
 
         activeSectors.forEach((vKey) => {
             const sectorServices = catalog.filter(s => {
-                const normalizedSvcKey = typeof getVerticalForService === 'function' ? this.normalizeKey(getVerticalForService(s)) : 'comune';
+                const normalizedSvcKey = typeof getVerticalForService === 'function' ? DVRPrintEngine.normalizeKey(getVerticalForService(s)) : 'comune';
                 return normalizedSvcKey === vKey;
             });
 
@@ -1277,7 +1293,7 @@ const DVRPrintEngine = {
                         rawLaws = verticalsRegistry[sSku].law_references || rawLaws;
                     }
 
-                    const param = this.parametriVerticali[vKey] || { D: 2 };
+                    const param = DVRPrintEngine.parametriVerticali[vKey] || { D: 2 };
                     const dPartenza = param.D;
                     const rPartenza = 4 * dPartenza;
                     const savedServiceData = (serverChecklistState && serverChecklistState[sSku]) ? serverChecklistState[sSku] : null;
@@ -1397,7 +1413,7 @@ const DVRPrintEngine = {
                     }
 
                     // --- PAGINA B: CHECKLIST (Chunked per evitare overflow) ---
-                    const checklistChunks = this.chunkArray(sListItems, 10);
+                    const checklistChunks = DVRPrintEngine.chunkArray(sListItems, 10);
                     checklistChunks.forEach((chunk, index) => {
                         const isFirst = index === 0;
                         html += `
@@ -1448,7 +1464,7 @@ const DVRPrintEngine = {
 
                     // --- PAGINA C: MITIGAZIONE (SE PRESENTE, Chunked) ---
                     if (mitigationData && mitigationData.controlli_mitigazione && mitigationData.controlli_mitigazione.length > 0) {
-                        const mitigationChunks = this.chunkArray(mitigationData.controlli_mitigazione, 5);
+                        const mitigationChunks = DVRPrintEngine.chunkArray(mitigationData.controlli_mitigazione, 5);
                         mitigationChunks.forEach((chunk, index) => {
                             const isFirst = index === 0;
                             html += `
@@ -1496,7 +1512,7 @@ const DVRPrintEngine = {
 
         // Pagina Finale: Piano di miglioramento / Firme (Chunked)
         if (pianoDiMiglioramento.length > 0) {
-            const improvementChunks = this.chunkArray(pianoDiMiglioramento, 10);
+            const improvementChunks = DVRPrintEngine.chunkArray(pianoDiMiglioramento, 10);
             improvementChunks.forEach((chunk, index) => {
                 const isFirst = index === 0;
                 html += `
