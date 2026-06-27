@@ -1,5 +1,70 @@
 // --- GLOBAL CALCULATION LOGIC & STATE SYNCHRONISATION ---
 
+function getDecomposedEnvironmentRate(loc) {
+    if (!loc) return 0.00;
+    const ob = currentData.operating_benchmarks || {};
+    const dec = ob.decomposed_environments_costs || {};
+    
+    // 1. Try match by clean name
+    const cleanName = loc.loc_name.replace(/\s+/g, '_');
+    if (dec[cleanName] !== undefined) return parseFloat(dec[cleanName]);
+    
+    // 2. Try fuzzy/substring match
+    const cleanSearchName = loc.loc_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (let key in dec) {
+        const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanSearchName.includes(cleanKey) || cleanKey.includes(cleanSearchName)) {
+            return parseFloat(dec[key]);
+        }
+    }
+    
+    // 3. Try matching parts of the words (e.g. "Studio")
+    const words = loc.loc_name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    for (let key in dec) {
+        const cleanKey = key.toLowerCase();
+        if (words.some(word => cleanKey.includes(word))) {
+            return parseFloat(dec[key]);
+        }
+    }
+    
+    // Fallback
+    return parseFloat(loc.estimated_internal_cost_rate) || 0.00;
+}
+
+function getDecomposedAssetRate(ast) {
+    if (!ast) return 0.00;
+    const ob = currentData.operating_benchmarks || {};
+    const dmc = ob.decomposed_machinery_costs || {};
+    
+    // 1. Try match by clean name
+    const cleanName = ast.asset_name.replace(/\s+/g, '_');
+    if (dmc[cleanName] !== undefined) return parseFloat(dmc[cleanName]);
+    
+    // 2. Try match by sku
+    if (ast.asset_sku && dmc[ast.asset_sku] !== undefined) return parseFloat(dmc[ast.asset_sku]);
+    
+    // 3. Try fuzzy/substring match
+    const cleanSearchName = ast.asset_name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    for (let key in dmc) {
+        const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, '');
+        if (cleanSearchName.includes(cleanKey) || cleanKey.includes(cleanSearchName)) {
+            return parseFloat(dmc[key]);
+        }
+    }
+    
+    // 4. Try matching parts of the words (e.g. "Riunito")
+    const words = ast.asset_name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    for (let key in dmc) {
+        const cleanKey = key.toLowerCase();
+        if (words.some(word => cleanKey.includes(word))) {
+            return parseFloat(dmc[key]);
+        }
+    }
+    
+    // Fallback
+    return parseFloat(ast.estimated_internal_cost_rate) || 0.00;
+}
+
 function isPrimaryOperatorSkill(skill, vertical) {
     const sk = (skill || "").toLowerCase();
     const vert = (vertical || "generic").toLowerCase();
@@ -401,7 +466,7 @@ function recalculateConsolidatedWorkstationRate() {
     const locations = currentData.environments || [];
     locations.forEach((loc, idx) => {
         const inputEl = document.getElementById(`input-loc-rate-${idx}`);
-        const rate = inputEl ? parseFloat(inputEl.value) : (loc.estimated_internal_cost_rate || 0);
+        const rate = inputEl ? parseFloat(inputEl.value) : getDecomposedEnvironmentRate(loc);
         if (loc.loc_name) {
             const key = loc.loc_name.replace(/\s+/g, '_');
             ob.decomposed_environments_costs[key] = rate;
@@ -412,7 +477,7 @@ function recalculateConsolidatedWorkstationRate() {
     const assets = currentData.assets || [];
     assets.forEach((ast, idx) => {
         const inputEl = document.getElementById(`input-ast-cost-${idx}`);
-        const rate = inputEl ? parseFloat(inputEl.value) : (ast.estimated_internal_cost || 0);
+        const rate = inputEl ? parseFloat(inputEl.value) : getDecomposedAssetRate(ast);
         if (ast.asset_name) {
             const key = ast.asset_name.replace(/\s+/g, '_');
             ob.decomposed_machinery_costs[key] = rate;
@@ -511,7 +576,6 @@ function updateBOMFromInputs() {
         sub.calculation_breakdown.depreciation = depr;
         sub.calculation_breakdown.staff_cost = staff;
         sub.calculation_breakdown.workstation_time_mins = workstationTime;
-        sub.calculation_breakdown.chair_time_mins = workstationTime; // retrocompatibility
         sub.estimated_total_time_minutes = time;
 
         const singleCost = consumables + depr + staff;
@@ -639,9 +703,22 @@ function updateAssetsFromInputs() {
     assets.forEach((ast, idx) => {
         const el = document.getElementById(`input-ast-cost-${idx}`);
         if (el) {
-            ast.estimated_internal_cost = parseFloat(el.value) || 0;
+            const rate = parseFloat(el.value) || 0;
+            
+            // Calculate total time of associated subprocesses
+            const associatedSkus = ast.associated_subprocess_skus || [];
+            let totalTime = 0;
+            const steps = currentData.bill_of_materials?.bom_steps || [];
+            steps.forEach(step => {
+                if (associatedSkus.includes(step.subprocess_sku)) {
+                    totalTime += step.calculation_breakdown?.workstation_time_mins || step.calculation_breakdown?.chair_time_mins || 0;
+                }
+            });
+            
+            ast.estimated_internal_cost_rate = rate;
+            ast.estimated_internal_cost = (rate / 60) * totalTime;
+            document.getElementById(`label-ast-cost-${idx}`).innerText = `€ ${rate.toFixed(2)} /h`;
         }
-        document.getElementById(`label-ast-cost-${idx}`).innerText = `€ ${ast.estimated_internal_cost.toFixed(2)} /h`;
     });
 
     recalculateConsolidatedWorkstationRate();
@@ -873,10 +950,11 @@ function getPayloadToSave() {
     if (!currentData.financial_simulations.cost_breakdown_unit) {
         currentData.financial_simulations.cost_breakdown_unit = {};
     }
-    currentData.financial_simulations.cost_breakdown_unit.medical_collaborator_fee = compenso;
-    currentData.financial_simulations.cost_breakdown_unit.aso_fee = costoAso;
+    // Nuove chiavi standard (Agnostiche)
+    currentData.financial_simulations.cost_breakdown_unit.primary_operator_fee = compenso;
+    currentData.financial_simulations.cost_breakdown_unit.secondary_operator_fee = costoAso;
+    currentData.financial_simulations.cost_breakdown_unit.external_processing_cost = lab;
     currentData.financial_simulations.cost_breakdown_unit.direct_materials_cost = materiali;
-    currentData.financial_simulations.cost_breakdown_unit.dental_lab_cost = lab;
     
     const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
     const localBurdenHourly = parseFloat(currentData.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
@@ -886,14 +964,15 @@ function getPayloadToSave() {
     const costoSediaTotaleOrario = costoOraSaturata + localBurdenHourly;
     const costOfPostazioneFixed = (costoSediaTotaleOrario / 60) * tempoSediaLordo;
     
-    currentData.financial_simulations.cost_breakdown_unit.chair_time_cost_fixed = costOfPostazioneFixed;
+    currentData.financial_simulations.cost_breakdown_unit.workstation_time_cost_fixed = costOfPostazioneFixed;
     
     const costoAccantonamentoGaranzia = (tariffa * garanziaPct) / 100;
     currentData.financial_simulations.cost_breakdown_unit.clinical_failure_provision_value = costoAccantonamentoGaranzia;
     
     currentData.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
     currentData.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia);
-    currentData.financial_simulations.cost_breakdown_unit.total_operating_clinical_cost_unit = (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed;
+    
+    currentData.financial_simulations.cost_breakdown_unit.total_operating_cost_unit = (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed;
     
     const operatingIncome = tariffa - ((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed);
     currentData.financial_simulations.cost_breakdown_unit.operating_income_unit = operatingIncome;

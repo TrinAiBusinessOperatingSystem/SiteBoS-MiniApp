@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SiteBoS advanced - Operations & Sourcing Controller</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -761,17 +764,17 @@
                 ricalibrazioneEl.value = savedRecalibration;
             }
 
-            const dbAso = costBreakdown?.aso_fee;
+            const dbAso = costBreakdown?.secondary_operator_fee;
             const initialAso = (dbAso !== undefined && dbAso > 0) ? dbAso : (totalSecondary > 0 ? totalSecondary : 0);
             document.getElementById('in-costo-aso').value = initialAso.toFixed(2);
             
             document.getElementById('in-materiali').value = (costBreakdown?.direct_materials_cost || 0).toFixed(2);
-            document.getElementById('in-lab').value = (costBreakdown?.dental_lab_cost || 0).toFixed(2);
+            document.getElementById('in-lab').value = (costBreakdown?.external_processing_cost || 0).toFixed(2);
             
-            const totalChairTime = steps.reduce((sum, step) => sum + (step.calculation_breakdown?.workstation_time_mins || step.calculation_breakdown?.chair_time_mins || 0), 0);
+            const totalChairTime = steps.reduce((sum, step) => sum + (step.calculation_breakdown?.workstation_time_mins || 0), 0);
             document.getElementById('in-tempo').value = totalChairTime > 0 ? totalChairTime : (steps.reduce((sum, step) => sum + (step.estimated_total_time_minutes || 0), 0) || 0);
             
-            document.getElementById('in-poltrona').value = (currentData.operating_benchmarks?.workstation_hourly_rate_consolidated || currentData.operating_benchmarks?.chair_hourly_rate_consolidated || 27.18).toFixed(2);
+            document.getElementById('in-poltrona').value = (currentData.operating_benchmarks?.workstation_hourly_rate_consolidated || 27.18).toFixed(2);
             
             const taxRate = fiscalAnalysis?.income_tax_rate !== undefined ? fiscalAnalysis.income_tax_rate * 100 : 24.0;
             document.getElementById('in-tasse').value = taxRate.toFixed(1);
@@ -1027,7 +1030,7 @@
             
             locations.forEach((loc, idx) => {
                 let checks = (loc.maintenance_checklist || []).map(c => `<li class="text-[10px] text-gray-600 font-medium"><strong>[${c.frequency || 'DAILY'}]</strong> ${c.task_name}: ${c.instructions}</li>`).join('');
-                const hourlyRate = loc.estimated_internal_cost_rate || (loc.estimated_internal_cost ? (loc.estimated_internal_cost / 1.33) : 20.00);
+                const hourlyRate = getDecomposedEnvironmentRate(loc);
                 const totalTime = loc.estimated_total_time_minutes || 60;
 
                 container.innerHTML += `
@@ -1069,23 +1072,24 @@
             }
             
             assets.forEach((ast, idx) => {
+                const hourlyRate = getDecomposedAssetRate(ast);
                 container.innerHTML += `
                     <div class="card rounded-3xl p-5 space-y-3 bg-white">
                         <div class="flex justify-between border-b border-border pb-3">
                             <div>
                                 <div class="flex items-center gap-1.5 mb-0.5">
-                                    <span class="text-[8px] font-black text-gray-400 uppercase">${ast.asset_sku || ''}</span>
-                                    <!-- Bottone "?" per il rationale dell'asset -->
-                                    ${ast.cost_scaling_rationale ? `<button onclick="showRationale('${ast.asset_name.replace(/'/g, "\\'")}', '${ast.cost_scaling_rationale.replace(/'/g, "\\'")}')" class="w-3.5 h-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[9px] font-black border border-amber-200">?</button>` : ''}
+                                     <span class="text-[8px] font-black text-gray-400 uppercase">${ast.asset_sku || ''}</span>
+                                     <!-- Bottone "?" per il rationale dell'asset -->
+                                     ${ast.cost_scaling_rationale ? `<button onclick="showRationale('${ast.asset_name.replace(/'/g, "\\'")}', '${ast.cost_scaling_rationale.replace(/'/g, "\\'")}')" class="w-3.5 h-3.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-full flex items-center justify-center text-[9px] font-black border border-amber-200">?</button>` : ''}
                                 </div>
                                 <h3 class="text-xs font-black uppercase text-black">${ast.asset_name}</h3>
                             </div>
-                            <span class="text-xs font-black text-black" id="label-ast-cost-${idx}">€ ${(ast.estimated_internal_cost || 0).toFixed(2)} /h</span>
+                            <span class="text-xs font-black text-black" id="label-ast-cost-${idx}">€ ${hourlyRate.toFixed(2)} /h</span>
                         </div>
                         ${ast.notes ? `<p class="text-[10px] text-gray-600">${ast.notes}</p>` : ''}
                         <div class="flex items-center gap-4 bg-gray-50/50 p-3 rounded-2xl border border-gray-100 justify-end">
                             <label class="text-[8px] font-black text-gray-400 uppercase">Ammortamento Orario (€/h):</label>
-                            <input type="number" id="input-ast-cost-${idx}" value="${(ast.estimated_internal_cost || 0).toFixed(2)}" oninput="updateAssetsFromInputs()" class="w-16 bg-white border border-gray-200 rounded-lg p-1 text-xs font-black text-center focus:outline-none">
+                            <input type="number" id="input-ast-cost-${idx}" value="${hourlyRate.toFixed(2)}" oninput="updateAssetsFromInputs()" class="w-16 bg-white border border-gray-200 rounded-lg p-1 text-xs font-black text-center focus:outline-none">
                         </div>
                     </div>`;
             });
@@ -1526,23 +1530,30 @@
 
             try {
                 // Estrazione dei parametri correnti modificati dalla sidebar
+                const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
+                const primaryFee = (() => {
+                    const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
+                    if (ricalibrazioneEl) {
+                        const ricalibrazionePct = parseFloat(ricalibrazioneEl.value) || 20.0;
+                        return (tariffa * ricalibrazionePct) / 100;
+                    }
+                    const compensoEl = document.getElementById('in-compenso');
+                    return compensoEl ? parseFloat(compensoEl.value) : 0;
+                })();
+                const secondaryFee = parseFloat(document.getElementById('in-costo-aso').value) || 0;
+                const materials = parseFloat(document.getElementById('in-materiali').value) || 0;
+                const lab = parseFloat(document.getElementById('in-lab').value) || 0;
+                const time = parseFloat(document.getElementById('in-tempo').value) || 0;
+                const rate = parseFloat(document.getElementById('in-poltrona').value) || 0;
+
                 const payloadFields = {
-                    catalog_price: parseFloat(document.getElementById('in-tariffa').value) || 0,
-                    medical_collaborator_fee: (() => {
-                        const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
-                        if (ricalibrazioneEl) {
-                            const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-                            const ricalibrazionePct = parseFloat(ricalibrazioneEl.value) || 20.0;
-                            return (tariffa * ricalibrazionePct) / 100;
-                        }
-                        const compensoEl = document.getElementById('in-compenso');
-                        return compensoEl ? parseFloat(compensoEl.value) : 0;
-                    })(),
-                    aso_fee: parseFloat(document.getElementById('in-costo-aso').value) || 0,
-                    direct_materials_cost: parseFloat(document.getElementById('in-materiali').value) || 0,
-                    dental_lab_cost: parseFloat(document.getElementById('in-lab').value) || 0,
-                    chair_time_mins: parseFloat(document.getElementById('in-tempo').value) || 0,
-                    chair_hourly_rate_consolidated: parseFloat(document.getElementById('in-poltrona').value) || 0,
+                    catalog_price: tariffa,
+                    primary_operator_fee: primaryFee,
+                    secondary_operator_fee: secondaryFee,
+                    external_processing_cost: lab,
+                    workstation_time_mins: time,
+                    workstation_hourly_rate_consolidated: rate,
+                    direct_materials_cost: materials,
                     income_tax_rate: parseFloat(document.getElementById('in-tasse').value) || 0,
                     allocated_overhead_value: parseFloat(document.getElementById('in-fissi-annui').value) || 50000,
                     allocated_budget_percentage: parseFloat(document.getElementById('select-bep-allocation').value) || 0.60
