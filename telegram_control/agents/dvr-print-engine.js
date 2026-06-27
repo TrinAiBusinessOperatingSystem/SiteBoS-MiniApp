@@ -373,6 +373,26 @@ const DVRPrintEngine = {
         return chunks;
     },
 
+    renderLegalPage: function (htmlContent, headerText, footerText, pageNumber) {
+        return `
+            <div class="page">
+                <div class="page-content">
+                    <div class="header-doc">
+                        <span>${headerText}</span>
+                        <h2>QUADRO GIURIDICO E DOTTRINALE</h2>
+                    </div>
+                    <div style="margin-top: 15px; font-size: 9.5pt; line-height: 1.5; color: #1e293b;">
+                        ${htmlContent}
+                    </div>
+                </div>
+                <div class="footer-page">
+                    <span>${footerText}</span>
+                    <span>Pagina ${pageNumber}</span>
+                </div>
+            </div>
+        `;
+    },
+
     // ══════════════════════════════════════════════════════════════════════
     // 1. STAMPA DEL SINGOLO SERVIZIO / CAPITOLO (ALTA QUALITÀ)
     // ══════════════════════════════════════════════════════════════════════
@@ -821,21 +841,169 @@ const DVRPrintEngine = {
         `;
 
         let pageCount = 2;
+        const vertical = tenant.activeVerticals.length > 0 ? this.normalizeKey(tenant.activeVerticals[0]) : 'generic';
 
-        // Pagina 2 & Successive: Metodologia e Organigramma (Chunked)
+        // 1. INTRODUZIONE LEGALE (Titolo I)
+        let introHtml = (typeof DVRIntroduzioneVerticali !== 'undefined' ? DVRIntroduzioneVerticali['comune'] : '') || '';
+        if (vertical !== 'comune' && typeof DVRIntroduzioneVerticali !== 'undefined' && DVRIntroduzioneVerticali[vertical]) {
+            introHtml += DVRIntroduzioneVerticali[vertical];
+        } else if (['professional', 'hospitality', 'beauty', 'food'].includes(vertical) && typeof DVRIntroduzioneVerticali !== 'undefined') {
+            introHtml += DVRIntroduzioneVerticali['generic'] || '';
+        }
+        introHtml = introHtml.replace(/<div class="page-break"><\/div>/g, '');
+        html += this.renderLegalPage(introHtml, "I. Misure Generali & Perimetro Legale", tenant.ragioneSociale, pageCount++);
+
+        // 2. METODOLOGIA E CRITERI (ISPESL / Matrice R=PxD)
+        const metodologiaPage1 = `
+            <h1>METODOLOGIA E CRITERI ADOTTATI PER LA VALUTAZIONE</h1>
+            <p>Tutte le attività finalizzate alla valutazione dei rischi ed alla redazione del presente Documento di Valutazione sono state svolte secondo criteri predefiniti derivati dalle <strong>"LINEE GUIDA per la valutazione ed il controllo dei rischi"</strong>, pubblicate dall'ISPESL e definite ed approvate dalle Regioni e Province autonome e dagli Istituti centrali.</p>
+            
+            <h2>1. Fasi Operative del Processo Valutativo</h2>
+            <p>Il processo di identificazione e quantificazione si è articolato nelle seguenti fasi propedeutiche:</p>
+            <ul>
+                <li><strong>Fase preliminare:</strong> Ricognizione di tutti gli ambienti di lavoro, analisi dei processi lavorativi ed organizzativi (incluse le attività di servizio come pulizie e manutenzione), e verifica della documentazione disponibile, inclusi dati desunti dal registro infortuni e denunce di malattie professionali.</li>
+                <li><strong>Fase di valutazione:</strong> L'identificazione delle fonti di rischio è stata guidata dalle conoscenze disponibili su norme di legge e standard tecnici, nonché dall'esperienza e dal contributo di tutti i soggetti aziendali (Lavoratori, SPP, Medico Competente, RLS). La valutazione ha riguardato tutti i rischi cui potenzialmente sono esposti i lavoratori.</li>
+            </ul>
+            
+            <h2>2. Quantificazione del Rischio (Matrice R = P x D)</h2>
+            <p>In assenza di misurazioni strumentali specifiche, la quantificazione del rischio è stata effettuata in termini analitici attraverso l'assegnazione di valori, su una scala da 1 a 4, per la <strong>Probabilità (P)</strong> e per la <strong>Gravità del Danno (D)</strong> atteso.</p>
+            
+            <table style="width:100%; font-size:8pt; border-collapse: collapse; margin-top: 10px;">
+                <thead>
+                    <tr style="background:#f1f5f9;">
+                        <th style="width:50%; border: 1px solid #cbd5e1; padding: 6px;">Scala della Probabilità (P)</th>
+                        <th style="width:50%; border: 1px solid #cbd5e1; padding: 6px;">Scala del Danno (D)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>4 - Altamente Probabile:</strong> Correlazione diretta tra mancanza rilevata e verificarsi del danno. Già verificatisi in azienda o situazioni simili.</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>4 - Gravissimo:</strong> Infortunio o episodio acuto con effetti letali o di invalidità totale.</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>3 - Probabile:</strong> La mancanza rilevata può provocare il danno; non suscita stupore in azienda.</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>3 - Grave:</strong> Infortunio o episodio acuto con effetti di invalidità parziale irreversibile.</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>2 - Poco Probabile:</strong> La mancanza rilevata può provocare danno solo per concomitanza di più eventi poco probabili.</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>2 - Medio:</strong> Infortunio o episodio acuto con inabilità reversibile.</td>
+                    </tr>
+                    <tr>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>1 - Improbabile:</strong> La mancanza rilevata può provocare danno solo per concomitanza di eventi eccezionali o indipendenti.</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>1 - Lieve:</strong> Infortunio o episodio acuto con inabilità rapidamente reversibile.</td>
+                    </tr>
+                </tbody>
+            </table>
+        `;
+        
+        const metodologiaPage2 = `
+            <h2>3. Classificazione del Livello di Rischio e Azioni Conseguenti</h2>
+            <p>Definiti il danno e la probabilità, il rischio viene graduato mediante la formula <strong>R = P x D</strong>. Sulla base del valore ottenuto, il sistema definisce le priorità e la programmazione temporale degli interventi di prevenzione da adottare:</p>
+            
+            <table style="width:100%; font-size:8pt; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background:#f1f5f9;">
+                        <th style="border: 1px solid #cbd5e1; padding: 6px;">Valore R</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 6px;">Fascia di Rischio</th>
+                        <th style="border: 1px solid #cbd5e1; padding: 6px;">Programmazione delle Misure di Prevenzione</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="background-color:#fee2e2; color:#991b1b; font-weight:bold; border: 1px solid #cbd5e1; padding: 6px;">R &gt; 8</td>
+                        <td style="font-weight:bold; border: 1px solid #cbd5e1; padding: 6px;">INACCETTABILE</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;">Azioni correttive indilazionabili. Sospensione dell'attività e realizzazione immediata degli interventi.</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color:#ffedd5; color:#9a3412; font-weight:bold; border: 1px solid #cbd5e1; padding: 6px;">4 &le; R &le; 8</td>
+                        <td style="font-weight:bold; border: 1px solid #cbd5e1; padding: 6px;">MEDIO</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;">Azioni correttive da programmare con urgenza. Misure specifiche di prevenzione.</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color:#f0fdf4; color:#166534; font-weight:bold; border: 1px solid #cbd5e1; padding: 6px;">2 &le; R &le; 3</td>
+                        <td style="font-weight:bold; border: 1px solid #cbd5e1; padding: 6px;">BASSO</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;">Azioni correttive e/o migliorative da programmare nel breve-medio termine.</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color:#f8fafc; color:#475569; border: 1px solid #cbd5e1; padding: 6px;">R = 1</td>
+                        <td style="font-weight:bold; border: 1px solid #cbd5e1; padding: 6px;">ACCETTABILE</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;">Azioni migliorative da valutare in fase di programmazione. Norme igieniche generali.</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <h2>4. Definizioni di Riferimento</h2>
+            <p style="font-size: 8.5pt; line-height: 1.4; color: #475569;">
+                <strong>Prevenzione:</strong> complesso delle disposizioni o misure necessarie per evitare o diminuire i rischi professionali (Art. 2, lett. n, D.Lgs. 81/08).<br>
+                <strong>Pericolo:</strong> proprietà o qualità intrinseca di un determinato fattore avente il potenziale di causare danni (Art. 2, lett. r, D.Lgs. 81/08).<br>
+                <strong>Rischio:</strong> probabilità di raggiungimento del livello potenziale di danno nelle condizioni di impiego o di esposizione ad un determinato fattore (Art. 2, lett. s, D.Lgs. 81/08).<br>
+                <strong>Valutazione dei rischi:</strong> valutazione globale e documentata di tutti i rischi per la salute e sicurezza dei lavoratori, finalizzata ad individuare le adeguate misure di prevenzione e di protezione e ad elaborare il programma delle misure atte a garantire il miglioramento nel tempo (Art. 2, lett. q, D.Lgs. 81/08).
+            </p>
+        `;
+        html += this.renderLegalPage(metodologiaPage1, "I. Metodologia di Valutazione (ISPESL)", tenant.ragioneSociale, pageCount++);
+        html += this.renderLegalPage(metodologiaPage2, "I. Metodologia di Valutazione (ISPESL)", tenant.ragioneSociale, pageCount++);
+
+        // 3. NORMATIVA DEL VERTICALE (Boilerplates)
+        if (typeof DVRBoilerplates !== 'undefined') {
+            const boilerplateObj = DVRBoilerplates[vertical] || DVRBoilerplates['generic'];
+            let boilerplateHtml = `
+                <h1>${boilerplateObj.titolo || 'NORMATIVA DEL VERTICALE'}</h1>
+                <div style="margin-top: 10px; font-size: 9pt;">
+                    <p><strong>Normativa Applicata:</strong> ${boilerplateObj.normativa_applicata || ''}</p>
+                    <p><strong>Premesse:</strong> ${boilerplateObj.premesse || ''}</p>
+                    <p><strong>Metodologia di Dettaglio:</strong> ${boilerplateObj.metodologia || ''}</p>
+                    <p><strong>Misure Obbligatorie:</strong> ${boilerplateObj.misure_obbligatorie || ''}</p>
+                </div>
+            `;
+            boilerplateHtml = boilerplateHtml.replace(/<div class="page-break"><\/div>/g, '');
+            html += this.renderLegalPage(boilerplateHtml, "II. Quadro Normativo del Settore", tenant.ragioneSociale, pageCount++);
+        }
+
+        // 4. DISPOSIZIONI TECNICHE STRUTTURALI (Allegati)
+        if (typeof DVRDisposizioniVerticali !== 'undefined') {
+            let disposizioniHtml = `
+                <h1>QUADRO NORMATIVO TECNICO DI RIFERIMENTO</h1>
+                <h3>(Allegati Tecnici D.Lgs. 81/08)</h3>
+                <div style="margin-top: 15px;">
+                    ${DVRDisposizioniVerticali[vertical] || DVRDisposizioniVerticali['generic'] || ''}
+                </div>
+            `;
+            disposizioniHtml = disposizioniHtml.replace(/<div class="page-break"><\/div>/g, '');
+            html += this.renderLegalPage(disposizioniHtml, "III. Disposizioni Tecniche e Allegati", tenant.ragioneSociale, pageCount++);
+        }
+
+        // 5. DECRETI ATTUATIVI E FORMAZIONE
+        if (typeof DVRDecretiAttuativi !== 'undefined') {
+            let decretiHtml = `
+                <h1>DECRETI ATTUATIVI E ACCORDI STATO-REGIONI</h1>
+                <h3>(Formazione e Verifiche)</h3>
+                <div style="margin-top: 15px;">
+                    ${DVRDecretiAttuativi['comune'] || ''}
+                    ${(vertical !== 'comune' && DVRDecretiAttuativi[vertical]) ? DVRDecretiAttuativi[vertical] : ''}
+                </div>
+            `;
+            decretiHtml = decretiHtml.replace(/<div class="page-break"><\/div>/g, '');
+            html += this.renderLegalPage(decretiHtml, "IV. Accordi Stato-Regioni e Decreti", tenant.ragioneSociale, pageCount++);
+        }
+
+        // 6. NORME SPECIALI (GDPR, Rifiuti)
+        if (typeof DVRNormeSpeciali !== 'undefined' && DVRNormeSpeciali[vertical]) {
+            let normeSpecialiHtml = DVRNormeSpeciali[vertical];
+            normeSpecialiHtml = normeSpecialiHtml.replace(/<div class="page-break"><\/div>/g, '').replace(/<h1>3. ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI<\/h1>/g, '<h1>ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI</h1>');
+            html += this.renderLegalPage(normeSpecialiHtml, "V. Adempimenti Speciali (GDPR/CER)", tenant.ragioneSociale, pageCount++);
+        }
+
+        // Pagine Organigramma (Mansioni Esaminate)
         if (operators.length === 0) {
             html += `
                 <div class="page">
                     <div class="page-content">
                         <div class="header-doc">
                             <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
-                            <h2>I. Metodologia e Risorse Aziendali</h2>
+                            <h2>VI. Organigramma Aziendale della Sicurezza</h2>
                         </div>
                         
-                        <div class="section-subtitle">1.1 Metodologia di Valutazione (Algoritmo INAIL)</div>
-                        <p>La valutazione del rischio per ogni comparto e protocollo clinico è stata effettuata adottando il modello a matrice (<strong>R = P × D</strong>). Il <strong>Danno (D)</strong> valuta la magnitudo clinica/legale della lesione attesa. La <strong>Probabilità (P)</strong> stima la frequenza di accadimento in base allo stato delle misure preventive attuate dall'azienda. La mitigazione mira ad abbattere il parametro P.</p>
-
-                        <div class="section-subtitle">1.2 Organigramma Operativo e Mansioni Esaminate</div>
+                        <div class="section-subtitle">1.1 Organigramma Operativo e Mansioni Esaminate</div>
                         <p>Mappatura del personale direttamente coinvolto nelle procedure operative e soggetto a sorveglianza sanitaria/formazione:</p>
                         <table>
                             <thead>
@@ -866,15 +1034,10 @@ const DVRPrintEngine = {
                         <div class="page-content">
                             <div class="header-doc">
                                 <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
-                                <h2>I. Metodologia e Risorse Aziendali ${isFirst ? '' : '(Continua)'}</h2>
+                                <h2>VI. Organigramma Aziendale della Sicurezza ${isFirst ? '' : '(Continua)'}</h2>
                             </div>
                             
-                            ${isFirst ? `
-                                <div class="section-subtitle">1.1 Metodologia di Valutazione (Algoritmo INAIL)</div>
-                                <p>La valutazione del rischio per ogni comparto e protocollo clinico è stata effettuata adottando il modello a matrice (<strong>R = P × D</strong>). Il <strong>Danno (D)</strong> valuta la magnitudo clinica/legale della lesione attesa. La <strong>Probabilità (P)</strong> stima la frequenza di accadimento in base allo stato delle misure preventive attuate dall'azienda. La mitigazione mira ad abbattere il parametro P.</p>
-                            ` : ''}
-
-                            <div class="section-subtitle">1.2 Organigramma Operativo e Mansioni Esaminate ${isFirst ? '' : '(Continua)'}</div>
+                            <div class="section-subtitle">1.1 Organigramma Operativo e Mansioni Esaminate ${isFirst ? '' : '(Continua)'}</div>
                             <p>${isFirst ? 'Mappatura del personale direttamente coinvolto nelle procedure operative e soggetto a sorveglianza sanitaria/formazione:' : 'Prosecuzione dell\'organigramma del personale:'}</p>
                             <table>
                                 <thead>
@@ -905,17 +1068,17 @@ const DVRPrintEngine = {
             });
         }
 
-        // Pagine Registro Attrezzature (Chunked su pagine dedicate distinte per evitare spaginazioni)
+        // Pagine Registro Attrezzature
         if (machinery.length === 0) {
             html += `
                 <div class="page">
                     <div class="page-content">
                         <div class="header-doc">
                             <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
-                            <h2>I. Metodologia e Risorse Aziendali</h2>
+                            <h2>VII. Registro Attrezzature e Impiantistica</h2>
                         </div>
 
-                        <div class="section-subtitle">1.3 Registro Attrezzature e Impiantistica (D.Lgs. 81/08 Titolo III)</div>
+                        <div class="section-subtitle">1.2 Registro Attrezzature e Impiantistica (D.Lgs. 81/08 Titolo III)</div>
                         <p>Elenco delle attrezzature critiche presenti in struttura, soggette a direttive macchine o protocolli di manutenzione:</p>
                         <table>
                             <thead>
@@ -947,10 +1110,10 @@ const DVRPrintEngine = {
                         <div class="page-content">
                             <div class="header-doc">
                                 <span>Documento di Valutazione dei Rischi (D.V.R.)</span>
-                                <h2>I. Metodologia e Risorse Aziendali ${isFirst ? '' : '(Continua)'}</h2>
+                                <h2>VII. Registro Attrezzature e Impiantistica ${isFirst ? '' : '(Continua)'}</h2>
                             </div>
 
-                            <div class="section-subtitle">1.3 Registro Attrezzature e Impiantistica ${isFirst ? '' : '(Continua)'}</div>
+                            <div class="section-subtitle">1.2 Registro Attrezzature e Impiantistica ${isFirst ? '' : '(Continua)'}</div>
                             <p>${isFirst ? 'Elenco delle attrezzature critiche presenti in struttura, soggette a direttive macchine o protocolli di manutenzione:' : 'Prosecuzione del registro attrezzature ed impiantistica aziendale:'}</p>
                             <table>
                                 <thead>
