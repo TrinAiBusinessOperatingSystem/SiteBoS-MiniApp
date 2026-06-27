@@ -483,54 +483,151 @@ const DVRIntroduzioneVerticali = {
 };
 
 // [INIZIO SCRIPT N8N: FRONTESPIZIO]
-let htmlDocument = buildCoverAndDisclaimer(tenant);
+function buildFullDVRDocument(tenant, vertical) {
+    if (!tenant) tenant = {};
+    
+    // Rileva tutti i verticali attivi, normalizzandoli se necessario
+    const activeVerticals = (tenant.activeVerticals && tenant.activeVerticals.length > 0)
+        ? tenant.activeVerticals.map(v => {
+            const k = (v || '').toLowerCase().trim();
+            if (k === 'common' || k === 'comune') return 'comune';
+            if (k === 'dental' || k === 'dentale') return 'dental';
+            if (k === 'health' || k === 'sanita' || k === 'sanità') return 'health';
+            if (k === 'beauty' || k === 'estetica') return 'beauty';
+            if (k === 'food' || k === 'ristorazione') return 'food';
+            if (k === 'hospitality' || k === 'ospitalita' || k === 'ospitalità') return 'hospitality';
+            if (k === 'professional' || k === 'ufficio' || k === 'uffici') return 'professional';
+            if (k === 'workshop' || k === 'officina' || k === 'artigianato') return 'workshop';
+            if (k === 'construction' || k === 'cantiere' || k === 'edilizia') return 'construction';
+            return 'generic';
+        })
+        : [vertical ? vertical : 'generic'];
+    
+    const uniqueVerticals = [...new Set(activeVerticals)].filter(v => v !== 'comune');
+    const verticalsToProcess = uniqueVerticals.length > 0 ? uniqueVerticals : ['generic'];
 
-// =========================================================================
-// 1. INTRODUZIONE LEGALE (TITOLO I - Principi Comuni) - IL NUOVO MODULO
-// =========================================================================
-htmlDocument += DVRIntroduzioneVerticali['comune']; // La base dell'Art. 17 e 28
+    let htmlDocument = typeof buildCoverAndDisclaimer === 'function' ? buildCoverAndDisclaimer(tenant) : '';
 
-// Aggiungiamo le specifiche sull'Art. 26 (Interferenze) o Art. 30 (Modelli) in base al Vertical
-if (vertical !== 'comune' && DVRIntroduzioneVerticali[vertical]) {
-    htmlDocument += DVRIntroduzioneVerticali[vertical];
-} else if (vertical === 'professional' || vertical === 'hospitality' || vertical === 'beauty' || vertical === 'food') {
-    htmlDocument += DVRIntroduzioneVerticali['generic']; // Riferimento base al DUVRI per appalti pulizie/manutenzione
+    // =========================================================================
+    // 1. INTRODUZIONE LEGALE (TITOLO I - Principi Comuni) - IL NUOVO MODULO
+    // =========================================================================
+    htmlDocument += (DVRIntroduzioneVerticali && DVRIntroduzioneVerticali['comune']) || '';
+
+    // Aggiungiamo le specifiche sull'Art. 26 (Interferenze) o Art. 30 (Modelli) per ciascun vertical
+    const printedIntros = new Set();
+    verticalsToProcess.forEach(v => {
+        let keyToPrint = v;
+        if (DVRIntroduzioneVerticali) {
+            if (!DVRIntroduzioneVerticali[v]) {
+                if (['professional', 'hospitality', 'beauty', 'food'].includes(v)) {
+                    keyToPrint = 'generic';
+                } else {
+                    return;
+                }
+            }
+            if (!printedIntros.has(keyToPrint)) {
+                printedIntros.add(keyToPrint);
+                htmlDocument += `<div class="page-break"></div>` + DVRIntroduzioneVerticali[keyToPrint];
+            }
+        }
+    });
+
+    // =========================================================================
+    // 2. METODOLOGIA E CRITERI (Linee Guida ISPESL)
+    // =========================================================================
+    htmlDocument += DVRMetodologia || '';
+
+    // =========================================================================
+    // 3. NORMATIVE SPECIFICHE PER IL VERTICALE (La tua "Dottrina" INAIL)
+    // =========================================================================
+    const printedBoilerplates = new Set();
+    verticalsToProcess.forEach(v => {
+        if (typeof DVRBoilerplates !== 'undefined') {
+            const b = DVRBoilerplates[v] || DVRBoilerplates['generic'];
+            if (b && !printedBoilerplates.has(b.titolo)) {
+                printedBoilerplates.add(b.titolo);
+                htmlDocument += `<div class="page-break"></div>
+                    <h1>${b.titolo}</h1>
+                    <p><strong>Normativa Applicata:</strong> ${b.normativa_applicata || ''}</p>
+                    <p><strong>Premesse:</strong> ${b.premesse || ''}</p>
+                    <p><strong>Metodologia:</strong> ${b.metodologia || ''}</p>
+                    <p><strong>Misure Obbligatorie:</strong> ${b.misure_obbligatorie || ''}</p>`;
+            }
+        }
+    });
+
+    // =========================================================================
+    // 4. DISPOSIZIONI TECNICHE STRUTTURALI (Allegati D.Lgs 81/08)
+    // =========================================================================
+    htmlDocument += `<div class="page-break"></div><h1>2.3 QUADRO NORMATIVO TECNICO DI RIFERIMENTO (Allegati D.Lgs. 81/08)</h1>`;
+    if (typeof DVRDisposizioniVerticali !== 'undefined') {
+        htmlDocument += DVRDisposizioniVerticali['comune'] || '';
+        
+        const printedDisposizioni = new Set();
+        verticalsToProcess.forEach(v => {
+            const keyToPrint = DVRDisposizioniVerticali[v] ? v : 'generic';
+            if (!printedDisposizioni.has(keyToPrint)) {
+                printedDisposizioni.add(keyToPrint);
+                htmlDocument += DVRDisposizioniVerticali[keyToPrint] || '';
+            }
+        });
+    }
+
+    // =========================================================================
+    // 5. DECRETI ATTUATIVI E FORMAZIONE
+    // =========================================================================
+    if (typeof DVRDecretiAttuativi !== 'undefined') {
+        htmlDocument += DVRDecretiAttuativi['comune'] || '';
+        
+        const printedDecreti = new Set();
+        verticalsToProcess.forEach(v => {
+            if (DVRDecretiAttuativi[v]) {
+                const keyToPrint = v;
+                if (!printedDecreti.has(keyToPrint)) {
+                    printedDecreti.add(keyToPrint);
+                    htmlDocument += DVRDecretiAttuativi[keyToPrint] || '';
+                }
+            }
+        });
+    }
+
+    // =========================================================================
+    // 6. NORMATIVE SPECIALI (GDPR, Rifiuti C.E.R.)
+    // =========================================================================
+    if (typeof DVRNormeSpeciali !== 'undefined') {
+        const printedSpeciali = new Set();
+        verticalsToProcess.forEach(v => {
+            if (DVRNormeSpeciali[v]) {
+                const keyToPrint = v;
+                if (!printedSpeciali.has(keyToPrint)) {
+                    printedSpeciali.add(keyToPrint);
+                    htmlDocument += DVRNormeSpeciali[keyToPrint] || '';
+                }
+            }
+        });
+    }
+
+    // =========================================================================
+    // 7. ESECUZIONE: VALUTAZIONE RISCHI E BLUEPRINT CALCOLATI (CICLO FOR)
+    // =========================================================================
+    htmlDocument += `<h1>3. VALUTAZIONE RISCHI INFRASTRUTTURALI E COMUNI</h1>`;
+    // ... (stampa json.rischi_comuni)
+
+    htmlDocument += `<h1>4. SCHEDE DI VALUTAZIONE SPECIFICA E PROCEDURE OPERATIVE</h1>`;
+    // ... (ciclo for sui json.catalog_active per stampare R=PxD e giustificazioni LLM)
+
+    return [{ json: { html_to_pdf: htmlDocument } }];
 }
 
-// =========================================================================
-// 2. METODOLOGIA E CRITERI (Linee Guida ISPESL)
-// =========================================================================
-htmlDocument += DVRMetodologia;
-
-// =========================================================================
-// 3. NORMATIVE SPECIFICHE PER IL VERTICALE (La tua "Dottrina" INAIL)
-// =========================================================================
-htmlDocument += DVRBoilerplates[vertical] || DVRBoilerplates['generic'];
-
-// =========================================================================
-// 4. DISPOSIZIONI TECNICHE STRUTTURALI (Allegati D.Lgs 81/08)
-// =========================================================================
-htmlDocument += `<div class="page-break"></div><h1>2.3 QUADRO NORMATIVO TECNICO DI RIFERIMENTO (Allegati D.Lgs. 81/08)</h1>...`;
-htmlDocument += DVRDisposizioniVerticali[vertical] || DVRDisposizioniVerticali['generic'];
-
-// =========================================================================
-// 5. DECRETI ATTUATIVI E FORMAZIONE
-// =========================================================================
-htmlDocument += DVRDecretiAttuativi['comune'];
-if (vertical !== 'comune' && DVRDecretiAttuativi[vertical]) htmlDocument += DVRDecretiAttuativi[vertical];
-
-// =========================================================================
-// 6. NORMATIVE SPECIALI (GDPR, Rifiuti C.E.R.)
-// =========================================================================
-if (DVRNormeSpeciali[vertical]) htmlDocument += DVRNormeSpeciali[vertical];
-
-// =========================================================================
-// 7. ESECUZIONE: VALUTAZIONE RISCHI E BLUEPRINT CALCOLATI (CICLO FOR)
-// =========================================================================
-htmlDocument += `<h1>3. VALUTAZIONE RISCHI INFRASTRUTTURALI E COMUNI</h1>...`;
-// ... (stampa json.rischi_comuni)
-
-htmlDocument += `<h1>4. SCHEDE DI VALUTAZIONE SPECIFICA E PROCEDURE OPERATIVE</h1>...`;
-// ... (ciclo for sui json.catalog_active per stampare R=PxD e giustificazioni LLM)
-
-return [{ json: { html_to_pdf: htmlDocument } }];
+// Esporta le costanti per ambienti modulo (Node.js/CommonJS)
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        DVRBoilerplates,
+        DVRMetodologia,
+        DVRDisposizioniVerticali,
+        DVRDecretiAttuativi,
+        DVRNormeSpeciali,
+        DVRIntroduzioneVerticali,
+        buildFullDVRDocument
+    };
+}

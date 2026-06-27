@@ -841,17 +841,35 @@ const DVRPrintEngine = {
         `;
 
         let pageCount = 2;
-        const vertical = tenant.activeVerticals.length > 0 ? this.normalizeKey(tenant.activeVerticals[0]) : 'generic';
+        const activeVerticals = (tenant.activeVerticals && tenant.activeVerticals.length > 0)
+            ? tenant.activeVerticals.map(v => this.normalizeKey(v))
+            : ['generic'];
+        const uniqueVerticals = [...new Set(activeVerticals)].filter(v => v !== 'comune');
+        const verticalsToProcess = uniqueVerticals.length > 0 ? uniqueVerticals : ['generic'];
 
         // 1. INTRODUZIONE LEGALE (Titolo I)
         let introHtml = (typeof DVRIntroduzioneVerticali !== 'undefined' ? DVRIntroduzioneVerticali['comune'] : '') || '';
-        if (vertical !== 'comune' && typeof DVRIntroduzioneVerticali !== 'undefined' && DVRIntroduzioneVerticali[vertical]) {
-            introHtml += DVRIntroduzioneVerticali[vertical];
-        } else if (['professional', 'hospitality', 'beauty', 'food'].includes(vertical) && typeof DVRIntroduzioneVerticali !== 'undefined') {
-            introHtml += DVRIntroduzioneVerticali['generic'] || '';
-        }
         introHtml = introHtml.replace(/<div class="page-break"><\/div>/g, '');
         html += this.renderLegalPage(introHtml, "I. Misure Generali & Perimetro Legale", tenant.ragioneSociale, pageCount++);
+
+        const printedIntros = new Set();
+        verticalsToProcess.forEach(v => {
+            let keyToPrint = v;
+            if (typeof DVRIntroduzioneVerticali !== 'undefined') {
+                if (!DVRIntroduzioneVerticali[v]) {
+                    if (['professional', 'hospitality', 'beauty', 'food'].includes(v)) {
+                        keyToPrint = 'generic';
+                    } else {
+                        return;
+                    }
+                }
+                if (!printedIntros.has(keyToPrint)) {
+                    printedIntros.add(keyToPrint);
+                    let vIntro = DVRIntroduzioneVerticali[keyToPrint].replace(/<div class="page-break"><\/div>/g, '');
+                    html += this.renderLegalPage(vIntro, `I. Perimetro Legale (${this.metaLocal[keyToPrint]?.name || keyToPrint})`, tenant.ragioneSociale, pageCount++);
+                }
+            }
+        });
 
         // 2. METODOLOGIA E CRITERI (ISPESL / Matrice R=PxD)
         const metodologiaPage1 = `
@@ -889,7 +907,7 @@ const DVRPrintEngine = {
                         <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>2 - Medio:</strong> Infortunio o episodio acuto con inabilità reversibile.</td>
                     </tr>
                     <tr>
-                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>1 - Improbabile:</strong> La mancanza rilevata può provocare danno solo per concomitanza di eventi eccezionali o indipendenti.</td>
+                        <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>1 - Improbabile:</strong> La mancanza rilevata può provocare danno solo per concomitanza di events eccezionali o indipendenti.</td>
                         <td style="border: 1px solid #cbd5e1; padding: 6px;"><strong>1 - Lieve:</strong> Infortunio o episodio acuto con inabilità rapidamente reversibile.</td>
                     </tr>
                 </tbody>
@@ -944,20 +962,26 @@ const DVRPrintEngine = {
         html += this.renderLegalPage(metodologiaPage2, "I. Metodologia di Valutazione (ISPESL)", tenant.ragioneSociale, pageCount++);
 
         // 3. NORMATIVA DEL VERTICALE (Boilerplates)
-        if (typeof DVRBoilerplates !== 'undefined') {
-            const boilerplateObj = DVRBoilerplates[vertical] || DVRBoilerplates['generic'];
-            let boilerplateHtml = `
-                <h1>${boilerplateObj.titolo || 'NORMATIVA DEL VERTICALE'}</h1>
-                <div style="margin-top: 10px; font-size: 9pt;">
-                    <p><strong>Normativa Applicata:</strong> ${boilerplateObj.normativa_applicata || ''}</p>
-                    <p><strong>Premesse:</strong> ${boilerplateObj.premesse || ''}</p>
-                    <p><strong>Metodologia di Dettaglio:</strong> ${boilerplateObj.metodologia || ''}</p>
-                    <p><strong>Misure Obbligatorie:</strong> ${boilerplateObj.misure_obbligatorie || ''}</p>
-                </div>
-            `;
-            boilerplateHtml = boilerplateHtml.replace(/<div class="page-break"><\/div>/g, '');
-            html += this.renderLegalPage(boilerplateHtml, "II. Quadro Normativo del Settore", tenant.ragioneSociale, pageCount++);
-        }
+        const printedBoilerplates = new Set();
+        verticalsToProcess.forEach(v => {
+            if (typeof DVRBoilerplates !== 'undefined') {
+                const boilerplateObj = DVRBoilerplates[v] || DVRBoilerplates['generic'];
+                if (boilerplateObj && !printedBoilerplates.has(boilerplateObj.titolo)) {
+                    printedBoilerplates.add(boilerplateObj.titolo);
+                    let boilerplateHtml = `
+                        <h1>${boilerplateObj.titolo || 'NORMATIVA DEL VERTICALE'}</h1>
+                        <div style="margin-top: 10px; font-size: 9pt;">
+                            <p><strong>Normativa Applicata:</strong> ${boilerplateObj.normativa_applicata || ''}</p>
+                            <p><strong>Premesse:</strong> ${boilerplateObj.premesse || ''}</p>
+                            <p><strong>Metodologia di Dettaglio:</strong> ${boilerplateObj.metodologia || ''}</p>
+                            <p><strong>Misure Obbligatorie:</strong> ${boilerplateObj.misure_obbligatorie || ''}</p>
+                        </div>
+                    `;
+                    boilerplateHtml = boilerplateHtml.replace(/<div class="page-break"><\/div>/g, '');
+                    html += this.renderLegalPage(boilerplateHtml, `II. Quadro Normativo (${this.metaLocal[v]?.name || v})`, tenant.ragioneSociale, pageCount++);
+                }
+            }
+        });
 
         // 4. DISPOSIZIONI TECNICHE STRUTTURALI (Allegati)
         if (typeof DVRDisposizioniVerticali !== 'undefined') {
@@ -965,11 +989,21 @@ const DVRPrintEngine = {
                 <h1>QUADRO NORMATIVO TECNICO DI RIFERIMENTO</h1>
                 <h3>(Allegati Tecnici D.Lgs. 81/08)</h3>
                 <div style="margin-top: 15px;">
-                    ${DVRDisposizioniVerticali[vertical] || DVRDisposizioniVerticali['generic'] || ''}
+                    ${DVRDisposizioniVerticali['comune'] || ''}
                 </div>
             `;
             disposizioniHtml = disposizioniHtml.replace(/<div class="page-break"><\/div>/g, '');
             html += this.renderLegalPage(disposizioniHtml, "III. Disposizioni Tecniche e Allegati", tenant.ragioneSociale, pageCount++);
+
+            const printedDisposizioni = new Set();
+            verticalsToProcess.forEach(v => {
+                const keyToPrint = DVRDisposizioniVerticali[v] ? v : 'generic';
+                if (!printedDisposizioni.has(keyToPrint)) {
+                    printedDisposizioni.add(keyToPrint);
+                    let vDisp = DVRDisposizioniVerticali[keyToPrint].replace(/<div class="page-break"><\/div>/g, '');
+                    html += this.renderLegalPage(vDisp, `III. Allegati Tecnici (${this.metaLocal[keyToPrint]?.name || keyToPrint})`, tenant.ragioneSociale, pageCount++);
+                }
+            });
         }
 
         // 5. DECRETI ATTUATIVI E FORMAZIONE
@@ -979,18 +1013,38 @@ const DVRPrintEngine = {
                 <h3>(Formazione e Verifiche)</h3>
                 <div style="margin-top: 15px;">
                     ${DVRDecretiAttuativi['comune'] || ''}
-                    ${(vertical !== 'comune' && DVRDecretiAttuativi[vertical]) ? DVRDecretiAttuativi[vertical] : ''}
                 </div>
             `;
             decretiHtml = decretiHtml.replace(/<div class="page-break"><\/div>/g, '');
             html += this.renderLegalPage(decretiHtml, "IV. Accordi Stato-Regioni e Decreti", tenant.ragioneSociale, pageCount++);
+
+            const printedDecreti = new Set();
+            verticalsToProcess.forEach(v => {
+                if (DVRDecretiAttuativi[v]) {
+                    const keyToPrint = v;
+                    if (!printedDecreti.has(keyToPrint)) {
+                        printedDecreti.add(keyToPrint);
+                        let vDec = DVRDecretiAttuativi[keyToPrint].replace(/<div class="page-break"><\/div>/g, '');
+                        html += this.renderLegalPage(vDec, `IV. Decreti e Accordi (${this.metaLocal[keyToPrint]?.name || keyToPrint})`, tenant.ragioneSociale, pageCount++);
+                    }
+                }
+            });
         }
 
         // 6. NORME SPECIALI (GDPR, Rifiuti)
-        if (typeof DVRNormeSpeciali !== 'undefined' && DVRNormeSpeciali[vertical]) {
-            let normeSpecialiHtml = DVRNormeSpeciali[vertical];
-            normeSpecialiHtml = normeSpecialiHtml.replace(/<div class="page-break"><\/div>/g, '').replace(/<h1>3. ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI<\/h1>/g, '<h1>ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI</h1>');
-            html += this.renderLegalPage(normeSpecialiHtml, "V. Adempimenti Speciali (GDPR/CER)", tenant.ragioneSociale, pageCount++);
+        if (typeof DVRNormeSpeciali !== 'undefined') {
+            const printedSpeciali = new Set();
+            verticalsToProcess.forEach(v => {
+                if (DVRNormeSpeciali[v]) {
+                    const keyToPrint = v;
+                    if (!printedSpeciali.has(keyToPrint)) {
+                        printedSpeciali.add(keyToPrint);
+                        let normeSpecialiHtml = DVRNormeSpeciali[keyToPrint];
+                        normeSpecialiHtml = normeSpecialiHtml.replace(/<div class="page-break"><\/div>/g, '').replace(/<h1>3. ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI<\/h1>/g, '<h1>ADEMPIMENTI COMPLEMENTARI E NORMATIVE SPECIALI</h1>');
+                        html += this.renderLegalPage(normeSpecialiHtml, `V. Adempimenti Speciali (${this.metaLocal[keyToPrint]?.name || keyToPrint})`, tenant.ragioneSociale, pageCount++);
+                    }
+                }
+            });
         }
 
         // Pagine Organigramma (Mansioni Esaminate)
