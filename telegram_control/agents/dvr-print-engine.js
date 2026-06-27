@@ -39,7 +39,7 @@ const DVRPrintEngine = {
     // ══════════════════════════════════════════════════════════════════════
     // 1. STAMPA DEL SINGOLO SERVIZIO / CAPITOLO (ALTA QUALITÀ)
     // ══════════════════════════════════════════════════════════════════════
-    printSingleService: async function (tenant, service, checklistState, mitigationControls) {
+    printSingleService: async function (tenant, service, checklistState, mitigationControls, serverChecklistState) {
         if (window.showLoader) window.showLoader("Generazione PDF Alta Qualità...");
 
         const now = new Date();
@@ -48,7 +48,6 @@ const DVRPrintEngine = {
         const sku = service.service_sku;
         const state = checklistState[sku] || {};
 
-        // Estrazione dati dal dossier
         let serviceDescription = "Servizio clinico-operativo specializzato.";
         let riskWarnings = [];
         let listItems = [];
@@ -68,12 +67,29 @@ const DVRPrintEngine = {
             }
         }
 
+        // --- NUOVO: SE È UN COMPARTO MACRO, PRENDE LE DOMANDE DAL REGISTRO VERTICALI ---
+        if (listItems.length === 0 && typeof verticalsRegistry !== 'undefined' && verticalsRegistry[sku]) {
+            verticalsRegistry[sku].risks.forEach(risk => {
+                risk.checklist.forEach(q => {
+                    listItems.push({
+                        id: q.question_id,
+                        area: risk.name,
+                        action: q.text,
+                        owner: 'Datore di Lavoro'
+                    });
+                });
+            });
+            serviceDescription = "Valutazione dei rischi strutturali, impiantistici e operativi del comparto.";
+            rawLaws = verticalsRegistry[sku].law_references || rawLaws;
+        }
+
         const vKey = typeof getVerticalForService === 'function' ? this.normalizeKey(getVerticalForService(service)) : 'comune';
         const param = this.parametriVerticali[vKey] || { D: 2, C: 1 };
         const dPartenza = param.D || 2;
         const rPartenza = 4 * dPartenza;
 
-        const savedSkuData = (checklistState && checklistState[sku]) ? checklistState[sku] : null;
+        // --- IL FIX È QUI ---
+        const savedSkuData = (serverChecklistState && serverChecklistState[sku]) ? serverChecklistState[sku] : null;
         let dVal = dPartenza; let pVal = 4; let rVal = rPartenza; let justVal = "";
 
         if (savedSkuData && savedSkuData.D !== undefined) {
@@ -326,7 +342,7 @@ const DVRPrintEngine = {
     // ══════════════════════════════════════════════════════════════════════
     // 2. STAMPA DEL LIBRO COMPLETO DVR (ALTA QUALITÀ)
     // ══════════════════════════════════════════════════════════════════════
-    generateAndPrint: async function (tenant, catalog, checklistState, ownerData, mitigationControls) {
+    generateAndPrint: async function (tenant, catalog, checklistState, ownerData, mitigationControls, serverChecklistState) {
         if (window.showLoader) window.showLoader("Generazione Documento Tecnico...");
 
         const now = new Date();
@@ -519,7 +535,8 @@ const DVRPrintEngine = {
                     const param = this.parametriVerticali[vKey] || { D: 2 };
                     const dPartenza = param.D;
                     const rPartenza = 4 * dPartenza;
-                    const savedServiceData = (checklistState && checklistState[sSku]) ? checklistState[sSku] : null;
+                    // --- IL FIX È QUI ---
+                    const savedServiceData = (serverChecklistState && serverChecklistState[sSku]) ? serverChecklistState[sSku] : null;
 
                     let sd = dPartenza; let sp = 4; let sr = rPartenza; let sJustification = "";
 

@@ -2719,8 +2719,8 @@
         function printDVR() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             const tenant = getTenantData();
-            // Passiamo ownerData e le mitigazioni al motore di stampa
-            DVRPrintEngine.generateAndPrint(tenant, catalogActive, checklistState, ownerData, mitigationControls);
+            // Aggiunto serverChecklistState alla fine!
+            DVRPrintEngine.generateAndPrint(tenant, catalogActive, checklistState, ownerData, mitigationControls, serverChecklistState);
         }
 
         // Generatore dell'anteprima a schermo (tab Documento DVR) per il singolo servizio del catalogo
@@ -2821,13 +2821,24 @@
         function printSingleDVR() {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             const tenant = getTenantData();
-            const service = catalogActive.find(s => s.service_sku === currentServiceSku);
+            const sku = currentServiceSku;
+
+            // 1. Cerca prima se è un servizio normale del catalogo
+            let service = catalogActive.find(s => s.service_sku === sku);
+
+            // 2. Se non lo trova, guarda se è un "Comparto" (es. comune, dentale, beauty)
+            if (!service && typeof verticalsRegistry !== 'undefined' && verticalsRegistry[sku]) {
+                service = {
+                    service_sku: sku,
+                    service_name: verticalsRegistry[sku].title,
+                    categoria_padre: "Comparto di Sicurezza e Salute (Sede)"
+                };
+            }
 
             if (service) {
-                // Passiamo le mitigazioni per il capitolo singolo
-                DVRPrintEngine.printSingleService(tenant, service, checklistState, mitigationControls);
+                DVRPrintEngine.printSingleService(tenant, service, checklistState, mitigationControls, serverChecklistState);
             } else {
-                safeAlert("Errore: impossibile identificare il servizio corrente.");
+                safeAlert("Errore: impossibile identificare il capitolo corrente.");
             }
         }
 
