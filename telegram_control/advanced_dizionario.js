@@ -85,23 +85,10 @@ const VerticalDictionaries = {
     }
 };
 
-// Mappa di retrocompatibilità ed alias per evitare qualsiasi disallineamento col DB
-const VerticalAliases = {
-    craft: "workshop",
-    legal: "professional",
-    fiscal: "professional"
-};
-
 // Funzione di iniezione a runtime
 function getDictionary(vertical) {
     if (!vertical) return VerticalDictionaries['generic'];
-    let normalized = vertical.toLowerCase().trim();
-    
-    // Risoluzione dell'alias se presente
-    if (VerticalAliases[normalized]) {
-        normalized = VerticalAliases[normalized];
-    }
-    
+    const normalized = vertical.toLowerCase().trim();
     return VerticalDictionaries[normalized] || VerticalDictionaries['generic'];
 }
 
@@ -112,13 +99,13 @@ const AccountLedgerLabels = {
         dental: "Locazione Mura Studio Clinico",
         beauty: "Locazione Mura Cabina",
         food: "Canone d'Affitto Locale / Ristorante",
-        craft: "Canone d'Affitto Officina / Laboratorio",
+        workshop: "Canone d'Affitto Officina / Laboratorio",
         generic: "Locazione Mura Ufficio / Sede"
     },
     "606.00005": { generic: "Spese Riscaldamento e Condizionamento" },
     "606.00007": { generic: "Consumo Acqua Sanitaria" },
     "606.00010": { generic: "Spese Condominiali e di Gestione Immobile" },
-    
+
     // 621: Utenze
     "621.00001": { generic: "Utenza Gas / Riscaldamento" },
     "621.00002": { generic: "Utenza Idrica Struttura" },
@@ -141,7 +128,7 @@ const AccountLedgerLabels = {
         beauty: "Ammortamento Tecnologie e Laser Estetici",
         health: "Ammortamento Dispositivi Elettromedicali",
         food: "Ammortamento Attrezzature Cucina e Forni",
-        craft: "Ammortamento Ponti e Attrezzature d'Officina",
+        workshop: "Ammortamento Ponti e Attrezzature d'Officina",
         generic: "Ammortamento Macchinari e Strumenti di Lavoro"
     },
     "601.00007": { generic: "Ammortamento Hardware, Computer e Server" },
@@ -193,13 +180,12 @@ const AccountLedgerLabels = {
     }
 };
 
-function getAccountLabel(accountCode, vertical) {
-    const code = String(accountCode || "").trim();
-    const vert = String(vertical || "generic").toLowerCase();
+function getAccountLabel(accountCode, vertical) { 
+    const code = String(accountCode || "").trim(); 
+    const vert = String(vertical || "generic").toLowerCase().trim();
     
-    const account = AccountLedgerLabels[code];
-    if (!account) return `Conto di Spesa ${code}`; // Fallback se non censito
+    if (!AccountLedgerLabels[code]) return `Conto ${code}`; // Fallback se il conto non esiste
     
-    // Ritorna la dicitura specifica del verticale, altrimenti quella generica
-    return account[vert] || account['generic'] || `Conto di Spesa ${code}`;
+    // Tenta di prendere la label del verticale, altrimenti usa la 'generic'
+    return AccountLedgerLabels[code][vert] || AccountLedgerLabels[code]['generic'] || `Conto ${code}`;
 }

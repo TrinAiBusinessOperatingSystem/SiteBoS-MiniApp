@@ -214,6 +214,25 @@
                             <input type="number" id="in-tasse" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
                         </div>
                     </div>
+                    
+                    <!-- edit-advanced.html: Sezione Parametri Operativi Avanzati -->
+                    <div class="border-t border-dashed border-gray-200 pt-4 mt-3 space-y-3">
+                        <span class="text-[9px] font-black uppercase tracking-wider text-gray-400 block">⚙️ Efficienza & Garanzie</span>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-black text-gray-400 uppercase tracking-wider">Saturazione Agenda (%)</label>
+                                <input type="number" id="in-saturazione-pct" min="1" max="100" value="100" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[8px] font-black text-gray-400 uppercase tracking-wider">Tempo Setup (Min)</label>
+                                <input type="number" id="in-setup-tempo" min="0" value="0" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                            </div>
+                            <div class="space-y-1 col-span-2">
+                                <label class="text-[8px] font-black text-gray-400 uppercase tracking-wider">Accantonamento Rischio / Garanzia (%)</label>
+                                <input type="number" id="in-garanzia-pct" min="0" max="100" step="0.5" value="0" oninput="recalculateAll(); checkDirty();" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-black text-black focus:outline-none focus:border-black transition-colors">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- SINTESI CARATTERISTICA -->
@@ -703,6 +722,11 @@
 
 
         function initUI() {
+            const ob = currentData.operating_benchmarks || {};
+            document.getElementById('in-saturazione-pct').value = ob.agenda_saturation_target ? Math.round(ob.agenda_saturation_target * 100) : 70;
+            document.getElementById('in-setup-tempo').value = ob.chair_setup_turnover_minutes || ob.workstation_setup_turnover_minutes || 15;
+            document.getElementById('in-garanzia-pct').value = ob.clinical_failure_provision_rate ? (ob.clinical_failure_provision_rate * 100).toFixed(1) : 0;
+
             // Localizzazione semantica a runtime (Strategy Pattern)
             const dict = getDictionary(currentData.vertical);
             if (dict && dict.ui_labels) {
@@ -755,7 +779,10 @@
             // Recupero percentuale dal DB con fallback obbligatorio al 20%
             let savedRecalibration = currentData.operating_benchmarks?.recalibration_percentage;
             if (savedRecalibration === undefined || savedRecalibration === null) {
-                savedRecalibration = 20;
+                const catalogPrice = pricingSummary?.catalog_price || 250;
+                const primaryFee = costBreakdown?.primary_operator_fee !== undefined ? costBreakdown.primary_operator_fee :
+                                   (currentData.medical_collaborator_fee || currentData.terapista_fee || 0);
+                savedRecalibration = catalogPrice > 0 ? Math.round((primaryFee / catalogPrice) * 100) : 20;
             } else {
                 savedRecalibration = Math.round(savedRecalibration);
             }
@@ -764,17 +791,23 @@
                 ricalibrazioneEl.value = savedRecalibration;
             }
 
-            const dbAso = costBreakdown?.secondary_operator_fee;
-            const initialAso = (dbAso !== undefined && dbAso > 0) ? dbAso : (totalSecondary > 0 ? totalSecondary : 0);
+            const dbAso = costBreakdown?.secondary_operator_fee !== undefined ? costBreakdown.secondary_operator_fee :
+                          (currentData.aso_fee || currentData.assistente_fee || undefined);
+            const initialAso = (dbAso !== undefined) ? dbAso : (totalSecondary > 0 ? totalSecondary : 0);
             document.getElementById('in-costo-aso').value = initialAso.toFixed(2);
             
             document.getElementById('in-materiali').value = (costBreakdown?.direct_materials_cost || 0).toFixed(2);
-            document.getElementById('in-lab').value = (costBreakdown?.external_processing_cost || 0).toFixed(2);
+            
+            const dbLab = costBreakdown?.external_processing_cost !== undefined ? costBreakdown.external_processing_cost :
+                          (currentData.dental_lab_cost || currentData.subappalto_cost || 0);
+            document.getElementById('in-lab').value = dbLab.toFixed(2);
             
             const totalChairTime = steps.reduce((sum, step) => sum + (step.calculation_breakdown?.workstation_time_mins || 0), 0);
             document.getElementById('in-tempo').value = totalChairTime > 0 ? totalChairTime : (steps.reduce((sum, step) => sum + (step.estimated_total_time_minutes || 0), 0) || 0);
             
-            document.getElementById('in-poltrona').value = (currentData.operating_benchmarks?.workstation_hourly_rate_consolidated || 27.18).toFixed(2);
+            const dbPoltrona = currentData.operating_benchmarks?.workstation_hourly_rate_consolidated !== undefined ? currentData.operating_benchmarks.workstation_hourly_rate_consolidated :
+                               (currentData.chair_hourly_rate_consolidated || currentData.operating_benchmarks?.chair_hourly_rate_consolidated || 27.18);
+            document.getElementById('in-poltrona').value = dbPoltrona.toFixed(2);
             
             const taxRate = fiscalAnalysis?.income_tax_rate !== undefined ? fiscalAnalysis.income_tax_rate * 100 : 24.0;
             document.getElementById('in-tasse').value = taxRate.toFixed(1);

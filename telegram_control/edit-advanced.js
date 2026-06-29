@@ -4,11 +4,11 @@ function getDecomposedEnvironmentRate(loc) {
     if (!loc) return 0.00;
     const ob = currentData.operating_benchmarks || {};
     const dec = ob.decomposed_environments_costs || {};
-    
+
     // 1. Try match by clean name
     const cleanName = loc.loc_name.replace(/\s+/g, '_');
     if (dec[cleanName] !== undefined) return parseFloat(dec[cleanName]);
-    
+
     // 2. Try fuzzy/substring match
     const cleanSearchName = loc.loc_name.toLowerCase().replace(/[^a-z0-9]/g, '');
     for (let key in dec) {
@@ -17,7 +17,7 @@ function getDecomposedEnvironmentRate(loc) {
             return parseFloat(dec[key]);
         }
     }
-    
+
     // 3. Try matching parts of the words (e.g. "Studio")
     const words = loc.loc_name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
     for (let key in dec) {
@@ -26,7 +26,7 @@ function getDecomposedEnvironmentRate(loc) {
             return parseFloat(dec[key]);
         }
     }
-    
+
     // Fallback
     return parseFloat(loc.estimated_internal_cost_rate) || 0.00;
 }
@@ -35,14 +35,14 @@ function getDecomposedAssetRate(ast) {
     if (!ast) return 0.00;
     const ob = currentData.operating_benchmarks || {};
     const dmc = ob.decomposed_machinery_costs || {};
-    
+
     // 1. Try match by clean name
     const cleanName = ast.asset_name.replace(/\s+/g, '_');
     if (dmc[cleanName] !== undefined) return parseFloat(dmc[cleanName]);
-    
+
     // 2. Try match by sku
     if (ast.asset_sku && dmc[ast.asset_sku] !== undefined) return parseFloat(dmc[ast.asset_sku]);
-    
+
     // 3. Try fuzzy/substring match
     const cleanSearchName = ast.asset_name.toLowerCase().replace(/[^a-z0-9]/g, '');
     for (let key in dmc) {
@@ -51,7 +51,7 @@ function getDecomposedAssetRate(ast) {
             return parseFloat(dmc[key]);
         }
     }
-    
+
     // 4. Try matching parts of the words (e.g. "Riunito")
     const words = ast.asset_name.toLowerCase().split(/\s+/).filter(w => w.length > 3);
     for (let key in dmc) {
@@ -60,34 +60,29 @@ function getDecomposedAssetRate(ast) {
             return parseFloat(dmc[key]);
         }
     }
-    
+
     // Fallback
     return parseFloat(ast.estimated_internal_cost_rate) || 0.00;
 }
 
 function isPrimaryOperatorSkill(skill, vertical) {
     const sk = (skill || "").toLowerCase();
-    const vert = (vertical || "generic").toLowerCase();
-    
-    // Dental specific
-    if (vert === 'dental') {
-        return sk.includes("medico") || sk.includes("odontoiatra");
-    }
-    // Other verticals based on domain keywords
-    if (vert === 'beauty') return sk.includes("estetista");
-    if (vert === 'health') return sk.includes("terapista") || sk.includes("specialista") || sk.includes("medico");
+    const vert = (vertical || "generic").toLowerCase().trim();
+
+    if (vert === 'dental') return sk.includes("medico") || sk.includes("odontoiatra") || sk.includes("chirurgo");
+    if (vert === 'beauty') return sk.includes("estetista") || sk.includes("terapista");
+    if (vert === 'health') return sk.includes("terapista") || sk.includes("specialista") || sk.includes("medico") || sk.includes("fisioterapista");
     if (vert === 'food') return sk.includes("chef") || sk.includes("cuoco");
-    if (vert === 'hospitality') return sk.includes("responsabile") || sk.includes("ricevimento");
-    if (vert === 'professional') return sk.includes("consulente") || sk.includes("professionista");
-    if (vert === 'workshop') return sk.includes("meccanico") || sk.includes("tecnico");
-    if (vert === 'construction') return sk.includes("capo") || sk.includes("artigiano");
-    
-    // Fallback/Generic keywords
-    return sk.includes("primary") || sk.includes("esecutore") || sk.includes("medico") || sk.includes("odontoiatra") || sk.includes("professionista");
+    if (vert === 'hospitality') return sk.includes("responsabile") || sk.includes("direttore") || sk.includes("receptionist");
+    if (vert === 'professional') return sk.includes("consulente") || sk.includes("avvocato") || sk.includes("commercialista") || sk.includes("professionista");
+    if (vert === 'workshop') return sk.includes("meccanico") || sk.includes("tecnico") || sk.includes("artigiano");
+    if (vert === 'construction') return sk.includes("capo") || sk.includes("capocantiere") || sk.includes("ingegnere");
+
+    return sk.includes("primary") || sk.includes("esecutore") || sk.includes("specialista");
 }
 
 function calculateSubprocessStaffCosts(sub) {
-    const staff = sub.calculation_breakdown?.staff_cost || 0;
+    const staffCostTotal = sub.calculation_breakdown?.staff_cost || 0;
     const stages = sub.stages || [];
     
     let hasSteps = false;
@@ -95,11 +90,6 @@ function calculateSubprocessStaffCosts(sub) {
     let secondaryCalc = 0;
     
     const rates = currentData.operating_benchmarks?.operators_hourly_rates || {};
-    const defaultRates = {
-        "Medico_Chirurgo_Odontoiatra": 62.4,
-        "Assistente_ASO": 16.9,
-        "Segretaria_Amministrativa": 14.95
-    };
     const vertical = (currentData.vertical || 'generic').toLowerCase();
     
     stages.forEach(stg => {
@@ -109,16 +99,13 @@ function calculateSubprocessStaffCosts(sub) {
                 const skills = step.required_skills || [];
                 skills.forEach(skill => {
                     hasSteps = true;
-                    let rate = parseFloat(rates[skill]) || parseFloat(defaultRates[skill]);
-                    if (isNaN(rate)) {
-                        rate = isPrimaryOperatorSkill(skill, vertical) ? 62.4 : 16.9;
-                    }
-                    const cost = (rate / 60) * time;
+                    let rate = parseFloat(rates[skill]) || parseFloat(rates['primary_operator']) || 0;
+                    const stepCost = (rate / 60) * time;
                     
                     if (isPrimaryOperatorSkill(skill, vertical)) {
-                        primaryCalc += cost;
+                        primaryCalc += stepCost;
                     } else {
-                        secondaryCalc += cost;
+                        secondaryCalc += stepCost;
                     }
                 });
             }
@@ -127,29 +114,138 @@ function calculateSubprocessStaffCosts(sub) {
     
     const totalCalc = primaryCalc + secondaryCalc;
     if (hasSteps && totalCalc > 0) {
-        const primaryVal = staff * (primaryCalc / totalCalc);
-        const secondaryVal = staff * (secondaryCalc / totalCalc);
         return {
-            medico: primaryVal,
-            aso: secondaryVal,
-            primaryOperator: primaryVal,
-            secondaryOperator: secondaryVal
+            primaryOperator: staffCostTotal * (primaryCalc / totalCalc),
+            secondaryOperator: staffCostTotal * (secondaryCalc / totalCalc)
         };
     }
     
-    // Fallback to name/sku classification
     const name = (sub.subprocess_name || "").toLowerCase();
     const sku = (sub.subprocess_sku || "").toLowerCase();
-    const isSecondary = name.includes("accoglienza") || name.includes("accettazione") || name.includes("check-in") ||
-                        name.includes("consenso") || name.includes("consensi") || name.includes("privacy") || name.includes("gdpr") ||
-                        name.includes("calibrazione") || name.includes("setup") || name.includes("vestizione") || name.includes("barriere") ||
-                        name.includes("sanificazione") || name.includes("decontaminazione") || name.includes("pulizia") ||
-                        sku.includes("adm") || sku.includes("prep") || sku.includes("sanit");
+    const isSecondary = name.includes("accoglienza") || name.includes("accettazione") || 
+                        name.includes("sanificazione") || name.includes("setup") || 
+                        name.includes("pulizia") || sku.includes("adm") || sku.includes("prep");
+                        
     if (isSecondary) {
-        return { medico: 0, aso: staff, primaryOperator: 0, secondaryOperator: staff };
+        return { primaryOperator: 0, secondaryOperator: staffCostTotal };
     } else {
-        return { medico: staff, aso: 0, primaryOperator: staff, secondaryOperator: 0 };
+        return { primaryOperator: staffCostTotal, secondaryOperator: 0 };
     }
+}
+
+function getMinutesForSkus(skus) {
+    if (!skus || !Array.isArray(skus)) return 0;
+    const steps = currentData.bill_of_materials?.bom_steps || [];
+    let total = 0;
+    steps.forEach(step => {
+        if (skus.includes(step.subprocess_sku)) {
+            total += step.calculation_breakdown?.workstation_time_mins || step.calculation_breakdown?.chair_time_mins || 0;
+        }
+    });
+    return total;
+}
+
+function updatePercentageStaffCosts() {
+    if (!currentData || !currentData.bill_of_materials) return;
+    const vertical = (currentData.vertical || 'generic').toLowerCase();
+    const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
+    if (!ricalibrazioneEl) return; // Only apply if commission is active
+    
+    const ricalibrazionePct = parseFloat(ricalibrazioneEl.value) || 20.0;
+    const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
+    const totalCommission = (tariffa * ricalibrazionePct) / 100;
+    
+    // Calculate the total time where the primary operator is active
+    const steps = currentData.bill_of_materials.bom_steps || [];
+    let totalPrimaryMins = 0;
+    
+    steps.forEach(sub => {
+        let hasPrimary = false;
+        (sub.stages || []).forEach(stg => {
+            (stg.steps || []).forEach(step => {
+                const skills = step.required_skills || [];
+                if (skills.some(skill => isPrimaryOperatorSkill(skill, vertical))) {
+                    hasPrimary = true;
+                }
+            });
+        });
+        
+        // Fallback to name/sku classification
+        if (!hasPrimary) {
+            const name = (sub.subprocess_name || "").toLowerCase();
+            const sku = (sub.subprocess_sku || "").toLowerCase();
+            const isSecondary = name.includes("accoglienza") || name.includes("accettazione") || 
+                                name.includes("sanificazione") || name.includes("setup") || 
+                                name.includes("pulizia") || sku.includes("adm") || sku.includes("prep");
+            if (!isSecondary) {
+                hasPrimary = true;
+            }
+        }
+        if (hasPrimary) {
+            totalPrimaryMins += sub.estimated_total_time_minutes || 0;
+        }
+    });
+    
+    if (totalPrimaryMins === 0) return;
+    
+    // Calculate equivalent hourly rate for the primary operator
+    const primaryHourlyRate = (totalCommission / (totalPrimaryMins / 60));
+    
+    // Update primary operator rates in operating_benchmarks
+    if (!currentData.operating_benchmarks) currentData.operating_benchmarks = {};
+    if (!currentData.operating_benchmarks.operators_hourly_rates) {
+        currentData.operating_benchmarks.operators_hourly_rates = {};
+    }
+    
+    currentData.operating_benchmarks.operators_hourly_rates['primary_operator'] = primaryHourlyRate;
+    
+    // Update step staff costs and UI elements
+    steps.forEach((sub, idx) => {
+        let hasPrimary = false;
+        (sub.stages || []).forEach(stg => {
+            (stg.steps || []).forEach(step => {
+                const skills = step.required_skills || [];
+                if (skills.some(skill => isPrimaryOperatorSkill(skill, vertical))) {
+                    hasPrimary = true;
+                }
+            });
+        });
+        
+        if (!hasPrimary) {
+            const name = (sub.subprocess_name || "").toLowerCase();
+            const sku = (sub.subprocess_sku || "").toLowerCase();
+            const isSecondary = name.includes("accoglienza") || name.includes("accettazione") || 
+                                name.includes("sanificazione") || name.includes("setup") || 
+                                name.includes("pulizia") || sku.includes("adm") || sku.includes("prep");
+            if (!isSecondary) {
+                hasPrimary = true;
+            }
+        }
+        
+        if (hasPrimary) {
+            const primaryCost = (primaryHourlyRate / 60) * (sub.estimated_total_time_minutes || 0);
+            const split = calculateSubprocessStaffCosts(sub);
+            const secondaryCost = split.secondaryOperator || 0;
+            const newStaffCost = parseFloat((primaryCost + secondaryCost).toFixed(2));
+            
+            if (sub.calculation_breakdown) {
+                sub.calculation_breakdown.staff_cost = newStaffCost;
+            }
+            sub.estimated_internal_cost = (sub.calculation_breakdown?.consumables || 0) + 
+                                          (sub.calculation_breakdown?.depreciation || 0) + 
+                                          newStaffCost;
+                                          
+            // Update UI elements if rendered
+            const staffInput = document.getElementById(`input-bom-staff-${idx}`);
+            if (staffInput) {
+                staffInput.value = newStaffCost.toFixed(2);
+            }
+            const labelCostEl = document.getElementById(`label-bom-cost-${idx}`);
+            if (labelCostEl) {
+                labelCostEl.innerText = `€ ${sub.estimated_internal_cost.toFixed(2)}`;
+            }
+        }
+    });
 }
 
 function getAnalyticalPrimaryOperatorFee() {
@@ -188,8 +284,9 @@ function updateENPAMFromSelect() {
 
 // --- MOTORE DI CALCOLO DINAMICO REATTIVO ---
 function recalculateAll(drivenByEuro = false) {
+    updatePercentageStaffCosts();
     unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-    
+
     let compenso = 0;
     const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
     if (ricalibrazioneEl) {
@@ -204,7 +301,7 @@ function recalculateAll(drivenByEuro = false) {
         if (labelCompensoVal) {
             labelCompensoVal.value = currFmt.format(compenso);
         }
-        
+
         // Aggiorna il compenso clinico analitico calcolato dal backend/BOM
         const clinicoValEl = document.getElementById('label-compenso-clinico-val');
         const clinicoPctEl = document.getElementById('label-compenso-clinico-pct');
@@ -232,19 +329,19 @@ function recalculateAll(drivenByEuro = false) {
     const costoAso = parseFloat(document.getElementById('in-costo-aso').value) || 0;
     const materiali = parseFloat(document.getElementById('in-materiali').value) || 0;
     const lab = parseFloat(document.getElementById('in-lab').value) || 0;
-    
+
     // --- INTEGRATION: Rischio Garanzia/Insuccesso Clinico ---
     const garanziaEl = document.getElementById('in-garanzia-pct');
     const garanziaPct = garanziaEl ? parseFloat(garanziaEl.value) : 0;
     const costoAccantonamentoGaranzia = (unit_tariffa * garanziaPct) / 100;
-    
+
     // --- INTEGRATION: Saturazione Agenda su Costo Orario Sedia ---
     const workstationHourlyRateBaseline = parseFloat(document.getElementById('in-poltrona').value) || 0;
     const saturazioneEl = document.getElementById('in-saturazione-pct');
     const saturazionePct = saturazioneEl ? parseFloat(saturazioneEl.value) : 100;
     // Se lo studio è saturo al 70%, il costo orario reale della sedia attiva sale
     const workstationHourlyRateSaturated = saturazionePct > 0 ? (workstationHourlyRateBaseline / (saturazionePct / 100)) : workstationHourlyRateBaseline;
-    
+
     // --- INTEGRATION: Tempo Sedia Lordo (Tempo Clinico + Tempo Setup) ---
     const tempoClinico = parseFloat(document.getElementById('in-tempo').value) || 0;
     const setupEl = document.getElementById('in-setup-tempo');
@@ -257,11 +354,11 @@ function recalculateAll(drivenByEuro = false) {
     // Costi Variabili Diretti inclusivi di accantonamento rischio clinico
     const varCosts = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
     unit_mdc = unit_tariffa - varCosts;
-    
+
     // Costo Fisso sedia allocato calcolato sul Tempo Sedia Lordo
     unit_costofisso = (workstationTotalHourlyRate / 60) * grossWorkstationTime;
     const reddito = unit_mdc - unit_costofisso;
-    
+
     // Tassazione & ENPAM
     const tasseP = parseFloat(document.getElementById('in-tasse').value) || 0;
     const enpamEl = document.getElementById('select-enpam-rate');
@@ -271,7 +368,7 @@ function recalculateAll(drivenByEuro = false) {
     let prelievoTotale = 0;
     const regimeLower = (currentData.market_and_fiscal_intelligence?.fiscal_analysis?.regime_name || "").toLowerCase();
     const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
-    
+
     if (detectedVertical === 'dental') {
         const isSocietario = regimeLower.includes("s.r.l.") || regimeLower.includes("srl") || regimeLower.includes("stp");
         if (isSocietario) {
@@ -284,7 +381,7 @@ function recalculateAll(drivenByEuro = false) {
     } else {
         prelievoTotale = reddito > 0 ? (reddito * (tasseP / 100)) : 0;
     }
-    
+
     unit_utile = reddito - prelievoTotale;
 
     // --- COEFFICIENTE DI REDDITIVITÀ REALE & FISCO ---
@@ -366,7 +463,7 @@ function recalculateAll(drivenByEuro = false) {
     document.getElementById('out-reddito').innerText = currFmt.format(reddito);
     document.getElementById('out-tasse').innerText = currFmt.format(prelievoTotale);
     document.getElementById('out-utile').innerText = currFmt.format(unit_utile);
-    
+
     // Mostra il dettaglio del costo opportunità orario effettivo ricalcolato
     const localBurdenRateEl = document.getElementById('local-burden-rate');
     if (localBurdenRateEl) {
@@ -408,9 +505,9 @@ function recalculateAll(drivenByEuro = false) {
         const bepVal = Math.ceil(allocatedFixedCosts / unit_mdc);
         bepUnitsEl.innerText = bepVal + " prestazioni / anno";
         if (detectedVertical === 'dental') {
-            bepRationaleEl.innerHTML = `Con un Margine di Contribuzione unitario di <strong>${currFmt.format(unit_mdc)}</strong>, lo studio raggiunge il pareggio finanziario alla <strong>${bepVal}ª esecuzione annua</strong> per coprire la quota allocata del <strong>${(bepAllocation*100).toFixed(0)}%</strong> dei costi fissi strutturali allocati (${currFmt.format(allocatedFixedCosts)} su ${currFmt.format(fixedCostsInput)}).`;
+            bepRationaleEl.innerHTML = `Con un Margine di Contribuzione unitario di <strong>${currFmt.format(unit_mdc)}</strong>, lo studio raggiunge il pareggio finanziario alla <strong>${bepVal}ª esecuzione annua</strong> per coprire la quota allocata del <strong>${(bepAllocation * 100).toFixed(0)}%</strong> dei costi fissi strutturali allocati (${currFmt.format(allocatedFixedCosts)} su ${currFmt.format(fixedCostsInput)}).`;
         } else {
-            bepRationaleEl.innerHTML = `Con un Margine di Contribuzione unitario di <strong>${currFmt.format(unit_mdc)}</strong>, l'attività raggiunge il pareggio finanziario alla <strong>${bepVal}ª esecuzione annua</strong> per coprire la quota allocata del <strong>${(bepAllocation*100).toFixed(0)}%</strong> delle spese fisse operative associate...`;
+            bepRationaleEl.innerHTML = `Con un Margine di Contribuzione unitario di <strong>${currFmt.format(unit_mdc)}</strong>, l'attività raggiunge il pareggio finanziario alla <strong>${bepVal}ª esecuzione annua</strong> per coprire la quota allocata del <strong>${(bepAllocation * 100).toFixed(0)}%</strong> delle spese fisse operative associate...`;
         }
     } else {
         bepUnitsEl.innerText = "Non Raggiungibile";
@@ -457,9 +554,9 @@ function recalculateAll(drivenByEuro = false) {
     updateSimulation(workstationTotalHourlyRate, grossWorkstationTime, varCosts);
 }
 
-function recalculateConsolidatedWorkstationRate() {
-    const ob = currentData.operating_benchmarks || {};
-    if (!ob.decomposed_environments_costs) ob.decomposed_environments_costs = {};
+function recalculateConsolidatedWorkstationRate() { 
+    const ob = currentData.operating_benchmarks || {}; 
+    if (!ob.decomposed_environments_costs) ob.decomposed_environments_costs = {}; 
     if (!ob.decomposed_machinery_costs) ob.decomposed_machinery_costs = {};
 
     // Aggiorna decomposed_environments_costs dagli input degli ambienti
@@ -470,6 +567,7 @@ function recalculateConsolidatedWorkstationRate() {
         if (loc.loc_name) {
             const key = loc.loc_name.replace(/\s+/g, '_');
             ob.decomposed_environments_costs[key] = rate;
+            ob.decomposed_environments_costs[loc.loc_name] = rate;
         }
     });
 
@@ -481,28 +579,25 @@ function recalculateConsolidatedWorkstationRate() {
         if (ast.asset_name) {
             const key = ast.asset_name.replace(/\s+/g, '_');
             ob.decomposed_machinery_costs[key] = rate;
+            ob.decomposed_machinery_costs[ast.asset_name] = rate;
         }
     });
 
-    // Calcola il consolidato sommando i dettagli di ambienti e macchinari
-    let totalEnvironmentsRate = 0;
-    for (let key in ob.decomposed_environments_costs) {
-        totalEnvironmentsRate += parseFloat(ob.decomposed_environments_costs[key]) || 0;
+    // Somma algebrica dei costi orari destrutturati
+    const totalEnv = Object.values(ob.decomposed_environments_costs).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+    const totalMach = Object.values(ob.decomposed_machinery_costs).reduce((sum, val) => sum + (parseFloat(val) || 0), 0);
+
+    // Aggiornamento del costo fisso orario consolidato
+    ob.workstation_hourly_rate_consolidated = parseFloat((totalEnv + totalMach).toFixed(2));
+    ob.chair_hourly_rate_consolidated = ob.workstation_hourly_rate_consolidated;
+
+    // Sincronizzazione con il DOM, se il campo è visibile all'utente
+    const wsInput = document.getElementById('in-poltrona');
+    if (wsInput && !wsInput.disabled) {
+        wsInput.value = ob.workstation_hourly_rate_consolidated;
     }
 
-    let totalMachineryRate = 0;
-    for (let key in ob.decomposed_machinery_costs) {
-        totalMachineryRate += parseFloat(ob.decomposed_machinery_costs[key]) || 0;
-    }
-
-    const consolidatedRate = totalEnvironmentsRate + totalMachineryRate;
-    
-    const inPoltronaEl = document.getElementById('in-poltrona');
-    if (inPoltronaEl && consolidatedRate > 0) {
-        inPoltronaEl.value = consolidatedRate.toFixed(2);
-    }
-    
-    return consolidatedRate;
+    return ob.workstation_hourly_rate_consolidated;
 }
 
 // Retrocompatibility alias
@@ -580,7 +675,7 @@ function updateBOMFromInputs() {
 
         const singleCost = consumables + depr + staff;
         sub.estimated_internal_cost = singleCost;
-        
+
         const labelCostEl = document.getElementById(`label-bom-cost-${idx}`);
         if (labelCostEl) {
             labelCostEl.innerText = `€ ${singleCost.toFixed(2)}`;
@@ -592,7 +687,7 @@ function updateBOMFromInputs() {
         totalSecondaryFee += split.secondaryOperator;
 
         totalConsumables += consumables;
-        totalWorkstationTime += workstationTime; 
+        totalWorkstationTime += workstationTime;
     });
 
     // Se non sono presenti sottoprocessi, verifica se esistono contributi dai meta-operatori
@@ -625,7 +720,7 @@ function updateBOMFromInputs() {
 
 function updateSuppliersFromInputs() {
     const suppliersList = currentData.market_and_fiscal_intelligence?.suppliers || currentData.suppliers_output?.suppliers || currentData.suppliers || [];
-    
+
     // Check if flat format
     if (suppliersList.length > 0 && !suppliersList[0].required_material) {
         updateFlatSuppliersFromInputs();
@@ -653,7 +748,7 @@ function updateSuppliersFromInputs() {
     });
 
     const bomConsumables = (currentData.bill_of_materials?.bom_steps || []).reduce((acc, curr) => acc + (curr.calculation_breakdown?.consumables || 0), 0);
-    
+
     document.getElementById('in-materiali').value = (bomConsumables + totalSuppliersCost).toFixed(2);
     document.getElementById('in-lab').value = totalLabCost.toFixed(2);
 
@@ -673,10 +768,10 @@ function updateFlatSuppliersFromInputs() {
             totalSuppliersCost += val;
         }
     });
-    
+
     const bomConsumables = (currentData.bill_of_materials?.bom_steps || []).reduce((acc, curr) => acc + (curr.calculation_breakdown?.consumables || 0), 0);
     document.getElementById('in-materiali').value = (bomConsumables + totalSuppliersCost).toFixed(2);
-    
+
     recalculateAll();
     checkDirty();
 }
@@ -698,31 +793,43 @@ function updateLocationsFromInputs() {
     checkDirty();
 }
 
-function updateAssetsFromInputs() {
-    const assets = currentData.assets || [];
-    assets.forEach((ast, idx) => {
-        const el = document.getElementById(`input-ast-cost-${idx}`);
-        if (el) {
-            const rate = parseFloat(el.value) || 0;
+function updateAssetsFromInputs() { 
+    const assets = currentData.assets || []; 
+    const ob = currentData.operating_benchmarks || {};
+    if (!ob.decomposed_machinery_costs) ob.decomposed_machinery_costs = {};
+
+    assets.forEach((ast, idx) => { 
+        const elRate = document.getElementById(`input-ast-cost-${idx}`); 
+        if (elRate) { 
+            const newHourlyRate = parseFloat(elRate.value) || 0; 
             
-            // Calculate total time of associated subprocesses
-            const associatedSkus = ast.associated_subprocess_skus || [];
-            let totalTime = 0;
-            const steps = currentData.bill_of_materials?.bom_steps || [];
-            steps.forEach(step => {
-                if (associatedSkus.includes(step.subprocess_sku)) {
-                    totalTime += step.calculation_breakdown?.workstation_time_mins || step.calculation_breakdown?.chair_time_mins || 0;
-                }
-            });
+            // 1. Aggiorna l'oggetto di raccordo per il backend
+            if (ast.asset_name) {
+                ob.decomposed_machinery_costs[ast.asset_name] = newHourlyRate;
+                const cleanKey = ast.asset_name.replace(/\s+/g, '_');
+                ob.decomposed_machinery_costs[cleanKey] = newHourlyRate;
+            }
+
+            // 2. Calcola i minuti totali associati (recuperando gli step dalla BOM)
+            let totalMinutes = 0;
+            if (ast.associated_subprocess_skus && Array.isArray(ast.associated_subprocess_skus)) {
+                totalMinutes = getMinutesForSkus(ast.associated_subprocess_skus); 
+            }
+
+            // 3. Aggiorna il costo interno stimato (rigorosamente a 2 decimali)
+            ast.estimated_internal_cost_rate = newHourlyRate;
+            ast.estimated_internal_cost = parseFloat(((newHourlyRate / 60) * totalMinutes).toFixed(2));
             
-            ast.estimated_internal_cost_rate = rate;
-            ast.estimated_internal_cost = (rate / 60) * totalTime;
-            document.getElementById(`label-ast-cost-${idx}`).innerText = `€ ${rate.toFixed(2)} /h`;
-        }
+            // Aggiorna anche il label del costo orario nella UI
+            const labelAstCost = document.getElementById(`label-ast-cost-${idx}`);
+            if (labelAstCost) {
+                labelAstCost.innerText = `€ ${newHourlyRate.toFixed(2)} /h`;
+            }
+        } 
     });
 
+    // 4. Forza il ricalcolo della postazione consolidata per prevenire disallineamenti
     recalculateConsolidatedWorkstationRate();
-
     recalculateAll();
     checkDirty();
 }
@@ -762,14 +869,14 @@ function updateSimulation(workstationTotalHourlyRate, grossWorkstationTime, varC
     document.getElementById('sim-fatturato').innerText = currFmt.format(volume * unit_tariffa);
     document.getElementById('sim-margine').innerText = currFmt.format(volume * unit_mdc);
     document.getElementById('sim-costi').innerText = currFmt.format(volume * unit_costofisso);
-    
+
     const totUtile = volume * unit_utile;
     const valUtile = document.getElementById('sim-utile');
     valUtile.innerText = currFmt.format(totUtile);
 
     const cardUtile = document.getElementById('sim-utile-card');
     const labelUtile = document.getElementById('sim-utile-label');
-    if(totUtile < 0) {
+    if (totUtile < 0) {
         cardUtile.className = 'bg-red-50 border border-red-200 p-3 rounded-2xl';
         labelUtile.className = 'block text-[8px] font-black text-red-500 uppercase tracking-widest mb-1';
         valUtile.className = 'text-base font-black text-red-700';
@@ -795,7 +902,7 @@ function updateSimulation(workstationTotalHourlyRate, grossWorkstationTime, varC
 function updateBalanceSheetFromInputs() {
     const ob = currentData.operating_benchmarks || {};
     const raccordo = ob.balance_sheet_raccordo || {};
-    
+
     // Funzioni helper di classificazione dinamica dei conti reali
     const isFacilityAccount = (key) => key.startsWith('606') || key.startsWith('621') || key === '631.00103';
     const isEquipmentAccount = (key) => key.startsWith('601') || key.startsWith('605');
@@ -821,12 +928,12 @@ function updateBalanceSheetFromInputs() {
     let newFacilityTot = 0;
     let newEquipmentTot = 0;
     let newTotalOverhead = 0;
-    
+
     for (let key in raccordo) {
         const val = parseFloat(raccordo[key]) || 0;
         if (isFacilityAccount(key)) newFacilityTot += val;
         if (isEquipmentAccount(key)) newEquipmentTot += val;
-        
+
         // L'overhead strutturale annuo totale esclude i costi degli ammortamenti e del personale
         if (!isEquipmentAccount(key) && !key.startsWith('610')) {
             newTotalOverhead += val;
@@ -843,12 +950,12 @@ function updateBalanceSheetFromInputs() {
                 const originalRate = loc.estimated_internal_cost_rate || 0;
                 const newRate = originalRate * facilityRatio;
                 inputEl.value = newRate.toFixed(2);
-                
+
                 loc.estimated_internal_cost_rate = newRate;
                 const timeEl = document.getElementById(`input-loc-time-${idx}`);
                 const time = timeEl ? parseFloat(timeEl.value) : 0;
                 loc.estimated_internal_cost = (newRate / 60) * time;
-                
+
                 const labelLocCost = document.getElementById(`label-loc-cost-${idx}`);
                 if (labelLocCost) {
                     labelLocCost.innerText = `€ ${loc.estimated_internal_cost.toFixed(2)}`;
@@ -867,7 +974,7 @@ function updateBalanceSheetFromInputs() {
                 const originalRate = ast.estimated_internal_cost || 0;
                 const newRate = originalRate * equipmentRatio;
                 inputEl.value = newRate.toFixed(2);
-                
+
                 ast.estimated_internal_cost = newRate;
                 const labelAstCost = document.getElementById(`label-ast-cost-${idx}`);
                 if (labelAstCost) {
@@ -888,229 +995,209 @@ function updateBalanceSheetFromInputs() {
     checkDirty();
 }
 
+function safeReadFloat(elementId, fallbackValue) {
+    const el = document.getElementById(elementId);
+    if (!el) return fallbackValue; // Preserva il dato originale se il DOM element manca
+    const parsed = parseFloat(el.value);
+    return isNaN(parsed) ? fallbackValue : parsed;
+}
+
 function getPayloadToSave() {
     if (!currentData) return null;
 
-    // Cattura dei nuovi parametri di efficienza dall'interfaccia
-    const setupEl = document.getElementById('in-setup-tempo');
-    const tempoSetup = setupEl ? parseFloat(setupEl.value) : 0;
-    const saturazioneEl = document.getElementById('in-saturazione-pct');
-    const saturazionePct = saturazioneEl ? parseFloat(saturazioneEl.value) : 100;
-    const garanziaEl = document.getElementById('in-garanzia-pct');
-    const garanziaPct = garanziaEl ? parseFloat(garanziaEl.value) : 0;
+    let payload = JSON.parse(JSON.stringify(currentData)); // Deep copy per evitare corruzione in caso di errori a runtime
 
-    // Aggiornamento della struttura dati per l'inoltro a MongoDB
-    if (!currentData.operating_benchmarks) currentData.operating_benchmarks = {};
-    currentData.operating_benchmarks.agenda_saturation_target = saturazionePct / 100;
-    currentData.operating_benchmarks.chair_setup_turnover_minutes = tempoSetup;
-    currentData.operating_benchmarks.clinical_failure_provision_rate = garanziaPct / 100;
+    // Inizializza i blocchi della struttura se mancanti
+    if (!payload.operating_benchmarks) payload.operating_benchmarks = {};
+    if (!payload.financial_simulations) payload.financial_simulations = {};
+    if (!payload.financial_simulations.pricing_summary) payload.financial_simulations.pricing_summary = {};
+    if (!payload.financial_simulations.cost_breakdown_unit) payload.financial_simulations.cost_breakdown_unit = {};
+    if (!payload.financial_simulations.fiscal_and_previdential_impact) payload.financial_simulations.fiscal_and_previdential_impact = {};
+    if (!payload.financial_simulations.predictive_volume_simulation) payload.financial_simulations.predictive_volume_simulation = {};
+    if (!payload.financial_simulations.predictive_volume_simulation.break_even_point_metrics) {
+        payload.financial_simulations.predictive_volume_simulation.break_even_point_metrics = {};
+    }
 
-    // 1. Sidebar values
-    const tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-    
+    // Lettura sicura parametri operativi ed efficienza (Task 2)
+    const tempoSetup = safeReadFloat('in-setup-tempo', (payload.operating_benchmarks.workstation_setup_turnover_minutes || 0));
+    const saturazionePct = safeReadFloat('in-saturazione-pct', ((payload.operating_benchmarks.agenda_saturation_target * 100) || 100));
+    const garanziaPct = safeReadFloat('in-garanzia-pct', ((payload.operating_benchmarks.clinical_failure_provision_rate * 100) || 0));
+
+    payload.operating_benchmarks.agenda_saturation_target = saturazionePct / 100;
+    payload.operating_benchmarks.workstation_setup_turnover_minutes = tempoSetup;
+    payload.operating_benchmarks.clinical_failure_provision_rate = garanziaPct / 100;
+
+    // Sidebar values
+    const tariffa = safeReadFloat('in-tariffa', (payload.financial_simulations.pricing_summary.catalog_price || 0));
+    payload.financial_simulations.pricing_summary.catalog_price = tariffa;
+
     let compenso = 0;
     const ricalibrazioneEl = document.getElementById('in-ricalibrazione-pct');
     if (ricalibrazioneEl) {
-        if (!currentData.operating_benchmarks) {
-            currentData.operating_benchmarks = {};
-        }
-        let recalibrationVal = parseFloat(ricalibrazioneEl.value);
-        if (isNaN(recalibrationVal)) {
-            recalibrationVal = 20;
-        } else {
-            recalibrationVal = Math.round(recalibrationVal);
-        }
-        currentData.operating_benchmarks.recalibration_percentage = recalibrationVal;
+        let recalibrationVal = safeReadFloat('in-ricalibrazione-pct', payload.operating_benchmarks.recalibration_percentage || 20);
+        recalibrationVal = Math.round(recalibrationVal);
+        payload.operating_benchmarks.recalibration_percentage = recalibrationVal;
         compenso = (tariffa * recalibrationVal) / 100;
     } else {
-        const compensoEl = document.getElementById('in-compenso');
-        compenso = compensoEl ? parseFloat(compensoEl.value) : 0;
+        compenso = safeReadFloat('in-compenso', (payload.financial_simulations.cost_breakdown_unit.primary_operator_fee || 0));
     }
 
-    const costoAso = parseFloat(document.getElementById('in-costo-aso').value) || 0;
-    const materiali = parseFloat(document.getElementById('in-materiali').value) || 0;
-    const lab = parseFloat(document.getElementById('in-lab').value) || 0;
-    const tempo = parseFloat(document.getElementById('in-tempo').value) || 0;
-    const poltrona = parseFloat(document.getElementById('in-poltrona').value) || 0;
-    const tasse = parseFloat(document.getElementById('in-tasse').value) || 0;
-    
-    const enpamEl = document.getElementById('select-enpam-rate');
-    const enpam = enpamEl ? parseFloat(enpamEl.value) : 0;
-    
-    const fissiAnnui = parseFloat(document.getElementById('in-fissi-annui').value) || 0;
+    const costoAso = safeReadFloat('in-costo-aso', (payload.financial_simulations.cost_breakdown_unit.secondary_operator_fee || 0));
+    const materiali = safeReadFloat('in-materiali', (payload.financial_simulations.cost_breakdown_unit.direct_materials_cost || 0));
+    const lab = safeReadFloat('in-lab', (payload.financial_simulations.cost_breakdown_unit.external_processing_cost || 0));
+    const tempo = safeReadFloat('in-tempo', (payload.financial_simulations.cost_breakdown_unit.workstation_time_mins || 0));
+    const poltrona = safeReadFloat('in-poltrona', (payload.operating_benchmarks.workstation_hourly_rate_consolidated || 0));
+    const tasse = safeReadFloat('in-tasse', ((payload.market_and_fiscal_intelligence?.fiscal_analysis?.income_tax_rate * 100) || 0));
+    const enpam = safeReadFloat('select-enpam-rate', ((payload.market_and_fiscal_intelligence?.fiscal_analysis?.social_security_rate * 100) || 0));
+    const fissiAnnui = safeReadFloat('in-fissi-annui', (payload.financial_simulations.predictive_volume_simulation.break_even_point_metrics.allocated_overhead_value || 0));
 
-    // Update financial simulations summary
-    if (!currentData.financial_simulations) currentData.financial_simulations = {};
-    
-    if (!currentData.financial_simulations.pricing_summary) {
-        currentData.financial_simulations.pricing_summary = {};
-    }
-    currentData.financial_simulations.pricing_summary.catalog_price = tariffa;
+    // Sincronizzazione breakdown costi standard
+    payload.financial_simulations.cost_breakdown_unit.primary_operator_fee = compenso;
+    payload.financial_simulations.cost_breakdown_unit.secondary_operator_fee = costoAso;
+    payload.financial_simulations.cost_breakdown_unit.external_processing_cost = lab;
+    payload.financial_simulations.cost_breakdown_unit.direct_materials_cost = materiali;
 
-    if (!currentData.financial_simulations.cost_breakdown_unit) {
-        currentData.financial_simulations.cost_breakdown_unit = {};
-    }
-    // Nuove chiavi standard (Agnostiche)
-    currentData.financial_simulations.cost_breakdown_unit.primary_operator_fee = compenso;
-    currentData.financial_simulations.cost_breakdown_unit.secondary_operator_fee = costoAso;
-    currentData.financial_simulations.cost_breakdown_unit.external_processing_cost = lab;
-    currentData.financial_simulations.cost_breakdown_unit.direct_materials_cost = materiali;
-    
-    const detectedVertical = (currentData.vertical || 'generic').toLowerCase();
-    const localBurdenHourly = parseFloat(currentData.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
-    
+    const detectedVertical = (payload.vertical || 'generic').toLowerCase();
+    const localBurdenHourly = parseFloat(payload.market_and_fiscal_intelligence?.fiscal_analysis?.local_compliance_overhead_hourly) || 0.00;
+
     const costoOraSaturata = saturazionePct > 0 ? (poltrona / (saturazionePct / 100)) : poltrona;
     const tempoSediaLordo = tempo + tempoSetup;
     const costoSediaTotaleOrario = costoOraSaturata + localBurdenHourly;
     const costOfPostazioneFixed = (costoSediaTotaleOrario / 60) * tempoSediaLordo;
-    
-    currentData.financial_simulations.cost_breakdown_unit.workstation_time_cost_fixed = costOfPostazioneFixed;
-    
-    const costoAccantonamentoGaranzia = (tariffa * garanziaPct) / 100;
-    currentData.financial_simulations.cost_breakdown_unit.clinical_failure_provision_value = costoAccantonamentoGaranzia;
-    
-    currentData.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
-    currentData.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia);
-    
-    currentData.financial_simulations.cost_breakdown_unit.total_operating_cost_unit = (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed;
-    
-    const operatingIncome = tariffa - ((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed);
-    currentData.financial_simulations.cost_breakdown_unit.operating_income_unit = operatingIncome;
 
-    if (!currentData.financial_simulations.fiscal_and_previdential_impact) {
-        currentData.financial_simulations.fiscal_and_previdential_impact = {};
-    }
-    currentData.financial_simulations.fiscal_and_previdential_impact.enpam_previdential_rate = enpam / 100;
-    currentData.financial_simulations.fiscal_and_previdential_impact.estimated_tax_burden_ratio_on_revenue = tasse / 100;
-    
+    payload.financial_simulations.cost_breakdown_unit.workstation_time_cost_fixed = costOfPostazioneFixed;
+
+    const costoAccantonamentoGaranzia = (tariffa * garanziaPct) / 100;
+    payload.financial_simulations.cost_breakdown_unit.clinical_failure_provision_value = costoAccantonamentoGaranzia;
+
+    payload.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
+    payload.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia);
+
+    payload.financial_simulations.cost_breakdown_unit.total_operating_cost_unit = (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed;
+
+    const operatingIncome = tariffa - ((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed);
+    payload.financial_simulations.cost_breakdown_unit.operating_income_unit = operatingIncome;
+
+    payload.financial_simulations.fiscal_and_previdential_impact.enpam_previdential_rate = enpam / 100;
+    payload.financial_simulations.fiscal_and_previdential_impact.estimated_tax_burden_ratio_on_revenue = tasse / 100;
+
     let taxesVal = 0;
     if (detectedVertical === 'dental') {
         taxesVal = tariffa * ((tasse + enpam) / 100);
     } else {
         taxesVal = operatingIncome > 0 ? (operatingIncome * (tasse / 100)) : 0;
     }
-    currentData.financial_simulations.fiscal_and_previdential_impact.estimated_tax_and_previdential_burden_value = taxesVal;
+    payload.financial_simulations.fiscal_and_previdential_impact.estimated_tax_and_previdential_burden_value = taxesVal;
 
-    if (!currentData.financial_simulations.predictive_volume_simulation) {
-        currentData.financial_simulations.predictive_volume_simulation = {};
-    }
-    if (!currentData.financial_simulations.predictive_volume_simulation.break_even_point_metrics) {
-        currentData.financial_simulations.predictive_volume_simulation.break_even_point_metrics = {};
-    }
-    const bepAllocation = parseFloat(document.getElementById('select-bep-allocation').value) || 1.00;
-    currentData.financial_simulations.predictive_volume_simulation.break_even_point_metrics.allocated_overhead_value = fissiAnnui * bepAllocation;
-    currentData.financial_simulations.predictive_volume_simulation.break_even_point_metrics.allocated_budget_percentage = bepAllocation;
+    const bepAllocation = safeReadFloat('select-bep-allocation', (payload.financial_simulations.predictive_volume_simulation.break_even_point_metrics.allocated_budget_percentage || 1.00));
+    payload.financial_simulations.predictive_volume_simulation.break_even_point_metrics.allocated_overhead_value = fissiAnnui * bepAllocation;
+    payload.financial_simulations.predictive_volume_simulation.break_even_point_metrics.allocated_budget_percentage = bepAllocation;
 
-    // Update operating benchmarks
-    if (!currentData.operating_benchmarks) currentData.operating_benchmarks = {};
-    currentData.operating_benchmarks.workstation_hourly_rate_consolidated = poltrona;
-    currentData.operating_benchmarks.chair_hourly_rate_consolidated = poltrona; // compatibility
-    currentData.operating_benchmarks.active_workstations_count = currentData.operating_benchmarks.active_workstations_count || currentData.operating_benchmarks.number_of_chairs || 3;
+    // Aggiornamento benchmark operativi
+    payload.operating_benchmarks.workstation_hourly_rate_consolidated = poltrona;
+    payload.operating_benchmarks.active_workstations_count = payload.operating_benchmarks.active_workstations_count || payload.operating_benchmarks.number_of_chairs || 3;
 
-    // 2. Tab: BOM
-    const steps = currentData.bill_of_materials?.bom_steps || [];
+    // 2. Tab: BOM (Preserve values if inputs are not currently rendered in DOM)
+    const steps = payload.bill_of_materials?.bom_steps || [];
     if (Array.isArray(steps)) {
         steps.forEach((sub, idx) => {
             (sub.stages || []).forEach((stg, stageIdx) => {
                 (stg.steps || []).forEach((step, stepIdx) => {
-                    const el = document.getElementById(`input-bom-step-time-${idx}-${stageIdx}-${stepIdx}`);
-                    if (el) {
-                        step.estimated_time_minutes = parseFloat(el.value) || 0;
-                    }
+                    step.estimated_time_minutes = safeReadFloat(`input-bom-step-time-${idx}-${stageIdx}-${stepIdx}`, step.estimated_time_minutes || 0);
                 });
             });
 
-            const consumables = parseFloat(document.getElementById(`input-bom-consumables-${idx}`).value) || 0;
-            const depr = parseFloat(document.getElementById(`input-bom-depr-${idx}`).value) || 0;
-            const staff = parseFloat(document.getElementById(`input-bom-staff-${idx}`).value) || 0;
-            const time = parseFloat(document.getElementById(`input-bom-time-${idx}`).value) || 0;
-            const chairTime = parseFloat(document.getElementById(`input-bom-chair-time-${idx}`).value) || 0;
-
             if (!sub.calculation_breakdown) sub.calculation_breakdown = {};
-            sub.calculation_breakdown.consumables = consumables;
-            sub.calculation_breakdown.depreciation = depr;
-            sub.calculation_breakdown.staff_cost = staff;
-            sub.calculation_breakdown.workstation_time_mins = chairTime;
-            sub.calculation_breakdown.chair_time_mins = chairTime; // compatibility
-            sub.estimated_total_time_minutes = time;
-            sub.estimated_internal_cost = consumables + depr + staff;
+            
+            sub.calculation_breakdown.consumables = safeReadFloat(`input-bom-consumables-${idx}`, sub.calculation_breakdown.consumables || 0);
+            sub.calculation_breakdown.depreciation = safeReadFloat(`input-bom-depr-${idx}`, sub.calculation_breakdown.depreciation || 0);
+            sub.calculation_breakdown.staff_cost = safeReadFloat(`input-bom-staff-${idx}`, sub.calculation_breakdown.staff_cost || 0);
+            
+            const workstationTime = safeReadFloat(`input-bom-chair-time-${idx}`, sub.calculation_breakdown.workstation_time_mins || 0);
+            sub.calculation_breakdown.workstation_time_mins = workstationTime;
+            
+            sub.estimated_total_time_minutes = safeReadFloat(`input-bom-time-${idx}`, sub.estimated_total_time_minutes || 0);
+            
+            sub.estimated_internal_cost = (sub.calculation_breakdown.consumables || 0) + 
+                                          (sub.calculation_breakdown.depreciation || 0) + 
+                                          (sub.calculation_breakdown.staff_cost || 0);
         });
     }
 
-    // 3. Tab: Suppliers
-    const suppliersList = currentData.market_and_fiscal_intelligence?.suppliers || currentData.suppliers_output?.suppliers || currentData.suppliers || [];
+    // 3. Tab: Suppliers (Preserve values if inputs are not currently rendered in DOM)
+    const suppliersList = payload.market_and_fiscal_intelligence?.suppliers || payload.suppliers_output?.suppliers || payload.suppliers || [];
     if (Array.isArray(suppliersList) && suppliersList.length > 0) {
         if (!suppliersList[0].required_material) {
             suppliersList.forEach((s, idx) => {
-                const el = document.getElementById(`input-supplier-flat-cost-${idx}`);
-                if (el) {
-                    const val = parseFloat(el.value) || 0;
-                    if (s.cost_of_goods !== undefined) s.cost_of_goods = val;
-                    else s.cost = val;
-                }
+                const originalCost = s.cost_of_goods !== undefined ? s.cost_of_goods : (s.cost || 0);
+                const val = safeReadFloat(`input-supplier-flat-cost-${idx}`, originalCost);
+                if (s.cost_of_goods !== undefined) s.cost_of_goods = val;
+                else s.cost = val;
             });
         } else {
             suppliersList.forEach((mat, matIdx) => {
                 (mat.providers || []).forEach((prov, provIdx) => {
-                    const el = document.getElementById(`input-supplier-cost-${matIdx}-${provIdx}`);
-                    if (el) {
-                        prov.cost = parseFloat(el.value) || 0;
-                    }
+                    prov.cost = safeReadFloat(`input-supplier-cost-${matIdx}-${provIdx}`, prov.cost || 0);
                 });
             });
         }
     }
 
-    // 4. Tab: Locations
-    const locations = currentData.environments || [];
+    // 4. Tab: Locations (Preserve values if inputs are not currently rendered in DOM)
+    const locations = payload.environments || [];
     if (Array.isArray(locations)) {
         locations.forEach((loc, idx) => {
-            const rateEl = document.getElementById(`input-loc-rate-${idx}`);
-            const timeEl = document.getElementById(`input-loc-time-${idx}`);
-            if (rateEl && timeEl) {
-                const rate = parseFloat(rateEl.value) || 0;
-                const time = parseFloat(timeEl.value) || 0;
-                loc.estimated_internal_cost_rate = rate;
-                loc.estimated_internal_cost = (rate / 60) * time;
-            }
+            const originalRate = loc.estimated_internal_cost_rate || 0;
+            const originalTime = loc.estimated_internal_cost ? (loc.estimated_internal_cost / ((originalRate || 1) / 60)) : 0;
+            
+            const rate = safeReadFloat(`input-loc-rate-${idx}`, originalRate);
+            const time = safeReadFloat(`input-loc-time-${idx}`, originalTime);
+            
+            loc.estimated_internal_cost_rate = rate;
+            loc.estimated_internal_cost = (rate / 60) * time;
         });
     }
 
-    // 5. Tab: Assets
-    const assets = currentData.assets || [];
+    // 5. Tab: Assets (Preserve values if inputs are not currently rendered in DOM)
+    const assets = payload.assets || [];
     if (Array.isArray(assets)) {
         assets.forEach((ast, idx) => {
-            const el = document.getElementById(`input-ast-cost-${idx}`);
-            if (el) {
-                ast.estimated_internal_cost = parseFloat(el.value) || 0;
-            }
+            const originalRate = ast.estimated_internal_cost_rate || 0;
+            const rate = safeReadFloat(`input-ast-cost-${idx}`, originalRate);
+            const associatedSkus = ast.associated_subprocess_skus || [];
+            let totalTime = 0;
+            const bomStepsList = payload.bill_of_materials?.bom_steps || [];
+            bomStepsList.forEach(step => {
+                if (associatedSkus.includes(step.subprocess_sku)) {
+                    totalTime += step.calculation_breakdown?.workstation_time_mins || step.calculation_breakdown?.chair_time_mins || 0;
+                }
+            });
+            ast.estimated_internal_cost_rate = rate;
+            ast.estimated_internal_cost = (rate / 60) * totalTime;
         });
     }
 
-    // 6. Tab: Meta Operators
-    const metaList = currentData.market_and_fiscal_intelligence?.meta_operators_overhead || currentData.qualitative_parser_output?.meta_operators_overhead || [];
+    // 6. Tab: Meta Operators (Preserve values if inputs are not currently rendered in DOM)
+    const metaList = payload.market_and_fiscal_intelligence?.meta_operators_overhead || payload.qualitative_parser_output?.meta_operators_overhead || [];
     if (Array.isArray(metaList)) {
         metaList.forEach((op, idx) => {
-            const el = document.getElementById(`input-meta-cost-${idx}`);
-            if (el) {
-                op.allocated_cost = parseFloat(el.value) || 0;
-            }
+            op.allocated_cost = safeReadFloat(`input-meta-cost-${idx}`, op.allocated_cost || 0);
         });
     }
 
     // 7. Fiscal Analysis regime/tax
-    if (currentData.market_and_fiscal_intelligence && currentData.market_and_fiscal_intelligence.fiscal_analysis) {
-        currentData.market_and_fiscal_intelligence.fiscal_analysis.income_tax_rate = tasse / 100;
-        currentData.market_and_fiscal_intelligence.fiscal_analysis.social_security_rate = enpam / 100;
-        currentData.market_and_fiscal_intelligence.fiscal_analysis.total_estimated_tax_burden_ratio = (tasse + enpam) / 100;
+    if (payload.market_and_fiscal_intelligence && payload.market_and_fiscal_intelligence.fiscal_analysis) {
+        payload.market_and_fiscal_intelligence.fiscal_analysis.income_tax_rate = tasse / 100;
+        payload.market_and_fiscal_intelligence.fiscal_analysis.social_security_rate = enpam / 100;
+        payload.market_and_fiscal_intelligence.fiscal_analysis.total_estimated_tax_burden_ratio = (tasse + enpam) / 100;
     }
 
     // 8. Synchronize strategic analysis keys (polymorphic NoSQL fields)
-    const stratClin = currentData.strategic_clinical_analysis || {};
-    if (!currentData.strategic_operations_analysis) {
-        currentData.strategic_operations_analysis = {};
+    const stratClin = payload.strategic_clinical_analysis || {};
+    if (!payload.strategic_operations_analysis) {
+        payload.strategic_operations_analysis = {};
     }
-    const stratOps = currentData.strategic_operations_analysis;
+    const stratOps = payload.strategic_operations_analysis;
 
     stratOps.operations_financial_health_rating = stratOps.operations_financial_health_rating || stratClin.clinical_financial_health_rating || "MODERATE_MARGINS";
     stratOps.pricing_and_tariff_strategy_advisory = stratClin.pricing_and_tariff_strategy_advisory || stratOps.pricing_and_tariff_strategy_advisory || "";
@@ -1122,8 +1209,10 @@ function getPayloadToSave() {
     stratClin.extra_options_clinical_evaluation = stratOps.extra_options_operations_evaluation;
     stratClin.clinical_cost_optimization_recommendations = stratOps.operations_cost_optimization_recommendations;
 
-    currentData.strategic_clinical_analysis = stratClin;
-    currentData.strategic_operations_analysis = stratOps;
+    payload.strategic_clinical_analysis = stratClin;
+    payload.strategic_operations_analysis = stratOps;
+
+    currentData = payload; // Riassegna in sicurezza al modello globale
 
     return currentData;
 }
@@ -1142,7 +1231,7 @@ function checkDirty() {
     const dirty = isDirty();
     const saveBtn = document.getElementById('save-btn');
     const aiBtn = document.getElementById('ai-recalc-btn');
-    
+
     // Gestione Bottone Salva
     if (saveBtn) {
         saveBtn.disabled = !dirty;
@@ -1166,10 +1255,10 @@ function showRationale(title, text) {
     const modal = document.getElementById('rationale-modal');
     if (!modal) return;
     const box = modal.querySelector('div');
-    
+
     document.getElementById('rationale-modal-title').innerText = title;
     document.getElementById('rationale-modal-text').innerText = text;
-    
+
     modal.classList.remove('hidden');
     setTimeout(() => {
         modal.classList.remove('opacity-0');
@@ -1181,7 +1270,7 @@ function closeRationaleModal() {
     const modal = document.getElementById('rationale-modal');
     if (!modal) return;
     const box = modal.querySelector('div');
-    
+
     modal.classList.add('opacity-0');
     if (box) box.classList.add('scale-95');
     setTimeout(() => {
