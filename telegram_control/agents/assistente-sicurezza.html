@@ -1440,6 +1440,19 @@
                 if (response.ok) {
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                     btn.innerHTML = '<i class="fas fa-check"></i> Salvato!';
+                    
+                    // Salva nello stato locale serverChecklistState per aggiornare le statistiche istantaneamente
+                    if (!serverChecklistState) serverChecklistState = {};
+                    serverChecklistState[sku] = {
+                        service_sku: sku,
+                        answers: detailedState,
+                        D: dCorrente,
+                        C: cCorrente,
+                        P: pCorrente,
+                        R: rCorrente,
+                        overall_justification: justCorrente
+                    };
+
                     setTimeout(() => {
                         btn.innerHTML = '<i class="fas fa-shield-alt"></i> Salva Avanzamento';
                         btn.disabled = false;
@@ -1805,16 +1818,8 @@
                     toActivate++;
                 } else {
                     const sku = s.service_sku;
-                    const state = checklistState[sku] || {};
-                    const dossier = getDossierBySku(sku);
-                    let listItems = [];
-                    if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
-                        listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist;
-                    } else {
-                        listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
-                    }
-                    const isComplete = listItems.length > 0 && listItems.every(item => state[item.id || item.question_id]);
-                    if (isComplete) {
+                    const isSavedOnServer = !!(serverChecklistState && serverChecklistState[sku]);
+                    if (isSavedOnServer) {
                         done++;
                     } else {
                         pending++;
@@ -2071,6 +2076,14 @@
             // Cambiamo lo stato logico locale
             checklistState[sku][chkId] = !checklistState[sku][chkId];
             const isChecked = checklistState[sku][chkId];
+
+            if (!serverChecklistState) serverChecklistState = {};
+            if (!serverChecklistState[sku]) {
+                serverChecklistState[sku] = {
+                    service_sku: sku,
+                    answers: {}
+                };
+            }
 
             // Stato di caricamento visivo sulla scheda INAIL
             const pointer = document.getElementById('inail-risk-pointer');
