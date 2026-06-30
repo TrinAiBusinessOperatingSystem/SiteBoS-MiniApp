@@ -1238,8 +1238,8 @@
 
         function isServiceActive(service) {
             if (!service) return false;
-            // Legge direttamente la chiave del server
-            return service.blueprint_ready === true;
+            // Legge direttamente la chiave del server (gestendo sia booleani che stringhe)
+            return service.blueprint_ready === true || service.blueprint_ready === 'true';
         }
 
         function normalizeVerticalKey(key) {
@@ -1370,9 +1370,6 @@
                 vKey = getVerticalForService(service);
                 daysVal = service.days !== undefined && service.days !== null ? service.days : (service.scheduling_interval !== undefined ? service.scheduling_interval : null);
                 isSop = !(category || '').toUpperCase().includes('[SER]');
-                if (isSop && daysVal !== undefined && daysVal !== null && daysVal > 0) {
-                    lastExecutedVal = document.getElementById('sop-execution-date')?.value || null;
-                }
             }
 
             // Calcolo parametri fisici di partenza
@@ -1392,6 +1389,23 @@
                 listItems = comp.compliance_checklist || [];
             } else {
                 listItems = [{ id: 'Q1' }, { id: 'Q2' }, { id: 'Q3' }];
+            }
+
+            if (isSop && daysVal !== undefined && daysVal !== null && daysVal > 0) {
+                // Calcola la data dell'ultima esecuzione come la data più recente inserita nei singoli passaggi della checklist
+                const state = checklistState[sku] || {};
+                let latestDate = null;
+                listItems.forEach(item => {
+                    const id = item.id || item.question_id;
+                    const dateInput = document.getElementById(`date-input-${sku}-${id}`);
+                    const dateVal = dateInput ? dateInput.value : (state[id + '_date'] || null);
+                    if (dateVal) {
+                        if (!latestDate || dateVal > latestDate) {
+                            latestDate = dateVal;
+                        }
+                    }
+                });
+                lastExecutedVal = latestDate;
             }
 
             // 2. Lettura parametri e giustificazione corrente calcolati a schermo
@@ -1516,6 +1530,13 @@
                 catalogActive.forEach(s => {
                     checklistState[s.service_sku] = {};
                 });
+                checklistState['common'] = {};
+                checklistState['comune'] = {};
+                if (typeof verticalsRegistry !== 'undefined') {
+                    Object.keys(verticalsRegistry).forEach(key => {
+                        checklistState[key] = {};
+                    });
+                }
 
                 if (serverState && typeof serverState === 'object') {
                     // Mappa di normalizzazione anti-errori
@@ -1541,13 +1562,16 @@
                         if (answersSource && typeof answersSource === 'object') {
                             Object.keys(answersSource).forEach(chkId => {
                                 // Evita di confondere i metadati di rischio con le spunte della checklist
-                                if (['D', 'C', 'P', 'R', 'overall_justification', 'service_name', 'service_category', 'service_description', 'risk_warnings', 'starting_damage', 'starting_contamination', 'starting_risk', 'service_sku'].includes(chkId)) {
+                                if (['D', 'C', 'P', 'R', 'overall_justification', 'service_name', 'service_category', 'service_description', 'risk_warnings', 'starting_damage', 'starting_contamination', 'starting_risk', 'service_sku', 'last_executed'].includes(chkId)) {
                                     return;
                                 }
                                 const val = answersSource[chkId];
                                 if (val !== null && val !== undefined) {
                                     if (typeof val === 'object') {
                                         checklistState[realSku][chkId] = !!(val.checked || val.value);
+                                        if (val.executed_at) {
+                                            checklistState[realSku][chkId + '_date'] = val.executed_at;
+                                        }
                                     } else {
                                         checklistState[realSku][chkId] = !!val;
                                     }
@@ -1851,7 +1875,7 @@
             let done = 0;
 
             catalogActive.forEach(s => {
-                if (s.blueprint_ready === true) {
+                if (isServiceActive(s)) {
                     total++;
                     const sku = s.service_sku;
                     const isSavedOnServer = !!(serverChecklistState && serverChecklistState[sku]);
@@ -1921,33 +1945,7 @@
             }
 
             const sopContainer = document.getElementById('sop-execution-container');
-            if (isSop && schedDays !== undefined && schedDays !== null && schedDays > 0) {
-                sopContainer.classList.remove('hidden');
-                const savedData = (serverChecklistState && serverChecklistState[currentServiceSku]) ? serverChecklistState[currentServiceSku] : {};
-                const lastDate = savedData.last_executed || "";
-                
-                const inputDate = document.getElementById('sop-execution-date');
-                inputDate.value = lastDate;
-                
-                const updateSopBadge = (dateVal) => {
-                    const badge = document.getElementById('sop-last-executed-badge');
-                    if (dateVal) {
-                        const parsedDate = new Date(dateVal);
-                        const formatted = parsedDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
-                        badge.textContent = `Eseguito il: ${formatted}`;
-                        badge.className = "text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-green-50 text-green-600";
-                    } else {
-                        badge.textContent = "Non eseguito";
-                        badge.className = "text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-red-50 text-red-600";
-                    }
-                };
-                
-                updateSopBadge(lastDate);
-                
-                inputDate.onchange = (e) => {
-                    updateSopBadge(e.target.value);
-                };
-            } else {
+            if (sopContainer) {
                 sopContainer.classList.add('hidden');
             }
 
@@ -2117,7 +2115,10 @@
             const service = catalogActive.find(s => s.service_sku === sku) || {};
             const isSop = !(service.categoria_padre || '').toUpperCase().includes('[SER]');
             const schedDays = service.days !== undefined && service.days !== null ? service.days : service.scheduling_interval;
-            const hasTimedControl = isSop && schedDays !== undefined && schedDays !== null && schedDays > 0;
+            
+            const isCommon = sku === 'common' || sku === 'comune';
+            const isCompartment = !!(verticalsRegistry && verticalsRegistry[sku]);
+            const hasTimedControl = (isSop && schedDays !== undefined && schedDays !== null && schedDays > 0) || isCommon || isCompartment;
 
             items.forEach(item => {
                 const itemId = item.id || item.question_id;
@@ -2244,7 +2245,19 @@
             const daysVal = service.days !== undefined && service.days !== null ? service.days : (service.scheduling_interval !== undefined ? service.scheduling_interval : null);
             let lastExecutedVal = null;
             if (isSop && daysVal !== undefined && daysVal !== null && daysVal > 0) {
-                lastExecutedVal = document.getElementById('sop-execution-date')?.value || null;
+                const state = checklistState[sku] || {};
+                let latestDate = null;
+                listItems.forEach(item => {
+                    const id = item.id || item.question_id;
+                    const dateInput = document.getElementById(`date-input-${sku}-${id}`);
+                    const dateVal = dateInput ? dateInput.value : (state[id + '_date'] || null);
+                    if (dateVal) {
+                        if (!latestDate || dateVal > latestDate) {
+                            latestDate = dateVal;
+                        }
+                    }
+                });
+                lastExecutedVal = latestDate;
             }
 
             let targetExecutedAt = null;
