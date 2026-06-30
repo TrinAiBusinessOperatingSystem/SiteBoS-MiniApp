@@ -526,14 +526,10 @@
         <!-- ══════ VIEW: LISTA SERVIZI ══════ -->
         <div id="view-list" class="flex-1 overflow-y-auto no-scrollbar px-5 py-5 space-y-4">
             <!-- Statistiche top -->
-            <div id="stats-strip" class="grid grid-cols-4 gap-2">
+            <div id="stats-strip" class="grid grid-cols-3 gap-2">
                 <div class="card-noir p-2.5 text-center">
                     <span class="text-base font-black" id="stat-services">0</span>
                     <p class="text-[6.5px] font-black uppercase text-gray-400 mt-0.5 tracking-wider">Servizi</p>
-                </div>
-                <div class="card-noir p-2.5 text-center">
-                    <span class="text-base font-black text-blue-500" id="stat-to-activate">0</span>
-                    <p class="text-[6.5px] font-black uppercase text-gray-400 mt-0.5 tracking-wider">Da Attivare</p>
                 </div>
                 <div class="card-noir p-2.5 text-center">
                     <span class="text-base font-black text-orange-400" id="stat-pending">0</span>
@@ -1840,38 +1836,30 @@
             // Imposta il parametro 'msg' per catalog.html
             redirectParams.set('msg', sku);
 
-            // 3. Esegue il reindirizzamento alla pagina del catalogo
-            const targetUrl = `catalog.html?${redirectParams.toString()}`;
+            // 3. Esegue il reindirizzamento alla pagina del catalogo (una cartella indietro)
+            const targetUrl = `../catalog.html?${redirectParams.toString()}`;
             window.location.href = targetUrl;
         }
 
         function updateStatsStrip() {
-            const total = catalogActive.length;
-            let toActivate = 0;
+            let total = 0;
             let pending = 0;
             let done = 0;
 
             catalogActive.forEach(s => {
-                const sku = s.service_sku;
-                
-                if (s.blueprint_ready === false) {
-                    // 1. Da attivare: blueprint_ready è false
-                    toActivate++;
-                } else {
-                    // Verifica se è presente in checklist_state su MongoDB
+                if (s.blueprint_ready === true) {
+                    total++;
+                    const sku = s.service_sku;
                     const isSavedOnServer = !!(serverChecklistState && serverChecklistState[sku]);
                     if (isSavedOnServer) {
-                        // 2. Completati: blueprint_ready è true e c'è presenza nel DB
                         done++;
                     } else {
-                        // 3. In attesa: blueprint_ready è true ma non c'è presenza nel DB
                         pending++;
                     }
                 }
             });
 
             document.getElementById('stat-services').textContent = total;
-            document.getElementById('stat-to-activate').textContent = toActivate;
             document.getElementById('stat-pending').textContent = pending;
             document.getElementById('stat-done').textContent = done;
         }
@@ -1892,7 +1880,7 @@
         function openCatalogServiceDetail(service) {
             currentServiceSku = service.service_sku;
             const vKey = getVerticalForService(service);
-            const meta = verticalsMeta[vKey] || { emoji: "⚙️" };
+            const emoji = getVerticalEmoji(vKey);
             const dossier = getDossierBySku(currentServiceSku);
 
             switchDetailTab('checklist');
@@ -1900,7 +1888,7 @@
             document.getElementById('detail-category').textContent = service.categoria_padre || 'Servizio Clinico';
             document.getElementById('detail-service-name').textContent = service.service_name;
             document.getElementById('detail-sku').textContent = `SKU: ${currentServiceSku} — Settore: ${vKey.toUpperCase()}`;
-            document.getElementById('detail-emoji').textContent = meta.emoji;
+            document.getElementById('detail-emoji').textContent = emoji;
 
             const metaEl = document.getElementById('detail-meta');
             metaEl.innerHTML = '';
