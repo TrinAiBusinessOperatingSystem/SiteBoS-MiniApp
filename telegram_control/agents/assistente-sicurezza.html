@@ -1242,16 +1242,8 @@
 
         function isServiceActive(service) {
             if (!service) return false;
-            if (service.blueprint_ready === true) return true;
-            if (service.blueprint_ready === false) return false;
-
-            // Se la chiave blueprint_ready non è presente (undefined):
-            const cat = (service.categoria_padre || '').toUpperCase();
-            if (cat.includes('[SOP]')) return true;
-            if (cat.includes('[SER]')) return false;
-
-            // Fallback per categorie senza prefisso (es. vertical beauty)
-            return true;
+            // Legge direttamente la chiave del server
+            return service.blueprint_ready === true;
         }
 
         function normalizeVerticalKey(key) {
@@ -1860,14 +1852,19 @@
             let done = 0;
 
             catalogActive.forEach(s => {
-                if (!isServiceActive(s)) {
+                const sku = s.service_sku;
+                
+                if (s.blueprint_ready === false) {
+                    // 1. Da attivare: blueprint_ready è false
                     toActivate++;
                 } else {
-                    const sku = s.service_sku;
+                    // Verifica se è presente in checklist_state su MongoDB
                     const isSavedOnServer = !!(serverChecklistState && serverChecklistState[sku]);
                     if (isSavedOnServer) {
+                        // 2. Completati: blueprint_ready è true e c'è presenza nel DB
                         done++;
                     } else {
+                        // 3. In attesa: blueprint_ready è true ma non c'è presenza nel DB
                         pending++;
                     }
                 }
