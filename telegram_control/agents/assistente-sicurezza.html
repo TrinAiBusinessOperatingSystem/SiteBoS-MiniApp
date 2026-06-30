@@ -2551,9 +2551,13 @@
             if (sku === 'common' || sku === 'comune') {
                 return getCommonDossier();
             }
+            if (!productResearch || !Array.isArray(productResearch)) return null;
+            
+            // Cerca nell'array gestendo in sicurezza eventuali record nulli o incompleti
             const entry = productResearch.find(r => {
-                const sessionSku = r.session_id ? r.session_id.split('-').slice(1).join('-') : '';
-                return sessionSku === sku || r.session_id === sku;
+                if (!r || !r.session_id) return false;
+                const sessionSku = r.session_id.split('-').slice(1).join('-') || '';
+                return sessionSku.toUpperCase() === sku.toUpperCase() || r.session_id.toUpperCase() === sku.toUpperCase();
             });
             return entry?.dossier || null;
         }
@@ -2770,7 +2774,7 @@
             let rLabel = r >= 8 ? "ALTO" : (r >= 4 ? "MEDIO" : "BASSO");
 
             // Estrai i dati di mitigazione per questo servizio specifico
-            const mitigationData = (mitigationControls || []).find(m => m.service_sku === sku);
+            const mitigationData = (mitigationControls || []).find(m => m && m.service_sku && m.service_sku.toUpperCase() === sku.toUpperCase());
             const mitigations = mitigationData?.controlli_mitigazione || [];
             const operatoriCoinvolti = mitigationData?.operatori_coinvolti || [];
             const attrezzatureCoinvolte = mitigationData?.attrezzature_coinvolte || [];
