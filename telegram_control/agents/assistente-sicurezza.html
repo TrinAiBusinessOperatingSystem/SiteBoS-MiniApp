@@ -588,6 +588,18 @@
                 </div>
             </div>
 
+            <!-- Per le SOP: Ultima esecuzione -->
+            <div id="sop-execution-container" class="card-noir p-4 space-y-3 hidden">
+                <div class="flex items-center justify-between">
+                    <span class="label-micro font-black text-gray-500 uppercase tracking-widest">🗓️ Ultima Esecuzione</span>
+                    <span id="sop-last-executed-badge" class="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-red-50 text-red-600">Non eseguito</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label for="sop-execution-date" class="text-[8px] font-black uppercase tracking-wider text-gray-400">Seleziona la data dell'ultimo svolgimento:</label>
+                    <input type="date" id="sop-execution-date" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition" />
+                </div>
+            </div>
+
             <!-- ── TAB SWITCHER: Checklist / DVR ── -->
             <div id="detail-tab-nav" class="detail-tab-switcher btn-no-print">
                 <button id="dtab-checklist" class="detail-tab-pill active" onclick="switchDetailTab('checklist')">
@@ -1355,6 +1367,9 @@
             let serviceName = "";
             let category = "";
             let vKey = "comune";
+            let daysVal = null;
+            let isSop = false;
+            let lastExecutedVal = null;
 
             if (verticalsRegistry[sku]) {
                 serviceName = verticalsRegistry[sku].title;
@@ -1365,6 +1380,11 @@
                 serviceName = service.service_name || "";
                 category = service.categoria_padre || "";
                 vKey = getVerticalForService(service);
+                daysVal = service.days !== undefined && service.days !== null ? service.days : (service.scheduling_interval !== undefined ? service.scheduling_interval : null);
+                isSop = !(category || '').toUpperCase().includes('[SER]');
+                if (isSop && daysVal !== undefined && daysVal !== null && daysVal > 0) {
+                    lastExecutedVal = document.getElementById('sop-execution-date')?.value || null;
+                }
             }
 
             // Calcolo parametri fisici di partenza
@@ -1432,6 +1452,8 @@
                     service_category: category,
                     service_description: serviceDescription,
                     risk_warnings: riskWarnings,
+                    scheduling_interval: daysVal,
+                    last_executed: lastExecutedVal,
 
                     // Parametri di partenza
                     starting_damage: dPartenza,
@@ -1468,7 +1490,8 @@
                         C: cCorrente,
                         P: pCorrente,
                         R: rCorrente,
-                        overall_justification: justCorrente
+                        overall_justification: justCorrente,
+                        last_executed: lastExecutedVal
                     };
 
                     setTimeout(() => {
@@ -1908,6 +1931,37 @@
                 metaEl.classList.add('hidden');
             }
 
+            const sopContainer = document.getElementById('sop-execution-container');
+            if (isSop && schedDays !== undefined && schedDays !== null && schedDays > 0) {
+                sopContainer.classList.remove('hidden');
+                const savedData = (serverChecklistState && serverChecklistState[currentServiceSku]) ? serverChecklistState[currentServiceSku] : {};
+                const lastDate = savedData.last_executed || "";
+                
+                const inputDate = document.getElementById('sop-execution-date');
+                inputDate.value = lastDate;
+                
+                const updateSopBadge = (dateVal) => {
+                    const badge = document.getElementById('sop-last-executed-badge');
+                    if (dateVal) {
+                        const parsedDate = new Date(dateVal);
+                        const formatted = parsedDate.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
+                        badge.textContent = `Eseguito il: ${formatted}`;
+                        badge.className = "text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-green-50 text-green-600";
+                    } else {
+                        badge.textContent = "Non eseguito";
+                        badge.className = "text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-red-50 text-red-600";
+                    }
+                };
+                
+                updateSopBadge(lastDate);
+                
+                inputDate.onchange = (e) => {
+                    updateSopBadge(e.target.value);
+                };
+            } else {
+                sopContainer.classList.add('hidden');
+            }
+
             // Normative e Leggi
             let rawLaws = '';
             if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.regulatory_framework) {
@@ -2160,6 +2214,13 @@
             const justElText = document.getElementById('inail-justification');
             const previousJustification = (justElText && justElText.textContent) ? justElText.textContent.trim() : "Non ci sono analisi precedenti.";
 
+            const isSop = !(service.categoria_padre || '').toUpperCase().includes('[SER]');
+            const daysVal = service.days !== undefined && service.days !== null ? service.days : (service.scheduling_interval !== undefined ? service.scheduling_interval : null);
+            let lastExecutedVal = null;
+            if (isSop && daysVal !== undefined && daysVal !== null && daysVal > 0) {
+                lastExecutedVal = document.getElementById('sop-execution-date')?.value || null;
+            }
+
             try {
                 const payload = {
                     _auth: tg.initData,
@@ -2170,6 +2231,8 @@
                     service_category: category,
                     service_description: serviceDescription,
                     risk_warnings: riskWarnings,
+                    scheduling_interval: daysVal,
+                    last_executed: lastExecutedVal,
 
                     // Dati della specifica spunta in analisi (testi reali)
                     target_question_id: chkId,
