@@ -1392,16 +1392,19 @@
             }
 
             if (isSop && daysVal !== undefined && daysVal !== null && daysVal > 0) {
-                // Calcola la data dell'ultima esecuzione come la data più recente inserita nei singoli passaggi della checklist
+                // Calcola la data dell'ultima esecuzione come la data più recente inserita nei passaggi con schedule attivo
                 const state = checklistState[sku] || {};
                 let latestDate = null;
                 listItems.forEach(item => {
                     const id = item.id || item.question_id;
-                    const dateInput = document.getElementById(`date-input-${sku}-${id}`);
-                    const dateVal = dateInput ? dateInput.value : (state[id + '_date'] || null);
-                    if (dateVal) {
-                        if (!latestDate || dateVal > latestDate) {
-                            latestDate = dateVal;
+                    const stepDays = getSchedulingIntervalForStep(sku, item);
+                    if (stepDays !== null && stepDays > 0) {
+                        const dateInput = document.getElementById(`date-input-${sku}-${id}`);
+                        const dateVal = dateInput ? dateInput.value : (state[id + '_date'] || null);
+                        if (dateVal) {
+                            if (!latestDate || dateVal > latestDate) {
+                                latestDate = dateVal;
+                            }
                         }
                     }
                 });
@@ -2101,6 +2104,49 @@
             }
         }
 
+        function getSchedulingIntervalForStep(sku, item) {
+            const itemId = item.id || item.question_id || "";
+            // Gestione dei controlli del comparto Sede / Misure Comuni
+            if (sku === 'common' || sku === 'comune') {
+                if (itemId === 'com_q1' || itemId === 'common-1') return 180; // Semestrale
+                if (itemId === 'com_q2' || itemId === 'common-2') return 730; // Biennale
+                if (itemId === 'com_q3' || itemId === 'common-3') return 365; // Annuale
+            }
+
+            // Ricerca nei controlli di mitigazione del database per i servizi commerciali
+            const mitigationData = (mitigationControls || []).find(m => m && m.service_sku && m.service_sku.toUpperCase() === sku.toUpperCase());
+            if (!mitigationData || !mitigationData.controlli_mitigazione) return null;
+
+            const actionText = (item.action || item.text || "").toLowerCase();
+            let bestMatch = null;
+            let maxOverlap = 0;
+
+            const stopWords = ['e', 'di', 'il', 'la', 'i', 'le', 'un', 'una', 'in', 'con', 'su', 'al', 'ai', 'per', 'da', 'del', 'della', 'degli', 'delle'];
+            const actionWords = actionText.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2 && !stopWords.includes(w));
+
+            mitigationData.controlli_mitigazione.forEach(mit => {
+                const mitText = ((mit.fase_operativa || "") + " " + (mit.check_prestabilito || "")).toLowerCase();
+                const mitWords = mitText.split(/[^a-zA-Z0-9]/).filter(w => w.length > 2 && !stopWords.includes(w));
+
+                let overlap = 0;
+                actionWords.forEach(w => {
+                    if (mitWords.includes(w)) {
+                        overlap++;
+                    }
+                });
+
+                if (overlap > maxOverlap) {
+                    maxOverlap = overlap;
+                    bestMatch = mit;
+                }
+            });
+
+            if (bestMatch && maxOverlap > 0) {
+                return bestMatch.scheduling_interval_days || null;
+            }
+            return null;
+        }
+
         // ── CHECKLIST ─────────────────────────────────────────────────────────────
         function buildChecklist(items, sku) {
             const container = document.getElementById('checklist-container');
@@ -2112,18 +2158,15 @@
             }
 
             const state = checklistState[sku] || {};
-            const service = catalogActive.find(s => s.service_sku === sku) || {};
-            const isSop = !(service.categoria_padre || '').toUpperCase().includes('[SER]');
-            const schedDays = service.days !== undefined && service.days !== null ? service.days : service.scheduling_interval;
-            
-            const isCommon = sku === 'common' || sku === 'comune';
-            const isCompartment = !!(verticalsRegistry && verticalsRegistry[sku]);
-            const hasTimedControl = (isSop && schedDays !== undefined && schedDays !== null && schedDays > 0) || isCommon || isCompartment;
 
             items.forEach(item => {
                 const itemId = item.id || item.question_id;
                 const isChecked = !!state[itemId];
                 
+                // Determina se questa specifica spunta ha necessità di schedule
+                const stepDays = getSchedulingIntervalForStep(sku, item);
+                const hasStepSchedule = stepDays !== null && stepDays > 0;
+
                 // Recupera la data salvata per questa specifica spunta
                 const savedData = (serverChecklistState && serverChecklistState[sku] && serverChecklistState[sku].answers && serverChecklistState[sku].answers[itemId]) ? serverChecklistState[sku].answers[itemId] : {};
                 const savedDate = savedData.executed_at || state[itemId + '_date'] || "";
@@ -2139,16 +2182,17 @@
                             <div class="flex items-center flex-wrap gap-1.5 mb-1">
                                 <span class="area-badge">${item.area || 'Azione'}</span>
                                 <span class="label-micro text-gray-300">${itemId}</span>
+                                ${hasStepSchedule ? `<span class="text-[7px] font-black uppercase bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-full border border-blue-200/40">${formatSchedulingInterval(stepDays, true)}</span>` : ''}
                             </div>
-                            <p class="text-xs font-semibold text-gray-700 leading-snug ${isChecked ? 'line-through opacity-50' : ''}" id="action-text-${sku}-${itemId}">${item.action}</p>
+                            <p class="text-xs font-semibold text-gray-700 leading-snug ${isChecked ? 'line-through opacity-50' : ''}" id="action-text-${sku}-${itemId}">${item.action || item.text}</p>
                             ${item.owner ? `<p class="text-[9px] text-gray-400 font-medium mt-1"><i class="fas fa-user-tie text-[8px] mr-0.5"></i>${item.owner}</p>` : ''}
                         </div>
                     </div>
                     
-                    <!-- Selettore della data specifico per gli step delle SOP a tempo (sempre visibile) -->
-                    ${hasTimedControl ? `
+                    <!-- Selettore della data specifico per gli step con schedule (sempre visibile) -->
+                    ${hasStepSchedule ? `
                         <div id="date-container-${sku}-${itemId}" class="mt-1 pl-8 flex items-center gap-2">
-                            <label for="date-input-${sku}-${itemId}" class="text-[8px] font-black uppercase text-gray-400 shrink-0">Data esecuzione:</label>
+                            <label for="date-input-${sku}-${itemId}" class="text-[8px] font-black uppercase text-gray-400 shrink-0">Data ultima verifica:</label>
                             <input type="date" id="date-input-${sku}-${itemId}" value="${savedDate}" class="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-bold focus:border-black outline-none transition" onchange="updateStepDate('${sku}', '${itemId}', this.value)" />
                         </div>
                     ` : ''}
@@ -2248,11 +2292,14 @@
                 let latestDate = null;
                 listItems.forEach(item => {
                     const id = item.id || item.question_id;
-                    const dateInput = document.getElementById(`date-input-${sku}-${id}`);
-                    const dateVal = dateInput ? dateInput.value : (state[id + '_date'] || null);
-                    if (dateVal) {
-                        if (!latestDate || dateVal > latestDate) {
-                            latestDate = dateVal;
+                    const stepDays = getSchedulingIntervalForStep(sku, item);
+                    if (stepDays !== null && stepDays > 0) {
+                        const dateInput = document.getElementById(`date-input-${sku}-${id}`);
+                        const dateVal = dateInput ? dateInput.value : (state[id + '_date'] || null);
+                        if (dateVal) {
+                            if (!latestDate || dateVal > latestDate) {
+                                latestDate = dateVal;
+                            }
                         }
                     }
                 });
