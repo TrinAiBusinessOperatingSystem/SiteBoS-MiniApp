@@ -827,6 +827,13 @@
         };
 
         const parametriVerticali = {
+            "common": {
+                D: 2,
+                C: 1,
+                desc_d: "Infortuni o patologie professionali generiche",
+                desc_c: "Presenza standard all'interno dei locali di lavoro e contatto generico con il pubblico",
+                normativa_rif: "D.Lgs. 81/08 Titolo II (Luoghi di lavoro)"
+            },
             "comune": {
                 D: 2,
                 C: 1,
@@ -1171,50 +1178,46 @@
             }
         };
 
+        const verticalLabels = {
+            "common": "Misure Comuni e Sicurezza Sede",
+            "dental": "Settore Odontoiatrico e Clinico",
+            "beauty": "Settore Estetica e Benessere",
+            "health": "Settore Sanitario",
+            "food": "Settore Ristorazione"
+        };
+
+        const verticalEmojis = {
+            "common": "🏠",
+            "dental": "🦷",
+            "beauty": "💄"
+        };
+
+        function getVerticalLabel(v) {
+            const norm = (v || "").toLowerCase().trim();
+            return verticalLabels[norm] || `Settore ${v.toUpperCase()}`;
+        }
+
+        function getVerticalEmoji(v) {
+            const norm = (v || "").toLowerCase().trim();
+            return verticalEmojis[norm] || "💼";
+        }
+
+        function cleanCategoryName(name) {
+            return (name || '').replace(/^\[SOP\]\s*/i, '').replace(/^\[SER\]\s*/i, '').replace(/^\[PRO\]\s*/i, '').trim();
+        }
+
         function normalizeVerticalKey(key) {
             const k = (key || '').toLowerCase().trim();
-            if (k === 'common' || k === 'comune') return 'comune';
-            if (k === 'dental' || k === 'dentale') return 'dentale';
-            if (k === 'beauty' || k === 'estetica') return 'estetica';
-            if (k === 'food' || k === 'hospitality' || k === 'ristorazione') return 'ristorazione';
-            if (k === 'professional' || k === 'ufficio') return 'ufficio';
+            if (k === 'common' || k === 'comune') return 'common';
+            if (k === 'dental' || k === 'dentale') return 'dental';
+            if (k === 'beauty' || k === 'estetica') return 'beauty';
+            if (k === 'food' || k === 'hospitality' || k === 'ristorazione') return 'food';
+            if (k === 'professional' || k === 'ufficio') return 'professional';
             if (k === 'health' || k === 'sanitario' || k === 'salute') return 'health';
             if (k === 'hospitality' || k === 'ospitalita' || k === 'ospitalità') return 'hospitality';
             if (k === 'workshop' || k === 'officina' || k === 'artigianato') return 'workshop';
             if (k === 'construction' || k === 'cantiere' || k === 'edilizia') return 'construction';
-            return 'generic';
-        }
-
-        function calculateDynamicProbability(riskChecklist, vKey) {
-            let sum = 0;
-
-            riskChecklist.forEach(q => {
-                let isAnsweredYes = false;
-
-                // 1. Cerca nello stato del vertical key direttamente (se presente)
-                if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
-                    isAnsweredYes = true;
-                }
-
-                // 2. Altrimenti cerca in tutti i servizi attivi che appartengono a questo vertical
-                if (!isAnsweredYes) {
-                    catalogActive.forEach(s => {
-                        if (getVerticalForService(s) === vKey) {
-                            const state = checklistState[s.service_sku] || {};
-                            if (state[q.question_id] || state[q.question_id.replace('_', '-')] || state[q.question_id.toLowerCase()]) {
-                                isAnsweredYes = true;
-                            }
-                        }
-                    });
-                }
-
-                const weight = q.weight || 0;
-                sum += weight * (isAnsweredYes ? 1 : 0);
-            });
-
-            const rawP = 4 - (3 * sum);
-            const p = Math.max(1, Math.min(4, Math.round(rawP)));
-            return p;
+            return k || 'generic';
         }
 
         // ── STATO APPLICAZIONE ─────────────────────────────────────────────────────
@@ -1450,22 +1453,13 @@
                     checklistState[s.service_sku] = {};
                 });
 
-                const tenant = getTenantData();
-                const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-                const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-                uniqueVerts.forEach(vKey => {
-                    checklistState[vKey] = {};
-                });
-
                 if (serverState && typeof serverState === 'object') {
-                    // Mappa di normalizzazione anti-errori (Mette a riparo da futuri scherzi di Langchain)
+                    // Mappa di normalizzazione anti-errori
                     const skuMap = {};
                     catalogActive.forEach(s => {
                         const cleanSku = s.service_sku.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
                         skuMap[cleanSku] = s.service_sku;
                     });
-                    skuMap['comune'] = 'comune';
 
                     // Applica le spunte dal server all'interfaccia utente
                     Object.keys(serverState).forEach(dbKey => {
@@ -1511,20 +1505,26 @@
 
         // ── TAB CATEGORIE ─────────────────────────────────────────────────────────
         function buildCategoryTabs() {
-            const tenant = getTenantData();
-            const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-            const uniqueList = [...new Set(['ALL', 'comune', ...activeVerts])];
-
             const select = document.getElementById('category-dropdown');
             if (!select) return;
             select.innerHTML = '';
 
+            const detectedVerticals = [...new Set(catalogActive.map(s => (s.vertical || 'common').toLowerCase().trim()))];
+            const sortedVerticals = detectedVerticals.sort((a, b) => {
+                if (a === 'common') return -1;
+                if (b === 'common') return 1;
+                return a.localeCompare(b);
+            });
+
+            const uniqueList = ['ALL', ...sortedVerticals];
+
             uniqueList.forEach(key => {
-                const meta = verticalsMeta[key] || { emoji: "🏢", name: key };
+                const emoji = getVerticalEmoji(key);
+                const label = getVerticalLabel(key);
                 const opt = document.createElement('option');
                 opt.value = key;
                 opt.selected = (key === activeCategory);
-                opt.textContent = `${meta.emoji} ${meta.name.toUpperCase()}`;
+                opt.textContent = `${emoji} ${label.toUpperCase()}`;
                 select.appendChild(opt);
             });
         }
@@ -1550,7 +1550,7 @@
             // Se siamo su TUTTI (ALL), mostriamo la card premium per la stampa del Libro DVR completo
             if (activeCategory === 'ALL') {
                 const printCard = document.createElement('div');
-                printCard.className = 'card-noir p-4 flex items-center justify-between gap-3 bg-black text-white border-black';
+                printCard.className = 'card-noir p-4 flex items-center justify-between gap-3 bg-black text-white border-black mb-4';
                 printCard.innerHTML = `
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 rounded-xl bg-neutral-800 flex items-center justify-center text-xl shrink-0">
@@ -1568,107 +1568,74 @@
                 grid.appendChild(printCard);
             }
 
-            const tenant = getTenantData();
-            const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-            const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-            // --- SEZIONE 1: COMPARTI DI SICUREZZA GENERALE (Visualizzazione di prima) ---
-            let sectorsToShow = [];
-            if (activeCategory === 'ALL') {
-                sectorsToShow = uniqueVerts;
-            } else if (uniqueVerts.includes(activeCategory)) {
-                sectorsToShow = [activeCategory];
-            }
-
-            if (sectorsToShow.length > 0) {
-                const sectHeader = document.createElement('div');
-                sectHeader.className = 'pt-2 pb-1';
-                sectHeader.innerHTML = `<span class="label-micro flex items-center gap-1.5"><i class="fas fa-folder-open text-gray-400"></i> Comparti di Sicurezza Generali (Sede)</span>`;
-                grid.appendChild(sectHeader);
-
-                sectorsToShow.forEach(vKey => {
-                    const card = buildSectorCard(vKey);
-                    if (card) grid.appendChild(card);
-                });
-            }
-
-            // --- SEZIONE 2: PROTOCOLLI E SERVIZI DEL CATALOGO (Servizi Attivi) ---
-            let servicesToShow = catalogActive;
+            // 1. Filtra i servizi in base al tab attivo
+            let filteredServices = catalogActive;
             if (activeCategory !== 'ALL') {
-                servicesToShow = catalogActive.filter(s => getVerticalForService(s) === activeCategory);
-            }
-
-            if (servicesToShow.length > 0) {
-                const svcHeader = document.createElement('div');
-                svcHeader.className = 'pt-4 pb-1';
-                svcHeader.innerHTML = `<span class="label-micro flex items-center gap-1.5"><i class="fas fa-receipt text-gray-400"></i> Protocolli e Servizi Clinici ed Operativi</span>`;
-                grid.appendChild(svcHeader);
-
-                servicesToShow.forEach(service => {
-                    const card = buildCatalogServiceCard(service);
-                    if (card) grid.appendChild(card);
+                filteredServices = catalogActive.filter(s => {
+                    const v = (s.vertical || 'common').toLowerCase().trim();
+                    return v === activeCategory.toLowerCase().trim();
                 });
             }
 
-            // Aggiorna statistiche globali sulla base dei due mondi combinati
-            updateStatsStrip(uniqueVerts, servicesToShow);
-        }
+            // 2. Raggruppa i dati: { verticalKey: { categoryCleanName: [servizi...] } }
+            const groupedData = {};
+            filteredServices.forEach(s => {
+                const vKey = (s.vertical || 'common').toLowerCase().trim();
+                const catName = cleanCategoryName(s.categoria_padre || "Generale");
 
-        // Card di visualizzazione comparto (quella con valutazione matematica INAIL R=PxD)
-        function buildSectorCard(vKey) {
-            const vertical = verticalsRegistry[vKey];
-            if (!vertical) return null;
-            const meta = verticalsMeta[vKey] || { emoji: "🏢", name: vKey };
+                if (!groupedData[vKey]) groupedData[vKey] = {};
+                if (!groupedData[vKey][catName]) groupedData[vKey][catName] = [];
+                groupedData[vKey][catName].push(s);
+            });
 
-            let total = 0;
-            let done = 0;
-            vertical.risks.forEach(risk => {
-                risk.checklist.forEach(q => {
-                    total++;
-                    if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
-                        done++;
-                    }
+            // 3. Ordina le chiavi (es. 'common' sempre per primo)
+            const sortedVerticalKeys = Object.keys(groupedData).sort((a, b) => {
+                if (a === 'common') return -1;
+                if (b === 'common') return 1;
+                return a.localeCompare(b);
+            });
+
+            // 4. Renderizza ciclando dinamicamente su sortedVerticalKeys -> categorie -> singoli servizi
+            sortedVerticalKeys.forEach(vKey => {
+                // Se l'utente seleziona il tab "TUTTI" (ALL): i controlli devono essere raggruppati prima per Verticale
+                if (activeCategory === 'ALL') {
+                    const vertHeader = document.createElement('div');
+                    vertHeader.className = 'pt-4 pb-1 border-b border-gray-150 mt-4 mb-2';
+                    vertHeader.innerHTML = `
+                        <span class="label-micro flex items-center gap-1.5 text-black font-black">
+                            <span class="text-sm">${getVerticalEmoji(vKey)}</span>
+                            ${getVerticalLabel(vKey).toUpperCase()}
+                        </span>
+                    `;
+                    grid.appendChild(vertHeader);
+                }
+
+                // Categorie ordinate alfabeticamente
+                const catNames = Object.keys(groupedData[vKey]).sort();
+                catNames.forEach(catName => {
+                    // Intestazione categoria
+                    const catHeader = document.createElement('div');
+                    catHeader.className = 'pt-2 pb-1 pl-1';
+                    catHeader.innerHTML = `<span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">${catName}</span>`;
+                    grid.appendChild(catHeader);
+
+                    // Servizi in questa categoria
+                    const services = groupedData[vKey][catName];
+                    services.forEach(service => {
+                        const card = buildCatalogServiceCard(service);
+                        if (card) grid.appendChild(card);
+                    });
                 });
             });
 
-            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-            const isComplete = total > 0 && done === total;
-
-            // Colore status
-            let statusClass = 'bg-gray-100 text-gray-400';
-            let statusLabel = 'Da avviare';
-            if (isComplete) { statusClass = 'bg-green-50 text-green-600'; statusLabel = 'Conforme ✓'; }
-            else if (done > 0) { statusClass = 'bg-orange-50 text-orange-500'; statusLabel = `${done}/${total} azioni`; }
-
-            const div = document.createElement('div');
-            div.className = 'card-noir service-card p-4 flex items-center gap-4 group';
-            div.onclick = () => openSectorDetail(vKey); // Apre il dettaglio del comparto
-            div.innerHTML = `
-                <div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shrink-0 group-active:bg-black transition-colors">
-                    ${meta.emoji}
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="label-micro truncate">Misure Generali di Sede</p>
-                    <h3 class="font-black text-xs uppercase tracking-tight leading-snug mt-0.5 truncate text-black">${vertical.title}</h3>
-                    <div class="flex items-center gap-2 mt-2">
-                        <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                            <div class="h-full bg-black rounded-full progress-fill" style="width: ${pct}%"></div>
-                        </div>
-                        <span class="text-[8px] font-black text-gray-500 shrink-0">${pct}%</span>
-                    </div>
-                    <div class="mt-1.5">
-                        <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${statusClass}">${statusLabel}</span>
-                    </div>
-                </div>
-                <i class="fas fa-chevron-right text-gray-200 text-xs group-active:text-black transition-colors shrink-0"></i>
-            `;
-            return div;
+            // Aggiorna statistiche globali sulla base dei controlli reali presenti in catalog_active e sullo stato locale
+            updateStatsStrip();
         }
 
         // Card di visualizzazione servizio del catalogo attivo
         function buildCatalogServiceCard(service) {
             const vKey = getVerticalForService(service);
-            const meta = verticalsMeta[vKey] || { emoji: "⚙️" };
+            const emoji = getVerticalEmoji(vKey);
             const sku = service.service_sku;
 
             const state = checklistState[sku] || {};
@@ -1687,18 +1654,41 @@
 
             let statusClass = 'bg-gray-100 text-gray-400';
             let statusLabel = 'Da verificare';
-            if (isComplete) { statusClass = 'bg-green-50 text-green-600'; statusLabel = 'Certificato ✓'; }
-            else if (done > 0) { statusClass = 'bg-orange-50 text-orange-500'; statusLabel = `${done}/${total} spunte`; }
+            if (isComplete) { 
+                statusClass = 'bg-green-50 text-green-600'; 
+                statusLabel = 'Certificato ✓'; 
+            } else if (done > 0) { 
+                statusClass = 'bg-orange-50 text-orange-500'; 
+                statusLabel = `${done}/${total} spunte`; 
+            }
+
+            let actionArea = `<i class="fas fa-chevron-right text-gray-200 text-xs group-active:text-black transition-colors shrink-0"></i>`;
+            
+            if (service.blueprint_ready === false) {
+                statusClass = 'bg-red-50 text-red-500';
+                statusLabel = 'Inattivo';
+                actionArea = `
+                    <button onclick="event.stopPropagation(); activateService('${sku}')" class="px-3.5 py-2 bg-blue-600 text-white font-black uppercase text-[8px] tracking-widest rounded-xl hover:bg-blue-700 active:scale-95 transition shrink-0 z-10">
+                        Attiva
+                    </button>
+                `;
+            }
 
             const div = document.createElement('div');
             div.className = 'card-noir service-card p-4 flex items-center gap-4 group';
-            div.onclick = () => openCatalogServiceDetail(service); // Apre il dettaglio specifico del servizio del catalogo
+            div.onclick = () => {
+                if (service.blueprint_ready === false) {
+                    activateService(sku);
+                } else {
+                    openCatalogServiceDetail(service);
+                }
+            };
             div.innerHTML = `
                 <div class="w-12 h-12 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-2xl shrink-0 group-active:bg-black transition-colors">
-                    ${meta.emoji}
+                    ${emoji}
                 </div>
                 <div class="flex-1 min-w-0">
-                    <p class="label-micro truncate">${service.categoria_padre || 'Servizio'}</p>
+                    <p class="label-micro truncate">${cleanCategoryName(service.categoria_padre) || 'Servizio'}</p>
                     <h3 class="font-black text-xs uppercase tracking-tight leading-snug mt-0.5 truncate text-black">${service.service_name}</h3>
                     <div class="flex items-center gap-2 mt-2">
                         <div class="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
@@ -1711,36 +1701,40 @@
                         <span class="text-[8px] font-mono text-gray-400 mt-0.5">${sku}</span>
                     </div>
                 </div>
-                <i class="fas fa-chevron-right text-gray-200 text-xs group-active:text-black transition-colors shrink-0"></i>
+                ${actionArea}
             `;
             return div;
         }
 
-        function updateStatsStrip(uniqueVerts, servicesToShow) {
-            const total = uniqueVerts.length + servicesToShow.length;
+        // Funzione per il reindirizzamento dei servizi inattivi su catalog.html
+        function activateService(sku) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+            // 1. Recupera i parametri di sessione correnti (es. ash)
+            const currentParams = new URLSearchParams(window.location.search);
+            const ashVal = currentParams.get('ash') || '';
+
+            // 2. Costruisce i nuovi parametri per catalog.html
+            const redirectParams = new URLSearchParams();
+            
+            // Preserva la sessione
+            if (ashVal) {
+                redirectParams.set('ash', ashVal);
+            }
+
+            // Imposta il parametro 'msg' per catalog.html
+            redirectParams.set('msg', sku);
+
+            // 3. Esegue il reindirizzamento alla pagina del catalogo
+            const targetUrl = `catalog.html?${redirectParams.toString()}`;
+            window.location.href = targetUrl;
+        }
+
+        function updateStatsStrip() {
+            const total = catalogActive.length;
             let done = 0;
 
-            // Conta comparti conformi
-            uniqueVerts.forEach(vKey => {
-                const vertical = verticalsRegistry[vKey];
-                if (!vertical) return;
-                let totalChks = 0;
-                let doneChks = 0;
-                vertical.risks.forEach(risk => {
-                    risk.checklist.forEach(q => {
-                        totalChks++;
-                        if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
-                            doneChks++;
-                        }
-                    });
-                });
-                if (totalChks > 0 && doneChks === totalChks) {
-                    done++;
-                }
-            });
-
-            // Conta servizi certificati
-            servicesToShow.forEach(s => {
+            catalogActive.forEach(s => {
                 const sku = s.service_sku;
                 const state = checklistState[sku] || {};
                 const dossier = getDossierBySku(sku);
@@ -1771,81 +1765,7 @@
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
 
-        // ── APRI DETTAGLIO COMPARTO GENERALE ──
-        function openSectorDetail(vKey) {
-            currentServiceSku = vKey;
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
-            const vertical = verticalsRegistry[vKey];
-            if (!vertical) return;
-            const meta = verticalsMeta[vKey] || { emoji: "🏢", name: vKey };
-
-            switchDetailTab('checklist');
-
-            document.getElementById('detail-category').textContent = 'Comparto di Sicurezza Generica';
-            document.getElementById('detail-service-name').textContent = vertical.title;
-            document.getElementById('detail-sku').textContent = `Settore: ${vKey.toUpperCase()}`;
-            document.getElementById('detail-emoji').textContent = meta.emoji;
-
-            const metaEl = document.getElementById('detail-meta');
-            metaEl.innerHTML = '';
-            metaEl.classList.add('hidden');
-
-            // Regulatory
-            buildRegulatoryGridForVertical(vertical.law_references);
-
-            // Matrice INAIL
-            buildInailMatrixForVerticalDetail(vKey);
-
-            // Checklist
-            const allChecklistItems = [];
-            vertical.risks.forEach(risk => {
-                risk.checklist.forEach(q => {
-                    allChecklistItems.push({
-                        id: q.question_id,
-                        area: risk.name,
-                        action: q.text,
-                        owner: 'Datore di Lavoro',
-                        weight: q.weight
-                    });
-                });
-            });
-            currentChecklistItems = allChecklistItems;
-            buildChecklist(allChecklistItems, vKey);
-
-            // Regional notes
-            buildRegionalSectionForVertical(vKey);
-
-            // Avvertenze Rischi (Allineato al dossier e al payload di n8n)
-            const dossier = getDossierBySku(vKey);
-            let warnings = [];
-            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.risk_warnings) {
-                // Preleva le avvertenze dettagliate dal dossier
-                warnings = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.risk_warnings;
-            } else {
-                // Fallback sul nome macroscopico del rischio se non c'è il dossier
-                warnings = vertical.risks.map(r => r.name);
-            }
-            buildWarnings(warnings);
-
-            // Aggiorna progress nel detail
-            updateDetailProgress(vKey, allChecklistItems);
-
-            // Genera documento dvr
-            buildDVRPageForVerticalDetail(vKey);
-
-            // Switcha view
-            document.getElementById('view-list').classList.add('hidden');
-            document.getElementById('view-detail').classList.remove('hidden');
-            document.getElementById('view-detail').classList.add('view-slide');
-
-            if (tg.BackButton) {
-                tg.BackButton.show();
-                tg.BackButton.onClick(() => goBackToList());
-            }
-
-            document.getElementById('view-detail').scrollTo({ top: 0, behavior: 'smooth' });
-        }
 
         // ── APRI DETTAGLIO SPECIFICO SERVIZIO CATALOGO ──
         function openCatalogServiceDetail(service) {
@@ -2269,52 +2189,34 @@
             safeConfirm('Resettare tutte le spunte?', (confirmed) => {
                 if (!confirmed) return;
                 checklistState[sku] = {};
-                //saveLocalChecklistState();
 
-                if (verticalsRegistry[sku]) {
-                    const vertical = verticalsRegistry[sku];
-                    const allChecklistItems = [];
-                    vertical.risks.forEach(risk => {
-                        risk.checklist.forEach(q => {
-                            allChecklistItems.push({
-                                id: q.question_id,
-                                area: risk.name,
-                                action: q.text,
-                                owner: 'Datore di Lavoro',
-                                weight: q.weight
-                            });
-                        });
-                    });
-                    buildChecklist(allChecklistItems, sku);
-                    updateDetailProgress(sku, allChecklistItems);
-                    buildInailMatrixForVerticalDetail(sku);
-                    buildDVRPageForVerticalDetail(sku);
+                const service = catalogActive.find(s => s.service_sku === sku);
+                if (!service) return;
+
+                const dossier = getDossierBySku(sku);
+                let listItems = [];
+                if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
+                    listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist.map(item => ({
+                        id: item.id,
+                        area: item.area || 'Compliance',
+                        action: item.action || '',
+                        owner: item.owner || 'Operatore'
+                    }));
                 } else {
-                    const service = catalogActive.find(s => s.service_sku === sku);
-                    const dossier = getDossierBySku(sku);
-                    let listItems = [];
-                    if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist) {
-                        listItems = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE.compliance_checklist.map(item => ({
-                            id: item.id,
-                            area: item.area || 'Compliance',
-                            action: item.action || '',
-                            owner: item.owner || 'Operatore'
-                        }));
-                    } else {
-                        listItems = [
-                            { id: 'Q1', area: 'Sicurezza', action: 'Verificare conformità attrezzature e presenza di DPI idonei.', owner: 'Operatore' },
-                            { id: 'Q2', area: 'Procedura', action: 'Eseguire la procedura secondo il protocollo operativo standard approvato.', owner: 'Operatore' },
-                            { id: 'Q3', area: 'Tracciabilità', action: 'Registrare l\'avvenuta operazione sul registro di conformità dello studio.', owner: 'Operatore' }
-                        ];
-                    }
-                    buildChecklist(listItems, sku);
-                    updateDetailProgress(sku, listItems);
-
-                    // Ripristina il rischio massimo di partenza locale dopo il reset delle spunte
-                    initializeServiceRiskMatrix(service, listItems);
-
-                    buildSingleServiceDVRPage(service, listItems);
+                    listItems = [
+                        { id: 'Q1', area: 'Sicurezza', action: 'Verificare conformità attrezzature e presenza di DPI idonei.', owner: 'Operatore' },
+                        { id: 'Q2', area: 'Procedura', action: 'Eseguire la procedura secondo il protocollo operativo standard approvato.', owner: 'Operatore' },
+                        { id: 'Q3', area: 'Tracciabilità', action: 'Registrare l\'avvenuta operazione sul registro di conformità dello studio.', owner: 'Operatore' }
+                    ];
                 }
+                buildChecklist(listItems, sku);
+                updateDetailProgress(sku, listItems);
+
+                // Ripristina il rischio massimo di partenza locale dopo il reset delle spunte
+                initializeServiceRiskMatrix(service, listItems);
+
+                buildSingleServiceDVRPage(service, listItems);
+
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
             });
         }
@@ -2343,24 +2245,6 @@
         function updateGlobalProgress() {
             let totalChks = 0;
             let doneChks = 0;
-
-            const tenant = getTenantData();
-            const activeVerts = tenant.activeVerticals.map(normalizeVerticalKey).filter(Boolean);
-            const uniqueVerts = [...new Set(['comune', ...activeVerts])];
-
-            uniqueVerts.forEach(vKey => {
-                const vertical = verticalsRegistry[vKey];
-                if (!vertical) return;
-
-                vertical.risks.forEach(risk => {
-                    risk.checklist.forEach(q => {
-                        totalChks++;
-                        if (checklistState[vKey] && checklistState[vKey][q.question_id]) {
-                            doneChks++;
-                        }
-                    });
-                });
-            });
 
             // Calcola progressi basati sui singoli servizi
             catalogActive.forEach(s => {
@@ -2430,47 +2314,8 @@
         }
 
         function getVerticalForService(service) {
-            if (!service) return 'comune';
-            if (service.service_sku === 'common') return 'comune';
-            const cat = (service.categoria_padre || '').toLowerCase();
-            const name = (service.service_name || '').toLowerCase();
-
-            if (cat.includes('sanitario') || cat.includes('health') || cat.includes('salute') || cat.includes('clinico') || cat.includes('medico') || cat.includes('fisioterap') || name.includes('sanitario') || name.includes('clinico') || name.includes('medico') || name.includes('fisioterap')) {
-                return 'health';
-            }
-            if (cat.includes('dentale') || cat.includes('odontoiatria') || cat.includes('dental') || name.includes('dentale') || name.includes('odontoiatria')) {
-                return 'dental';
-            }
-            if (cat.includes('estetica') || cat.includes('beauty') || cat.includes('bellezza') || name.includes('estetica') || name.includes('estetico')) {
-                return 'beauty';
-            }
-            if (cat.includes('food') || cat.includes('ristorazione') || cat.includes('cucina') || cat.includes('somministrazione') || name.includes('cucina') || name.includes('food') || name.includes('ristorazione')) {
-                return 'food';
-            }
-            if (cat.includes('hotel') || cat.includes('hospitality') || cat.includes('albergo') || name.includes('hotel') || name.includes('camera') || name.includes('ospitalita') || name.includes('ospitalità')) {
-                return 'hospitality';
-            }
-            if (cat.includes('officina') || cat.includes('workshop') || cat.includes('riparazione') || cat.includes('meccanica') || name.includes('meccanico') || name.includes('officina')) {
-                return 'workshop';
-            }
-            if (cat.includes('cantiere') || cat.includes('edilizia') || cat.includes('costruzioni') || cat.includes('impianti') || cat.includes('construction') || name.includes('cantiere') || name.includes('costruzione')) {
-                return 'construction';
-            }
-            if (cat.includes('ufficio') || cat.includes('professional') || cat.includes('consulenza') || cat.includes('servizi') || name.includes('ufficio') || name.includes('consulenza')) {
-                return 'professional';
-            }
-            return 'generic';
-        }
-
-        function getCalculatedRiskForVertical(verticalKey) {
-            if (ownerData.assessments) {
-                const ass = ownerData.assessments.find(a => a.vertical === verticalKey);
-                if (ass && ass.calculated_risk) return ass.calculated_risk;
-            }
-            const param = parametriVerticali[verticalKey] || parametriVerticali["generic"];
-            const d = param.D || 2;
-            const p = 2;
-            return { P: p, D: d, R: p * d, livello: p * d >= 8 ? 'ALTO' : (p * d >= 4 ? 'MEDIO' : 'BASSO') };
+            if (!service) return 'common';
+            return (service.vertical || 'common').toLowerCase().trim();
         }
 
         function getCommonService() {
@@ -2887,64 +2732,7 @@
             });
         }
 
-        function buildInailMatrixForVerticalDetail(vKey) {
-            const vertical = verticalsRegistry[vKey];
-            if (!vertical) return;
 
-            const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '', normativa_rif: '' };
-            const dPartenza = param.D || 2;
-            const cPartenza = param.C || 1;
-            const rPartenza = 4 * dPartenza;
-
-            const allChecklistItems = [];
-            vertical.risks.forEach(risk => {
-                risk.checklist.forEach(q => {
-                    allChecklistItems.push(q);
-                });
-            });
-
-            // 1. Controlla se esiste già un'analisi di rischio salvata su MongoDB (collezione separata delle checklist)
-            const savedSkuData = (serverChecklistState && serverChecklistState[vKey]) ? serverChecklistState[vKey] : null;
-
-            let d = dPartenza;
-            let c = cPartenza;
-            let p = 4;
-            let r = rPartenza;
-            let justification = "";
-
-            if (savedSkuData && (savedSkuData.D !== undefined || savedSkuData.overall_justification)) {
-                // Se c'è un'analisi salvata, carica quei valori esatti
-                d = savedSkuData.D || dPartenza;
-                c = savedSkuData.C || cPartenza;
-                p = savedSkuData.P || 4;
-                r = savedSkuData.R || (d * p);
-                justification = savedSkuData.overall_justification || "";
-            } else {
-                // Fallback locale in assenza di salvataggi
-                p = calculateDynamicProbability(allChecklistItems, vKey);
-                r = p * d;
-
-                const dossier = getDossierBySku(vKey);
-                if (dossier && dossier.Razionale_Matematico && dossier.Razionale_Matematico.R_Rischio_Finale) {
-                    justification = dossier.Razionale_Matematico.R_Rischio_Finale.nota_gemini || '';
-                }
-                if (!justification) {
-                    justification = `Il rischio calcolato si attesta a R = ${r} (Danno D = ${d}, Probabilità P = ${p}). Danno atteso: ${param.desc_d || 'Infortuni/patologie'}. Riferimento principale: ${param.normativa_rif || 'D.Lgs. 81/08'}.`;
-                }
-            }
-
-            // 2. Applica i dati visivi alla matrice INAIL
-            applyServerRiskAnalysis({
-                D: d,
-                C: c,
-                P: p,
-                R: r,
-                justification: justification
-            });
-
-            // Assicuriamoci che la sezione sia visibile
-            document.getElementById('rischio-inail-section').classList.remove('hidden');
-        }
 
         function buildRegionalSectionForVertical(vKey) {
             const dossier = getDossierBySku(vKey);
@@ -2998,123 +2786,7 @@
             }
         }
 
-        function buildDVRPageForVerticalDetail(vKey) {
-            const body = document.getElementById('dvr-document-body');
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
 
-            const vertical = verticalsRegistry[vKey];
-            if (!vertical) return;
-
-            const param = parametriVerticali[vKey] || { D: 2, C: 1, desc_d: '', desc_c: '' };
-            const dPartenza = param.D || 2;
-            const cPartenza = param.C || 1;
-            const rPartenza = 4 * dPartenza;
-
-            const tenant = getTenantData();
-
-            // Raccoglie tutti gli item della checklist di questo comparto
-            const allChecklistItems = [];
-            vertical.risks.forEach(risk => {
-                risk.checklist.forEach(q => {
-                    allChecklistItems.push(q);
-                });
-            });
-
-            // Leggiamo i coefficienti e la giustificazione correnti a schermo (aggiornati da MongoDB o ricalcolo)
-            const dVal = document.getElementById('inail-val-d')?.textContent || dPartenza;
-            const cVal = document.getElementById('inail-val-c')?.textContent || cPartenza;
-            const pVal = document.getElementById('inail-val-p')?.textContent || "4";
-            const rVal = document.getElementById('inail-val-r')?.textContent || rPartenza;
-            const justVal = document.getElementById('inail-justification')?.textContent || "";
-
-            // Determiniamo la classe CSS del rischio residuo per la stampa
-            let rLabel = "BASSO";
-            let rClass = "dvr-risk-low";
-            const rNum = parseInt(rVal);
-            if (rNum >= 8) {
-                rLabel = "ALTO";
-                rClass = "dvr-risk-high";
-            } else if (rNum >= 4) {
-                rLabel = "MEDIO";
-                rClass = "dvr-risk-mid";
-            }
-
-            const state = checklistState[vKey] || {};
-
-            body.innerHTML = `
-                <div style="text-align:center;padding-bottom:12px;border-bottom:2px solid #000;margin-bottom:16px">
-                    <div class="dvr-label">Documento di Valutazione dei Rischi</div>
-                    <h2>VALUTAZIONE COMPARTO DI SICUREZZA</h2>
-                    <div style="font-size:9px;font-weight:700;color:#6b7280;margin-top:4px">Comparto: ${vertical.title.toUpperCase()}</div>
-                    <div style="font-size:8px;color:#a3a3a3;margin-top:2px">Redatto il ${dateStr} — ex D.Lgs. 81/2008</div>
-                </div>
-
-                <div class="dvr-section-title"><i class="fas fa-building mr-1"></i>Anagrafica Aziendale</div>
-                <div class="dvr-field"><span class="dvr-field-label">Ragione Sociale</span><span class="dvr-field-value">${tenant.ragioneSociale}</span></div>
-                <div class="dvr-field"><span class="dvr-field-label">Sede Operativa</span><span class="dvr-field-value">${tenant.indirizzo}</span></div>
-                <div class="dvr-field"><span class="dvr-field-label">RSPP Nominato</span><span class="dvr-field-value">${tenant.generalMetadata.rspp}</span></div>
-                <div class="dvr-field"><span class="dvr-field-label">Medico Competente</span><span class="dvr-field-value">${tenant.generalMetadata.medicoCompetente}</span></div>
-                <div class="dvr-field"><span class="dvr-field-label">RLS Nominato</span><span class="dvr-field-value">${tenant.generalMetadata.rls}</span></div>
-
-                <!-- SEZIONE: CONFRONTO DINAMICO IMPATTO RISCHIO (DA -> A) -->
-                <div class="dvr-section-title"><i class="fas fa-calculator mr-1"></i>Analisi di Impatto e Mitigazione del Rischio (INAIL)</div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0;">
-                    <!-- Stato di Partenza (Worst Case) -->
-                    <div style="background:#fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px;">
-                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #9ca3af;">1. Stato di Partenza (Senza Misure)</span>
-                        <div style="font-size: 14px; font-weight: 900; color: #b91c1c; margin-top: 4px;">R = ${rPartenza}</div>
-                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dPartenza} | Probabilità: 4 (Max)</div>
-                        <div style="font-size: 8px; font-weight: bold; color: #b91c1c; text-transform: uppercase; margin-top: 4px;">Rischio Iniziale Alto</div>
-                    </div>
-                    
-                    <!-- Stato Residuo Attuale (Mitigato) -->
-                    <div style="background:#f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px;">
-                        <span style="font-size: 7px; font-weight: 900; text-transform: uppercase; color: #16a34a;">2. Stato Residuo (Con Misure Attive)</span>
-                        <div style="font-size: 14px; font-weight: 900; color: #15803d; margin-top: 4px;">R = ${rVal}</div>
-                        <div style="font-size: 8px; color: #4b5563; margin-top: 2px;">Danno: ${dVal} | Probabilità: ${pVal}</div>
-                        <div style="font-size: 8px; font-weight: bold; color: #15803d; text-transform: uppercase; margin-top: 4px;">Rischio Attuale ${rLabel}</div>
-                    </div>
-                </div>
-                
-                <!-- Giustificazione di Gemini che spiega formalmente l'impatto della mitigazione -->
-                ${justVal ? `
-                <div style="font-size: 9px; color: #374151; font-style: italic; margin-top: 12px; margin-bottom: 12px; line-height: 1.4; border-left: 2px solid #000; padding-left: 10px; text-align: justify;">
-                    <strong>Giustificazione Tecnica della Mitigazione:</strong><br/>
-                    ${justVal}
-                </div>
-                ` : ''}
-
-                <div class="dvr-section-title"><i class="fas fa-tasks mr-1"></i>Stato delle Misure di Prevenzione</div>
-                ${allChecklistItems.map((c, i) => {
-                const isDone = !!state[c.question_id];
-                return `
-                        <div class="dvr-chk-row">
-                            <span class="dvr-chk-num">${String(i + 1).padStart(2, '0')}.</span>
-                            <div style="flex:1">
-                                <p style="font-weight:600;margin:0;color:#111827">${c.text}</p>
-                                <div style="display:flex;gap:6px;margin-top:4px">
-                                    <span style="font-size:7px;background:#f3f4f6;color:#6b7280;padding:1px 5px;border-radius:4px;font-weight:bold">Peso: ${c.weight || '0.3'}</span>
-                                    <span style="font-size:7px;background:${isDone ? '#dcfce7' : '#fee2e2'};color:${isDone ? '#15803d' : '#b91c1c'};padding:1px 5px;border-radius:4px;font-weight:bold">${isDone ? 'Attuata ✓' : 'In attesa'}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-            }).join('')}
-
-                <div class="dvr-footer">
-                    <div class="dvr-signature-box">
-                        <span class="dvr-label">Il Datore di Lavoro</span>
-                        <div style="font-size:8px;color:#a3a3a3;margin-top:6px">${tenant.ragioneSociale}</div>
-                    </div>
-                    <div class="dvr-signature-box">
-                        <span class="dvr-label">Firme di Controllo</span>
-                        <div style="font-size:8px;color:#a3a3a3;margin-top:6px">RSPP / MC / RLS</div>
-                    </div>
-                </div>
-            `;
-        }
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
