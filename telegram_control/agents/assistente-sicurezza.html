@@ -1421,10 +1421,14 @@
                 // Se si tratta di un servizio del catalogo, estrae i testi dal dossier
                 listItems.forEach(item => {
                     const id = item.id || item.question_id;
+                    const dateInput = document.getElementById(`date-input-${sku}-${id}`);
+                    const dateVal = dateInput ? (dateInput.value || null) : (state[id + '_date'] || null);
+
                     detailedState[id] = {
                         checked: !!state[id],
                         label: item.area || 'Compliance',
-                        description: item.action || item.text || ''
+                        description: item.action || item.text || '',
+                        executed_at: dateVal
                     };
                 });
             }
@@ -2110,26 +2114,51 @@
             }
 
             const state = checklistState[sku] || {};
+            const service = catalogActive.find(s => s.service_sku === sku) || {};
+            const isSop = !(service.categoria_padre || '').toUpperCase().includes('[SER]');
+            const schedDays = service.days !== undefined && service.days !== null ? service.days : service.scheduling_interval;
+            const hasTimedControl = isSop && schedDays !== undefined && schedDays !== null && schedDays > 0;
 
             items.forEach(item => {
-                const isChecked = !!state[item.id || item.question_id];
+                const itemId = item.id || item.question_id;
+                const isChecked = !!state[itemId];
+                
+                // Recupera la data salvata per questa specifica spunta
+                const savedData = (serverChecklistState && serverChecklistState[sku] && serverChecklistState[sku].answers && serverChecklistState[sku].answers[itemId]) ? serverChecklistState[sku].answers[itemId] : {};
+                const savedDate = savedData.executed_at || state[itemId + '_date'] || "";
+
                 const row = document.createElement('div');
-                row.className = `chk-row px-4 py-3.5 flex items-start gap-3 ${isChecked ? 'done' : ''}`;
-                row.id = `row-${sku}-${item.id || item.question_id}`;
+                row.className = `chk-row px-4 py-3.5 flex flex-col gap-2 border-b border-gray-100/50 ${isChecked ? 'done' : ''}`;
+                row.id = `row-${sku}-${itemId}`;
 
                 row.innerHTML = `
-                    <div class="chk-box mt-0.5 ${isChecked ? 'checked' : ''}" id="chk-${sku}-${item.id || item.question_id}" onclick="toggleCheck('${sku}', '${item.id || item.question_id}')"></div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center flex-wrap gap-1.5 mb-1">
-                            <span class="area-badge">${item.area || 'Azione'}</span>
-                            <span class="label-micro text-gray-300">${item.id || item.question_id}</span>
+                    <div class="flex items-start gap-3">
+                        <div class="chk-box mt-0.5 ${isChecked ? 'checked' : ''}" id="chk-${sku}-${itemId}" onclick="toggleCheck('${sku}', '${itemId}')"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center flex-wrap gap-1.5 mb-1">
+                                <span class="area-badge">${item.area || 'Azione'}</span>
+                                <span class="label-micro text-gray-300">${itemId}</span>
+                            </div>
+                            <p class="text-xs font-semibold text-gray-700 leading-snug ${isChecked ? 'line-through opacity-50' : ''}" id="action-text-${sku}-${itemId}">${item.action}</p>
+                            ${item.owner ? `<p class="text-[9px] text-gray-400 font-medium mt-1"><i class="fas fa-user-tie text-[8px] mr-0.5"></i>${item.owner}</p>` : ''}
                         </div>
-                        <p class="text-xs font-semibold text-gray-700 leading-snug ${isChecked ? 'line-through opacity-50' : ''}" id="action-text-${sku}-${item.id || item.question_id}">${item.action}</p>
-                        ${item.owner ? `<p class="text-[9px] text-gray-400 font-medium mt-1"><i class="fas fa-user-tie text-[8px] mr-0.5"></i>${item.owner}</p>` : ''}
                     </div>
+                    
+                    <!-- Selettore della data specifico per gli step delle SOP a tempo (visibile solo se spuntato) -->
+                    ${hasTimedControl ? `
+                        <div id="date-container-${sku}-${itemId}" class="mt-1 pl-8 flex items-center gap-2 ${isChecked ? '' : 'hidden'}">
+                            <label for="date-input-${sku}-${itemId}" class="text-[8px] font-black uppercase text-gray-400 shrink-0">Data esecuzione:</label>
+                            <input type="date" id="date-input-${sku}-${itemId}" value="${savedDate}" class="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-[10px] font-bold focus:border-black outline-none transition" onchange="updateStepDate('${sku}', '${itemId}', this.value)" />
+                        </div>
+                    ` : ''}
                 `;
                 container.appendChild(row);
             });
+        }
+
+        function updateStepDate(sku, chkId, dateVal) {
+            if (!checklistState[sku]) checklistState[sku] = {};
+            checklistState[sku][chkId + '_date'] = dateVal;
         }
 
         async function toggleCheck(sku, chkId) {
@@ -2149,6 +2178,18 @@
             // Cambiamo lo stato logico locale
             checklistState[sku][chkId] = !checklistState[sku][chkId];
             const isChecked = checklistState[sku][chkId];
+
+            // Mostriamo/nascondiamo il selettore di data specifico se presente
+            const dateContainer = document.getElementById(`date-container-${sku}-${chkId}`);
+            if (dateContainer) {
+                dateContainer.classList.toggle('hidden', !isChecked);
+                const inputDate = document.getElementById(`date-input-${sku}-${chkId}`);
+                if (isChecked && inputDate && !inputDate.value) {
+                    const todayStr = new Date().toISOString().split('T')[0];
+                    inputDate.value = todayStr;
+                    updateStepDate(sku, chkId, todayStr);
+                }
+            }
 
             if (!serverChecklistState) serverChecklistState = {};
             if (!serverChecklistState[sku]) {
@@ -2206,6 +2247,12 @@
                 lastExecutedVal = document.getElementById('sop-execution-date')?.value || null;
             }
 
+            let targetExecutedAt = null;
+            const dateInput = document.getElementById(`date-input-${sku}-${chkId}`);
+            if (dateInput) {
+                targetExecutedAt = dateInput.value || null;
+            }
+
             try {
                 const payload = {
                     _auth: tg.initData,
@@ -2224,6 +2271,7 @@
                     target_checked: isChecked,
                     target_label: targetLabel,
                     target_description: targetDescription,
+                    target_executed_at: targetExecutedAt,
 
                     // Parametri di partenza fisici ereditati dal comparto padre
                     starting_damage: dPartenza,
