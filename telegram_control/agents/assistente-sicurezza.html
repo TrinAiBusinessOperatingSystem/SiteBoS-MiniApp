@@ -1210,6 +1210,24 @@
             return (name || '').replace(/^\[SOP\]\s*/i, '').replace(/^\[SER\]\s*/i, '').replace(/^\[PRO\]\s*/i, '').trim();
         }
 
+        function formatSchedulingInterval(days, isSop) {
+            if (days === undefined || days === null) return '';
+            
+            if (isSop) {
+                // Formattazione per SOP (Frequenze)
+                if (days === 1) return '🔄 Giornaliero';
+                if (days === 7) return '🔄 Settimanale';
+                if (days === 30) return '🔄 Mensile';
+                if (days === 180) return '🔄 Semestrale';
+                if (days === 365) return '🔄 Annuale';
+                return `🔄 Ogni ${days} giorni`;
+            } else {
+                // Formattazione per SER (Offset)
+                if (days === 0) return '📅 Giorno dell\'intervento';
+                return `📅 Follow-up: T + ${days} giorni`;
+            }
+        }
+
         function isServiceActive(service) {
             if (!service) return false;
             if (service.blueprint_ready === true) return true;
@@ -1745,6 +1763,10 @@
                 `;
             }
 
+            const isSop = !(service.categoria_padre || '').toUpperCase().includes('[SER]');
+            const schedDays = service.days !== undefined && service.days !== null ? service.days : service.scheduling_interval;
+            const schedulingLabel = formatSchedulingInterval(schedDays, isSop);
+
             const div = document.createElement('div');
             const statusBorder = active ? 'border-l-4 border-black bg-white/70' : 'border-l-4 border-gray-200 bg-gray-50/50';
             div.className = `flex justify-between items-center p-4 transition hover:bg-gray-50 cursor-pointer group ${statusBorder}`;
@@ -1770,8 +1792,9 @@
                                 <span class="text-[7px] font-black text-gray-400 shrink-0">${pct}%</span>
                             </div>
                         ` : ''}
-                        <div class="mt-1 flex gap-2">
+                        <div class="mt-1 flex flex-wrap gap-1.5">
                             <span class="text-[7px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${statusClass}">${statusLabel}</span>
+                            ${schedulingLabel ? `<span class="text-[7px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200/40">${schedulingLabel}</span>` : ''}
                             <span class="text-[7px] font-mono text-gray-400 mt-0.5">${sku}</span>
                         </div>
                     </div>
@@ -1861,6 +1884,14 @@
 
             const metaEl = document.getElementById('detail-meta');
             metaEl.innerHTML = '';
+
+            const isSop = !(service.categoria_padre || '').toUpperCase().includes('[SER]');
+            const schedDays = service.days !== undefined && service.days !== null ? service.days : service.scheduling_interval;
+            const schedulingLabel = formatSchedulingInterval(schedDays, isSop);
+            if (schedulingLabel) {
+                metaEl.innerHTML += `<span class="text-[8px] font-black uppercase bg-black text-white px-2 py-1 rounded-lg shadow-sm">${schedulingLabel}</span>`;
+            }
+
             if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE) {
                 const comp = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE;
                 if (comp.target_price) {
@@ -1869,6 +1900,9 @@
                 if (comp.positioning) {
                     metaEl.innerHTML += `<span class="text-[8px] font-black uppercase bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">${comp.positioning}</span>`;
                 }
+            }
+
+            if (metaEl.innerHTML) {
                 metaEl.classList.remove('hidden');
             } else {
                 metaEl.classList.add('hidden');
