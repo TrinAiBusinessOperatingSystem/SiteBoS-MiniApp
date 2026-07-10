@@ -190,6 +190,20 @@
                 </button>
             </div>
         </div>
+
+        <!-- BOOTSTRAP AGENDA -->
+        <div class="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-3">
+            <div class="flex items-start gap-3">
+                <i class="fas fa-magic text-gray-400 mt-0.5 text-xs"></i>
+                <div class="space-y-1">
+                    <h4 class="text-[10px] font-black uppercase tracking-widest text-black">Inizializzazione Agenda</h4>
+                    <p class="text-[9px] text-gray-400 leading-relaxed">Non hai ancora un'agenda attiva? Genera e scarica la struttura di calendario ideale basata sul tuo Setup Avanzato.</p>
+                </div>
+            </div>
+            <button onclick="downloadIdealCalendar()" class="w-full py-4 bg-white border border-border rounded-xl text-[9px] font-black uppercase tracking-widest text-black flex items-center justify-center gap-2 active:scale-95 transition shadow-sm">
+                <i class="fas fa-calendar-plus"></i> Scarica Struttura Agenda (iCal)
+            </button>
+        </div>
     </div>
 
     <!-- HELP OVERLAY: Come ottenere il link iCal -->
@@ -902,6 +916,59 @@
             tg.showAlert("Si è verificato un errore di connessione.");
         } finally {
             // Sblocco UI Lock Totale
+            if (lockLoader) lockLoader.classList.add('hidden');
+            if (settingsScreen) settingsScreen.style.pointerEvents = 'auto';
+            tg.BackButton.show();
+        }
+    }
+
+    async function downloadIdealCalendar() {
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        
+        const lockLoader = document.getElementById('settings-lock-loader');
+        const settingsScreen = document.getElementById('screen-settings');
+        
+        // UI Lock
+        if (lockLoader) lockLoader.classList.remove('hidden');
+        if (settingsScreen) settingsScreen.style.pointerEvents = 'none';
+        tg.BackButton.hide();
+
+        try {
+            const res = await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    action: "radar_generate_ideal_ical", 
+                    ash, 
+                    _auth: tg.initData
+                })
+            });
+            
+            if (!res.ok) throw new Error("Chiamata fallita");
+
+            const blob = await res.blob();
+            const calendarBlob = new Blob([blob], { type: 'text/calendar' });
+            
+            const downloadUrl = window.URL.createObjectURL(calendarBlob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'sitebos_struttura_agenda.ics';
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            tg.showPopup({
+                title: "Download Completato",
+                message: "La struttura dell'agenda ideale è stata scaricata. Puoi importarla ora su Google Calendar o sulla tua app di calendario preferita."
+            });
+        } catch (e) {
+            console.error("Errore nel download dell'agenda ideale:", e);
+            tg.showAlert("Impossibile generare la struttura dell'agenda in questo momento.");
+        } finally {
+            // Rilascio lock
             if (lockLoader) lockLoader.classList.add('hidden');
             if (settingsScreen) settingsScreen.style.pointerEvents = 'auto';
             tg.BackButton.show();
