@@ -6,6 +6,7 @@
   <title>Agenda Manager | SiteBoS</title>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="agenda-ocr-helper.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -29,25 +30,11 @@
     .view-overlay { position: fixed; inset: 0; background: #fafafa; z-index: 50; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(100%); }
     .view-overlay.active { transform: translateX(0); }
     
-    .btn-action { transition: all 0.2s; }
-    .btn-action:active { transform: scale(0.95); opacity: 0.8; }
-    
     .spinner { border: 2px solid rgba(0,0,0,0.1); border-top-color: #000; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     .event-pill { border-left: 4px solid #eeeeee; transition: all 0.2s; }
     .event-pill.active { border-left-color: #000; background: #fcfcfc; }
-    
-    .dot { width: 6px; height: 6px; border-radius: 50%; background: #ddd; transition: all 0.3s; }
-    .dot.active { width: 20px; background: #000; border-radius: 10px; }
-
-    /* Voice Recording */
-    .mic-btn { width: 72px; height: 72px; border-radius: 50%; background: #000; color: #fff; border: none; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s; position: relative; cursor: pointer; }
-    .mic-btn.recording { background: #dc2626; animation: mic-pulse 1.2s ease-in-out infinite; }
-    .mic-btn.recording::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 2px solid rgba(220,38,38,0.4); animation: mic-ring 1.2s ease-in-out infinite; }
-    @keyframes mic-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
-    @keyframes mic-ring { 0% { transform: scale(1); opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
-    .rec-timer { font-family: 'Inter', monospace; font-size: 11px; font-weight: 900; letter-spacing: 0.1em; color: #dc2626; }
 
     /* Help Overlay */
     .help-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
@@ -63,15 +50,14 @@
   <!-- MAIN APP (SCREEN A: HOME) -->
   <div id="screen-home" class="h-full flex flex-col p-5 space-y-6 overflow-y-auto no-scrollbar">
     
-    <!-- HEADER -->
+    <!-- HEADER FISSO -->
     <header class="flex justify-between items-center pt-2">
         <div>
             <h1 class="text-2xl font-black tracking-tighter uppercase leading-none">⏳ Agenda</h1>
-            <button onclick="openView('calendars')" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 flex items-center gap-1 active:scale-95 transition">
-                <span id="active-calendar-color" class="w-2 h-2 rounded-full bg-black inline-block"></span>
-                <span id="active-calendar-name">Personale</span>
-                <i class="fas fa-chevron-down ml-1"></i>
-            </button>
+            <div class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 flex items-center gap-1">
+                <span class="w-2 h-2 rounded-full bg-black inline-block"></span>
+                <span>Agenda di Sede</span>
+            </div>
         </div>
         <div class="flex gap-2">
             <button onclick="openView('settings')" class="w-10 h-10 bg-white border border-border rounded-xl flex items-center justify-center text-black shadow-sm active:scale-90 transition">
@@ -83,8 +69,30 @@
         </div>
     </header>
 
-    <!-- TODAY VIEW -->
-    <section class="space-y-4">
+    <!-- WIDGET RADAR SATURAZIONE & SOP -->
+    <div class="grid grid-cols-2 gap-3 mb-4">
+        <!-- Card Saturazione -->
+        <div class="card-noir p-4 flex flex-col justify-between">
+            <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">Saturazione Agenda</span>
+            <div class="flex items-baseline gap-1 mt-2">
+                <span id="radar-saturation-val" class="text-2xl font-black">--%</span>
+                <span class="text-[8px] text-gray-400 uppercase font-black" id="radar-saturation-label">Caricamento...</span>
+            </div>
+            <button onclick="openView('radar')" class="text-[8px] font-black uppercase text-black underline tracking-widest mt-2 text-left">Apri Radar AI</button>
+        </div>
+        <!-- Card SOP Rapide -->
+        <div class="card-noir p-4 flex flex-col justify-between">
+            <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">SOP Giornaliere</span>
+            <div class="flex items-center gap-2 mt-2">
+                <i class="fas fa-tasks text-xs text-gray-400"></i>
+                <span id="radar-sop-count" class="text-xs font-bold">0 / 0 Completate</span>
+            </div>
+            <button onclick="openView('sop-list')" class="text-[8px] font-black uppercase text-black underline tracking-widest mt-2 text-left">Esegui SOP</button>
+        </div>
+    </div>
+
+    <!-- CONSULTAZIONE IMPEGNI -->
+    <section class="space-y-4 flex-1">
         <div class="flex justify-between items-end">
             <div>
                 <p id="today-date-label" class="text-[10px] font-black uppercase tracking-widest text-gray-400">Oggi · ---</p>
@@ -94,187 +102,11 @@
         </div>
 
         <div id="today-events-list" class="space-y-3">
-            <!-- Eventi caricati via JS -->
+            <!-- Eventi caricati via JS dal gestionale -->
             <div class="py-10 text-center opacity-20"><i class="fas fa-calendar-day text-4xl"></i></div>
         </div>
     </section>
-
-    <!-- QUICK INPUTS -->
-    <section class="pt-4 space-y-4">
-        <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Acquisizione Rapida</p>
-        <div class="grid grid-cols-3 gap-3">
-            <button onclick="openView('photo')" class="btn-action bg-black text-white p-5 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-xl">
-                <i class="fas fa-camera text-xl"></i>
-                <span class="text-[8px] font-black uppercase tracking-widest">Scansiona</span>
-            </button>
-            <button onclick="openView('text')" class="btn-action bg-white border-2 border-black text-black p-5 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-sm">
-                <i class="fas fa-keyboard text-xl"></i>
-                <span class="text-[8px] font-black uppercase tracking-widest">Testo</span>
-            </button>
-            <button onclick="openView('voice')" class="btn-action bg-white border-2 border-black text-black p-5 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-sm">
-                <i class="fas fa-microphone text-xl"></i>
-                <span class="text-[8px] font-black uppercase tracking-widest">Voce</span>
-            </button>
-        </div>
-        <button onclick="openManualAdd()" class="w-full py-4 bg-gray-100 rounded-2xl text-[9px] font-black uppercase tracking-widest text-gray-500 flex items-center justify-center gap-2">
-            <i class="fas fa-plus"></i> Aggiungi Manuale
-        </button>
-    </section>
   </div>
-
-  <!-- SCREEN B: PHOTO ACQUISITION -->
-  <div id="screen-photo" class="view-overlay flex flex-col p-6">
-    <header class="flex justify-between items-center mb-8">
-        <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
-        <h2 class="text-sm font-black uppercase tracking-widest">Scansiona Agenda</h2>
-        <div class="w-10"></div>
-    </header>
-
-    <div class="flex-1 flex flex-col items-center justify-center space-y-8">
-        <div id="photo-preview-container" class="w-full aspect-[3/4] bg-gray-100 rounded-[2rem] border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden relative">
-            <img id="photo-preview-img" class="absolute inset-0 w-full h-full object-cover hidden">
-            <div id="photo-placeholder" class="flex flex-col items-center gap-4 text-gray-300">
-                <i class="fas fa-image text-5xl"></i>
-                <p class="text-[10px] font-black uppercase tracking-widest">Nessuna foto selezionata</p>
-            </div>
-        </div>
-
-        <div class="w-full space-y-3">
-            <button onclick="triggerFileSelect('camera')" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3">
-                <i class="fas fa-camera"></i> Apri Camera
-            </button>
-            <button onclick="triggerFileSelect('gallery')" class="w-full bg-white border border-border py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3">
-                <i class="fas fa-images"></i> Scegli da Galleria
-            </button>
-        </div>
-
-        <!-- Progress Bar AI -->
-        <div id="ai-progress" class="w-full space-y-2 hidden">
-            <div class="flex justify-between items-end">
-                <p class="text-[9px] font-black uppercase tracking-widest text-black">Analisi AI in corso...</p>
-                <p id="ai-progress-val" class="text-[9px] font-black text-gray-400">0%</p>
-            </div>
-            <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div id="ai-progress-bar" class="h-full bg-black transition-all duration-500" style="width: 0%"></div>
-            </div>
-        </div>
-    </div>
-    <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleFileChange(event)">
-  </div>
-
-  <!-- SCREEN C: FREE TEXT -->
-  <div id="screen-text" class="view-overlay flex flex-col p-6">
-    <header class="flex justify-between items-center mb-8">
-        <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
-        <h2 class="text-sm font-black uppercase tracking-widest">Testo Libero</h2>
-        <div class="w-10"></div>
-    </header>
-
-    <div class="flex-1 space-y-6">
-        <div class="space-y-2">
-            <label class="text-[10px] font-black uppercase tracking-widest text-gray-400">Scrivi come parli</label>
-            <textarea id="free-text-input" class="w-full h-48 bg-white border border-border rounded-2xl p-4 text-sm font-medium outline-none focus:border-black transition-colors resize-none" placeholder='Es: "Domani alle 10 call con Luca per discutere il preventivo di Milano"'></textarea>
-        </div>
-
-        <div class="space-y-3">
-            <p class="text-[9px] font-black uppercase tracking-widest text-gray-300">Suggerimenti rapidi</p>
-            <div class="flex flex-wrap gap-2">
-                <button onclick="appendTxt('Oggi')" class="px-4 py-2 bg-gray-100 rounded-full text-[9px] font-bold">Oggi</button>
-                <button onclick="appendTxt('Domani')" class="px-4 py-2 bg-gray-100 rounded-full text-[9px] font-bold">Domani</button>
-                <button onclick="appendTxt('Lunedì prossimo')" class="px-4 py-2 bg-gray-100 rounded-full text-[9px] font-bold">Lunedì prossimo</button>
-                <button onclick="appendTxt('alle 10:00')" class="px-4 py-2 bg-gray-100 rounded-full text-[9px] font-bold">alle 10:00</button>
-            </div>
-        </div>
-    </div>
-
-    <button id="btn-analyze-text" onclick="analyzeText()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 mb-6">
-        <i class="fas fa-search"></i> Analizza con AI
-    </button>
-  </div>
-
-  <!-- SCREEN H: VOICE RECORDING -->
-  <div id="screen-voice" class="view-overlay flex flex-col p-6">
-    <header class="flex justify-between items-center mb-8">
-        <button onclick="stopAndCloseVoice()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
-        <h2 class="text-sm font-black uppercase tracking-widest">Registra Voce</h2>
-        <div class="w-10"></div>
-    </header>
-
-    <div class="flex-1 flex flex-col items-center justify-center space-y-8">
-        <div class="flex flex-col items-center gap-4">
-            <button id="mic-record-btn" onclick="toggleRecording()" class="mic-btn">
-                <i id="mic-icon" class="fas fa-microphone"></i>
-            </button>
-            <p id="voice-status" class="text-[10px] font-black uppercase tracking-widest text-gray-400">Premi per registrare</p>
-            <p id="voice-timer" class="rec-timer hidden">00:00</p>
-        </div>
-
-        <div class="w-full space-y-2 text-center">
-            <p class="text-[9px] text-gray-300 leading-relaxed">Parla liberamente come se stessi dettando i tuoi impegni.<br>L'AI li trasformerà in eventi strutturati.</p>
-        </div>
-
-        <!-- AI Progress for voice -->
-        <div id="voice-ai-progress" class="w-full space-y-2 hidden">
-            <div class="flex justify-between items-end">
-                <p class="text-[9px] font-black uppercase tracking-widest text-black">Analisi AI in corso...</p>
-                <p id="voice-ai-progress-val" class="text-[9px] font-black text-gray-400">0%</p>
-            </div>
-            <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                <div id="voice-ai-progress-bar" class="h-full bg-black transition-all duration-500" style="width: 0%"></div>
-            </div>
-        </div>
-    </div>
-  </div>
-
-  <!-- SCREEN D: AI REVISION -->
-  <div id="screen-revision" class="view-overlay flex flex-col p-6 bg-white">
-    <header class="flex justify-between items-center mb-6">
-        <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
-        <h2 class="text-sm font-black uppercase tracking-widest">Revisione AI</h2>
-        <div class="w-10"></div>
-    </header>
-
-    <p id="revision-count" class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 text-center">AI ha rilevato 0 eventi</p>
-
-    <div class="flex-1 relative overflow-hidden">
-        <div id="revision-carousel" class="h-full flex transition-transform duration-300 ease-out">
-            <!-- Card eventi rilevati -->
-        </div>
-    </div>
-
-    <div class="py-6 flex flex-col items-center gap-6">
-        <div id="revision-dots" class="flex gap-2">
-            <!-- Punti navigazione -->
-        </div>
-        <button onclick="saveDrafts()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl">
-            <i class="fas fa-check-circle"></i> Salva Tutto
-        </button>
-    </div>
-  </div>
-
-  <!-- SCREEN G: CALENDARS -->
-  <div id="screen-calendars" class="view-overlay flex flex-col p-6">
-    <header class="flex justify-between items-center mb-8">
-        <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
-        <h2 class="text-sm font-black uppercase tracking-widest">I Tuoi Calendari</h2>
-        <div class="w-10"></div>
-    </header>
-
-    <div class="flex-1 space-y-4" id="calendars-list">
-        <!-- Lista calendari generata via JS -->
-    </div>
-
-    <div class="space-y-4 mb-6">
-        <div class="border-t border-border pt-4">
-            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Nuovo Calendario</p>
-            <input type="text" id="new-calendar-name" class="w-full bg-white border border-border rounded-xl p-4 text-xs font-medium outline-none focus:border-black transition-colors mb-3" placeholder="Nome (es. Marketing, Team...)">
-            <button onclick="createCalendar()" class="w-full bg-black text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 shadow-sm">
-                <i class="fas fa-plus"></i> Aggiungi
-            </button>
-        </div>
-    </div>
-  </div>
-
 
   <!-- SCREEN E: WEEK VIEW -->
   <div id="screen-week" class="view-overlay flex flex-col">
@@ -282,7 +114,7 @@
         <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
         <div class="flex items-center gap-4">
             <button onclick="changeWeek(-1)"><i class="fas fa-chevron-left text-xs"></i></button>
-            <span id="week-range-label" class="text-xs font-black uppercase tracking-tighter">Apr 21-27</span>
+            <span id="week-range-label" class="text-xs font-black uppercase tracking-tighter">---</span>
             <button onclick="changeWeek(1)"><i class="fas fa-chevron-right text-xs"></i></button>
         </div>
         <div class="w-10"></div>
@@ -307,31 +139,54 @@
     </header>
 
     <div class="flex-1 space-y-8">
-        <!-- ICAL SYNC -->
-        <div class="space-y-4">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-link text-gray-400"></i>
-                <h3 class="text-[10px] font-black uppercase tracking-widest text-black">Link Agenda Esterna</h3>
-                <button onclick="document.getElementById('ical-help-overlay').classList.add('open')" class="w-5 h-5 bg-gray-200 rounded-full flex items-center justify-center text-[9px] font-black text-gray-500 active:scale-90 transition ml-auto">?</button>
+        <!-- STRUTTURA 3 VIE INGESTIONE IN CONFIGURAZIONE -->
+        <div class="space-y-6">
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Sorgente Dati Agenda</p>
+            
+            <!-- Switch di Selezione -->
+            <div class="grid grid-cols-3 gap-2 bg-gray-100 p-1 rounded-xl">
+                <button onclick="switchIngestionType('ical')" id="btn-tab-ical" class="py-2 text-[9px] font-black uppercase tracking-widest rounded-lg bg-white text-black shadow-sm">iCal</button>
+                <button onclick="switchIngestionType('api')" id="btn-tab-api" class="py-2 text-[9px] font-black uppercase tracking-widest rounded-lg text-gray-400">API CRM</button>
+                <button onclick="switchIngestionType('vision')" id="btn-tab-vision" class="py-2 text-[9px] font-black uppercase tracking-widest rounded-lg text-gray-400">Vision AI</button>
             </div>
-            <p class="text-[9px] text-gray-400 leading-relaxed">Inserisci l'URL pubblico della tua agenda (iCal/ICS) per visualizzare automaticamente i tuoi impegni esistenti.</p>
-            <input type="url" id="config-ical-url" class="w-full bg-white border border-border rounded-xl p-4 text-xs font-medium outline-none focus:border-black transition-colors" placeholder="https://calendar.google.com/.../basic.ics">
-        </div>
 
-        <!-- CLOUD INTEGRATIONS -->
-        <div class="space-y-4">
-            <div class="flex items-center gap-3">
-                <i class="fas fa-cloud text-gray-400"></i>
-                <h3 class="text-[10px] font-black uppercase tracking-widest text-black">Integrazioni Cloud</h3>
+            <!-- SEZIONE 1: ICAL (Mostrata di default) -->
+            <div id="config-section-ical" class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <h3 class="text-[9px] font-black uppercase tracking-widest text-black">Link Agenda Esterna (iCal)</h3>
+                    <button onclick="document.getElementById('ical-help-overlay').classList.add('open')" class="w-4 h-4 bg-gray-200 rounded-full flex items-center justify-center text-[8px] font-black text-gray-500">?</button>
+                </div>
+                <input type="url" id="config-ical-url" class="w-full bg-white border border-border rounded-xl p-4 text-xs font-medium outline-none focus:border-black transition-colors" placeholder="https://calendar.google.com/.../basic.ics">
             </div>
-            <div class="grid grid-cols-1 gap-3">
-                <button onclick="tg.showAlert('In arrivo: connessione OAuth Google')" class="w-full py-4 bg-white border border-border rounded-2xl flex items-center px-6 gap-4 active:scale-95 transition shadow-sm">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" class="w-4 h-4">
-                    <span class="text-[10px] font-black uppercase tracking-widest">Connetti Google Calendar</span>
+
+            <!-- SEZIONE 2: API GESTIONALE (Dental Manager) -->
+            <div id="config-section-api" class="space-y-3 hidden">
+                <h3 class="text-[9px] font-black uppercase tracking-widest text-black">Integrazione API Gestionale</h3>
+                <input type="text" id="config-api-url" class="w-full bg-white border border-border rounded-xl p-4 text-xs font-medium outline-none focus:border-black transition-colors" placeholder="https://app.dental-manager.it/api/v1">
+                <input type="password" id="config-api-token" class="w-full bg-white border border-border rounded-xl p-4 text-xs font-medium outline-none focus:border-black transition-colors" placeholder="Inserisci API Token dello Studio">
+            </div>
+
+            <!-- SEZIONE 3: VISION AI (Weekly Ingestion Queue) -->
+            <div id="config-section-vision" class="space-y-4 hidden">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-[9px] font-black uppercase tracking-widest text-black">Coda Vision AI (Max 6 pag.)</h3>
+                    <span id="vision-queue-counter" class="text-[9px] font-black text-gray-400">0 / 6 Pagine</span>
+                </div>
+                
+                <!-- Queue Cards Container -->
+                <div id="vision-queue-container" class="space-y-3 max-h-72 overflow-y-auto no-scrollbar">
+                    <!-- Cards will be dynamically rendered here -->
+                </div>
+
+                <!-- Add Button -->
+                <button id="btn-add-vision" onclick="triggerVisionSelect()" class="w-full py-4 bg-gray-100 border-2 border-dashed border-gray-200 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-500 flex items-center justify-center gap-2 active:scale-95 transition">
+                    <i class="fas fa-camera"></i> <span id="btn-add-vision-text">Aggiungi Giorno (Scatta Foto)</span>
                 </button>
-                <button onclick="tg.showAlert('In arrivo: connessione OAuth Microsoft')" class="w-full py-4 bg-white border border-border rounded-2xl flex items-center px-6 gap-4 active:scale-95 transition shadow-sm">
-                    <img src="https://upload.wikimedia.org/wikipedia/commons/d/df/Microsoft_Office_Outlook_%282018%E2%80%93present%29.svg" class="w-4 h-4">
-                    <span class="text-[10px] font-black uppercase tracking-widest">Connetti Outlook</span>
+                <input type="file" id="vision-file-input" class="hidden" accept="image/*" onchange="handleVisionFileChange(event)">
+
+                <!-- Batch Send Button -->
+                <button id="btn-submit-vision-batch" onclick="submitVisionBatch()" class="w-full bg-black text-white py-4 rounded-xl font-black uppercase tracking-widest text-[9px] flex items-center justify-center gap-2 shadow-md hidden">
+                    <i class="fas fa-cloud-upload-alt"></i> Elabora Settimana Completa
                 </button>
             </div>
         </div>
@@ -386,7 +241,7 @@
                     </div>
                     <div class="help-step">
                         <div class="help-step-num">3</div>
-                        <p class="text-[10px] text-gray-600 leading-relaxed">Seleziona <b>"Calendario pubblico"</b> e copia il link generato (inizia con <b>webcal://</b>).</p>
+                        <p class="text-[10px] text-gray-600 leading-relaxed">Seleziona <b>"Calendario pubblico"</b> e copia le URL generate (inizia con <b>webcal://</b>).</p>
                     </div>
                 </div>
             </div>
@@ -424,89 +279,55 @@
     <button onclick="saveConfig()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 mb-6 shadow-xl">
         <i class="fas fa-save"></i> Salva Configurazione
     </button>
+
+    <!-- Central Spinner for settings total UI lock -->
+    <div id="settings-lock-loader" class="hidden absolute inset-0 bg-white/80 z-50 flex flex-col items-center justify-center gap-3">
+        <div class="spinner"></div>
+        <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">Elaborazione Batch in corso... Non chiudere la schermata</p>
+    </div>
   </div>
 
-  <!-- TEMPLATE CARD REVISIONE -->
-  <template id="tpl-revision-card">
-    <div class="min-w-full h-full px-2">
-        <div class="card-noir h-full p-6 flex flex-col space-y-4 border-2 !border-black/5">
-            <div class="flex justify-between items-start">
-                <div class="w-10 h-10 bg-black text-white rounded-xl flex items-center justify-center text-xs">
-                    <i class="fas fa-thumbtack"></i>
-                </div>
-                <button class="scarta-btn text-red-500 text-[10px] font-black uppercase tracking-widest">🗑️ Scarta</button>
-            </div>
-            
-            <div class="space-y-1">
-                <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Titolo</label>
-                <input type="text" class="field-title w-full bg-gray-50 p-3 rounded-xl text-xs font-bold outline-none border border-transparent focus:border-black">
-            </div>
+  <!-- SCREEN I: AGENDA RADAR -->
+  <div id="screen-radar" class="view-overlay flex flex-col p-6">
+      <header class="flex justify-between items-center mb-6">
+          <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
+          <h2 class="text-sm font-black uppercase tracking-widest">Radar AI / Ottimizzazione</h2>
+          <div class="w-10"></div>
+      </header>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Data</label>
-                    <input type="date" class="field-date w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none border border-transparent focus:border-black">
-                </div>
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Ora</label>
-                    <input type="time" class="field-time w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none border border-transparent focus:border-black">
-                </div>
-            </div>
+      <div class="flex-1 space-y-6 overflow-y-auto no-scrollbar">
+          <!-- Tasto Analisi Predittiva -->
+          <button id="btn-run-radar" onclick="runRadarAnalysis()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl">
+              <i class="fas fa-magic"></i> Ottimizza Agenda con AI
+          </button>
 
-            <div class="grid grid-cols-2 gap-3">
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Durata (min)</label>
-                    <select class="field-duration w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none border border-transparent focus:border-black">
-                        <option value="15">15 min</option>
-                        <option value="30">30 min</option>
-                        <option value="60">1 ora</option>
-                        <option value="90">1.5 ore</option>
-                        <option value="120">2 ore</option>
-                    </select>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Tipo</label>
-                    <select class="field-type w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none border border-transparent focus:border-black">
-                        <option value="MEETING">Riunione</option>
-                        <option value="CALL">Chiamata</option>
-                        <option value="DELIVERY">Consegna</option>
-                        <option value="REMINDER">Promemoria</option>
-                    </select>
-                </div>
-            </div>
+          <!-- Indicatore di caricamento (UI Lock Spinner) -->
+          <div id="radar-ai-loader" class="hidden flex flex-col items-center justify-center py-12 gap-3">
+              <div class="spinner"></div>
+              <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">Generazione in corso... Non chiudere la schermata</p>
+          </div>
 
-            <div class="space-y-1">
-                <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Luogo</label>
-                <input type="text" class="field-location w-full bg-gray-50 p-3 rounded-xl text-xs font-medium outline-none border border-transparent focus:border-black" placeholder="Indirizzo o Link">
-            </div>
+          <!-- Sezione Risultati -->
+          <div id="radar-results" class="space-y-4 hidden">
+              <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Consigli di Saturazione Rilevati</p>
+              <div id="radar-suggestions-container" class="space-y-3">
+                  <!-- Generato via JS -->
+              </div>
+          </div>
+      </div>
+  </div>
 
-            <div class="space-y-1 flex-1">
-                <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Note</label>
-                <textarea class="field-notes w-full h-16 bg-gray-50 p-3 rounded-xl text-xs font-medium outline-none border border-transparent focus:border-black resize-none" placeholder="Aggiungi dettagli..."></textarea>
-            </div>
-
-            <!-- Blocco Notifiche e Multi-Calendario -->
-            <div class="grid grid-cols-2 gap-3 border-t border-gray-100 pt-3">
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Calendario</label>
-                    <select class="field-calendar_id w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none border border-transparent focus:border-black">
-                        <!-- Popolato dinamicamente da JS -->
-                    </select>
-                </div>
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Avviso Bot</label>
-                    <select class="field-notify_minutes w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none border border-transparent focus:border-black">
-                        <option value="none">Nessuna</option>
-                        <option value="0">All'ora esatta</option>
-                        <option value="15" selected>15 min prima</option>
-                        <option value="30">30 min prima</option>
-                        <option value="60">1 ora prima</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-  </template>
+  <!-- SCREEN J: SOP LIST -->
+  <div id="screen-sop-list" class="view-overlay flex flex-col p-6">
+      <header class="flex justify-between items-center mb-6">
+          <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
+          <h2 class="text-sm font-black uppercase tracking-widest">SOP di Oggi</h2>
+          <div class="w-10"></div>
+      </header>
+      <div class="flex-1 space-y-4 overflow-y-auto no-scrollbar" id="sop-container">
+          <!-- Lista SOP con checkbox generata via JS -->
+      </div>
+  </div>
 
   <script>
     'use strict';
@@ -519,22 +340,15 @@
 
     // STATE
     let allEvents = [];
-    let draftEvents = [];
     let currentViewStack = [];
     let currentWeekOffset = 0;
-    let carouselIndex = 0;
+    let selectedIngestionType = 'ical';
+    let visionQueue = [];
     
-    // Multi-tenant Calendars
-    let calendars = [
-        { id: 'default', name: 'Personale', color: '#000000' }
+    const monthNames = [
+        "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+        "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
     ];
-    let activeCalendarId = 'default';
-
-    // Voice Recording State
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let voiceTimerInterval = null;
-    let voiceSeconds = 0;
 
     // --- INITIALIZATION ---
     async function init() {
@@ -546,64 +360,17 @@
         tg.BackButton.onClick(() => closeView());
         updateTodayLabel();
         
-        await loadCalendars();
         await loadInitialData();
-    }
+        await loadRadarSummary();
 
-    async function loadCalendars() {
-        const data = await apiCall('agenda_get_calendars', {});
-        if (data && data.calendars && data.calendars.length > 0) {
-            calendars = data.calendars;
+        // FIRST-RUN CHECK: Se non ci sono impegni o non è configurato, porta l'utente in configurazione
+        if (allEvents.length === 0) {
+            tg.showPopup({ 
+                title: "Benvenuto", 
+                message: "Configura la tua sorgente dati (iCal, API o scattando una foto) per attivare l'Agenda Radar." 
+            });
+            openView('settings');
         }
-        if (!calendars.find(c => c.id === activeCalendarId)) {
-            activeCalendarId = calendars[0].id;
-        }
-        updateActiveCalendarUI();
-    }
-
-    function updateActiveCalendarUI() {
-        const cal = calendars.find(c => c.id === activeCalendarId) || calendars[0];
-        document.getElementById('active-calendar-name').innerText = cal.name;
-        document.getElementById('active-calendar-color').style.backgroundColor = cal.color || '#000000';
-    }
-
-    function renderCalendarsList() {
-        const list = document.getElementById('calendars-list');
-        list.innerHTML = calendars.map(c => `
-            <div onclick="selectCalendar('${c.id}')" class="p-4 rounded-2xl border ${c.id === activeCalendarId ? 'border-black bg-gray-50' : 'border-border bg-white'} flex justify-between items-center cursor-pointer transition active:scale-95 mb-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-3 h-3 rounded-full" style="background-color: ${c.color || '#000000'}"></div>
-                    <span class="text-xs font-bold">${c.name}</span>
-                </div>
-                ${c.id === activeCalendarId ? '<i class="fas fa-check text-black"></i>' : ''}
-            </div>
-        `).join('');
-    }
-
-    function selectCalendar(id) {
-        activeCalendarId = id;
-        updateActiveCalendarUI();
-        renderCalendarsList();
-        closeView();
-        loadInitialData();
-    }
-
-    async function createCalendar() {
-        const input = document.getElementById('new-calendar-name');
-        const name = input.value.trim();
-        if (!name) return;
-
-        const data = await apiCall('agenda_create_calendar', { name });
-        if (data && data.calendar) {
-            calendars.push(data.calendar);
-        } else {
-            // Mock mode if backend not ready
-            const newCal = { id: 'cal_' + Date.now(), name, color: '#' + Math.floor(Math.random()*16777215).toString(16) };
-            calendars.push(newCal);
-        }
-        input.value = '';
-        renderCalendarsList();
-        if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
     }
 
     function updateTodayLabel() {
@@ -622,7 +389,7 @@
         if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         
         if (viewId === 'week') renderWeekView();
-        if (viewId === 'calendars') renderCalendarsList();
+        if (viewId === 'sop-list') loadSopList();
     }
 
     function closeView() {
@@ -656,7 +423,7 @@
     }
 
     async function loadInitialData() {
-        const data = await apiCall('agenda_get', { date_range: 'today_tomorrow', calendar_id: activeCalendarId });
+        const data = await apiCall('agenda_get', { date_range: 'today_tomorrow' });
         if (data && data.events) {
             allEvents = data.events;
         } else {
@@ -700,316 +467,6 @@
         const start = new Date(); start.setHours(h, m, 0);
         const end = new Date(start.getTime() + (ev.duration_min || 30) * 60000);
         return now >= start && now <= end;
-    }
-
-    // --- FILE HANDLING (SCREEN B) ---
-    function triggerFileSelect(source) {
-        const input = document.getElementById('file-input');
-        input.removeAttribute('capture');
-        if (source === 'camera') input.setAttribute('capture', 'environment');
-        input.click();
-    }
-
-    async function handleFileChange(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        // Preview
-        const previewImg = document.getElementById('photo-preview-img');
-        const placeholder = document.getElementById('photo-placeholder');
-        previewImg.src = URL.createObjectURL(file);
-        previewImg.classList.remove('hidden');
-        placeholder.classList.add('hidden');
-
-        // Start AI Analysis
-        analyzeImage(file);
-    }
-
-    async function analyzeImage(file) {
-        const progress = document.getElementById('ai-progress');
-        const bar = document.getElementById('ai-progress-bar');
-        const val = document.getElementById('ai-progress-val');
-        
-        progress.classList.remove('hidden');
-        bar.style.width = '20%'; val.innerText = '20%';
-
-        // Client side resize
-        const base64 = await resizeImage(file, 1024, 0.7);
-        bar.style.width = '50%'; val.innerText = '50%';
-
-        const result = await apiCall('agenda_analyze_image', { 
-            image_base64: base64, 
-            mime_type: file.type 
-        });
-
-        bar.style.width = '100%'; val.innerText = '100%';
-
-        if (result && result.events_draft) {
-            draftEvents = result.events_draft;
-            setTimeout(() => {
-                progress.classList.add('hidden');
-                openRevision();
-            }, 500);
-        } else {
-            tg.showAlert("L'AI non ha rilevato eventi strutturati in questa immagine.");
-            progress.classList.add('hidden');
-        }
-    }
-
-    function resizeImage(file, maxSide, quality) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    let w = img.width, h = img.height;
-                    if (w > h) { if (w > maxSide) { h *= maxSide / w; w = maxSide; } }
-                    else { if (h > maxSide) { w *= maxSide / h; h = maxSide; } }
-                    canvas.width = w; canvas.height = h;
-                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                    resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        });
-    }
-
-    // --- TEXT ANALYSIS (SCREEN C) ---
-    function appendTxt(txt) {
-        const input = document.getElementById('free-text-input');
-        input.value += (input.value ? ' ' : '') + txt;
-        input.focus();
-    }
-
-    async function analyzeText() {
-        const text = document.getElementById('free-text-input').value;
-        if (!text.trim()) return;
-
-        const btn = document.getElementById('btn-analyze-text');
-        const originalContent = btn.innerHTML;
-        btn.innerHTML = `<div class="spinner"></div>`;
-        btn.disabled = true;
-
-        const result = await apiCall('agenda_analyze_text', { text });
-
-        btn.innerHTML = originalContent;
-        btn.disabled = false;
-
-        if (result && result.events_draft) {
-            draftEvents = result.events_draft;
-            openRevision();
-        } else {
-            tg.showAlert("L'AI non ha trovato impegni nel testo fornito.");
-        }
-    }
-
-    // --- VOICE RECORDING (SCREEN H) ---
-    async function toggleRecording() {
-        const btn = document.getElementById('mic-record-btn');
-        const icon = document.getElementById('mic-icon');
-        const status = document.getElementById('voice-status');
-        const timer = document.getElementById('voice-timer');
-
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            // Stop recording
-            mediaRecorder.stop();
-            btn.classList.remove('recording');
-            icon.className = 'fas fa-microphone';
-            status.innerText = 'Elaborazione...';
-            clearInterval(voiceTimerInterval);
-            return;
-        }
-
-        // Start recording
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            audioChunks = [];
-            voiceSeconds = 0;
-
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
-            mediaRecorder = new MediaRecorder(stream, { mimeType });
-
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) audioChunks.push(e.data);
-            };
-
-            mediaRecorder.onstop = async () => {
-                stream.getTracks().forEach(t => t.stop());
-                timer.classList.add('hidden');
-
-                const blob = new Blob(audioChunks, { type: mimeType });
-                const reader = new FileReader();
-                reader.onloadend = async () => {
-                    const base64 = reader.result.split(',')[1];
-                    await analyzeVoice(base64, mimeType.split(';')[0]);
-                };
-                reader.readAsDataURL(blob);
-            };
-
-            mediaRecorder.start(250);
-            btn.classList.add('recording');
-            icon.className = 'fas fa-stop';
-            status.innerText = 'Registrazione in corso...';
-            timer.classList.remove('hidden');
-            timer.innerText = '00:00';
-
-            voiceTimerInterval = setInterval(() => {
-                voiceSeconds++;
-                const mm = String(Math.floor(voiceSeconds / 60)).padStart(2, '0');
-                const ss = String(voiceSeconds % 60).padStart(2, '0');
-                timer.innerText = `${mm}:${ss}`;
-            }, 1000);
-
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-        } catch (err) {
-            console.error('Mic error:', err);
-            tg.showAlert('Impossibile accedere al microfono. Verifica i permessi.');
-        }
-    }
-
-    async function analyzeVoice(base64, mime) {
-        const progress = document.getElementById('voice-ai-progress');
-        const bar = document.getElementById('voice-ai-progress-bar');
-        const val = document.getElementById('voice-ai-progress-val');
-        const status = document.getElementById('voice-status');
-
-        progress.classList.remove('hidden');
-        bar.style.width = '30%'; val.innerText = '30%';
-        status.innerText = 'Analisi AI in corso...';
-
-        bar.style.width = '60%'; val.innerText = '60%';
-
-        const result = await apiCall('agenda_analyze_text', {
-            voice_base64: base64,
-            mime_type: mime
-        });
-
-        bar.style.width = '100%'; val.innerText = '100%';
-
-        if (result && result.events_draft) {
-            draftEvents = result.events_draft;
-            setTimeout(() => {
-                progress.classList.add('hidden');
-                status.innerText = 'Premi per registrare';
-                openRevision();
-            }, 400);
-        } else {
-            progress.classList.add('hidden');
-            status.innerText = 'Premi per registrare';
-            tg.showAlert("L'AI non ha trovato impegni nel messaggio vocale.");
-        }
-    }
-
-    function stopAndCloseVoice() {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-            document.getElementById('mic-record-btn').classList.remove('recording');
-            document.getElementById('mic-icon').className = 'fas fa-microphone';
-            clearInterval(voiceTimerInterval);
-        }
-        document.getElementById('voice-status').innerText = 'Premi per registrare';
-        document.getElementById('voice-timer').classList.add('hidden');
-        document.getElementById('voice-ai-progress').classList.add('hidden');
-        closeView();
-    }
-
-    // --- REVISION (SCREEN D) ---
-    function openRevision() {
-        openView('revision');
-        renderRevisionCarousel();
-    }
-
-    function renderRevisionCarousel() {
-        const container = document.getElementById('revision-carousel');
-        const dotsContainer = document.getElementById('revision-dots');
-        const label = document.getElementById('revision-count');
-        const tpl = document.getElementById('tpl-revision-card');
-
-        container.innerHTML = '';
-        dotsContainer.innerHTML = '';
-        label.innerText = `AI ha rilevato ${draftEvents.length} eventi`;
-        carouselIndex = 0;
-        updateCarousel();
-
-        draftEvents.forEach((ev, idx) => {
-            const clone = tpl.content.cloneNode(true);
-            const card = clone.querySelector('.card-noir');
-            
-            card.querySelector('.field-title').value = ev.title || '';
-            card.querySelector('.field-date').value = ev.date || '';
-            card.querySelector('.field-time').value = ev.time_start || '';
-            card.querySelector('.field-duration').value = ev.duration_min || '30';
-            card.querySelector('.field-type').value = ev.type || 'MEETING';
-            card.querySelector('.field-location').value = ev.location || '';
-            card.querySelector('.field-notes').value = ev.notes || '';
-            
-            const calSelect = card.querySelector('.field-calendar_id');
-            calSelect.innerHTML = calendars.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            calSelect.value = ev.calendar_id || activeCalendarId;
-            card.querySelector('.field-notify_minutes').value = ev.notify_minutes !== undefined ? ev.notify_minutes : '15';
-
-            card.querySelector('.scarta-btn').onclick = () => scartaDraft(idx);
-
-            // Sync state on change
-            card.querySelectorAll('input, select, textarea').forEach(input => {
-                input.onchange = (e) => {
-                    const match = e.target.className.match(/field-([a-zA-Z_]+)/);
-                    if (match && match[1]) {
-                        draftEvents[idx][match[1]] = e.target.value;
-                    }
-                };
-            });
-
-            container.appendChild(clone);
-
-            const dot = document.createElement('div');
-            dot.className = `dot ${idx === 0 ? 'active' : ''}`;
-            dotsContainer.appendChild(dot);
-        });
-
-        // Touch handling for carousel
-        let startX = 0;
-        container.ontouchstart = (e) => startX = e.touches[0].clientX;
-        container.ontouchend = (e) => {
-            const endX = e.changedTouches[0].clientX;
-            if (startX - endX > 50) moveCarousel(1);
-            if (startX - endX < -50) moveCarousel(-1);
-        };
-    }
-
-    function moveCarousel(dir) {
-        carouselIndex = Math.max(0, Math.min(draftEvents.length - 1, carouselIndex + dir));
-        updateCarousel();
-    }
-
-    function updateCarousel() {
-        const container = document.getElementById('revision-carousel');
-        container.style.transform = `translateX(-${carouselIndex * 100}%)`;
-        
-        document.querySelectorAll('.dot').forEach((dot, idx) => {
-            dot.classList.toggle('active', idx === carouselIndex);
-        });
-    }
-
-    function scartaDraft(idx) {
-        draftEvents.splice(idx, 1);
-        if (draftEvents.length === 0) {
-            closeView();
-        } else {
-            renderRevisionCarousel();
-        }
-    }
-
-    async function saveDrafts() {
-        const result = await apiCall('agenda_save', { events: draftEvents });
-        if (result && result.success) {
-            tg.HapticFeedback.notificationOccurred('success');
-            closeView(); // Close revision
-            closeView(); // Close ingestion (photo/text)
-            loadInitialData(); // Reload home
-        }
     }
 
     // --- WEEK VIEW (SCREEN E) ---
@@ -1104,31 +561,372 @@
         renderWeekView();
     }
 
-    // --- OTHER ---
-    function openManualAdd() {
-        draftEvents = [{
-            title: '',
-            date: new Date().toISOString().split('T')[0],
-            time_start: '10:00',
-            duration_min: 30,
-            type: 'MEETING',
-            location: '',
-            notes: '',
-            calendar_id: activeCalendarId,
-            notify_minutes: '15',
-            source: 'MANUAL'
-        }];
-        openRevision();
+    // --- RADAR & SOP ---
+    // 1. Caricamento dei dati di riepilogo per la Home (Saturazione e SOP)
+    async function loadRadarSummary() {
+        const data = await apiCall('radar_get_status', {});
+        if (data) {
+            document.getElementById('radar-saturation-val').innerText = `${data.saturation_rate}%`;
+            document.getElementById('radar-saturation-label').innerText = data.saturation_status_text || 'Standard';
+            document.getElementById('radar-sop-count').innerText = `${data.sop_completed} / ${data.sop_total} Completate`;
+        }
+    }
+
+    // 2. Chiamata di Analisi Predittiva (UI Lock con blocco totale degli input)
+    async function runRadarAnalysis() {
+        const loader = document.getElementById('radar-ai-loader');
+        const results = document.getElementById('radar-results');
+        const btn = document.getElementById('btn-run-radar');
+        const radarScreen = document.getElementById('screen-radar');
+        
+        // UI LOCK: attivazione spinner, disabilitazione tasto, nascondi vecchi risultati, disattiva click/back button
+        loader.classList.remove('hidden');
+        results.classList.add('hidden');
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        if (radarScreen) radarScreen.style.pointerEvents = 'none';
+        tg.BackButton.hide();
+
+        try {
+            const data = await apiCall('radar_optimize_on_demand', {});
+            
+            if (data && data.suggestions) {
+                results.classList.remove('hidden');
+                renderRadarSuggestions(data.suggestions);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } else {
+                tg.showAlert("Nessun suggerimento disponibile. L'agenda potrebbe essere già satura.");
+            }
+        } catch (e) {
+            console.error("Errore durante l'ottimizzazione predittiva:", e);
+            tg.showAlert("Impossibile completare l'ottimizzazione in questo momento.");
+        } finally {
+            // Rilascio del Lock in ogni scenario (successo o fallimento)
+            loader.classList.add('hidden');
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            if (radarScreen) radarScreen.style.pointerEvents = 'auto';
+            tg.BackButton.show();
+        }
+    }
+
+    // 3. Rendering dei Suggerimenti (Communication Helper con pulsanti Copia e Condividi)
+    function renderRadarSuggestions(suggestions) {
+        const container = document.getElementById('radar-suggestions-container');
+        container.innerHTML = suggestions.map(s => `
+            <div class="card-noir p-5 space-y-3">
+                <div class="flex justify-between items-start">
+                    <span class="text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+                        <i class="fas fa-exclamation-triangle"></i> Slot: ${s.slot_time}
+                    </span>
+                    <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">Priorità: ${s.priority}</span>
+                </div>
+                <h4 class="text-xs font-bold uppercase tracking-tight">${s.recommended_service}</h4>
+                <p class="text-[10px] text-gray-500 leading-relaxed">${s.reasoning}</p>
+                <div class="border-t border-gray-100 pt-3 flex gap-2">
+                    <button onclick="navigator.clipboard.writeText(\`${s.message_template}\`); tg.showAlert('Messaggio copiato!');" class="flex-1 py-3 bg-gray-100 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-600 flex items-center justify-center gap-1.5 active:scale-95 transition">
+                        <i class="fas fa-copy"></i> Copia
+                    </button>
+                    <a href="https://t.me/share/url?url=&text=${encodeURIComponent(s.message_template)}" target="_blank" class="flex-1 py-3 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition text-center">
+                        <i class="fab fa-telegram-plane"></i> Invia
+                    </a>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // 4. Caricamento della Checklist SOP
+    async function loadSopList() {
+        const data = await apiCall('radar_get_sops', {});
+        if (data && data.sops) {
+            const container = document.getElementById('sop-container');
+            container.innerHTML = data.sops.map(sop => `
+                <div class="card-noir p-4 flex justify-between items-center bg-white border border-border">
+                    <div class="flex flex-col gap-1">
+                        <span class="text-xs font-bold uppercase tracking-tight ${sop.completed ? 'line-through text-gray-300' : ''}">${sop.title}</span>
+                        <p class="text-[8px] text-gray-400 uppercase tracking-widest">${sop.description}</p>
+                    </div>
+                    <input type="checkbox" onchange="toggleSop('${sop.id}')" ${sop.completed ? 'checked' : ''} class="w-5 h-5 accent-black rounded">
+                </div>
+            `).join('');
+        }
+    }
+
+    // 5. Aggiornamento dello Stato di una SOP con feedback aptico
+    async function toggleSop(id) {
+        const data = await apiCall('radar_toggle_sop', { sop_id: id });
+        if (data && data.success) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            loadSopList();
+            loadRadarSummary();
+        }
+    }
+
+    function switchIngestionType(type) {
+        selectedIngestionType = type;
+        
+        // Gestione Tab UI
+        ['ical', 'api', 'vision'].forEach(t => {
+            const btn = document.getElementById(`btn-tab-${t}`);
+            const sec = document.getElementById(`config-section-${t}`);
+            if (t === type) {
+                btn.classList.add('bg-white', 'text-black', 'shadow-sm');
+                btn.classList.remove('text-gray-400');
+                sec.classList.remove('hidden');
+            } else {
+                btn.classList.remove('bg-white', 'text-black', 'shadow-sm');
+                btn.classList.add('text-gray-400');
+                sec.classList.add('hidden');
+            }
+        });
+
+        if (type === 'vision') {
+            renderVisionQueue();
+        }
+    }
+
+    function renderVisionQueue() {
+        const container = document.getElementById('vision-queue-container');
+        const counter = document.getElementById('vision-queue-counter');
+        const addBtn = document.getElementById('btn-add-vision');
+        const submitBtn = document.getElementById('btn-submit-vision-batch');
+
+        if (!container || !counter || !addBtn || !submitBtn) return;
+
+        container.innerHTML = '';
+        counter.innerText = `${visionQueue.length} / 6 Pagine`;
+
+        // Toggle button visibility based on size limit
+        if (visionQueue.length >= 6) {
+            addBtn.classList.add('hidden');
+        } else {
+            addBtn.classList.remove('hidden');
+        }
+
+        // Toggle batch submit button
+        if (visionQueue.length > 0) {
+            submitBtn.classList.remove('hidden');
+        } else {
+            submitBtn.classList.add('hidden');
+        }
+
+        const currentYear = new Date().getFullYear();
+        const years = [currentYear, currentYear + 1];
+
+        visionQueue.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = "card-noir p-3 flex items-center gap-3 bg-white relative border border-border";
+            
+            // Month options
+            const monthOptions = monthNames.map((name, i) => 
+                `<option value="${i + 1}" ${item.month === (i + 1) ? 'selected' : ''}>${name}</option>`
+            ).join('');
+
+            // Year options
+            const yearOptions = years.map(yr => 
+                `<option value="${yr}" ${item.year === yr ? 'selected' : ''}>${yr}</option>`
+            ).join('');
+
+            card.innerHTML = `
+                <!-- Thumbnail -->
+                <div class="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-border">
+                    <img src="data:${item.mime_type};base64,${item.image_base64}" class="w-full h-full object-cover">
+                </div>
+                
+                <!-- Date context selectors -->
+                <div class="flex-1 grid grid-cols-2 gap-2">
+                    <div class="flex flex-col gap-0.5">
+                        <label class="text-[7px] font-black uppercase text-gray-400 tracking-wider">Mese</label>
+                        <select onchange="updateQueueItem(${index}, 'month', this.value)" class="bg-gray-50 rounded-lg p-1.5 text-[10px] font-bold outline-none border border-transparent focus:border-black">
+                            ${monthOptions}
+                        </select>
+                    </div>
+                    <div class="flex flex-col gap-0.5">
+                        <label class="text-[7px] font-black uppercase text-gray-400 tracking-wider">Anno</label>
+                        <select onchange="updateQueueItem(${index}, 'year', this.value)" class="bg-gray-50 rounded-lg p-1.5 text-[10px] font-bold outline-none border border-transparent focus:border-black">
+                            ${yearOptions}
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Remove Button -->
+                <button onclick="removeFromQueue(${index})" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-55 rounded-lg transition">
+                    <i class="fas fa-trash-alt text-xs"></i>
+                </button>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function updateQueueItem(index, key, value) {
+        const parsedVal = parseInt(value, 10);
+        visionQueue[index][key] = parsedVal;
+        
+        // Ereditarietà temporale per le schede successive
+        for (let i = index + 1; i < visionQueue.length; i++) {
+            visionQueue[i][key] = parsedVal;
+        }
+        renderVisionQueue();
+    }
+
+    function removeFromQueue(index) {
+        visionQueue.splice(index, 1);
+        renderVisionQueue();
+        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+    }
+
+    function triggerVisionSelect() {
+        document.getElementById('vision-file-input').click();
+    }
+
+    async function handleVisionFileChange(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (visionQueue.length >= 6) {
+            tg.showAlert("La coda Vision AI può contenere al massimo 6 pagine.");
+            return;
+        }
+
+        const addBtn = document.getElementById('btn-add-vision');
+        const addBtnText = document.getElementById('btn-add-vision-text');
+        
+        // LOCK DI SCATTO (Parziale)
+        addBtn.disabled = true;
+        addBtn.classList.add('opacity-50');
+        addBtnText.innerText = "Trascrizione OCR in corso...";
+
+        try {
+            // Client-side image compression/resize
+            const base64 = await resizeImage(file, 1024, 0.7);
+
+            // Fallback defaults basati sulla logica di ereditarietà
+            let defaultMonth = new Date().getMonth() + 1;
+            let defaultYear = new Date().getFullYear();
+
+            if (visionQueue.length > 0) {
+                const prevItem = visionQueue[visionQueue.length - 1];
+                defaultMonth = prevItem.month;
+                defaultYear = prevItem.year;
+            }
+
+            // Rilevamento OCR locale del contesto temporale
+            let ocrResult = { month: null, year: null };
+            if (window.RadarOCR) {
+                ocrResult = await window.RadarOCR.detectDateContext(`data:${file.type};base64,${base64}`);
+            }
+
+            const finalMonth = ocrResult.month || defaultMonth;
+            const finalYear = ocrResult.year || defaultYear;
+
+            // Inserimento in coda
+            visionQueue.push({
+                image_base64: base64,
+                mime_type: file.type,
+                month: finalMonth,
+                year: finalYear
+            });
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            renderVisionQueue();
+
+        } catch (e) {
+            console.error("Errore durante l'acquisizione della foto:", e);
+            tg.showAlert("Impossibile elaborare l'immagine.");
+        } finally {
+            // Rilascio lock di scatto
+            addBtn.disabled = false;
+            addBtn.classList.remove('opacity-50');
+            addBtnText.innerText = "Aggiungi Giorno (Scatta Foto)";
+            event.target.value = ''; // Reset input
+        }
+    }
+
+    function resizeImage(file, maxSide, quality) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > maxSide) { h *= maxSide / w; w = maxSide; } }
+                    else { if (h > maxSide) { w *= maxSide / h; h = maxSide; } }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    resolve(canvas.toDataURL('image/jpeg', quality).split(',')[1]);
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function submitVisionBatch() {
+        if (visionQueue.length === 0) return;
+
+        const lockLoader = document.getElementById('settings-lock-loader');
+        const settingsScreen = document.getElementById('screen-settings');
+        
+        // LOCK DI INVIO (Totale)
+        if (lockLoader) lockLoader.classList.remove('hidden');
+        if (settingsScreen) settingsScreen.style.pointerEvents = 'none';
+        tg.BackButton.hide();
+
+        try {
+            const payload = {
+                pages: visionQueue.map(item => ({
+                    image_base64: item.image_base64,
+                    mime_type: item.mime_type,
+                    month: item.month,
+                    year: item.year
+                }))
+            };
+
+            const result = await apiCall('radar_ingest_vision_batch', payload);
+
+            if (result && result.success) {
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                tg.showAlert("Settimana elaborata con successo. L'agenda è stata aggiornata.");
+                
+                visionQueue = [];
+                renderVisionQueue();
+                
+                closeView();
+                loadInitialData();
+            } else {
+                tg.showAlert("Impossibile elaborare la settimana. Si prega di riprovare.");
+            }
+        } catch (e) {
+            console.error("Errore durante l'invio batch:", e);
+            tg.showAlert("Si è verificato un errore di connessione.");
+        } finally {
+            // Sblocco UI Lock Totale
+            if (lockLoader) lockLoader.classList.add('hidden');
+            if (settingsScreen) settingsScreen.style.pointerEvents = 'auto';
+            tg.BackButton.show();
+        }
     }
 
     async function saveConfig() {
-        const icalUrl = document.getElementById('config-ical-url').value;
-        const result = await apiCall('agenda_config_save', { ical_url: icalUrl });
+        const payload = {
+            ingestion_type: selectedIngestionType
+        };
+
+        if (selectedIngestionType === 'ical') {
+            payload.ical_url = document.getElementById('config-ical-url').value;
+        } else if (selectedIngestionType === 'api') {
+            payload.api_url = document.getElementById('config-api-url').value;
+            payload.api_token = document.getElementById('config-api-token').value;
+        }
+
+        const result = await apiCall('agenda_config_save', payload);
         if (result && result.success) {
             tg.HapticFeedback.notificationOccurred('success');
-            tg.showPopup({ message: "Configurazione salvata. L'agenda verrà sincronizzata." });
+            tg.showPopup({ message: "Configurazione salvata correttamente." });
             closeView();
             loadInitialData();
+            loadRadarSummary();
         }
     }
 
