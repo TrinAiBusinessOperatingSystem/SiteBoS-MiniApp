@@ -928,44 +928,60 @@
         const lockLoader = document.getElementById('settings-lock-loader');
         const settingsScreen = document.getElementById('screen-settings');
         
+        // Rilevamento della Piattaforma (Desktop vs Mobile)
+        const isMobile = tg.platform === 'android' || 
+                         tg.platform === 'ios' || 
+                         /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+        
         // UI Lock
         if (lockLoader) lockLoader.classList.remove('hidden');
         if (settingsScreen) settingsScreen.style.pointerEvents = 'none';
         tg.BackButton.hide();
 
         try {
-            const res = await fetch(WEBHOOK_URL, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    action: "radar_generate_ideal_ical", 
-                    ash, 
-                    _auth: tg.initData
-                })
-            });
-            
-            if (!res.ok) throw new Error("Chiamata fallita");
+            if (isMobile) {
+                // Flusso Mobile: Invia tramite Bot Telegram
+                const result = await apiCall('radar_send_ideal_ical_to_bot', {});
+                if (result && result.success) {
+                    tg.showAlert("Struttura Agenda generata con successo! Il file .ics è stato inviato direttamente nella tua chat Telegram di SiTeBoS. Aprilo per importarlo nel tuo Google Calendar.");
+                } else {
+                    tg.showAlert("Impossibile inviare la struttura dell'agenda tramite Telegram.");
+                }
+            } else {
+                // Flusso Desktop: Download Diretto del file binario
+                const res = await fetch(WEBHOOK_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                        action: "radar_generate_ideal_ical", 
+                        ash, 
+                        _auth: tg.initData
+                    })
+                });
+                
+                if (!res.ok) throw new Error("Chiamata fallita");
 
-            const blob = await res.blob();
-            const calendarBlob = new Blob([blob], { type: 'text/calendar' });
-            
-            const downloadUrl = window.URL.createObjectURL(calendarBlob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = 'sitebos_struttura_agenda.ics';
-            document.body.appendChild(a);
-            a.click();
-            
-            // Clean up
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(downloadUrl);
+                const blob = await res.blob();
+                const calendarBlob = new Blob([blob], { type: 'text/calendar' });
+                
+                const downloadUrl = window.URL.createObjectURL(calendarBlob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'sitebos_struttura_agenda.ics';
+                document.body.appendChild(a);
+                a.click();
+                
+                // Pulizia
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
 
-            tg.showPopup({
-                title: "Download Completato",
-                message: "La struttura dell'agenda ideale è stata scaricata. Puoi importarla ora su Google Calendar o sulla tua app di calendario preferita."
-            });
+                tg.showPopup({
+                    title: "Download Completato",
+                    message: "La struttura dell'agenda ideale è stata scaricata. Puoi importarla ora su Google Calendar o sulla tua app di calendario preferita."
+                });
+            }
         } catch (e) {
-            console.error("Errore nel download dell'agenda ideale:", e);
+            console.error("Errore nella generazione dell'agenda ideale:", e);
             tg.showAlert("Impossibile generare la struttura dell'agenda in questo momento.");
         } finally {
             // Rilascio lock
