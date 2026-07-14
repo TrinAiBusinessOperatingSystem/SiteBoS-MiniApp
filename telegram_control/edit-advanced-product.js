@@ -18,7 +18,103 @@ async function loadData() {
         });
         const rawData = await res.json();
         const d = Array.isArray(rawData) ? rawData[0] : rawData;
-        const productData = d.catalog_item || d.catalog_item_draft || d;
+        const doc = d.advanced_catalog_item || d.catalog_item || d.catalog_item_draft || d;
+        
+        let productData = {};
+
+        // If the document is in the raw ADVANCED_SERVICE_BLUEPRINT format (from AI generation)
+        if (doc.document_type === "ADVANCED_SERVICE_BLUEPRINT" || doc.service_identity) {
+            console.log("Mapping ADVANCED_SERVICE_BLUEPRINT to simplified product schema...");
+            
+            // Map Identity
+            productData.identity = {
+                item_name: doc.service_identity?.name || doc.product_identity?.name || "Prodotto",
+                item_sku: doc.service_identity?.sku || doc.product_identity?.sku || sopId,
+                item_type: doc.service_identity?.type || doc.product_identity?.type || "PRODUCT"
+            };
+            
+            // Map Pricing
+            productData.pricing = {
+                base_price: doc.financial_simulations?.pricing_summary?.catalog_price || 0
+            };
+            
+            // Map BOM items from suppliers list
+            productData.bom = [];
+            (doc.market_and_fiscal_intelligence?.suppliers || []).forEach(s => {
+                const provider = s.providers?.[0] || {};
+                productData.bom.push({
+                    item_sku: provider.supp_sku || s.required_material,
+                    name: s.required_material,
+                    qty: provider.usage || 1,
+                    usage: provider.usage || 1,
+                    unit_of_measure: "pz",
+                    unit_cost: provider.cost || 0.00,
+                    cost: (provider.cost || 0.00) * (provider.usage || 1),
+                    relation_type: "materiale",
+                    is_semilavorato: false
+                });
+            });
+            
+            // Map Procurement Suppliers
+            productData.procurement = { suppliers: [] };
+            (doc.market_and_fiscal_intelligence?.suppliers || []).forEach(s => {
+                (s.providers || []).forEach(p => {
+                    productData.procurement.suppliers.push({
+                        supplier_name: p.supp_name,
+                        material_sku: p.supp_sku || s.required_material,
+                        unit_cost: p.cost
+                    });
+                });
+            });
+            
+            // Map Logistics/Locations
+            productData.logistics = {
+                locations: (doc.environments || []).map(loc => ({
+                    loc_name: loc.loc_name,
+                    purpose: loc.loc_name,
+                    estimated_internal_cost_rate: loc.estimated_internal_cost || 0
+                }))
+            };
+            
+            // Map Assets
+            productData.assets = (doc.assets || []).map(a => ({
+                asset_name: a.asset_name,
+                asset_sku: a.asset_sku,
+                estimated_internal_cost_rate: a.estimated_internal_cost || 0
+            }));
+            
+            // Map Competitors
+            productData.relations = {
+                marketing_info: {
+                    competitors: (doc.market_and_fiscal_intelligence?.competitors || []).map(c => ({
+                        competitor_name: c.name,
+                        source_url: c.url,
+                        price: c.estimated_price || 0
+                    }))
+                }
+            };
+            
+            // Map Blueprint stages and steps
+            productData.blueprint = { stages: [] };
+            (doc.bill_of_materials?.bom_steps || []).forEach(sub => {
+                (sub.stages || []).forEach(stage => {
+                    productData.blueprint.stages.push({
+                        stage_order: productData.blueprint.stages.length + 1,
+                        stage_name: stage.stage_name || sub.subprocess_name,
+                        steps: (stage.steps || []).map(step => ({
+                            step_name: step.step_name,
+                            estimated_time_minutes: step.estimated_time_minutes,
+                            instructions: step.instructions
+                        }))
+                    });
+                });
+            });
+            
+        } else {
+            // Already in simplified format
+            productData = doc;
+        }
+
         currentData = JSON.parse(JSON.stringify(productData));
         originalDataStr = JSON.stringify(collectDataForSaving());
 
