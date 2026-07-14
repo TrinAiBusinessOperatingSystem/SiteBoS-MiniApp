@@ -639,22 +639,26 @@
             const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === currentSopId);
             const itemType = currentProductData?.identity?.item_type || match?.item_type || '';
             
+            // Rilevamento esteso del tipo semilavorato con fallback per compatibilità
             const isSemi = itemType === 'SEMI_FINISHED' || 
                            itemType === 'semilavorato' || 
                            itemType === 'SEMI_FINISHED_PRODUCT' ||
-                           currentProductData?.blueprint_type === 'SOP_SEMILAVORATO';
+                           currentProductData?.blueprint_type === 'SOP_SEMILAVORATO' ||
+                           (currentSopId && currentSopId.includes("SEMI"));
 
             if (currentMacro === 'SOP' && !isSemi) {
                 tg.showAlert("La Gestione Avanzata non è disponibile per le Procedure (SOP).");
                 return;
             }
 
-            const isAdvancedReady = currentProductData?.ui_node_draft?.advanced_ready === true;
+            // Se l'elemento è già attivo nel catalogo (blueprint_ready === true), evitiamo il reindirizzamento forzato
+            const isAdvancedReady = (currentProductData?.ui_node_draft?.advanced_ready === true) || (match?.blueprint_ready === true);
+            
             if (!isAdvancedReady) {
                 launchSubEditor('edit-product.html?open_advanced=true');
             } else {
-                // Se siamo nella scheda dei Prodotti (PRO) o dei Semilavorati (SOP), apriamo l'editor di prodotto
-                const page = (currentMacro === 'PRO' || currentMacro === 'SOP') ? 'edit-advanced-product.html' : 'edit-advanced.html';
+                // Se siamo nel tab dei Prodotti (PRO) o dei Semilavorati (SOP), apriamo l'editor dei prodotti, altrimenti quello dei servizi
+                const page = (currentMacro === 'PRO' || (currentMacro === 'SOP' && isSemi)) ? 'edit-advanced-product.html' : 'edit-advanced.html';
                 launchSubEditor(page);
             }
         };
@@ -668,14 +672,17 @@
         window.openProduct = async (page, pId, catId) => {
             if (page === 'edit-blueprint.html') {
                 currentSopId = pId;
-                currentSocialData = null; // Reset
-                currentVatNumber = null; // Reset
+                
+                // Reset preventivo dello stato per evitare conflitti tra prodotti diversi
+                currentSocialData = null; 
+                currentVatNumber = null; 
+                currentProductData = null; 
 
                 const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === pId);
                 document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli Prodotto';
                 document.getElementById('hub-product-sku').innerText = `ID: ${pId}`;
 
-                // Setup advanced button visual state based on currentMacro and isSemi
+                // Configurazione visiva del pulsante avanzato in base al tipo di elemento
                 const isSemi = match && (match.item_type === 'SEMI_FINISHED' || match.item_type === 'semilavorato' || match.item_type === 'SEMI_FINISHED_PRODUCT');
                 const advancedBtn = document.getElementById('hub-advanced-btn');
                 if (advancedBtn) {
@@ -686,7 +693,7 @@
                     }
                 }
 
-                // Initialize security state
+                // Inizializzazione stato sicurezza
                 currentSecurityState = match && match.show_in_security_assistant === true;
                 updateSecurityBtnUI();
 
@@ -739,7 +746,9 @@
                         </div>
                         <span class="text-[9px] font-black uppercase tracking-widest text-blue-600 mt-1 font-bold">Attiva Social</span>`;
                     }
-                } catch (e) { console.error("Ghost Info Error:", e); }
+                } catch (e) { 
+                    console.error("Ghost Info Error:", e); 
+                }
 
                 const hub = document.getElementById('hub-drawer');
                 hub.classList.remove('hidden');
