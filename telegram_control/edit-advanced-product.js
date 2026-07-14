@@ -2,8 +2,6 @@
 
 const currFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
 
-let currentData = null;
-let originalDataStr = "";
 
 async function loadData() {
     try {
