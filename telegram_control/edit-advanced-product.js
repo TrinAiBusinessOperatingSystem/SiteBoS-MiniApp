@@ -25,7 +25,7 @@ async function loadData() {
             throw new Error("Dati non validi o vuoti ricevuti dal server");
         }
         
-        const doc = d.advanced_catalog_item || d.catalog_item || d.catalog_item_draft || d;
+        const doc = d.data || d.advanced_catalog_item || d.catalog_item || d.catalog_item_draft || d;
         let productData = {};
 
         // Riconoscimento dello schema n8n (ADVANCED_SERVICE_BLUEPRINT)
@@ -132,6 +132,8 @@ async function loadData() {
 
             // Conserva i parametri di simulazione calcolati dal backend
             productData.financial_simulations = doc.financial_simulations || {};
+            productData.strategic_operations_analysis = doc.strategic_operations_analysis || {};
+            productData.strategic_clinical_analysis = doc.strategic_clinical_analysis || {};
             
         } else {
             console.log("Rilevato schema semplificato standard.");
@@ -205,7 +207,9 @@ function collectDataForSaving() {
         procurement: currentData.procurement || {},
         logistics: currentData.logistics || {},
         assets: currentData.assets || [],
-        competitors: currentData.relations?.marketing_info?.competitors || []
+        competitors: currentData.relations?.marketing_info?.competitors || [],
+        strategic_operations_analysis: currentData.strategic_operations_analysis || {},
+        strategic_clinical_analysis: currentData.strategic_clinical_analysis || {}
     };
 }
 
@@ -220,6 +224,73 @@ function checkDirty() {
 function populateCFO() {
     const basePrice = parseFloat(currentData.pricing?.base_price) || 0;
     document.getElementById('cfo-base-price').innerText = currFmt.format(basePrice);
+
+    const stratOps = currentData.strategic_operations_analysis || {};
+    const stratClin = currentData.strategic_clinical_analysis || {};
+
+    // 1. Health Rating mapping
+    const rating = stratOps.operations_financial_health_rating || stratClin.clinical_financial_health_rating || "MODERATE_MARGINS";
+    const healthBadge = document.getElementById('label-health');
+    const healthDesc = document.getElementById('label-health-desc');
+    const healthCard = document.getElementById('cfo-health-card');
+
+    if (healthBadge && healthDesc && healthCard) {
+        if (rating === 'HIGH_PROFITABILITY') {
+            healthBadge.className = 'px-4 py-2 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
+            healthBadge.innerText = 'PROFITTEVOLE';
+            healthDesc.innerText = "Il prodotto garantisce ottimi margini operativi e alta redditività.";
+            healthCard.style.borderColor = '#22c55e';
+        } else if (rating === 'MODERATE_MARGINS') {
+            healthBadge.className = 'px-4 py-2 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
+            healthBadge.innerText = 'MARGINI MEDI';
+            healthDesc.innerText = "I margini sono stabili ma monitorare i costi dei materiali.";
+            healthCard.style.borderColor = '#f59e0b';
+        } else if (rating === 'WARNING_LOW_MARGINS') {
+            healthBadge.className = 'px-4 py-2 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
+            healthBadge.innerText = 'MARGINI BASSI';
+            healthDesc.innerText = "Attenzione: i margini sono risicati. Valutare l'ottimizzazione del procurement.";
+            healthCard.style.borderColor = '#f59e0b';
+        } else if (rating === 'DANGER_NEGATIVE_NET_PROFIT') {
+            healthBadge.className = 'px-4 py-2 bg-red-600 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
+            healthBadge.innerText = 'IN PERDITA';
+            healthDesc.innerText = "Il prodotto genera una perdita netta. Rivedere subito i costi o aumentare la tariffa.";
+            healthCard.style.borderColor = '#ef4444';
+        } else {
+            // Default fallback
+            healthBadge.className = 'px-4 py-2 bg-zinc-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl shadow-md';
+            healthBadge.innerText = 'NON VALUTATO';
+            healthDesc.innerText = "Nessuna valutazione dello stato di salute finanziaria disponibile.";
+            healthCard.style.borderColor = '#71717a';
+        }
+    }
+
+    // 2. Strategy Advisory Text
+    const advisoryText = stratOps.pricing_and_tariff_strategy_advisory || 
+                         stratClin.pricing_and_tariff_strategy_advisory || 
+                         'Nessuna raccomandazione disponibile.';
+    const advisoryEl = document.getElementById('pricing-advisory-text');
+    if (advisoryEl) {
+        advisoryEl.innerHTML = formatMarkdownText(advisoryText);
+    }
+
+    // 3. Cost Optimization Recommendations
+    const container = document.getElementById('cost-optimization-list');
+    if (container) {
+        container.innerHTML = '';
+        const recs = stratOps.operations_cost_optimization_recommendations || 
+                     stratClin.clinical_cost_optimization_recommendations || [];
+        if (recs.length === 0) {
+            container.innerHTML = `<div class="p-4 bg-gray-50 border border-gray-100 rounded-2xl text-[10px] text-gray-400 italic text-center">Nessuna raccomandazione operativa presente.</div>`;
+        } else {
+            recs.forEach(r => {
+                container.innerHTML += `
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex gap-3">
+                        <div class="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-[8px] mt-0.5 font-bold">✔</div>
+                        <p class="text-[11px] text-gray-700">${r}</p>
+                    </div>`;
+            });
+        }
+    }
 }
 
 function updateCalculations() {
@@ -700,3 +771,53 @@ async function saveProductAdvancedData() {
 }
 
 document.addEventListener('DOMContentLoaded', loadData);
+
+// Helper function for rendering markdown texts
+function formatMarkdownText(text) {
+    if (!text) return "";
+    
+    // If the text is a string but represents a JSON object, parse it first
+    if (typeof text === 'string') {
+        const trimmed = text.trim();
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (parsed && typeof parsed === 'object') {
+                    text = parsed.text_content || parsed.content || parsed.raw_text || text;
+                }
+            } catch (e) {
+                // Ignore parse error, use original text string
+            }
+        }
+    }
+
+    // Guard clause to ensure text is always a string
+    if (typeof text !== 'string') {
+        if (text && typeof text === 'object') {
+            text = text.text_content || text.content || text.raw_text || JSON.stringify(text);
+        } else {
+            text = String(text);
+        }
+    }
+    
+    let clean = text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    
+    // Convert links
+    clean = clean.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" class="text-black underline font-semibold">$1</a>');
+    
+    // Headers
+    clean = clean.replace(/^### (.*$)/gim, '<h4 class="text-xs font-black uppercase text-black mt-4 mb-1.5 flex items-center gap-1.5"><span class="w-1.5 h-1.5 bg-black rounded-full"></span>$1</h4>');
+    clean = clean.replace(/^## (.*$)/gim, '<h3 class="text-xs font-black uppercase text-gray-800 mt-5 border-b pb-1">$1</h3>');
+    clean = clean.replace(/^# (.*$)/gim, '<h2 class="text-sm font-black uppercase text-black mt-6 border-b-2 pb-1.5">$1</h2>');
+    
+    // Bold
+    clean = clean.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    
+    // Lists
+    clean = clean.replace(/^\s*[\-\*]\s+(.*$)/gim, '<div class="flex gap-2 items-start text-xs text-gray-700 pl-2 py-0.5"><span class="text-black">•</span><span>$1</span></div>');
+    
+    return clean;
+}
