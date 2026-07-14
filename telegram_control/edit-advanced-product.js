@@ -173,23 +173,165 @@ function updateBomItem(index, field, value) {
     checkDirty();
 }
 
-function addNewBomRow() {
+let flatCatalogItemsForBOM = [];
+
+window.openAddBomModal = () => {
+    document.getElementById('add-bom-modal').classList.remove('hidden');
+    document.getElementById('add-bom-modal').classList.add('flex');
+    document.getElementById('bom-catalog-search').value = "";
+    document.getElementById('manual-bom-name').value = "";
+    document.getElementById('manual-bom-sku').value = "";
+    
+    // Retrieve parent catalog data (avoiding duplicate network requests)
+    let catalog = [];
+    if (window.parent && window.parent.fullCatalog) {
+        catalog = window.parent.fullCatalog;
+    }
+    
+    flatCatalogItemsForBOM = [];
+    catalog.forEach(cat => {
+        const subcategories = cat.subcategories || [];
+        subcategories.forEach(sub => {
+            // Exclude the current product from being added to its own BOM!
+            if (sub.callback_data === sopId) return;
+            
+            // Deduce macrocategories (PRO, SOP, SER)
+            let macro = (cat.macrocategories || "").toUpperCase().trim();
+            if (!macro) {
+                const catName = (cat.name || "").toUpperCase();
+                if (catName.includes("[SOP]")) macro = "SOP";
+                else if (catName.includes("[SER]")) macro = "SER";
+                else if (catName.includes("[PRO]")) macro = "PRO";
+            }
+            
+            flatCatalogItemsForBOM.push({
+                sku: sub.callback_data,
+                name: sub.name,
+                macro: macro || 'SOP'
+            });
+        });
+    });
+    
+    renderBomCatalogList(flatCatalogItemsForBOM);
+};
+
+window.closeAddBomModal = () => {
+    document.getElementById('add-bom-modal').classList.remove('flex');
+    document.getElementById('add-bom-modal').classList.add('hidden');
+};
+
+function renderBomCatalogList(items) {
+    const listContainer = document.getElementById('bom-catalog-list');
+    listContainer.innerHTML = "";
+    
+    if (items.length === 0) {
+        listContainer.innerHTML = `<p class="text-[9px] text-gray-400 italic text-center py-4">Nessun elemento trovato.</p>`;
+        return;
+    }
+    
+    items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = "flex justify-between items-center py-2 px-1 hover:bg-gray-50 transition cursor-pointer";
+        row.onclick = () => addCatalogBomItem(item.sku, item.name, item.macro);
+        
+        let typeBadgeColor = "bg-gray-100 text-gray-600";
+        if (item.macro === 'PRO') typeBadgeColor = "bg-blue-50 text-blue-600";
+        if (item.macro === 'SOP') typeBadgeColor = "bg-green-50 text-green-600";
+        
+        row.innerHTML = `
+            <div class="flex-1 pr-2">
+                <p class="text-[10px] font-bold text-black truncate max-w-[200px]">${item.name}</p>
+                <span class="text-[7px] text-gray-400 font-mono block">${item.sku}</span>
+            </div>
+            <span class="text-[7px] font-black uppercase px-2 py-0.5 rounded-full ${typeBadgeColor}">${item.macro}</span>
+        `;
+        listContainer.appendChild(row);
+    });
+}
+
+window.filterBomCatalog = () => {
+    const q = document.getElementById('bom-catalog-search').value.toLowerCase().trim();
+    if (!q) {
+        renderBomCatalogList(flatCatalogItemsForBOM);
+        return;
+    }
+    const filtered = flatCatalogItemsForBOM.filter(item => 
+        item.name.toLowerCase().includes(q) || 
+        item.sku.toLowerCase().includes(q) ||
+        item.macro.toLowerCase().includes(q)
+    );
+    renderBomCatalogList(filtered);
+};
+
+window.addCatalogBomItem = (sku, name, macro) => {
     if (!currentData.bom) currentData.bom = [];
-    const newSku = "SKU-PROD-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    // Check if item is already in BOM
+    if (currentData.bom.some(item => item.item_sku === sku)) {
+        tg.showAlert("Questo componente è già presente in distinta base.");
+        return;
+    }
+    
+    // A component selected from the catalog (PRO or SOP) is classified as a "semilavorato"
+    const relationType = (macro === 'PRO' || macro === 'SOP') ? 'semilavorato' : 'materiale';
+    
     currentData.bom.push({
-        item_sku: newSku,
-        name: "Nuovo Componente",
+        item_sku: sku,
+        name: name,
         qty: 1,
         usage: 1,
         unit_of_measure: "pz",
         unit_cost: 0.00,
         cost: 0.00,
-        relation_type: "semilavorato"
+        relation_type: relationType,
+        is_semilavorato: true
     });
+    
+    closeAddBomModal();
     populateBOM();
     updateCalculations();
     checkDirty();
-}
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+};
+
+window.addManualBomItem = () => {
+    const name = document.getElementById('manual-bom-name').value.trim();
+    let sku = document.getElementById('manual-bom-sku').value.trim();
+    
+    if (!name) {
+        tg.showAlert("Inserisci il nome del materiale.");
+        return;
+    }
+    
+    if (!sku) {
+        // Generate automatic temporary SKU for raw materials
+        sku = "RAW-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+    }
+    
+    if (!currentData.bom) currentData.bom = [];
+    if (currentData.bom.some(item => item.item_sku === sku)) {
+        tg.showAlert("Questo SKU è già registrato nella distinta base.");
+        return;
+    }
+    
+    currentData.bom.push({
+        item_sku: sku,
+        name: name,
+        qty: 1,
+        usage: 1,
+        unit_of_measure: "pz",
+        unit_cost: 0.00,
+        cost: 0.00,
+        relation_type: "materiale",
+        is_semilavorato: false
+    });
+    
+    closeAddBomModal();
+    populateBOM();
+    updateCalculations();
+    checkDirty();
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+};
 
 function removeBomRow(index) {
     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
