@@ -46,13 +46,10 @@ Sei il Direttore di Produzione (COO) e l'Ingegnere di Processo industriale del t
    - SIGNATURE: Autocertificazione di avvenuto assemblaggio a regola d'arte.
    - VISION: Foto live del prodotto assemblato o del lotto apposto.
    - FILE: Certificato di collaudo o scheda tecnica.
-   - NONE: Solo per passaggi puramente logistici interni.
-</GuidingPrinciples>
-
-<OutputSchema>
+   - NONE: Solo per passaggi puramente logistici interni.<OutputSchema>
 {
   "blueprint": {
-    "_id": "GENERATE_UNIQUE_ID",
+    "_id": "<VAT_NUMBER>-<PRODUCT_SKU>",
     "document_type": "PROCESS_BLUEPRINT",
     "version": "1.0",
     "owner_instance_id": "{{ $json.owner_data.vat_number }}",
@@ -62,40 +59,42 @@ Sei il Direttore di Produzione (COO) e l'Ingegnere di Processo industriale del t
       "last_updated_at": "{{ new Date().toISOString() }}"
     },
     "service_sku": "{{ $json.new_product_block.identity.item_sku }}",
-    "blueprint_name": "[PRO] - Blueprint di Assemblaggio e Produzione",
-    "blueprint_description": "Protocollo dettagliato per il prelievo materiali, l'assemblaggio e il confezionamento del prodotto finito.",
+    "blueprint_name": "[PRO] - Blueprint di Assemblaggio e Confezionamento <Nome Prodotto>",
+    "blueprint_description": "Descrizione sintetica del processo di assemblaggio per <Nome Prodotto>.",
     "blueprint_type": "PRODUCT_FLOW",
     "tags": ["Produzione", "BOM", "Assemblaggio", "Logistica"],
     "summary": {
-      "estimated_total_cost": "Costo stimato totale (somma semilavorati + lavoro)",
-      "estimated_total_time_minutes": 0,
+      "estimated_total_cost": "<COSTO_TOTALE_DECIMALE> EUR",
+      "estimated_total_time_minutes": "<TEMPO_TOTALE_INTERO>",
       "bill_of_materials_summary": [
-        { "material_sku": "string", "quantity": 1, "unit_of_measure": "unit" }
+        { "material_sku": "<SKU_COMPONENTE_1>", "quantity": 1, "unit_of_measure": "<U_M_1>" }
       ]
     },
     "stages": [
       {
         "stage_id": "STAGE_01",
         "stage_order": 1,
-        "stage_name": "Approvvigionamento e Kit Preparazione",
-        "description": "Fase di prelievo materie prime e semilavorati dal magazzino",
+        "stage_name": "<Nome della prima fase logica o di preparazione>",
+        "description": "<Descrizione di cosa accade in questa fase>",
         "steps": [
           {
             "step_id": "STEP_01_01",
             "step_order": 1,
-            "step_name": "Prelievo e Verifica Componenti",
-            "instructions": "Prelevare dal magazzino i semilavorati e le materie prime indicate nella distinta base.",
-            "estimated_time_minutes": 10,
+            "step_name": "<Nome del primo step operativo>",
+            "instructions": "<Istruzioni operative dettagliate su cosa fare e quali componenti della distinta base usare nello step>",
+            "estimated_time_minutes": 5,
             "resources_needed": {
-              "labor": { "required_skill_tags": ["Responsabile_Magazzino"], "estimated_work_minutes": 10 },
-              "materials": [],
+              "labor": { "required_skill_tags": ["<Ruolo_Richiesto>"], "estimated_work_minutes": 5 },
+              "materials": [
+                { "material_sku": "<SKU_COMPONENTE_DELLA_BOM>", "quantity": 1, "unit_of_measure": "<U_M>" }
+              ],
               "assets": []
             },
             "quality_check": {
               "is_required": true,
-              "evidence_type": "SIGNATURE",
-              "check_description": "Firma per conferma prelievo e verifica conformità lotti in ingresso.",
-              "acceptance_criteria": "Tutti i materiali presenti e integri."
+              "evidence_type": "<SIGNATURE|VISION|NONE>",
+              "check_description": "<Descrizione del controllo qualità da effettuare>",
+              "acceptance_criteria": "<Criteri di accettabilità dello step per passare al successivo>"
             },
             "logistics_flags": {
               "requires_wip": true,
@@ -136,10 +135,76 @@ Genera il Blueprint Operativo Ingegnerizzato per il prodotto TargetAsset (PRO), 
    
 2. STRUTTURAZIONE DELLE FASI (STAGE 1, STAGE 2, STAGE 3):
    - Mappa con cura l'assemblaggio finale nello STAGE 2. Ogni step deve descrivere come unire o trasformare i semilavorati indicati in <MaterialsAndSemilavorati>.
-   - Per ciascun componente usato in uno step, inserisci il suo SKU o nome nell'array "materials" dello step.
+   - Per ciascun componente della distinta base (BOM) usato in uno step, inserisci un oggetto con "material_sku", "quantity" e "unit_of_measure" nell'array "materials" dello step.
    
 3. CONTROLLO QUALITÀ FINALE:
    - Nello STAGE 3, inserisci un passaggio obbligatorio di validazione con evidence_type "VISION" o "SIGNATURE" per certificare il lotto finale e l'integrità del confezionamento prima dello stoccaggio.
 </Instruction>
 </DesignTask>
 ```
+
+---
+
+## 🛠️ 4. WORKFLOW: editBlueprintProduct.json (Azione: CREATE_SEMILAVORATO)
+
+Aggiungere un ramo dedicato nello switch del webhook di salvataggio/gestione blueprint per creare in tempo reale un semilavorato (`SOP`) nel catalogo.
+
+### 📋 4.1 Payload Ricevuto (POST Webhook):
+```json
+{
+  "action": "CREATE_SEMILAVORATO",
+  "name": "Nome Nuovo Semilavorato",
+  "vat_number": "ITXXXXXX",
+  "token": "XXXXXX",
+  "_auth": "..."
+}
+```
+
+### ⚙️ 4.2 Step Logici del Workflow:
+1. **Generazione SKU:**
+   Generare un codice alfanumerico univoco nel formato `SVC_AUTO_[STRING_8_CHARS]`.
+2. **Aggiornamento Documento Catalogo:**
+   Recuperare il setup catalogo `[vat_number]_setup_ik` dalla collezione `service_catalog` in `MemoryManager`.
+   * Trovare la categoria con `macrocategories === "SOP"`. Se non esiste, crearne una chiamata `"[SOP] Semilavorati"`.
+   * Aggiungere alle `subcategories` della categoria trovata/creata il nuovo oggetto semilavorato:
+     ```javascript
+     {
+       "callback_data": generatedSku,
+       "name": name,
+       "short_name": name,
+       "blueprint_ready": false,
+       "show_in_security_assistant": false
+     }
+     ```
+   * Salvare il documento catalogo aggiornato su MongoDB.
+3. **Inizializzazione Documento Blueprint vuoto:**
+   Inserire nella collezione `product_blueprint` (o `sops`) un record DRAFT per consentire l'editing immediato:
+   ```json
+   {
+     "service_sku": generatedSku,
+     "blueprint_name": "[SOP] - Blueprint di " + name,
+     "blueprint_description": "Fasi di lavorazione e preparazione del semilavorato " + name,
+     "blueprint_type": "SOP_SEMILAVORATO",
+     "stages": [],
+     "summary": {
+       "estimated_total_cost": "0.00 EUR",
+       "estimated_total_time_minutes": 0,
+       "bill_of_materials_summary": []
+     },
+     "metadata": {
+       "status": "DRAFT",
+       "created_at": new Date().toISOString(),
+       "last_updated_at": new Date().toISOString()
+     },
+     "owner_instance_id": vat_number
+   }
+   ```
+4. **Risposta Webhook:**
+   Restituire in formato JSON:
+   ```json
+   {
+     "status": "success",
+     "sku": generatedSku,
+     "name": name
+   }
+   ```

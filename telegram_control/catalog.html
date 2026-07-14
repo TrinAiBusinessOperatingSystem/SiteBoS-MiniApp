@@ -430,7 +430,7 @@
             if (!msg) msg = parts[1];
         }
 
-        let fullCatalog = [], currentMacro = 'SOP', currentEditingCatId = null;
+        let fullCatalog = [], currentMacro = 'SOP', currentEditingCatId = null, currentProductData = null;
 
         async function loadCatalog(force = false) {
             const loader = document.getElementById('loader');
@@ -636,12 +636,21 @@
         };
 
         window.openAdvancedManagement = () => {
-            if (currentMacro === 'SOP') {
+            const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === currentSopId);
+            const isSemi = match && (match.item_type === 'SEMI_FINISHED' || match.item_type === 'semilavorato' || match.item_type === 'SEMI_FINISHED_PRODUCT');
+
+            if (currentMacro === 'SOP' && !isSemi) {
                 tg.showAlert("La Gestione Avanzata non è disponibile per le Procedure (SOP).");
                 return;
             }
-            const page = (currentMacro === 'PRO') ? 'edit-advanced-product.html' : 'edit-advanced.html';
-            launchSubEditor(page);
+
+            const isAdvancedReady = currentProductData?.ui_node_draft?.advanced_ready === true;
+            if (!isAdvancedReady) {
+                launchSubEditor('edit-product.html?open_advanced=true');
+            } else {
+                const page = (currentMacro === 'PRO' || isSemi) ? 'edit-advanced-product.html' : 'edit-advanced.html';
+                launchSubEditor(page);
+            }
         };
 
         window.openBlueprintEditor = () => {
@@ -661,10 +670,11 @@
                 document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli Prodotto';
                 document.getElementById('hub-product-sku').innerText = `ID: ${pId}`;
 
-                // Setup advanced button visual state based on currentMacro
+                // Setup advanced button visual state based on currentMacro and isSemi
+                const isSemi = match && (match.item_type === 'SEMI_FINISHED' || match.item_type === 'semilavorato' || match.item_type === 'SEMI_FINISHED_PRODUCT');
                 const advancedBtn = document.getElementById('hub-advanced-btn');
                 if (advancedBtn) {
-                    if (currentMacro === 'SOP') {
+                    if (currentMacro === 'SOP' && !isSemi) {
                         advancedBtn.classList.add('opacity-40');
                     } else {
                         advancedBtn.classList.remove('opacity-40');
@@ -683,6 +693,7 @@
                     });
                     const info = await res.json();
                     const rawInfo = Array.isArray(info) ? info[0] : info;
+                    currentProductData = rawInfo;
                     currentVatNumber = rawInfo.vat_number || rawInfo.vatnumber || rawInfo.vat || '';
 
                     // Gestione Blog
@@ -963,7 +974,8 @@
             console.log(`[Hub] Launching SubEditor: ${page} for SOP: ${currentSopId}`);
             const drawer = document.getElementById('quick-editor-drawer');
             const frame = document.getElementById('quickEditorFrame');
-            const url = `${page}?ash=${ash}&msg=${msg || ''}&sop_id=${currentSopId}&from_hub=true`;
+            const separator = page.includes('?') ? '&' : '?';
+            const url = `${page}${separator}ash=${ash}&msg=${msg || ''}&sop_id=${currentSopId}&from_hub=true`;
 
             console.log(`[Hub] Target URL: ${url}`);
 
