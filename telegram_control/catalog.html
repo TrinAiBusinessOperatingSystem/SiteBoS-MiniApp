@@ -637,7 +637,11 @@
 
         window.openAdvancedManagement = () => {
             const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === currentSopId);
-            const isSemi = match && (match.item_type === 'SEMI_FINISHED' || match.item_type === 'semilavorato' || match.item_type === 'SEMI_FINISHED_PRODUCT');
+            const itemType = currentProductData?.identity?.item_type || match?.item_type || '';
+            const isSemi = itemType === 'SEMI_FINISHED' || 
+                           itemType === 'semilavorato' || 
+                           itemType === 'SEMI_FINISHED_PRODUCT' ||
+                           currentProductData?.blueprint_type === 'SOP_SEMILAVORATO';
 
             if (currentMacro === 'SOP' && !isSemi) {
                 tg.showAlert("La Gestione Avanzata non è disponibile per le Procedure (SOP).");
@@ -648,7 +652,7 @@
             if (!isAdvancedReady) {
                 launchSubEditor('edit-product.html?open_advanced=true');
             } else {
-                const page = (currentMacro === 'PRO' || isSemi) ? 'edit-advanced-product.html' : 'edit-advanced.html';
+                const page = (currentMacro === 'PRO' || isSemi || itemType === 'PRODUCT') ? 'edit-advanced-product.html' : 'edit-advanced.html';
                 launchSubEditor(page);
             }
         };
