@@ -68,7 +68,7 @@ function populateCFO() {
 
 function updateCalculations() {
     const basePrice = parseFloat(currentData.pricing?.base_price) || 0;
-    
+
     // Calculate total BOM cost (COGS)
     let totalCogs = 0;
     const bomItems = currentData.bom || [];
@@ -80,9 +80,9 @@ function updateCalculations() {
 
     const mdc = basePrice - totalCogs;
     const mdcPercent = basePrice > 0 ? (mdc / basePrice) * 100 : 0;
-    
+
     // Break-even is fixed-cost / mdc. As standard template, we assume a static estimated fixed overhead
-    const fixedOverhead = 2500; 
+    const fixedOverhead = 2500;
     const breakEvenUnits = mdc > 0 ? Math.ceil(fixedOverhead / mdc) : 0;
 
     document.getElementById('header-cost').innerText = currFmt.format(totalCogs);
@@ -163,7 +163,7 @@ function updateBomItem(index, field, value) {
     if (!currentData.bom) currentData.bom = [];
     if (field === 'qty') value = parseFloat(value) || 0;
     if (field === 'unit_cost') value = parseFloat(value) || 0;
-    
+
     currentData.bom[index][field] = value;
     if (field === 'qty') currentData.bom[index].usage = value;
     if (field === 'unit_cost') currentData.bom[index].cost = value;
@@ -181,20 +181,20 @@ window.openAddBomModal = () => {
     document.getElementById('bom-catalog-search').value = "";
     document.getElementById('manual-bom-name').value = "";
     document.getElementById('manual-bom-sku').value = "";
-    
+
     // Retrieve parent catalog data (avoiding duplicate network requests)
     let catalog = [];
     if (window.parent && window.parent.fullCatalog) {
         catalog = window.parent.fullCatalog;
     }
-    
+
     flatCatalogItemsForBOM = [];
     catalog.forEach(cat => {
         const subcategories = cat.subcategories || [];
         subcategories.forEach(sub => {
             // Exclude the current product from being added to its own BOM!
             if (sub.callback_data === sopId) return;
-            
+
             // Deduce macrocategories (PRO, SOP, SER)
             let macro = (cat.macrocategories || "").toUpperCase().trim();
             if (!macro) {
@@ -203,7 +203,7 @@ window.openAddBomModal = () => {
                 else if (catName.includes("[SER]")) macro = "SER";
                 else if (catName.includes("[PRO]")) macro = "PRO";
             }
-            
+
             flatCatalogItemsForBOM.push({
                 sku: sub.callback_data,
                 name: sub.name,
@@ -211,7 +211,7 @@ window.openAddBomModal = () => {
             });
         });
     });
-    
+
     renderBomCatalogList(flatCatalogItemsForBOM);
 };
 
@@ -223,21 +223,21 @@ window.closeAddBomModal = () => {
 function renderBomCatalogList(items) {
     const listContainer = document.getElementById('bom-catalog-list');
     listContainer.innerHTML = "";
-    
+
     if (items.length === 0) {
         listContainer.innerHTML = `<p class="text-[9px] text-gray-400 italic text-center py-4">Nessun elemento trovato.</p>`;
         return;
     }
-    
+
     items.forEach(item => {
         const row = document.createElement('div');
         row.className = "flex justify-between items-center py-2 px-1 hover:bg-gray-50 transition cursor-pointer";
         row.onclick = () => addCatalogBomItem(item.sku, item.name, item.macro);
-        
+
         let typeBadgeColor = "bg-gray-100 text-gray-600";
         if (item.macro === 'PRO') typeBadgeColor = "bg-blue-50 text-blue-600";
         if (item.macro === 'SOP') typeBadgeColor = "bg-green-50 text-green-600";
-        
+
         row.innerHTML = `
             <div class="flex-1 pr-2">
                 <p class="text-[10px] font-bold text-black truncate max-w-[200px]">${item.name}</p>
@@ -255,8 +255,8 @@ window.filterBomCatalog = () => {
         renderBomCatalogList(flatCatalogItemsForBOM);
         return;
     }
-    const filtered = flatCatalogItemsForBOM.filter(item => 
-        item.name.toLowerCase().includes(q) || 
+    const filtered = flatCatalogItemsForBOM.filter(item =>
+        item.name.toLowerCase().includes(q) ||
         item.sku.toLowerCase().includes(q) ||
         item.macro.toLowerCase().includes(q)
     );
@@ -265,16 +265,16 @@ window.filterBomCatalog = () => {
 
 window.addCatalogBomItem = (sku, name, macro) => {
     if (!currentData.bom) currentData.bom = [];
-    
+
     // Check if item is already in BOM
     if (currentData.bom.some(item => item.item_sku === sku)) {
         tg.showAlert("Questo componente è già presente in distinta base.");
         return;
     }
-    
+
     // A component selected from the catalog (PRO or SOP) is classified as a "semilavorato"
     const relationType = (macro === 'PRO' || macro === 'SOP') ? 'semilavorato' : 'materiale';
-    
+
     currentData.bom.push({
         item_sku: sku,
         name: name,
@@ -286,7 +286,7 @@ window.addCatalogBomItem = (sku, name, macro) => {
         relation_type: relationType,
         is_semilavorato: true
     });
-    
+
     closeAddBomModal();
     populateBOM();
     updateCalculations();
@@ -297,23 +297,23 @@ window.addCatalogBomItem = (sku, name, macro) => {
 window.addManualBomItem = () => {
     const name = document.getElementById('manual-bom-name').value.trim();
     let sku = document.getElementById('manual-bom-sku').value.trim();
-    
+
     if (!name) {
         tg.showAlert("Inserisci il nome del materiale.");
         return;
     }
-    
+
     if (!sku) {
         // Generate automatic temporary SKU for raw materials
         sku = "RAW-" + Math.random().toString(36).substring(2, 8).toUpperCase();
     }
-    
+
     if (!currentData.bom) currentData.bom = [];
     if (currentData.bom.some(item => item.item_sku === sku)) {
         tg.showAlert("Questo SKU è già registrato nella distinta base.");
         return;
     }
-    
+
     currentData.bom.push({
         item_sku: sku,
         name: name,
@@ -325,7 +325,7 @@ window.addManualBomItem = () => {
         relation_type: "materiale",
         is_semilavorato: false
     });
-    
+
     closeAddBomModal();
     populateBOM();
     updateCalculations();
@@ -456,10 +456,10 @@ function populateAssets() {
 function populateBlueprint() {
     const container = document.getElementById('blueprint-steps-container');
     container.innerHTML = '';
-    
+
     // Look for stages in currentData.blueprint or messages
     const stages = currentData.blueprint?.stages || [];
-    
+
     if (stages.length === 0) {
         container.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">Nessuna sequenza di assemblaggio disponibile.</p>`;
         return;
@@ -468,7 +468,7 @@ function populateBlueprint() {
     stages.forEach((stage, i) => {
         const stageEl = document.createElement('div');
         stageEl.className = "space-y-2";
-        
+
         let stepsHTML = "";
         (stage.steps || []).forEach(step => {
             stepsHTML += `
@@ -484,7 +484,7 @@ function populateBlueprint() {
 
         stageEl.innerHTML = `
             <div class="border-l-2 border-l-black pl-3 py-1 mb-4">
-                <span class="text-[8px] font-black text-gray-400 uppercase">Fase ${stage.stage_order || i+1}</span>
+                <span class="text-[8px] font-black text-gray-400 uppercase">Fase ${stage.stage_order || i + 1}</span>
                 <h4 class="text-xs font-black uppercase text-black leading-none mt-0.5">${stage.stage_name || 'Fase'}</h4>
             </div>
             <div class="space-y-2 pl-3">
@@ -499,7 +499,7 @@ function populateBlueprint() {
 async function saveProductAdvancedData() {
     const saveBtn = document.getElementById('saveBtn');
     if (!saveBtn || saveBtn.disabled) return;
-    
+
     saveBtn.disabled = true;
     const initialText = saveBtn.querySelector('span').innerText;
     saveBtn.querySelector('span').innerText = "Salvataggio in corso...";
