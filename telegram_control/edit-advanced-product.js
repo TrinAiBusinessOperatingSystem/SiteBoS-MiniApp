@@ -2,6 +2,9 @@
 
 const currFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
 
+let currentData = null;
+let originalDataStr = "";
+
 async function loadData() {
     try {
         const res = await fetch(WEBHOOK_URL, {
@@ -17,7 +20,7 @@ async function loadData() {
             })
         });
         const rawData = await res.json();
-        console.log("Raw data received:", rawData);
+        console.log("Dati ricevuti dal server:", rawData);
         
         const d = Array.isArray(rawData) ? rawData[0] : rawData;
         if (!d) {
@@ -25,34 +28,39 @@ async function loadData() {
         }
         
         const doc = d.advanced_catalog_item || d.catalog_item || d.catalog_item_draft || d;
-        console.log("Extracted doc:", doc);
-        
         let productData = {};
 
-        // Se l'oggetto non possiede bom o pricing, significa che è il formato grezzo ADVANCED_*_BLUEPRINT di n8n
+        // Riconoscimento dello schema n8n (ADVANCED_SERVICE_BLUEPRINT)
         const isRawSchema = !doc.bom || !doc.pricing;
 
         if (isRawSchema) {
-            console.log("Mapping raw schema to product schema...");
+            console.log("Rilevato schema avanzato. Avvio normalizzazione...");
             
-            const identitySrc = doc.service_identity || doc.product_identity || doc.identity || {};
+            const identitySrc = doc.service_identity || doc.identity || {};
             productData.identity = {
                 item_name: identitySrc.name || identitySrc.item_name || "Prodotto",
                 item_sku: identitySrc.sku || identitySrc.item_sku || sopId,
                 item_type: identitySrc.type || identitySrc.item_type || "PRODUCT"
             };
 
+            // Blueprint type (Fondamentale per distinguere fisico da digitale)
+            productData.blueprint_type = doc.blueprint_type || "PRODUCT_FLOW";
+
+            // Prezzo di vendita
             productData.pricing = {
                 base_price: doc.financial_simulations?.pricing_summary?.catalog_price || doc.pricing?.base_price || 0
             };
 
-            // Mappa BOM
-            if (doc.bom) {
-                productData.bom = doc.bom;
-            } else {
-                productData.bom = [];
-                const suppliersList = doc.market_and_fiscal_intelligence?.suppliers || doc.suppliers || [];
-                suppliersList.forEach(s => {
+            // 1. Mappatura della BOM dei consumabili reali (esclude gli asset fissi)
+            productData.bom = [];
+            const suppliersList = doc.market_and_fiscal_intelligence?.suppliers || doc.suppliers || [];
+            suppliersList.forEach(s => {
+                // Esclude i grandi beni strumentali dal calcolo della BOM unitaria
+                const isAsset = ["Riunito", "Autoclave", "Imbustatrice", "Server", "Computer", "Tavoletta"].some(keyword => 
+                    s.required_material?.toLowerCase().includes(keyword.toLowerCase())
+                );
+                
+                if (!isAsset) {
                     const provider = s.providers?.[0] || {};
                     productData.bom.push({
                         item_sku: provider.supp_sku || s.required_material || "RAW-MAT",
@@ -65,95 +73,80 @@ async function loadData() {
                         relation_type: "materiale",
                         is_semilavorato: false
                     });
-                });
-            }
+                }
+            });
 
-            // Mappa Procurement Suppliers
-            if (doc.procurement) {
-                productData.procurement = doc.procurement;
-            } else {
-                productData.procurement = { suppliers: [] };
-                const suppliersList = doc.market_and_fiscal_intelligence?.suppliers || doc.suppliers || [];
-                suppliersList.forEach(s => {
-                    (s.providers || []).forEach(p => {
-                        productData.procurement.suppliers.push({
-                            supplier_name: p.supp_name || "Fornitore",
-                            material_sku: p.supp_sku || s.required_material || "RAW-MAT",
-                            unit_cost: p.cost || 0
-                        });
+            // 2. Mappatura Procurement Suppliers
+            productData.procurement = { suppliers: [] };
+            suppliersList.forEach(s => {
+                (s.providers || []).forEach(p => {
+                    productData.procurement.suppliers.push({
+                        supplier_name: p.supp_name || "Fornitore",
+                        material_sku: p.supp_sku || s.required_material || "RAW-MAT",
+                        unit_cost: p.cost || 0
                     });
                 });
-            }
+            });
 
-            // Mappa Logistica/Locations
-            if (doc.logistics) {
-                productData.logistics = doc.logistics;
-            } else {
-                productData.logistics = {
-                    locations: (doc.environments || []).map(loc => ({
-                        loc_name: loc.loc_name || "Area",
-                        purpose: loc.loc_name || "Stoccaggio",
-                        estimated_internal_cost_rate: loc.estimated_internal_cost || 0
+            // 3. Mappatura Logistica/Locations
+            productData.logistics = {
+                locations: (doc.environments || []).map(loc => ({
+                    loc_name: loc.loc_name || "Area",
+                    purpose: loc.loc_name || "Stoccaggio",
+                    estimated_internal_cost_rate: loc.estimated_internal_cost || 0
+                }))
+            };
+
+            // 4. Mappatura Macchinari/Assets (Corretto il bug di estimated_internal_cost_rate)
+            productData.assets = (doc.assets || []).map(a => ({
+                asset_name: a.asset_name || "Macchinario",
+                asset_sku: a.asset_sku || "AST-SKU",
+                estimated_internal_cost_rate: a.estimated_internal_cost || 0
+            }));
+
+            // 5. Mappatura Competitor
+            productData.relations = {
+                marketing_info: {
+                    competitors: (doc.market_and_fiscal_intelligence?.competitors || []).map(c => ({
+                        competitor_name: c.name || "Competitor",
+                        source_url: c.url || "#",
+                        price: c.estimated_price || 0
                     }))
-                };
-            }
+                }
+            };
 
-            // Mappa Macchinari/Assets
-            if (doc.assets) {
-                productData.assets = doc.assets;
-            } else {
-                productData.assets = (doc.assets || []).map(a => ({
-                    asset_name: a.asset_name || "Macchinario",
-                    asset_sku: a.asset_sku || "AST-SKU",
-                    estimated_internal_cost_rate: a.estimated_internal_cost || 0
-                }));
-            }
-
-            // Mappa Competitor
-            if (doc.relations?.marketing_info?.competitors) {
-                productData.relations = doc.relations;
-            } else {
-                productData.relations = {
-                    marketing_info: {
-                        competitors: (doc.market_and_fiscal_intelligence?.competitors || []).map(c => ({
-                            competitor_name: c.name || "Competitor",
-                            source_url: c.url || "#",
-                            price: c.estimated_price || 0
+            // 6. Mappatura Blueprint stages e steps
+            productData.blueprint = { stages: [] };
+            const stepsList = doc.bill_of_materials?.bom_steps || doc.bom_steps || [];
+            stepsList.forEach(sub => {
+                (sub.stages || []).forEach(stage => {
+                    productData.blueprint.stages.push({
+                        stage_order: productData.blueprint.stages.length + 1,
+                        stage_name: stage.stage_name || sub.subprocess_name || "Fase",
+                        steps: (stage.steps || []).map(step => ({
+                            step_name: step.step_name || "Step",
+                            estimated_time_minutes: step.estimated_time_minutes || 0,
+                            instructions: step.instructions || ""
                         }))
-                    }
-                };
-            }
-
-            // Mappa Blueprint stages e steps
-            if (doc.blueprint) {
-                productData.blueprint = doc.blueprint;
-            } else {
-                productData.blueprint = { stages: [] };
-                const stepsList = doc.bill_of_materials?.bom_steps || doc.bom_steps || [];
-                stepsList.forEach(sub => {
-                    (sub.stages || []).forEach(stage => {
-                        productData.blueprint.stages.push({
-                            stage_order: productData.blueprint.stages.length + 1,
-                            stage_name: stage.stage_name || sub.subprocess_name || "Fase",
-                            steps: (stage.steps || []).map(step => ({
-                                step_name: step.step_name || "Step",
-                                estimated_time_minutes: step.estimated_time_minutes || 0,
-                                instructions: step.instructions || ""
-                            }))
-                        });
                     });
                 });
-            }
+            });
+
+            // Conserva i parametri di simulazione calcolati dal backend
+            productData.financial_simulations = doc.financial_simulations || {};
             
         } else {
-            console.log("Simplified schema format loaded directly.");
+            console.log("Rilevato schema semplificato standard.");
             productData = doc;
         }
 
         currentData = JSON.parse(JSON.stringify(productData));
         originalDataStr = JSON.stringify(collectDataForSaving());
 
-        // Aggiorna UI
+        // Adatta l'interfaccia se il prodotto è un DIGITAL_FLOW
+        applyAdaptiveUI();
+
+        // Aggiorna la UI con i dati mappati
         document.getElementById('header-subtitle').innerText = currentData.identity?.item_name || 'Prodotto';
         populateCFO();
         populateBOM();
@@ -170,6 +163,39 @@ async function loadData() {
         document.getElementById('loaderText').innerText = "Errore durante il caricamento dei dati.";
         const loader = document.getElementById('loader');
         if (loader) loader.classList.add('hidden');
+    }
+}
+
+function applyAdaptiveUI() {
+    const isDigital = currentData.blueprint_type === 'DIGITAL_FLOW';
+    
+    const bomMenu = document.getElementById('menu-tab-bom');
+    const locationsMenu = document.getElementById('menu-tab-locations');
+    const assetsMenu = document.getElementById('menu-tab-assets');
+    const blueprintMenu = document.getElementById('menu-tab-blueprint');
+
+    if (isDigital) {
+        if (bomMenu) bomMenu.innerHTML = '<i class="fas fa-file-invoice text-sm w-5 text-center"></i> 📦 Risorse & Licenze';
+        if (locationsMenu) locationsMenu.innerHTML = '<i class="fas fa-server text-sm w-5 text-center"></i> 📍 Infrastruttura Cloud';
+        if (assetsMenu) assetsMenu.innerHTML = '<i class="fas fa-laptop-code text-sm w-5 text-center"></i> 🛠️ Sistemi & Software';
+        if (blueprintMenu) blueprintMenu.innerHTML = '<i class="fas fa-paper-plane text-sm w-5 text-center"></i> 📋 Blueprint di Erogazione';
+
+        document.getElementById('bom-title').innerText = "📦 Risorse e Licenze Digitali";
+        document.getElementById('bom-subtitle').innerText = "Elenco delle licenze, file o risorse software necessarie";
+        document.getElementById('locations-title').innerText = "📍 Infrastruttura Cloud e Consegna";
+        document.getElementById('assets-title').innerText = "🛠️ Sistemi, Software e Integrazioni";
+        document.getElementById('blueprint-title').innerText = "📋 Sequenza di Erogazione Digitale (Blueprint)";
+    } else {
+        if (bomMenu) bomMenu.innerHTML = '<i class="fas fa-cubes text-sm w-5 text-center"></i> 📦 Distinta Base (BOM)';
+        if (locationsMenu) locationsMenu.innerHTML = '<i class="fas fa-map-marker-alt text-sm w-5 text-center"></i> 📍 Aree di Stoccaggio';
+        if (assetsMenu) assetsMenu.innerHTML = '<i class="fas fa-tools text-sm w-5 text-center"></i> 🛠️ Asset & Attrezzature';
+        if (blueprintMenu) blueprintMenu.innerHTML = '<i class="fas fa-paste text-sm w-5 text-center"></i> 📋 Blueprint Assemblaggio';
+
+        document.getElementById('bom-title').innerText = "📦 Distinta Base dei Componenti (BOM)";
+        document.getElementById('bom-subtitle').innerText = "Elenco dei semilavorati e delle materie prime che compongono il prodotto";
+        document.getElementById('locations-title').innerText = "📍 Logistica e Aree di Stoccaggio";
+        document.getElementById('assets-title').innerText = "🛠️ Attrezzature e Macchinari di Assemblaggio";
+        document.getElementById('blueprint-title').innerText = "📋 Sequenza di Assemblaggio Finale (Blueprint)";
     }
 }
 
@@ -193,7 +219,6 @@ function checkDirty() {
     }
 }
 
-// --- CFO VIEW POPULATOR ---
 function populateCFO() {
     const basePrice = parseFloat(currentData.pricing?.base_price) || 0;
     document.getElementById('cfo-base-price').innerText = currFmt.format(basePrice);
@@ -202,7 +227,6 @@ function populateCFO() {
 function updateCalculations() {
     const basePrice = parseFloat(currentData.pricing?.base_price) || 0;
 
-    // Calculate total BOM cost (COGS)
     let totalCogs = 0;
     const bomItems = currentData.bom || [];
     bomItems.forEach(item => {
@@ -214,8 +238,11 @@ function updateCalculations() {
     const mdc = basePrice - totalCogs;
     const mdcPercent = basePrice > 0 ? (mdc / basePrice) * 100 : 0;
 
-    // Break-even is fixed-cost / mdc. As standard template, we assume a static estimated fixed overhead
-    const fixedOverhead = 2500;
+    // Recupera l'overhead calcolato dal backend se disponibile
+    const isDigital = currentData.blueprint_type === 'DIGITAL_FLOW';
+    const realOverhead = parseFloat(currentData.financial_simulations?.predictive_volume_simulation?.break_even_point_metrics?.allocated_overhead_value);
+    const fixedOverhead = !isNaN(realOverhead) ? realOverhead : (isDigital ? 0 : 2500);
+
     const breakEvenUnits = mdc > 0 ? Math.ceil(fixedOverhead / mdc) : 0;
 
     document.getElementById('header-cost').innerText = currFmt.format(totalCogs);
@@ -223,7 +250,7 @@ function updateCalculations() {
     document.getElementById('cfo-cogs').innerText = currFmt.format(totalCogs);
     document.getElementById('cfo-mdc').innerText = currFmt.format(mdc);
     document.getElementById('cfo-mdc-percent').innerText = mdcPercent.toFixed(1) + "%";
-    document.getElementById('cfo-break-even').innerText = breakEvenUnits > 0 ? breakEvenUnits : "-";
+    document.getElementById('cfo-break-even').innerText = (breakEvenUnits > 0 && fixedOverhead > 0) ? breakEvenUnits : "-";
 
     updateSimulation();
 }
@@ -241,24 +268,28 @@ function updateSimulation() {
         totalCogs += qty * unitCost;
     });
 
+    const isDigital = currentData.blueprint_type === 'DIGITAL_FLOW';
+    const realOverhead = parseFloat(currentData.financial_simulations?.predictive_volume_simulation?.break_even_point_metrics?.allocated_overhead_value);
+    const fixedOverhead = !isNaN(realOverhead) ? realOverhead : (isDigital ? 0 : 2500);
+
     const mdc = basePrice - totalCogs;
     const fatturato = basePrice * val;
     const margineTotale = mdc * val;
-    const rendimentoEst = margineTotale - 2500; // Simulated yield minus estimated standard fix costs
+    const rendimentoEst = margineTotale - fixedOverhead; 
 
     document.getElementById('sim-fatturato').innerText = currFmt.format(fatturato);
     document.getElementById('sim-margine').innerText = currFmt.format(margineTotale);
     document.getElementById('sim-rendimento').innerText = currFmt.format(rendimentoEst);
 }
 
-// --- BOM (DISTINTA BASE) ---
+// --- BOM ---
 function populateBOM() {
     const container = document.getElementById('bom-table-body');
     container.innerHTML = '';
     const bomItems = currentData.bom || [];
 
     if (bomItems.length === 0) {
-        container.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-400 italic">Distinta Base vuota.</td></tr>`;
+        container.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-gray-400 italic">Distinta vuota.</td></tr>`;
         return;
     }
 
@@ -315,7 +346,6 @@ window.openAddBomModal = () => {
     document.getElementById('manual-bom-name').value = "";
     document.getElementById('manual-bom-sku').value = "";
 
-    // Retrieve parent catalog data (avoiding duplicate network requests)
     let catalog = [];
     if (window.parent && window.parent.fullCatalog) {
         catalog = window.parent.fullCatalog;
@@ -325,10 +355,8 @@ window.openAddBomModal = () => {
     catalog.forEach(cat => {
         const subcategories = cat.subcategories || [];
         subcategories.forEach(sub => {
-            // Exclude the current product from being added to its own BOM!
             if (sub.callback_data === sopId) return;
 
-            // Deduce macrocategories (PRO, SOP, SER)
             let macro = (cat.macrocategories || "").toUpperCase().trim();
             if (!macro) {
                 const catName = (cat.name || "").toUpperCase();
@@ -590,11 +618,10 @@ function populateBlueprint() {
     const container = document.getElementById('blueprint-steps-container');
     container.innerHTML = '';
 
-    // Look for stages in currentData.blueprint or messages
     const stages = currentData.blueprint?.stages || [];
 
     if (stages.length === 0) {
-        container.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">Nessuna sequenza di assemblaggio disponibile.</p>`;
+        container.innerHTML = `<p class="text-xs text-gray-400 italic text-center py-4">Nessuna sequenza di erogazione/assemblaggio disponibile.</p>`;
         return;
     }
 
