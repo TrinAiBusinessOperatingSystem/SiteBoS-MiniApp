@@ -325,13 +325,31 @@
                     <span class="text-[9px] font-black uppercase tracking-widest">User Guide</span>
                 </button>
 
-                <button onclick="launchSubEditor('edit-blueprint.html')"
+                <button id="hub-blueprint-btn" onclick="openBlueprintEditor()"
                     class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
                     <div
                         class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
                         <i class="fas fa-project-diagram text-lg"></i>
                     </div>
                     <span class="text-[9px] font-black uppercase tracking-widest">Logica Operativa</span>
+                </button>
+
+                <button id="hub-advanced-btn" onclick="openAdvancedManagement()"
+                    class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
+                    <div
+                        class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center group-hover:bg-black group-hover:text-white transition-colors">
+                        <i class="fas fa-layer-group text-lg"></i>
+                    </div>
+                    <span class="text-[9px] font-black uppercase tracking-widest">Gestione Avanzata</span>
+                </button>
+
+                <button id="hub-security-btn" onclick="toggleSecurityAssistant()"
+                    class="card-noir p-6 flex flex-col items-center justify-center gap-3 active:scale-95 transition group hover:border-black">
+                    <div id="hub-security-icon-container"
+                        class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center transition-colors">
+                        <i class="fas fa-shield-halved text-lg"></i>
+                    </div>
+                    <span id="hub-security-text" class="text-[9px] font-black uppercase tracking-widest">Sicurezza</span>
                 </button>
 
                 <button id="hub-blog-btn" onclick="launchSubEditor('edit-blog.html')"
@@ -502,11 +520,20 @@
                 const prodList = catEl.querySelector(".prod-list");
                 subcats.forEach(prod => {
                     if (prod.blueprint_ready) activeTotal++; else ghostTotal++;
+                    const isSecurity = prod.show_in_security_assistant === true;
+                    const statusClass = isSecurity 
+                        ? 'border-l-[3px] border-l-green-600 bg-green-50/20' 
+                        : (prod.blueprint_ready ? 'prod-status-active' : 'prod-status-ghost');
+                    
+                    const shieldIcon = isSecurity 
+                        ? ' <i class="fas fa-shield-halved text-green-600 text-[9px] ml-1.5" title="Mostra in Assistente Sicurezza"></i>' 
+                        : '';
+                    
                     const pEl = document.createElement("div");
-                    pEl.className = `flex justify-between items-center p-4 border-b border-gray-50 last:border-b-0 ${prod.blueprint_ready ? 'prod-status-active' : 'prod-status-ghost'}`;
+                    pEl.className = `flex justify-between items-center p-4 border-b border-gray-50 last:border-b-0 ${statusClass}`;
                     pEl.innerHTML = `
                     <div class="flex-1 pr-4 cursor-pointer select-none prod-info-area">
-                        <p class="font-bold text-[11px] uppercase tracking-tight leading-tight">${prod.short_name || prod.name}</p>
+                        <p class="font-bold text-[11px] uppercase tracking-tight leading-tight flex items-center">${prod.short_name || prod.name}${shieldIcon}</p>
                         <p class="text-[7px] font-medium text-gray-400 uppercase tracking-widest mt-0.5">${prod.blueprint_ready ? 'Attivo' : 'Suggerito'}</p>
                     </div>
                     <div class="flex gap-3 items-center">
@@ -543,6 +570,84 @@
         let currentSopId = null;
         let currentSocialData = null;
         let currentVatNumber = null;
+        let currentSecurityState = false;
+
+        function updateSecurityBtnUI() {
+            const btn = document.getElementById('hub-security-btn');
+            const container = document.getElementById('hub-security-icon-container');
+            const text = document.getElementById('hub-security-text');
+            if (!btn || !container || !text) return;
+
+            if (currentSecurityState) {
+                container.className = "w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center";
+                text.className = "text-[9px] font-black uppercase tracking-widest text-green-600 font-bold mt-1";
+                text.innerText = "Sicurezza: ON";
+            } else {
+                container.className = "w-12 h-12 bg-gray-50 text-gray-400 rounded-2xl flex items-center justify-center";
+                text.className = "text-[9px] font-black uppercase tracking-widest mt-1";
+                text.innerText = "Sicurezza: OFF";
+            }
+        }
+
+        window.toggleSecurityAssistant = async () => {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            
+            // Optimistic UI update
+            currentSecurityState = !currentSecurityState;
+            updateSecurityBtnUI();
+
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'toggle_security',
+                        product_id: currentSopId,
+                        ash: ash,
+                        msg: msg,
+                        _auth: tg.initData
+                    })
+                });
+                const result = await res.json();
+                
+                if (result && result.status === 'success') {
+                    currentSecurityState = result.new_state === true;
+                    updateSecurityBtnUI();
+                    
+                    // Update local catalog data
+                    const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === currentSopId);
+                    if (match) {
+                        match.show_in_security_assistant = currentSecurityState;
+                    }
+                    renderCatalog();
+                } else {
+                    currentSecurityState = !currentSecurityState;
+                    updateSecurityBtnUI();
+                    tg.showAlert("Errore durante il salvataggio dello stato di sicurezza.");
+                }
+            } catch (e) {
+                console.error("Security Toggle Error:", e);
+                currentSecurityState = !currentSecurityState;
+                updateSecurityBtnUI();
+                tg.showAlert("Errore di connessione.");
+            }
+        };
+
+        window.openAdvancedManagement = () => {
+            if (currentMacro === 'SOP') {
+                tg.showAlert("La Gestione Avanzata non è disponibile per le Procedure (SOP).");
+                return;
+            }
+            const page = (currentMacro === 'PRO') ? 'edit-advanced-product.html' : 'edit-advanced.html';
+            launchSubEditor(page);
+        };
+
+        window.openBlueprintEditor = () => {
+            const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === currentSopId);
+            const isProductOrSemi = currentMacro === 'PRO' || (match && (match.item_type === 'SEMI_FINISHED' || match.item_type === 'semilavorato' || match.item_type === 'SEMI_FINISHED_PRODUCT'));
+            const page = isProductOrSemi ? 'edit-blueprint-product.html' : 'edit-blueprint.html';
+            launchSubEditor(page);
+        };
 
         window.openProduct = async (page, pId, catId) => {
             if (page === 'edit-blueprint.html') {
@@ -553,6 +658,20 @@
                 const match = fullCatalog.flatMap(c => c.subcategories).find(p => p.callback_data === pId);
                 document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli Prodotto';
                 document.getElementById('hub-product-sku').innerText = `ID: ${pId}`;
+
+                // Setup advanced button visual state based on currentMacro
+                const advancedBtn = document.getElementById('hub-advanced-btn');
+                if (advancedBtn) {
+                    if (currentMacro === 'SOP') {
+                        advancedBtn.classList.add('opacity-40');
+                    } else {
+                        advancedBtn.classList.remove('opacity-40');
+                    }
+                }
+
+                // Initialize security state
+                currentSecurityState = match && match.show_in_security_assistant === true;
+                updateSecurityBtnUI();
 
                 try {
                     const res = await fetch(WEBHOOK_URL, {
