@@ -196,16 +196,25 @@
             document.getElementById('bomCountText').innerText = `${bomItems.length} Componenti`;
 
             bomItems.forEach(item => {
-                const isSemi = item.relation_type === 'semilavorato' || item.is_semilavorato || false;
+                const sku = item.material_sku || item.item_sku || 'N/D';
+                const qty = item.quantity || item.qty || item.usage || 1;
+                const um = item.unit_of_measure || 'pz';
+                
+                let friendlyName = item.name || sku;
+                if (friendlyName.startsWith('MAT_')) {
+                    friendlyName = friendlyName.replace('MAT_', '').replace(/_/g, ' ');
+                }
+                
+                const isSemi = item.relation_type === 'semilavorato' || item.is_semilavorato || sku.startsWith('SVC_') || false;
                 const el = document.createElement('div');
                 el.className = "flex justify-between items-center bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl";
                 el.innerHTML = `
                     <div>
-                        <span class="text-[9px] font-black text-black uppercase">${item.name || item.item_sku}</span>
-                        <span class="block text-[7px] text-gray-400 font-mono">SKU: ${item.item_sku} • Qty: ${item.qty || item.usage || 1} ${item.unit_of_measure || 'pz'}</span>
+                        <span class="text-[9px] font-black text-black uppercase">${friendlyName}</span>
+                        <span class="block text-[7px] text-gray-400 font-mono">SKU: ${sku} • Qty: ${qty} ${um}</span>
                     </div>
                     ${isSemi ? `
-                        <button onclick="openSemilavoratoBlueprint('${item.item_sku}')" class="bg-black text-white text-[7px] font-black uppercase px-2 py-1 rounded-md active:scale-90 transition">
+                        <button onclick="openSemilavoratoBlueprint('${sku}')" class="bg-black text-white text-[7px] font-black uppercase px-2 py-1 rounded-md active:scale-90 transition">
                             Vedi SOP <i class="fas fa-chevron-right ml-1"></i>
                         </button>
                     ` : `
@@ -266,11 +275,21 @@
                 let materialsConsumptionHTML = "";
                 if (currentData.blueprint_type === 'PRODUCT_FLOW' && bomItems.length > 0) {
                     let checkboxList = bomItems.map(item => {
-                        const isChecked = Array.isArray(step.resources_needed?.materials) && step.resources_needed.materials.includes(item.item_sku);
+                        const sku = item.material_sku || item.item_sku;
+                        const friendlyName = item.name || (sku.startsWith('MAT_') ? sku.replace('MAT_', '').replace(/_/g, ' ') : sku);
+                        
+                        let isChecked = false;
+                        if (step.resources_needed && Array.isArray(step.resources_needed.materials)) {
+                            isChecked = step.resources_needed.materials.some(m => {
+                                const stepMaterialSku = (typeof m === 'object' && m !== null) ? m.material_sku : m;
+                                return stepMaterialSku === sku;
+                            });
+                        }
+                        
                         return `
                             <label class="flex items-center gap-2 text-[9px] text-neutral-300 select-none cursor-pointer">
-                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleStepMaterial(${sIdx}, ${stIdx}, '${item.item_sku}', this.checked)">
-                                <span>${item.name || item.item_sku}</span>
+                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleStepMaterial(${sIdx}, ${stIdx}, '${sku}', this.checked)">
+                                <span>${friendlyName}</span>
                             </label>
                         `;
                     }).join('');
@@ -364,11 +383,27 @@
             if (!Array.isArray(step.resources_needed.materials)) step.resources_needed.materials = [];
             
             if (isChecked) {
-                if (!step.resources_needed.materials.includes(materialSku)) {
-                    step.resources_needed.materials.push(materialSku);
+                const alreadyExists = step.resources_needed.materials.some(m => {
+                    const stepMaterialSku = (typeof m === 'object' && m !== null) ? m.material_sku : m;
+                    return stepMaterialSku === materialSku;
+                });
+                
+                if (!alreadyExists) {
+                    const bomMatch = bomItems.find(item => (item.material_sku || item.item_sku) === materialSku);
+                    const quantity = bomMatch ? (bomMatch.quantity || bomMatch.qty || 1) : 1;
+                    const um = bomMatch ? (bomMatch.unit_of_measure || 'unit') : 'unit';
+                    
+                    step.resources_needed.materials.push({
+                        material_sku: materialSku,
+                        quantity: quantity,
+                        unit_of_measure: um
+                    });
                 }
             } else {
-                step.resources_needed.materials = step.resources_needed.materials.filter(m => m !== materialSku);
+                step.resources_needed.materials = step.resources_needed.materials.filter(m => {
+                    const stepMaterialSku = (typeof m === 'object' && m !== null) ? m.material_sku : m;
+                    return stepMaterialSku !== materialSku;
+                });
             }
             checkDirty();
         }
