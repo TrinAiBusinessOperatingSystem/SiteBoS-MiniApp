@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>SiteBoS Console | TrinAi Platform Style</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #ffffff !important;
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f5f8 100%) !important;
+            color: #0f172a !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* 3D Stack Container - Identico a index1 */
+        .stack-container {
+            position: relative;
+            width: 100%;
+            height: 380px;
+            perspective: 1200px;
+            transform-style: preserve-3d;
+        }
+
+        /* TrinAi Platform Styled Cards */
+        .platform-card-3d {
+            position: absolute;
+            top: 8%;
+            left: 6%;
+            width: 88%;
+            height: 84%;
+            background: #ffffff;
+            border: 1.5px solid transparent; /* Bordi invisibili per evitare artefatti spezzati sui lati */
+            border-radius: 1.5rem;
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.005);
+            transform-origin: center center;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        filter 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.6s ease;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            cursor: pointer;
+        }
+
+        /* Active highlight for focused card (Platform Shadow & Border) */
+        .platform-card-3d.active {
+            border-color: #cbd5e1; /* Bordo visibile solo sulla card attiva in primo piano */
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 
+                        0 10px 10px -5px rgba(15, 23, 42, 0.04);
+        }
+
+        .platform-card-3d:active {
+            transform: scale(0.98) !important;
+        }
+
+        /* Dynamic dot line */
+        .active-dot {
+            height: 1.5rem !important;
+            background-color: #0f172a !important;
+        }
+
+        /* Swipe hint animation */
+        @keyframes swipePrompt {
+            0% { transform: translateY(0); opacity: 0.3; }
+            50% { transform: translateY(-8px); opacity: 0.7; }
+            100% { transform: translateY(0); opacity: 0.3; }
+        }
+        .swipe-hint {
+            animation: swipePrompt 2.2s infinite ease-in-out;
+        }
+
+        @media (pointer: coarse) {
+            .desktop-arrow { display: none !important; }
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between p-6 safe-area-inset pb-10">
+
+    <!-- HEADER / TENANT BRANDING (Identico a index1) -->
+    <header class="flex justify-between items-center bg-white/85 backdrop-blur-md p-4 rounded-3xl border border-gray-200/50 shrink-0 shadow-sm select-none z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center font-black shadow-md">
+                <span class="text-sm">SB</span>
+            </div>
+            <div>
+                <h1 id="tenant-name" class="text-xs font-black uppercase tracking-tight leading-none text-black">TRINAI SRL</h1>
+                <span id="user-role" class="text-[8px] font-bold uppercase tracking-widest text-gray-400 mt-1 block">Console Direzionale</span>
+            </div>
+        </div>
+        <div class="bg-gray-50 border border-gray-100 px-3.5 py-1.5 rounded-2xl flex items-center gap-2">
+            <i class="fas fa-bolt text-amber-500 text-[10px]"></i>
+            <span id="credits-count" class="text-[10px] font-black text-black">--- CR</span>
+        </div>
+    </header>
+
+    <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
+    <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full max-w-sm mx-auto">
+        
+        <!-- Desktop Nav Up -->
+        <button onclick="navigateStack(-1)" class="desktop-arrow absolute top-2 z-50 w-10 h-10 bg-white border border-gray-100 rounded-full shadow-md flex items-center justify-center text-black hover:bg-gray-50 active:scale-90 transition-transform">
+            <i class="fas fa-chevron-up text-xs"></i>
+        </button>
+
+        <!-- 3D Card Stack (Stessa Struttura di index1) -->
+        <div id="stack-container" class="stack-container">
+            <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Desktop Nav Down -->
+        <button onclick="navigateStack(1)" class="desktop-arrow absolute bottom-2 z-50 w-10 h-10 bg-white border border-gray-100 rounded-full shadow-md flex items-center justify-center text-black hover:bg-gray-50 active:scale-90 transition-transform">
+            <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+
+        <!-- Dynamic Side Dot Indicators -->
+        <div id="dot-indicators" class="absolute -right-1 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-50">
+            <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Swipe Hint -->
+        <div class="swipe-hint absolute bottom-8 flex flex-col items-center gap-1.5 text-gray-400 pointer-events-none select-none">
+            <i class="fas fa-angles-up text-xs"></i>
+            <span class="text-[8px] font-black uppercase tracking-widest">Scorri Verticalmente</span>
+        </div>
+    </main>
+
+    <!-- FOOTER / STATS (Identico a index1) -->
+    <footer class="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-gray-400 select-none px-2 shrink-0 z-50">
+        <span>SiteBoS V5.0</span>
+        <button id="admin-panel-btn" class="hidden text-black/50 hover:text-black transition flex items-center gap-1.5 bg-white border border-gray-100 px-3.5 py-1.5 rounded-full active:scale-95">
+            <i class="fas fa-cog"></i> Struttura
+        </button>
+        <span>TrinAi © 2026</span>
+    </footer>
+
+    <!-- JS Logic -->
+    <script>
+        'use strict';
+        const tg = window.Telegram.WebApp;
+        tg.ready(); 
+        tg.expand();
+
+        // Color override to match platform light scheme
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#ffffff');
+
+        // Admin allowlist logic
+        const ADMIN_IDS = ["2041408875", "8305126267"];
+        const userId = tg.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : "2041408875"; 
+        const isAdmin = ADMIN_IDS.includes(userId);
+
+        if (isAdmin) {
+            document.getElementById('admin-panel-btn').classList.remove('hidden');
+            document.getElementById('user-role').innerText = "Administrator Mode";
+        }
+
+        // Parse token and messages
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash');
+        const msgId = urlParams.get('msg');
+        // Dynamic modules setup - Identica Struttura (5 moduli attivi)
+        const modules = [
+            {
+                id: "identity_hub",
+                label: "Identità & Setup",
+                desc: "Gestisci l'anagrafica aziendale, la verticalizzazione del settore ed il setup dei conti finanziari.",
+                url: "identity_hub.html",
+                icon: "fa-id-card"
+            },
+            {
+                id: "catalog",
+                label: "Gestione Aziendale",
+                desc: "Il motore del business. Configura i prodotti, i servizi e la logica operativa delle SOP.",
+                url: "catalog.html",
+                icon: "fa-box-open"
+            },
+            {
+                id: "logistics_operations",
+                label: "Logistica & Op.",
+                desc: "Evasione degli ordini e-commerce, pianificazione dell'agenda ed avvio delle commesse lavorative.",
+                url: "tm_menu", 
+                icon: "fa-clock"
+            },
+            {
+                id: "intelligence_hub",
+                label: "Suite Intelligence",
+                desc: "Analisi di mercato territoriali, controllo di gestione CFO, risorse umane e conformità DVR.",
+                url: "int_", 
+                icon: "fa-chart-line"
+            },
+            {
+                id: "support_hub",
+                label: "Centro Supporto",
+                desc: "Gestione dei ticket di supporto tecnico e deviazione della chat ad operatori umani.",
+                url: "support_hub.html",
+                icon: "fa-headset"
+            }
+        ];
+
+        let activeIdx = 0;
+        let audioCtx = null;
+        const container = document.getElementById('stack-container');
+        const dotContainer = document.getElementById('dot-indicators');
+
+        // Play procedural mechanical tick tone using Web Audio API
+        function playMechanicalTick() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                
+                if (!audioCtx) {
+                    audioCtx = new AudioCtx();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.type = 'triangle'; 
+                osc.frequency.setValueAtTime(1700, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.03); 
+                
+                gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime); 
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03); 
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.03);
+            } catch (e) {
+                console.warn("Audio Context error:", e);
+            }
+        }
+
+        // Render Stack Cards and Dots
+        function buildStack() {
+            container.innerHTML = "";
+            dotContainer.innerHTML = "";
+
+            modules.forEach((mod, idx) => {
+                // Card Creation with Center Platform Theme Styling (White card + slate-900 icon box + centered text)
+                const card = document.createElement('div');
+                card.className = "platform-card-3d select-none";
+                card.id = `card-${idx}`;
+                card.innerHTML = `
+                    <div class="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-slate-900/10 text-2xl">
+                        <i class="fas ${mod.icon}"></i>
+                    </div>
+                    <div class="text-base font-bold text-slate-900 mb-2 leading-tight">${mod.label}</div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed px-3">${mod.desc}</p>
+                `;
+                
+                // Gesture detection
+                let touchStartY = 0;
+                let touchStartX = 0;
+                let isSwipe = false;
+
+                card.addEventListener('touchstart', e => {
+                    touchStartY = e.touches[0].clientY;
+                    touchStartX = e.touches[0].clientX;
+                    isSwipe = false;
+                }, { passive: true });
+
+                card.addEventListener('touchmove', e => {
+                    const diffY = Math.abs(e.touches[0].clientY - touchStartY);
+                    const diffX = Math.abs(e.touches[0].clientX - touchStartX);
+                    if (diffY > 10 || diffX > 10) {
+                        isSwipe = true; 
+                    }
+                }, { passive: true });
+
+                card.addEventListener('click', () => {
+                    if (isSwipe) return;
+                    
+                    if (audioCtx && audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+                    
+                    if (idx === activeIdx) {
+                        openModule(mod.id, mod.url);
+                    } else {
+                        selectIdx(idx);
+                    }
+                });
+
+                container.appendChild(card);
+
+                // Dot Indicator
+                const dot = document.createElement('button');
+                dot.className = `w-1.5 h-1.5 rounded-full bg-slate-300 transition-all duration-300 ${idx === 0 ? 'active-dot' : ''}`;
+                dot.id = `dot-${idx}`;
+                dot.onclick = () => selectIdx(idx);
+                dotContainer.appendChild(dot);
+            });
+
+            updateStackLayout();
+        }
+
+        // Apply true 3D cylinder vertical transformations
+        function updateStackLayout() {
+            modules.forEach((_, idx) => {
+                const card = document.getElementById(`card-${idx}`);
+                const dot = document.getElementById(`dot-${idx}`);
+                if (!card) return;
+
+                const diff = idx - activeIdx;
+                
+                let translateY = diff * 62; 
+                let translateZ = -Math.abs(diff) * 70; 
+                let rotateX = diff * -8; 
+                let scale = 1 - Math.abs(diff) * 0.04; 
+                let opacity = 0;
+                let zIndex = 100 - Math.abs(diff);
+
+                if (diff === 0) {
+                    opacity = 1;
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                    if (Math.abs(diff) === 1) {
+                        opacity = 0.65;
+                    } else if (Math.abs(diff) === 2) {
+                        opacity = 0.20;
+                    } else {
+                        opacity = 0;
+                    }
+                }
+
+                // Apply styles
+                card.style.transform = `translate3d(0, ${translateY}px, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`;
+                card.style.opacity = opacity;
+                card.style.zIndex = zIndex;
+
+                // Update dots
+                if (dot) {
+                    if (idx === activeIdx) {
+                        dot.className = "w-1.5 h-4.5 rounded-full bg-slate-900 transition-all duration-300";
+                    } else {
+                        dot.className = "w-1.5 h-1.5 rounded-full bg-slate-300 transition-all duration-300";
+                    }
+                }
+            });
+        }
+
+        // Index Selection and Sensory execution
+        function selectIdx(idx) {
+            if (idx >= 0 && idx < modules.length && idx !== activeIdx) {
+                activeIdx = idx;
+                
+                playMechanicalTick();
+
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+                
+                updateStackLayout();
+            }
+        }
+
+        window.navigateStack = function(direction) {
+            const targetIdx = activeIdx + direction;
+            if (targetIdx >= 0 && targetIdx < modules.length) {
+                selectIdx(targetIdx);
+            }
+        };
+
+        // Swipe scroll
+        let swipeStartY = 0;
+        let swipeEndY = 0;
+
+        container.addEventListener('touchstart', e => {
+            swipeStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        container.addEventListener('touchend', e => {
+            swipeEndY = e.changedTouches[0].screenY;
+            const distance = swipeEndY - swipeStartY;
+            const threshold = 35;
+            if (distance > threshold) {
+                navigateStack(-1);
+            } else if (distance < -threshold) {
+                navigateStack(1);
+            }
+        }, { passive: true });
+
+        // Wheel scroll
+        window.addEventListener('wheel', e => {
+            if (e.deltaY > 0) {
+                navigateStack(1);
+            } else {
+                navigateStack(-1);
+            }
+        }, { passive: true });
+
+        // Redirect URL logic
+        window.openModule = function(id, url) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            window.location.href = `../${url}?ash=${ash}&msg=${msgId}`;
+        };
+
+        buildStack();
+    </script>
+</body>
+</html>

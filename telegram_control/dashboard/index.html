@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>SiteBoS Console | Business Dashboard</title>
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #ffffff !important;
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f5f8 100%) !important;
+            color: #09090b !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* 3D Stack Container */
+        .stack-container {
+            position: relative;
+            width: 100%;
+            height: 380px;
+            perspective: 1200px;
+            transform-style: preserve-3d;
+        }
+
+        /* Liquid Glass Cards */
+        .glass-card-3d {
+            position: absolute;
+            top: 8%;
+            left: 6%;
+            width: 88%;
+            height: 84%;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(25px) saturate(190%);
+            -webkit-backdrop-filter: blur(25px) saturate(190%);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 2rem;
+            color: #09090b;
+            display: flex;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.02);
+            transform-origin: center center;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        filter 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.6s ease;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            cursor: pointer;
+        }
+
+        /* Liquid Glass border reflection highlight */
+        .glass-card-3d.active {
+            border: 1px solid rgba(255, 255, 255, 0.85);
+            box-shadow: inset 1px 1px 0px rgba(255, 255, 255, 0.95), 
+                        0 25px 50px rgba(0, 0, 0, 0.04);
+        }
+
+        .glass-card-3d:active {
+            transform: scale(0.98) !important;
+        }
+
+        /* Dynamic dot line */
+        .active-dot {
+            height: 1.5rem !important;
+            background-color: #000000 !important;
+        }
+
+        /* Ambient Dynamic Blob Glows */
+        .bg-glow-blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.15;
+            z-index: -10;
+            pointer-events: none;
+            transition: background-color 1.2s ease-out,
+                transform 1.2s ease-out,
+                left 1.2s ease-out,
+                top 1.2s ease-out;
+        }
+
+        /* Swipe hint animation */
+        @keyframes swipePrompt {
+            0% {
+                transform: translateY(0);
+                opacity: 0.3;
+            }
+
+            50% {
+                transform: translateY(-8px);
+                opacity: 0.7;
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 0.3;
+            }
+        }
+
+        .swipe-hint {
+            animation: swipePrompt 2.2s infinite ease-in-out;
+        }
+
+        @media (pointer: coarse) {
+            .desktop-arrow {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="flex flex-col justify-between p-6 safe-area-inset pb-10">
+
+    <!-- DYNAMIC BACKGROUND BLOBS -->
+    <div id="blob-1" class="bg-glow-blob w-80 h-80"></div>
+    <div id="blob-2" class="bg-glow-blob w-72 h-72"></div>
+
+    <!-- HEADER / TENANT BRANDING -->
+    <header
+        class="flex justify-between items-center bg-white/85 backdrop-blur-md p-4 rounded-3xl border border-gray-200/50 shrink-0 shadow-sm select-none z-50">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center font-black shadow-md">
+                <span class="text-sm">SB</span>
+            </div>
+            <div>
+                <h1 id="tenant-name" class="text-xs font-black uppercase tracking-tight leading-none text-black">TRINAI
+                    SRL</h1>
+                <span id="user-role"
+                    class="text-[8px] font-bold uppercase tracking-widest text-gray-400 mt-1 block">Console
+                    Direzionale</span>
+            </div>
+        </div>
+        <div class="bg-gray-50 border border-gray-100 px-3.5 py-1.5 rounded-2xl flex items-center gap-2">
+            <i class="fas fa-bolt text-amber-500 text-[10px]"></i>
+            <span id="credits-count" class="text-[10px] font-black text-black">--- CR</span>
+        </div>
+    </header>
+
+    <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
+    <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full max-w-sm mx-auto">
+
+        <!-- Desktop Nav Up -->
+        <button onclick="navigateStack(-1)"
+            class="desktop-arrow absolute top-2 z-50 w-10 h-10 bg-white border border-gray-100 rounded-full shadow-md flex items-center justify-center text-black hover:bg-gray-50 active:scale-90 transition-transform">
+            <i class="fas fa-chevron-up text-xs"></i>
+        </button>
+
+        <!-- 3D Card Stack -->
+        <div id="stack-container" class="stack-container">
+            <!-- Rendered dynamically by JavaScript -->
+        </div>
+
+        <!-- Desktop Nav Down -->
+        <button onclick="navigateStack(1)"
+            class="desktop-arrow absolute bottom-2 z-50 w-10 h-10 bg-white border border-gray-100 rounded-full shadow-md flex items-center justify-center text-black hover:bg-gray-50 active:scale-90 transition-transform">
+            <i class="fas fa-chevron-down text-xs"></i>
+        </button>
+
+        <!-- Dynamic Side Dot Indicators -->
+        <div id="dot-indicators" class="absolute -right-1 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-50">
+            <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Swipe Hint (visible on touch devices at startup) -->
+        <div
+            class="swipe-hint absolute bottom-8 flex flex-col items-center gap-1.5 text-gray-400 pointer-events-none select-none">
+            <i class="fas fa-angles-up text-xs"></i>
+            <span class="text-[8px] font-black uppercase tracking-widest">Scorri Verticalmente</span>
+        </div>
+    </main>
+
+    <!-- FOOTER / STATS -->
+    <footer
+        class="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-gray-400 select-none px-2 shrink-0 z-50">
+        <span>SiteBoS V5.0</span>
+        <button id="admin-panel-btn"
+            class="hidden text-black/50 hover:text-black transition flex items-center gap-1.5 bg-white border border-gray-100 px-3.5 py-1.5 rounded-full active:scale-95">
+            <i class="fas fa-cog"></i> Struttura
+        </button>
+        <span>TrinAi © 2026</span>
+    </footer>
+
+    <!-- JS Logic -->
+    <script>
+        'use strict';
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        // Forzatura dei colori del contenitore di Telegram su tema chiaro
+        if (tg.setHeaderColor) {
+            tg.setHeaderColor('#ffffff'); // Forza il colore della barra superiore di Telegram
+        }
+        if (tg.setBackgroundColor) {
+            tg.setBackgroundColor('#ffffff'); // Forza il colore di fondo del viewport di Telegram
+        }
+
+        // Admin allowlist logic
+        const ADMIN_IDS = ["2041408875", "8305126267"];
+        const userId = tg.initDataUnsafe?.user?.id ? tg.initDataUnsafe.user.id.toString() : "2041408875";
+        const isAdmin = ADMIN_IDS.includes(userId);
+
+        if (isAdmin) {
+            document.getElementById('admin-panel-btn').classList.remove('hidden');
+            document.getElementById('user-role').innerText = "Administrator Mode";
+        }
+
+        // Parse token and messages
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash');
+        const msgId = urlParams.get('msg');
+
+        // Dynamic modules setup with fine line geometric zoning (Bento) & custom duotone SVGs
+        const modules = [
+            {
+                id: "identity_hub",
+                label: "🏢 Identità & Setup",
+                desc: "Gestisci l'anagrafica aziendale, la verticalizzazione del settore ed il setup dei conti finanziari.",
+                url: "identity_hub.html",
+                badge: "Setup",
+                badgeColor: "bg-blue-50 text-blue-600 border border-blue-100",
+                iconSvg: `<svg class="w-7 h-7 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                    <circle cx="12" cy="12" r="1.5" class="opacity-20" fill="currentColor"/>
+                </svg>`,
+                blobColor: "rgba(59, 130, 246, 0.35)",
+                blobPositions: { b1: { left: "10%", top: "15%" }, b2: { left: "55%", top: "50%" } }
+            },
+            {
+                id: "catalog",
+                label: "📋 Gestione Aziendale",
+                desc: "Il motore del business. Configura i prodotti, i servizi e la logica operativa delle SOP.",
+                url: "catalog.html",
+                badge: "Core",
+                badgeColor: "bg-zinc-100 text-zinc-800 border border-zinc-200",
+                iconSvg: `<svg class="w-7 h-7 text-zinc-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="15" rx="2" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                    <line x1="9" y1="10" x2="9" y2="19" />
+                    <circle cx="6" cy="14" r="1" class="opacity-25" fill="currentColor" />
+                    <circle cx="15" cy="14" r="1.5" class="opacity-30" fill="currentColor" />
+                </svg>`,
+                blobColor: "rgba(168, 85, 247, 0.3)",
+                blobPositions: { b1: { left: "45%", top: "8%" }, b2: { left: "15%", top: "60%" } }
+            },
+            {
+                id: "logistics_operations",
+                label: "⏳ Logistica & Op.",
+                desc: "Evasione degli ordini e-commerce, pianificazione dell'agenda ed avvio delle commesse lavorative.",
+                url: "tm_menu",
+                badge: "Operations",
+                badgeColor: "bg-indigo-50 text-indigo-600 border border-indigo-100",
+                iconSvg: `<svg class="w-7 h-7 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                    <circle cx="12" cy="12" r="3" class="opacity-20" fill="currentColor" />
+                </svg>`,
+                blobColor: "rgba(99, 102, 241, 0.35)",
+                blobPositions: { b1: { left: "10%", top: "45%" }, b2: { left: "60%", top: "25%" } }
+            },
+            {
+                id: "intelligence_hub",
+                label: "📊 Suite Intelligence",
+                desc: "Analisi di mercato territoriali, controllo di gestione CFO, risorse umane e conformità DVR.",
+                url: "int_",
+                badge: "Intelligence",
+                badgeColor: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+                iconSvg: `<svg class="w-7 h-7 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10" />
+                    <line x1="12" y1="20" x2="12" y2="4" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                    <rect x="4" y="12" width="4" height="2" class="opacity-20" fill="currentColor"/>
+                    <rect x="10" y="2" width="4" height="2" class="opacity-20" fill="currentColor"/>
+                </svg>`,
+                blobColor: "rgba(16, 185, 129, 0.35)",
+                blobPositions: { b1: { left: "55%", top: "12%" }, b2: { left: "8%", top: "50%" } }
+            },
+            {
+                id: "support_hub",
+                label: "💬 Centro Supporto",
+                desc: "Gestione dei ticket di supporto tecnico e deviazione della chat ad operatori umani.",
+                url: "support_hub.html",
+                badge: "Support",
+                badgeColor: "bg-amber-50 text-amber-600 border border-amber-100",
+                iconSvg: `<svg class="w-7 h-7 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    <circle cx="12" cy="10" r="2" class="opacity-20" fill="currentColor" />
+                </svg>`,
+                blobColor: "rgba(245, 158, 11, 0.35)",
+                blobPositions: { b1: { left: "25%", top: "35%" }, b2: { left: "50%", top: "65%" } }
+            }
+        ];
+
+        let activeIdx = 0;
+        let audioCtx = null;
+        const container = document.getElementById('stack-container');
+        const dotContainer = document.getElementById('dot-indicators');
+
+        // Play procedural mechanical tick tone using Web Audio API
+        function playMechanicalTick() {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+
+                if (!audioCtx) {
+                    audioCtx = new AudioCtx();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                // Triangle wave captures relay physics scatto sound
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(1700, audioCtx.currentTime); // high attack pitch
+                osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.03); // down drop
+
+                // Rapid amplitude envelope (30ms)
+                gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime); // safe volume
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.03);
+            } catch (e) {
+                console.warn("Audio Context blocked or uninitialized by user gesture:", e);
+            }
+        }
+
+        // Render Bento Stack Cards and Dots
+        function buildStack() {
+            container.innerHTML = "";
+            dotContainer.innerHTML = "";
+
+            modules.forEach((mod, idx) => {
+                // Card Creation with Fine Bento Zoning (Separatori 1px)
+                const card = document.createElement('div');
+                card.className = "glass-card-3d select-none";
+                card.id = `card-${idx}`;
+                card.innerHTML = `
+                    <div class="p-6 flex flex-col justify-between h-full w-full">
+                        <div class="flex justify-between items-center">
+                            ${mod.iconSvg}
+                            <span class="px-2 py-0.5 ${mod.badgeColor} text-[7px] font-black uppercase tracking-widest rounded">${mod.badge}</span>
+                        </div>
+                        
+                        <div class="my-auto space-y-2">
+                            <h2 class="text-sm font-black uppercase tracking-tight text-zinc-900 leading-tight">${mod.label}</h2>
+                            <!-- Separatore Bento 1px ad alta trasparenza -->
+                            <div class="border-b border-zinc-200/40 w-full my-1.5"></div>
+                            <p class="text-[9px] text-zinc-500 font-medium leading-relaxed">${mod.desc}</p>
+                        </div>
+                    </div>
+                `;
+
+                // Gesture and Touch validation setup
+                let touchStartY = 0;
+                let touchStartX = 0;
+                let isSwipe = false;
+
+                card.addEventListener('touchstart', e => {
+                    touchStartY = e.touches[0].clientY;
+                    touchStartX = e.touches[0].clientX;
+                    isSwipe = false;
+                }, { passive: true });
+
+                card.addEventListener('touchmove', e => {
+                    const diffY = Math.abs(e.touches[0].clientY - touchStartY);
+                    const diffX = Math.abs(e.touches[0].clientX - touchStartX);
+                    if (diffY > 10 || diffX > 10) {
+                        isSwipe = true; // Inhibit clicks if movement occurs (gesture deflection)
+                    }
+                }, { passive: true });
+
+                // Card-as-a-Button Click Target Selection
+                const handleSelection = (e) => {
+                    if (isSwipe) return; // Prevent selection on scroll swipe
+
+                    // Unsuspend audio context on first click
+                    if (audioCtx && audioCtx.state === 'suspended') {
+                        audioCtx.resume();
+                    }
+
+                    if (idx === activeIdx) {
+                        openModule(mod.id, mod.url);
+                    } else {
+                        selectIdx(idx);
+                    }
+                };
+
+                card.addEventListener('click', handleSelection);
+
+                container.appendChild(card);
+
+                // Dot Creation
+                const dot = document.createElement('button');
+                dot.className = `w-1.5 h-1.5 rounded-full bg-zinc-300 transition-all duration-300 ${idx === 0 ? 'active-dot' : ''}`;
+                dot.id = `dot-${idx}`;
+                dot.onclick = () => selectIdx(idx);
+                dotContainer.appendChild(dot);
+            });
+
+            updateStackLayout();
+        }
+
+        // Apply true 3D cylinder perspective stacked layout with dynamic background blobs
+        function updateStackLayout() {
+            const activeModule = modules[activeIdx];
+
+            // Dynamic Blob Update (Color and Position transitions)
+            const b1 = document.getElementById('blob-1');
+            const b2 = document.getElementById('blob-2');
+            if (b1 && b2 && activeModule) {
+                b1.style.backgroundColor = activeModule.blobColor;
+                b1.style.left = activeModule.blobPositions.b1.left;
+                b1.style.top = activeModule.blobPositions.b1.top;
+
+                b2.style.backgroundColor = activeModule.blobColor;
+                b2.style.left = activeModule.blobPositions.b2.left;
+                b2.style.top = activeModule.blobPositions.b2.top;
+            }
+
+            modules.forEach((_, idx) => {
+                const card = document.getElementById(`card-${idx}`);
+                const dot = document.getElementById(`dot-${idx}`);
+                if (!card) return;
+
+                const diff = idx - activeIdx;
+
+                let translateY = diff * 55; // Vertical offset spacing
+                let translateZ = -Math.abs(diff) * 80; // Depth distance Z
+                let rotateX = diff * -9; // Cylinder rotation
+                let scale = 1 - Math.abs(diff) * 0.05; // Scaling
+                let opacity = 0;
+                let zIndex = 100 - Math.abs(diff);
+
+                if (diff === 0) {
+                    opacity = 1;
+                    card.classList.add('active');
+                } else {
+                    card.classList.remove('active');
+                    if (Math.abs(diff) === 1) {
+                        opacity = 0.65;
+                    } else if (Math.abs(diff) === 2) {
+                        opacity = 0.20;
+                    } else {
+                        opacity = 0;
+                    }
+                }
+
+                // Apply dynamic 3D styles
+                card.style.transform = `translate3d(0, ${translateY}px, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`;
+                card.style.opacity = opacity;
+                card.style.zIndex = zIndex;
+
+                // Update dot styling
+                if (dot) {
+                    if (idx === activeIdx) {
+                        dot.className = "w-1.5 h-5 rounded-full bg-zinc-950 transition-all duration-300";
+                    } else {
+                        dot.className = "w-1.5 h-1.5 rounded-full bg-zinc-300 transition-all duration-300";
+                    }
+                }
+            });
+        }
+
+        // Index Selection and Sensory Haptics & Audio execution
+        function selectIdx(idx) {
+            if (idx >= 0 && idx < modules.length && idx !== activeIdx) {
+                activeIdx = idx;
+
+                // Sound synthesis Tick
+                playMechanicalTick();
+
+                // Haptic feedback selection impact
+                if (tg.HapticFeedback) {
+                    tg.HapticFeedback.impactOccurred('light');
+                }
+
+                updateStackLayout();
+            }
+        }
+
+        // Navigation arrow click helpers
+        window.navigateStack = function (direction) {
+            const targetIdx = activeIdx + direction;
+            if (targetIdx >= 0 && targetIdx < modules.length) {
+                selectIdx(targetIdx);
+            }
+        };
+
+        // Swipe Gestures for stack scrolling
+        let swipeStartY = 0;
+        let swipeEndY = 0;
+
+        container.addEventListener('touchstart', e => {
+            swipeStartY = e.changedTouches[0].screenY;
+        }, { passive: true });
+
+        container.addEventListener('touchend', e => {
+            swipeEndY = e.changedTouches[0].screenY;
+            const distance = swipeEndY - swipeStartY;
+            const threshold = 35;
+            if (distance > threshold) {
+                navigateStack(-1);
+            } else if (distance < -threshold) {
+                navigateStack(1);
+            }
+        }, { passive: true });
+
+        // Desktop mouse wheel scroll helper
+        window.addEventListener('wheel', e => {
+            if (e.deltaY > 0) {
+                navigateStack(1);
+            } else {
+                navigateStack(-1);
+            }
+        }, { passive: true });
+
+        // Redirect URL logic
+        window.openModule = function (id, url) {
+            if (url.includes('.html')) {
+                window.location.href = `../${url}?ash=${ash}&msg=${msgId}`;
+            } else {
+                tg.showAlert(`Modulo callback attivato: ${id}`);
+            }
+        };
+
+        buildStack();
+
+        async function fetchOwnerConfig() {
+            try {
+                document.getElementById('credits-count').innerText = "1.250 CR";
+            } catch (e) {
+                console.error("Config fetch failed:", e);
+            }
+        }
+        fetchOwnerConfig();
+    </script>
+</body>
+
+</html>

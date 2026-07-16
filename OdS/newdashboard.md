@@ -15,7 +15,7 @@ La dashboard inviata dal workflow n8n [dashboard.json](file:///c:/Users/garof/De
 2. **Generazione Risposta**: Il backend controlla lo stato dell'utente (onboarding completato, crediti sufficienti, ecc.).
 3. **Pulsante Unico**: Viene inviato un messaggio di stato sintetico con **un solo bottone inline**:
    * **Testo**: `🚀 Apri Console SiteBoS` o `💻 Accedi alla Dashboard`
-   * **Azione**: Apre la Telegram MiniApp puntando a un URL unico (es. `supervisor_hub.html` o un router principale `dashboard.html`).
+   * **Azione**: Apre la Telegram MiniApp puntando a un URL unico all'interno della nuova cartella dedicata (es. `dashboard/index.html`).
    * **Parametri URL**: L'URL include l'autenticazione sicura `ash` (generata dinamicamente con HMAC sul backend) e i parametri contestuali.
 
 ```
@@ -189,19 +189,51 @@ Configurazione dei canali esterni di vendita e prenotazione.
 *   [ecommerce.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/ecommerce.html) / [preventivi.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/preventivi.html): Carrello vendite e calcolatore preventivi.
 
 ### 💬 6. AREA SUPPORTO & MANUTENZIONE (Support & System)
-*   [support_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/support_hub.html) / [handover.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/handover.html): Presa in carico manuale della chat clienti e ticket di assistenza.
-*   `open_agent_control_center`: Sincronizzazione e allineamento database.
+*   [support_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/support_hub.html) / [handover.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/handover.html): Presa in carico man## 🎨 7. CAROSELLO VERTICALE & DESIGN SYSTEM (UI/UX MiniApp - OdS SB-2026-009)
+Per uniformare l'interfaccia della Telegram MiniApp all'estetica premium della piattaforma desktop, viene implementato un **Carosello Verticale (3D Vertical Focus Stack)** conforme alle direttive dell'OdS SB-2026-009.
+
+### 🎛️ Specifiche Tecnico-Estetiche Applicate:
+1.  **Liquid Glass & Rifrazione**:
+    *   La card attiva al centro è configurata con `backdrop-filter: blur(25px) saturate(190%)`.
+    *   **Bordo Luminoso**: La card attiva possiede una simulazione di riflesso luminoso metallico tramite un bordo di contrasto chiaro e un'ombreggiatura interna superiore (`box-shadow: inset 1px 1px 0px rgba(255,255,255,0.95)`).
+2.  **Struttura Bento Geometrica (Pulita)**:
+    *   L'interno della card presenta una zonizzazione pulita con un divisore orizzontale ad alta trasparenza (`border-zinc-200/40`) spesso `1px` che separa il titolo dalla descrizione.
+    *   **Contenuto**: Icona vettoriale (SVG) personalizzata a spessore ultra-fine (`stroke-width: 1.5px`) con opacità duotone, badge di categoria in alto a destra, titolo (extra-bold, nero) e descrizione breve.
+3.  **Glow Ambientale Dinamico (Sfondi Blob Fluidi)**:
+    *   Due elementi assoluti fuori fuoco (`blur-[120px]`) sfumano dinamicamente cambiando colore (coordinato al modulo attivo) e posizione al variare dell'indice (`activeIdx`), con transizione CSS a `1.2s`.
+4.  **Interazione Card-as-a-Button**:
+    *   Viene revocato l'uso del pulsante fisico interno. L'intera superficie del modulo `.glass-card-3d` è l'area attiva di tap.
+    *   **Isolamento delle Gesture**: Se lo scorrimento supera i `10px` sull'asse Y (rilevato tra `touchstart` e `touchend`), l'azione viene definita come "scorrimento" e l'apertura del modulo viene inibita.
+    *   **Validazione Tap**: Il tap su una card non attiva porta la card in primo piano senza aprire il link. Solo il tap sulla card attiva (`idx === activeIdx`) avvia l'interfaccia (`openModule`).
+5.  **Sistema Sensoriale Coerente ("Click-Tick" Sync)**:
+    *   **Feedback Tattile**: Ad ogni cambio indice viene emesso un impulso aptico tramite Telegram WebApp SDK (`HapticFeedback.impactOccurred('light')`).
+    *   **Feedback Acustico**: Sintesi procedurale immediata (Web Audio API) che riproduce uno scatto meccanico ad ogni scorrimento, azzerando la latenza.
+
+```
+          [ Scheda Precedente ]   <- scale-90, opacity-65
+         +---------------------+
+         | 🏢 Identità & Setup |  <- Bento layout (separatore 1px)
+         +---------------------+
+                    v
+       +-------------------------+
+       |  📋 Gestione Aziendale  |  <- CENTRATA & ATTIVA
+       |                         |     scale-105, opacity-100
+       |   Prodotti & Servizi    |     (Tap to open / scale-0.98 active)
+       +-------------------------+
+                    ^
+         +---------------------+
+         |  ⏳ Logistica & Op  |  <- scale-90, opacity-65
+         +---------------------+
+```
 
 ---
 
 ## 🛠️ PROSSIMI PASSI PER L'IMPLEMENTAZIONE
-Per avviare lo sviluppo sui file fisici una volta approvato l'OdS:
+Le specifiche dell'OdS SB-2026-009 sono state interamente implementate nel prototipo client. I passi successivi prevedono:
 1. **Modificare [dashboard.json](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/n8n_workflows/n8n_workflow/SiteBoS-App-Hook/dashboard/dashboard.json)**:
-   * Ridurre la tastiera inline generata a un singolo pulsante WebApp.
-   * Implementare l'endpoint API `/api/dashboard/layout` (GET per caricare, POST per aggiornare).
-2. **Creare la Logica Client in MiniApp**:
-   * Modificare l'entrypoint della MiniApp per caricare dinamicamente il layout tramite AJAX/Fetch.
-   * Costruire l'Admin Panel (visibile solo per `isAdmin === true`) con form di editing e salvataggio dei moduli.
+   * Ridurre la tastiera inline generata a un singolo pulsante WebApp puntante a `dashboard/index.html`.
+2. **Integrare la Persistenza MongoDB**:
+   * Implementare l'endpoint API `/api/dashboard/layout` per caricare/aggiornare l'ordinamento dinamico delle card.
 3. **Aggiornare la Sincronizzazione**:
-   * Rimuovere i nodi MongoDB di lock/unlock nei flussi asincroni e sostituirli con nodi di modifica dei messaggi Telegram (`editMessageReplyMarkup`).
+   * Sostituire i nodi di blocco MongoDB asincroni con l'editing del messaggio Telegram (`editMessageReplyMarkup`) durante la generazione dei contenuti.
 
