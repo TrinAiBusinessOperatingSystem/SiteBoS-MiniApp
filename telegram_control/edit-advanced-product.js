@@ -34,6 +34,9 @@ async function loadData() {
         if (isRawSchema) {
             console.log("Rilevato schema avanzato. Avvio normalizzazione...");
             
+            // Inizializza con una copia profonda di doc per preservare tutti i campi non modificabili dal frontend
+            productData = JSON.parse(JSON.stringify(doc));
+            
             const identitySrc = doc.service_identity || doc.identity || {};
             productData.identity = {
                 item_name: identitySrc.name || identitySrc.item_name || "Prodotto",
@@ -105,10 +108,10 @@ async function loadData() {
             // 5. Mappatura Competitor
             productData.relations = {
                 marketing_info: {
-                    competitors: (doc.market_and_fiscal_intelligence?.competitors || []).map(c => ({
-                        competitor_name: c.name || "Competitor",
-                        source_url: c.url || "#",
-                        price: c.estimated_price || 0
+                    competitors: (doc.market_and_fiscal_intelligence?.competitors || doc.relations?.marketing_info?.competitors || []).map(c => ({
+                        competitor_name: c.name || c.competitor_name || "Competitor",
+                        source_url: c.url || c.source_url || "#",
+                        price: c.estimated_price || c.price || 0
                     }))
                 }
             };
@@ -174,43 +177,64 @@ function applyAdaptiveUI() {
     const assetsMenu = document.getElementById('menu-tab-assets');
     const blueprintMenu = document.getElementById('menu-tab-blueprint');
 
+    const bomTitle = document.getElementById('bom-title');
+    const bomSubtitle = document.getElementById('bom-subtitle');
+    const locationsTitle = document.getElementById('locations-title');
+    const assetsTitle = document.getElementById('assets-title');
+    const blueprintTitle = document.getElementById('blueprint-title');
+
     if (isDigital) {
         if (bomMenu) bomMenu.innerHTML = '<i class="fas fa-file-invoice text-sm w-5 text-center"></i> 📦 Risorse & Licenze';
         if (locationsMenu) locationsMenu.innerHTML = '<i class="fas fa-server text-sm w-5 text-center"></i> 📍 Infrastruttura Cloud';
         if (assetsMenu) assetsMenu.innerHTML = '<i class="fas fa-laptop-code text-sm w-5 text-center"></i> 🛠️ Sistemi & Software';
         if (blueprintMenu) blueprintMenu.innerHTML = '<i class="fas fa-paper-plane text-sm w-5 text-center"></i> 📋 Blueprint di Erogazione';
 
-        document.getElementById('bom-title').innerText = "📦 Risorse e Licenze Digitali";
-        document.getElementById('bom-subtitle').innerText = "Elenco delle licenze, file o risorse software necessarie";
-        document.getElementById('locations-title').innerText = "📍 Infrastruttura Cloud e Consegna";
-        document.getElementById('assets-title').innerText = "🛠️ Sistemi, Software e Integrazioni";
-        document.getElementById('blueprint-title').innerText = "📋 Sequenza di Erogazione Digitale (Blueprint)";
+        if (bomTitle) bomTitle.innerText = "📦 Risorse e Licenze Digitali";
+        if (bomSubtitle) bomSubtitle.innerText = "Elenco delle licenze, file o risorse software necessarie";
+        if (locationsTitle) locationsTitle.innerText = "📍 Infrastruttura Cloud e Consegna";
+        if (assetsTitle) assetsTitle.innerText = "🛠️ Sistemi, Software e Integrazioni";
+        if (blueprintTitle) blueprintTitle.innerText = "📋 Sequenza di Erogazione Digitale (Blueprint)";
     } else {
         if (bomMenu) bomMenu.innerHTML = '<i class="fas fa-cubes text-sm w-5 text-center"></i> 📦 Distinta Base (BOM)';
         if (locationsMenu) locationsMenu.innerHTML = '<i class="fas fa-map-marker-alt text-sm w-5 text-center"></i> 📍 Aree di Stoccaggio';
         if (assetsMenu) assetsMenu.innerHTML = '<i class="fas fa-tools text-sm w-5 text-center"></i> 🛠️ Asset & Attrezzature';
         if (blueprintMenu) blueprintMenu.innerHTML = '<i class="fas fa-paste text-sm w-5 text-center"></i> 📋 Blueprint Assemblaggio';
 
-        document.getElementById('bom-title').innerText = "📦 Distinta Base dei Componenti (BOM)";
-        document.getElementById('bom-subtitle').innerText = "Elenco dei semilavorati e delle materie prime che compongono il prodotto";
-        document.getElementById('locations-title').innerText = "📍 Logistica e Aree di Stoccaggio";
-        document.getElementById('assets-title').innerText = "🛠️ Attrezzature e Macchinari di Assemblaggio";
-        document.getElementById('blueprint-title').innerText = "📋 Sequenza di Assemblaggio Finale (Blueprint)";
+        if (bomTitle) bomTitle.innerText = "📦 Distinta Base dei Componenti (BOM)";
+        if (bomSubtitle) bomSubtitle.innerText = "Elenco dei semilavorati e delle materie prime che compongono il prodotto";
+        if (locationsTitle) locationsTitle.innerText = "📍 Logistica e Aree di Stoccaggio";
+        if (assetsTitle) assetsTitle.innerText = "🛠️ Attrezzature e Macchinari di Assemblaggio";
+        if (blueprintTitle) blueprintTitle.innerText = "📋 Sequenza di Assemblaggio Finale (Blueprint)";
     }
 }
 
 function collectDataForSaving() {
     if (!currentData) return {};
-    return {
-        bom: currentData.bom || [],
-        pricing: currentData.pricing || {},
-        procurement: currentData.procurement || {},
-        logistics: currentData.logistics || {},
-        assets: currentData.assets || [],
-        competitors: currentData.relations?.marketing_info?.competitors || [],
-        strategic_operations_analysis: currentData.strategic_operations_analysis || {},
-        strategic_clinical_analysis: currentData.strategic_clinical_analysis || {}
-    };
+    
+    // Assicurati che i campi modificati esistano al livello principale di currentData
+    if (!currentData.bom) currentData.bom = [];
+    if (!currentData.pricing) currentData.pricing = {};
+    if (!currentData.procurement) currentData.procurement = {};
+    if (!currentData.logistics) currentData.logistics = {};
+    if (!currentData.assets) currentData.assets = [];
+    
+    // Sincronizza i competitor in market_and_fiscal_intelligence.competitors
+    if (!currentData.market_and_fiscal_intelligence) {
+        currentData.market_and_fiscal_intelligence = {};
+    }
+    
+    // Mappatura inversa protettiva per preservare lo schema DB originario
+    const frontendCompetitors = currentData.relations?.marketing_info?.competitors || [];
+    currentData.market_and_fiscal_intelligence.competitors = frontendCompetitors.map(c => ({
+        name: c.competitor_name || c.name || "Competitor",
+        url: c.source_url || c.url || "#",
+        estimated_price: c.price !== undefined ? c.price : (c.estimated_price || 0),
+        distance_km: c.distance_km !== undefined ? c.distance_km : null,
+        usp_gap_strengths: c.usp_gap_strengths || [],
+        usp_gap_weaknesses: c.usp_gap_weaknesses || []
+    }));
+        
+    return currentData;
 }
 
 function checkDirty() {
@@ -741,7 +765,7 @@ async function saveProductAdvancedData() {
             sop_id: sopId,
             message_id: messageId,
             ash: ash,
-            payload: currentData
+            payload: collectDataForSaving()
         };
 
         const res = await fetch(WEBHOOK_URL, {

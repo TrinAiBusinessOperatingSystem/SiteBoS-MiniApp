@@ -265,16 +265,26 @@ function getAnalyticalMedicoFee() {
 }
 
 function updateCompensoFromPct() {
-    unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-    const pct = parseFloat(document.getElementById('in-compenso-pct').value) || 0;
-    document.getElementById('in-compenso').value = ((unit_tariffa * pct) / 100).toFixed(2);
+    const tariffaEl = document.getElementById('in-tariffa');
+    const pctEl = document.getElementById('in-compenso-pct');
+    const compEl = document.getElementById('in-compenso');
+    if (!tariffaEl || !pctEl || !compEl) return;
+
+    unit_tariffa = parseFloat(tariffaEl.value) || 0;
+    const pct = parseFloat(pctEl.value) || 0;
+    compEl.value = ((unit_tariffa * pct) / 100).toFixed(2);
     recalculateAll();
 }
 
 function updateCompensoFromEuro() {
-    unit_tariffa = parseFloat(document.getElementById('in-tariffa').value) || 0;
-    const compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
-    document.getElementById('in-compenso-pct').value = unit_tariffa > 0 ? ((compenso / unit_tariffa) * 100).toFixed(2) : 0;
+    const tariffaEl = document.getElementById('in-tariffa');
+    const compEl = document.getElementById('in-compenso');
+    const pctEl = document.getElementById('in-compenso-pct');
+    if (!tariffaEl || !compEl || !pctEl) return;
+
+    unit_tariffa = parseFloat(tariffaEl.value) || 0;
+    const compenso = parseFloat(compEl.value) || 0;
+    pctEl.value = unit_tariffa > 0 ? ((compenso / unit_tariffa) * 100).toFixed(2) : 0;
     recalculateAll(true);
 }
 
@@ -315,13 +325,18 @@ function recalculateAll(drivenByEuro = false) {
             }
         }
     } else {
-        compenso = parseFloat(document.getElementById('in-compenso').value) || 0;
+        const compensoEl = document.getElementById('in-compenso');
+        compenso = compensoEl 
+            ? (parseFloat(compensoEl.value) || 0)
+            : (currentData?.financial_simulations?.cost_breakdown_unit?.primary_operator_fee || 0);
         if (!drivenByEuro) {
-            const pct = parseFloat(document.getElementById('in-compenso-pct').value) || 0;
-            compenso = (unit_tariffa * pct) / 100;
-            const compensoEl = document.getElementById('in-compenso');
-            if (compensoEl) {
-                compensoEl.value = compenso.toFixed(2);
+            const pctEl = document.getElementById('in-compenso-pct');
+            if (pctEl) {
+                const pct = parseFloat(pctEl.value) || 0;
+                compenso = (unit_tariffa * pct) / 100;
+                if (compensoEl) {
+                    compensoEl.value = compenso.toFixed(2);
+                }
             }
         }
     }
@@ -362,7 +377,9 @@ function recalculateAll(drivenByEuro = false) {
     // Tassazione & ENPAM
     const tasseP = parseFloat(document.getElementById('in-tasse').value) || 0;
     const enpamEl = document.getElementById('select-enpam-rate');
-    const enpamRate = enpamEl ? parseFloat(enpamEl.value) : 0.0;
+    const enpamRate = enpamEl 
+        ? parseFloat(enpamEl.value) 
+        : ((currentData?.market_and_fiscal_intelligence?.fiscal_analysis?.social_security_rate * 100) || 2.0);
     const aliquotaTotale = tasseP + enpamRate;
 
     let prelievoTotale = 0;
@@ -1063,19 +1080,22 @@ function getPayloadToSave() {
     const costoOraSaturata = saturazionePct > 0 ? (poltrona / (saturazionePct / 100)) : poltrona;
     const tempoSediaLordo = tempo + tempoSetup;
     const costoSediaTotaleOrario = costoOraSaturata + localBurdenHourly;
-    const costOfPostazioneFixed = (costoSediaTotaleOrario / 60) * tempoSediaLordo;
+    const costOfPostazioneFixed = parseFloat(((costoSediaTotaleOrario / 60) * tempoSediaLordo).toFixed(2));
 
     payload.financial_simulations.cost_breakdown_unit.workstation_time_cost_fixed = costOfPostazioneFixed;
 
-    const costoAccantonamentoGaranzia = (tariffa * garanziaPct) / 100;
+    const costoAccantonamentoGaranzia = parseFloat(((tariffa * garanziaPct) / 100).toFixed(2));
     payload.financial_simulations.cost_breakdown_unit.clinical_failure_provision_value = costoAccantonamentoGaranzia;
 
-    payload.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia;
-    payload.financial_simulations.cost_breakdown_unit.contribution_margin_unit = tariffa - (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia);
+    payload.financial_simulations.cost_breakdown_unit.total_direct_variable_costs_unit = 
+        parseFloat((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia).toFixed(2));
+    payload.financial_simulations.cost_breakdown_unit.contribution_margin_unit = 
+        parseFloat((tariffa - (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia)).toFixed(2));
 
-    payload.financial_simulations.cost_breakdown_unit.total_operating_cost_unit = (compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed;
+    payload.financial_simulations.cost_breakdown_unit.total_operating_cost_unit = 
+        parseFloat(((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed).toFixed(2));
 
-    const operatingIncome = tariffa - ((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed);
+    const operatingIncome = parseFloat((tariffa - ((compenso + costoAso + materiali + lab + costoAccantonamentoGaranzia) + costOfPostazioneFixed)).toFixed(2));
     payload.financial_simulations.cost_breakdown_unit.operating_income_unit = operatingIncome;
 
     payload.financial_simulations.fiscal_and_previdential_impact.enpam_previdential_rate = enpam / 100;
@@ -1083,9 +1103,9 @@ function getPayloadToSave() {
 
     let taxesVal = 0;
     if (detectedVertical === 'dental') {
-        taxesVal = tariffa * ((tasse + enpam) / 100);
+        taxesVal = parseFloat((tariffa * ((tasse + enpam) / 100)).toFixed(2));
     } else {
-        taxesVal = operatingIncome > 0 ? (operatingIncome * (tasse / 100)) : 0;
+        taxesVal = operatingIncome > 0 ? parseFloat((operatingIncome * (tasse / 100)).toFixed(2)) : 0;
     }
     payload.financial_simulations.fiscal_and_previdential_impact.estimated_tax_and_previdential_burden_value = taxesVal;
 
