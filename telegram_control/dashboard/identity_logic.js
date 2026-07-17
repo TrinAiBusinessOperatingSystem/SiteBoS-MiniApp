@@ -23,7 +23,7 @@
         { 
             id: "cloud_identity", 
             label: "Identità Aziendale", 
-            desc: "SiteBoS Cloud: Accedi al pannello profondo di configurazione HoneyPot aziendale.", 
+            desc: "SiteBoS Cloud: Accedi al pannello profondo di configurazione MiniSite aziendale.", 
             url: "https://dashboard.trinai.it/sitebos", 
             icon: "fa-building",
             isExternal: true
