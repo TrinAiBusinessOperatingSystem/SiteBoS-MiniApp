@@ -40,22 +40,22 @@
             height: 100dvh;
         }
 
-        /* 3D Stack Container */
+        /* 3D Stack Container (Rectangular Proportions aligned with catalog) */
         .stack-container {
             position: relative;
             width: 100%;
-            height: 380px;
+            height: 200px;
             perspective: 1200px;
             transform-style: preserve-3d;
         }
 
-        /* TrinAi Platform Styled Cards */
+        /* TrinAi Platform Styled Cards - Shorter Rectangular Style aligned with catalog */
         .platform-card-3d {
             position: absolute;
-            top: 10%;
-            left: 8%;
-            width: 84%;
-            height: 80%;
+            top: 5%;
+            left: 12%;
+            width: 76%;
+            height: 90%;
             background: #ffffff;
             border: 1.5px solid transparent; /* Bordi invisibili sullo sfondo per evitare artefatti */
             border-radius: 1.5rem;
@@ -63,9 +63,9 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
             text-align: center;
-            padding: 1.5rem;
+            padding: 1.2rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.005);
             transform-origin: center center;
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
@@ -140,8 +140,8 @@
     <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full max-w-sm mx-auto">
         
         <!-- Desktop Nav Up -->
-        <button onclick="navigateStack(-1)" class="desktop-arrow absolute top-2 z-50 w-10 h-10 bg-white border border-gray-100 rounded-full shadow-md flex items-center justify-center text-black hover:bg-gray-50 active:scale-90 transition-transform">
-            <i class="fas fa-chevron-up text-xs"></i>
+        <button onclick="playMechanicalTick(); navigateStack(-1)" class="desktop-arrow absolute top-0 z-50 w-9 h-9 bg-white border border-slate-200/50 rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 active:scale-90 transition-transform">
+            <i class="fas fa-chevron-up text-[10px]"></i>
         </button>
 
         <!-- 3D Card Stack -->
@@ -150,8 +150,8 @@
         </div>
 
         <!-- Desktop Nav Down -->
-        <button onclick="navigateStack(1)" class="desktop-arrow absolute bottom-2 z-50 w-10 h-10 bg-white border border-gray-100 rounded-full shadow-md flex items-center justify-center text-black hover:bg-gray-50 active:scale-90 transition-transform">
-            <i class="fas fa-chevron-down text-xs"></i>
+        <button onclick="playMechanicalTick(); navigateStack(1)" class="desktop-arrow absolute bottom-0 z-50 w-9 h-9 bg-white border border-slate-200/50 rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 active:scale-90 transition-transform">
+            <i class="fas fa-chevron-down text-[10px]"></i>
         </button>
 
         <!-- Dynamic Side Dot Indicators with Scrubbing Area (Pill layout) -->
@@ -328,11 +328,30 @@
                 card.className = "platform-card-3d select-none";
                 card.id = `card-${idx}`;
                 card.innerHTML = `
-                    <div class="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-slate-900/10 text-2xl">
-                        <i class="fas ${mod.icon}"></i>
+                    <div class="w-full text-left shrink-0">
+                        <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">
+                            ${currentMenuLevel === 'sub' ? 'Opzione Setup' : 'Modulo Console'}
+                        </span>
                     </div>
-                    <div class="text-base font-bold text-slate-900 mb-2 leading-tight">${mod.label}</div>
-                    <p class="text-[10px] text-slate-500 leading-relaxed px-3">${mod.desc}</p>
+
+                    <div class="my-auto flex items-center gap-4 w-full px-2 text-left">
+                        <div class="w-12 h-12 bg-slate-950 text-white rounded-2xl flex items-center justify-center text-xl shadow-md shrink-0">
+                            <i class="fas ${mod.icon}"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h3 class="text-xs font-black tracking-tight text-slate-900 leading-none uppercase mb-1 truncate">${mod.label}</h3>
+                            <p class="text-[9px] text-slate-500 font-bold leading-tight mt-0.5 normal-case line-clamp-2">${mod.desc}</p>
+                        </div>
+                    </div>
+
+                    <div class="w-full flex justify-between items-center shrink-0">
+                        <span class="px-2 py-0.5 bg-slate-900 text-white rounded-full text-[7.5px] font-black uppercase tracking-widest">
+                            Attivo
+                        </span>
+                        <span class="text-[7px] font-black uppercase tracking-wider text-blue-600 flex items-center gap-1 animate-pulse">
+                            Apri <i class="fas fa-chevron-right text-[6px]"></i>
+                        </span>
+                    </div>
                 `;
                 
                 // Swipe gesture isolation parameters
@@ -390,22 +409,22 @@
 
                 const diff = idx - activeIdx;
                 
-                let translateY = diff * 58; 
+                let translateY = diff * 32; 
                 let translateZ = -Math.abs(diff) * 70; 
-                let rotateX = diff * -8; 
+                let rotateX = diff * -7; 
                 let scale = 1 - Math.abs(diff) * 0.04; 
                 let opacity = 0;
                 let zIndex = 100 - Math.abs(diff);
 
                 if (diff === 0) {
                     opacity = 1;
+                    card.style.pointerEvents = 'auto';
                     card.classList.add('active');
                 } else {
                     card.classList.remove('active');
+                    card.style.pointerEvents = 'none';
                     if (Math.abs(diff) === 1) {
-                        opacity = 0.65;
-                    } else if (Math.abs(diff) === 2) {
-                        opacity = 0.20;
+                        opacity = 0.55;
                     } else {
                         opacity = 0;
                     }
