@@ -142,6 +142,20 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* 3D Tactile Glassmorphic Buttons */
+        .btn-3d-tactile {
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-bottom: 3px solid #94a3b8;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            transition: transform 0.1s ease, border-bottom-width 0.1s ease, box-shadow 0.1s ease;
+        }
+        .btn-3d-tactile:active {
+            transform: translateY(2px);
+            border-bottom-width: 1px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
 
@@ -200,8 +214,8 @@
 
         <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
         <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full min-h-[260px]">
-            <!-- Desktop Nav Up -->
-            <button onclick="playTick(750, 0.03, 0.05); navigateStack(-1)" class="absolute top-0 z-50 w-9 h-9 bg-white/80 border border-slate-200/50 rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 active:scale-90 transition-transform">
+            <!-- Desktop/Mobile Nav Up -->
+            <button onclick="playTick(750, 0.03, 0.05); navigateStack(-1)" class="btn-3d-tactile absolute top-0 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
                 <i class="fas fa-chevron-up text-[10px]"></i>
             </button>
 
@@ -210,8 +224,13 @@
                 <!-- Rendered dynamically -->
             </div>
 
-            <!-- Desktop Nav Down -->
-            <button onclick="playTick(750, 0.03, 0.05); navigateStack(1)" class="absolute bottom-0 z-50 w-9 h-9 bg-white/80 border border-slate-200/50 rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 active:scale-90 transition-transform">
+            <!-- Mobile/Desktop Nav Back (Left Side) -->
+            <button id="btn-nav-back" onclick="playTick(750, 0.03, 0.05); handleTopBack()" class="btn-3d-tactile absolute left-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hidden" style="top: calc(50% - 18px);">
+                <i class="fas fa-chevron-left text-[10px]"></i>
+            </button>
+
+            <!-- Desktop/Mobile Nav Down -->
+            <button onclick="playTick(750, 0.03, 0.05); navigateStack(1)" class="btn-3d-tactile absolute bottom-0 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
                 <i class="fas fa-chevron-down text-[10px]"></i>
             </button>
 
@@ -560,6 +579,16 @@
 
             updateMacroLayout();
 
+            // Toggle 3D Back Button visibility
+            const backBtn3d = document.getElementById('btn-nav-back');
+            if (backBtn3d) {
+                if (currentViewLevel === 'categories') {
+                    backBtn3d.classList.add('hidden');
+                } else {
+                    backBtn3d.classList.remove('hidden');
+                }
+            }
+
             if (currentViewLevel === 'categories') {
                 document.getElementById('submenu-header').classList.add('hidden');
                 document.getElementById('main-action-btn-text').innerText = "Nuova Categoria";
@@ -766,18 +795,12 @@
                         if (!res.ok) throw new Error("Errore risposta server");
                         const payload = await res.json();
                         
-                        if (!payload || !payload.service) {
+                        if (!payload || (!payload.service_catalog && !payload.process_blueprints)) {
                             throw new Error("Dati di stampa incompleti");
                         }
                         
                         // Chiama il print engine per generare e trasmettere il PDF
-                        await CatalogPrintEngine.printSingleService(
-                            payload.tenant,
-                            payload.service,
-                            payload.checklistState || {},
-                            payload.mitigationControls || [],
-                            payload.serverChecklistState || {}
-                        );
+                        await CatalogPrintEngine.printSingleService(payload);
                     } catch (err) {
                         console.error('Errore durante la stampa:', err);
                         tg.showAlert("Errore durante la generazione della stampa: " + err.message);

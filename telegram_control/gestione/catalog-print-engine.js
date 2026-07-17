@@ -38,23 +38,24 @@ const dvrCommonStyles = `
         }
         
         .cover-title {
-            font-size: 24pt;
+            font-size: 22pt;
             font-weight: 900;
             letter-spacing: -0.03em;
-            line-height: 1.15;
+            line-height: 1.2;
             color: #0f172a;
-            margin-top: 50px;
+            margin-top: 60px;
             text-transform: uppercase;
         }
         
         .cover-subtitle {
-            font-size: 12pt;
+            font-size: 11pt;
             color: #475569;
             margin-top: 20px;
             font-weight: 500;
             line-height: 1.5;
             border-top: 2px solid #0f172a;
             padding-top: 20px;
+            text-align: justify;
         }
 
         /* Common Headers & Text */
@@ -64,11 +65,11 @@ const dvrCommonStyles = `
             align-items: flex-end;
             border-bottom: 2px solid #0f172a;
             padding-bottom: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
         }
         
         .header-doc h2 {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: 900;
             text-transform: uppercase;
             margin: 0;
@@ -85,22 +86,22 @@ const dvrCommonStyles = `
         }
         
         .chapter-title {
-            font-size: 14pt;
+            font-size: 13pt;
             font-weight: 900;
             color: #0f172a;
             border-bottom: 2px solid #0f172a;
             padding-bottom: 6px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             text-transform: uppercase;
             letter-spacing: -0.01em;
         }
         
         .section-subtitle {
-            font-size: 9.5pt;
+            font-size: 9pt;
             font-weight: 800;
             color: #0f172a;
-            margin-top: 20px;
-            margin-bottom: 10px;
+            margin-top: 16px;
+            margin-bottom: 8px;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             border-left: 3px solid #0f172a;
@@ -110,7 +111,7 @@ const dvrCommonStyles = `
         p {
             text-align: justify;
             margin-bottom: 10px;
-            font-size: 9pt;
+            font-size: 8.5pt;
             color: #334155;
         }
         
@@ -120,7 +121,7 @@ const dvrCommonStyles = `
             border: 1px solid #e2e8f0;
             border-radius: 16px;
             padding: 16px;
-            margin: 15px 0;
+            margin: 12px 0;
         }
         
         .info-title {
@@ -129,7 +130,7 @@ const dvrCommonStyles = `
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: #64748b;
-            margin-bottom: 12px;
+            margin-bottom: 10px;
             border-bottom: 1px solid #e2e8f0;
             padding-bottom: 6px;
         }
@@ -137,9 +138,9 @@ const dvrCommonStyles = `
         .info-row {
             display: flex;
             justify-content: space-between;
-            padding: 6px 0;
+            padding: 5px 0;
             border-bottom: 1px dashed #e2e8f0;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
         
         .info-row:last-child {
@@ -162,13 +163,13 @@ const dvrCommonStyles = `
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 16px 0;
-            font-size: 8.5pt;
+            margin: 12px 0;
+            font-size: 8pt;
         }
         
         th, td {
             border: 1px solid #e2e8f0;
-            padding: 8px 10px;
+            padding: 7px 9px;
             text-align: left;
             vertical-align: top;
         }
@@ -179,7 +180,7 @@ const dvrCommonStyles = `
             text-transform: uppercase;
             color: #0f172a;
             letter-spacing: 0.03em;
-            font-size: 8pt;
+            font-size: 7.5pt;
             border-bottom: 2px solid #e2e8f0;
         }
         
@@ -187,61 +188,11 @@ const dvrCommonStyles = `
             background-color: #f8fafc;
         }
         
-        /* Risk Grid & Badges */
-        .risk-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin: 14px 0;
-        }
-        
-        .risk-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 12px;
-        }
-        
-        .risk-card.initial {
-            background: #f8fafc;
-            border-left: 4px solid #64748b;
-        }
-        
-        .risk-card.residual {
-            border-left: 4px solid;
-        }
-        
-        .risk-card.residual.low {
-            background: #f0fdf4;
-            border-color: #bbf7d0;
-            border-left-color: #16a34a;
-            color: #166534;
-        }
-        
-        .risk-card.residual.mid {
-            background: #fff7ed;
-            border-color: #fed7aa;
-            border-left-color: #d97706;
-            color: #9a3412;
-        }
-        
-        .risk-card.residual.high {
-            background: #fef2f2;
-            border-color: #fecdd3;
-            border-left-color: #e11d48;
-            color: #991b1b;
-        }
-        
-        .risk-val {
-            font-size: 16pt;
-            font-weight: 900;
-            margin: 6px 0 2px 0;
-        }
-        
         .badge {
             display: inline-block;
-            padding: 3px 6px;
-            border-radius: 6px;
-            font-size: 7.5pt;
+            padding: 2.5px 5px;
+            border-radius: 5px;
+            font-size: 7pt;
             font-weight: 800;
             letter-spacing: 0.02em;
             text-transform: uppercase;
@@ -252,67 +203,28 @@ const dvrCommonStyles = `
             color: #16a34a;
         }
         
-        .badge-danger {
-            background: #fee2e2;
-            color: #dc2626;
-        }
-        
         .badge-info {
             background: #e0f2fe;
             color: #0369a1;
         }
-        
-        .warning-box {
-            background: #fff1f2;
-            border: 1px solid #fecdd3;
-            border-left: 4px solid #e11d48;
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 8.5pt;
-            color: #9f1239;
-            margin-bottom: 8px;
-        }
-        
-        .justification-box {
+
+        .analogy-box {
             background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-left: 4px solid #0284c7;
-            border-radius: 8px;
-            padding: 12px;
+            border-left: 3px solid #0284c7;
+            padding: 8px 10px;
             font-style: italic;
-            font-size: 8.5pt;
+            font-size: 8pt;
             color: #0369a1;
-            margin-bottom: 16px;
+            margin-top: 4px;
+            border-radius: 4px;
         }
-        
-        /* Footer & Signatures */
-        .signature-area {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 30px;
-        }
-        
-        .signature-box {
+
+        .step-container {
             border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 12px;
-            min-height: 70px;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            background: #f8fafc;
-        }
-        
-        .signature-label {
-            font-size: 7.5pt;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: #64748b;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 4px;
-            letter-spacing: 0.05em;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #fdfdfd;
         }
         
         .footer-page {
@@ -328,319 +240,283 @@ const dvrCommonStyles = `
 `;
 
 const CatalogPrintEngine = {
-    normalizeKey: function (key) {
-        const k = (key || '').toLowerCase().trim();
-        if (k === 'common' || k === 'comune') return 'comune';
-        if (k === 'dental' || k === 'dentale') return 'dental';
-        if (k === 'health' || k === 'sanita' || k === 'sanità') return 'health';
-        if (k === 'beauty' || k === 'estetica') return 'beauty';
-        if (k === 'food' || k === 'ristorazione') return 'food';
-        if (k === 'hospitality' || k === 'ospitalita' || k === 'ospitalità') return 'hospitality';
-        if (k === 'professional' || k === 'ufficio' || k === 'uffici') return 'professional';
-        if (k === 'workshop' || k === 'officina' || k === 'artigianato') return 'workshop';
-        if (k === 'construction' || k === 'cantiere' || k === 'edilizia') return 'construction';
-        return 'generic';
-    },
-
-    
-    parametriVerticali: {
-        "comune": { D: 2, C: 1, desc_d: "Infortuni o patologie professionali generiche", normativa_rif: "D.Lgs. 81/08 Titolo II" },
-        "generic": { D: 2, C: 1, desc_d: "Infortuni lievi (scivolamento, caduta in piano)", normativa_rif: "D.Lgs. 81/08 Titolo II" },
-        "dental": { D: 3, C: 2, desc_d: "Patogeni ematogeni e respiratori a danno grave", normativa_rif: "D.Lgs. 81/08 Titolo X" },
-        "health": { D: 3, C: 2, desc_d: "Patogeni biologici a danno grave, rischi chimici", normativa_rif: "D.Lgs. 81/08 Titolo X, Legge Gelli-Bianco" },
-        "beauty": { D: 2, C: 2, desc_d: "Patogeni a danno moderato, lesioni cutanee", normativa_rif: "D.Lgs. 81/08 Titolo VIII, D.M. 206/2015" },
-        "food": { D: 3, C: 2, desc_d: "Tossinfezioni, trasmissione alimentare, tagli, ustioni", normativa_rif: "Regolamento CE 852/2004 (HACCP)" }
-    },
-
-    
-    printSingleService: async function (tenant, service, checklistState, mitigationControls, serverChecklistState) {
-        if (window.showLoader) window.showLoader("Generazione PDF Alta Qualità...");
+    printSingleService: async function (payload) {
+        if (!payload) return;
+        if (window.showLoader) window.showLoader("Generazione PDF...");
 
         const now = new Date();
         const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: 'long', year: 'numeric' });
 
-        const sku = service.service_sku;
-        const state = checklistState[sku] || {};
+        const service = payload.service_catalog || {};
+        const blueprint = payload.process_blueprints || {};
+        const kf = payload.knowledge_fragments || {};
 
-        let serviceDescription = "Servizio clinico-operativo specializzato.";
-        let riskWarnings = [];
-        let listItems = [];
-        let rawLaws = "D.Lgs. 81/08 (T.U. Sicurezza Lavoro), Linee Guida di settore.";
+        const sIdentity = service.identity || {};
+        const sPricing = service.pricing || {};
+        const sCommercial = service.commercial_setup || {};
 
-        if (typeof getDossierBySku === 'function') {
-            const dossier = getDossierBySku(sku);
-            if (dossier && dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE) {
-                const comp = dossier.MODULE_4_PRODUCT_SERVICE_COMPLIANCE;
-                serviceDescription = comp.positioning || "";
-                riskWarnings = comp.risk_warnings || [];
-                listItems = comp.compliance_checklist || [];
-                if (comp.regulatory_framework) {
-                    const framework = comp.regulatory_framework;
-                    rawLaws = [framework.medical_device_directive, framework.professional_liability, framework.gdpr_compliance].filter(Boolean).join('; ');
-                }
-            }
-        }
+        const rawName = sIdentity.item_name || blueprint.blueprint_name || "Scheda Tecnica";
+        const shortDesc = sIdentity.description?.short || blueprint.blueprint_description || "";
+        const longDesc = sIdentity.description?.long || "";
+        const sku = sIdentity.item_sku || blueprint.service_sku || "N/A";
+        const vertical = sIdentity.vertical || "N/A";
+        const basePrice = sPricing.base_price !== undefined ? `${sPricing.base_price} ${sPricing.currency || 'EUR'}` : 'N/A';
 
-        // --- SE È UN COMPARTO MACRO, PRENDE LE DOMANDE DAL REGISTRO VERTICALI ---
-        if (listItems.length === 0 && typeof verticalsRegistry !== 'undefined' && verticalsRegistry[sku]) {
-            verticalsRegistry[sku].risks.forEach(risk => {
-                risk.checklist.forEach(q => {
-                    listItems.push({
-                        id: q.question_id,
-                        area: risk.name,
-                        action: q.text,
-                        owner: 'Datore di Lavoro'
-                    });
-                });
-            });
-            serviceDescription = "Valutazione dei rischi strutturali, impiantistici e operativi del comparto.";
-            rawLaws = verticalsRegistry[sku].law_references || rawLaws;
-        }
-
-        const vKey = typeof getVerticalForService === 'function' ? DVRPrintEngine.normalizeKey(getVerticalForService(service)) : 'comune';
-        const param = DVRPrintEngine.parametriVerticali[vKey] || { D: 2, C: 1 };
-        const dPartenza = param.D || 2;
-        const rPartenza = 4 * dPartenza;
-
-        // --- LETTURA VALORI DATABASE ---
-        const savedSkuData = (serverChecklistState && serverChecklistState[sku]) ? serverChecklistState[sku] : null;
-        let dVal = dPartenza; let pVal = 4; let rVal = rPartenza; let justVal = "";
-
-        if (savedSkuData && savedSkuData.D !== undefined) {
-            dVal = savedSkuData.D; pVal = savedSkuData.P || 4; rVal = savedSkuData.R || (dVal * pVal); justVal = savedSkuData.overall_justification || "";
-        } else {
-            const total = listItems.length;
-            const checkedCount = listItems.filter(item => state[item.id || item.question_id]).length;
-            if (total > 0) pVal = Math.max(1, Math.min(4, Math.round(4 - (3 * (checkedCount / total)))));
-            rVal = pVal * dVal;
-            justVal = "Valutazione elaborata in tempo reale in base alle spunte applicate dal responsabile.";
-        }
-
-        const rLabel = rVal >= 8 ? 'ALTO' : (rVal >= 4 ? 'MEDIO' : 'BASSO');
-        const rSeverityClass = rVal >= 8 ? 'high' : (rVal >= 4 ? 'mid' : 'low');
-
-        const mitigationData = (mitigationControls || []).find(m => m.service_sku === sku);
-        const operatoriCoinvolti = mitigationData?.operatori_coinvolti || [];
-        const attrezzatureCoinvolte = mitigationData?.attrezzature_coinvolte || [];
-
-        let singlePageCount = 1;
-
-        // Costruzione HTML Foglio Singolo (Diviso in Pagine separate per evitare spaginazione)
+        // ═════════ COSTRUZIONE DELLE PAGINE HTML ═════════
         let html = `
             <!DOCTYPE html>
             <html lang="it">
             <head>
-                <meta charset="utf-8">
+                <meta charset="UTF-8">
                 ${dvrCommonStyles}
             </head>
             <body>
-                <!-- Pagina 1: Analisi e Rischio -->
-                <div class="page">
-                    <div class="page-content">
-                        <div class="header-doc">
-                            <span>Estratto DVR — D.Lgs. 81/08</span>
-                            <h2>SCHEDA PROTOCOLLO</h2>
-                        </div>
-                        
-                        <h2 class="chapter-title">${service.service_name.toUpperCase()}</h2>
-
-                        <div class="section-subtitle">1. Inquadramento Operativo e Normativo</div>
-                        <div class="info-box" style="margin-top: 0;">
-                            <div class="info-row"><span class="info-label">ID Identificativo:</span><span class="info-value" style="font-family: monospace;">${sku}</span></div>
-                            <div class="info-row"><span class="info-label">Inquadramento:</span><span class="info-value">${serviceDescription}</span></div>
-                            <div class="info-row"><span class="info-label">Riferimenti Normativi:</span><span class="info-value">${rawLaws}</span></div>
-                        </div>
-
-                        <div class="section-subtitle">2. Analisi d'Impatto e Mitigazione del Rischio (Matrice INAIL)</div>
-                        <div class="risk-grid">
-                            <div class="risk-card initial">
-                                <div style="font-size: 8pt; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em;">1. Rischio Potenziale (Senza Misure)</div>
-                                <div class="risk-val" style="color: #64748b;">R = ${rPartenza}</div>
-                                <div style="font-size: 8.5pt; color: #475569;">Danno (D): <strong>${dPartenza}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>4</strong></div>
-                            </div>
-                            <div class="risk-card residual ${rSeverityClass}">
-                                <div style="font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">2. Rischio Residuo (Con Misure)</div>
-                                <div class="risk-val">R = ${rVal} <span style="font-size: 10pt; font-weight: 800;">(${rLabel})</span></div>
-                                <div style="font-size: 8.5pt;">Danno (D): <strong>${dVal}</strong> &nbsp;|&nbsp; Probabilità (P): <strong>${pVal}</strong></div>
-                            </div>
-                        </div>
-                        
-                        ${justVal ? `<div class="justification-box"><strong>Ratio della Mitigazione:</strong> ${justVal}</div>` : ''}
-
-                        ${riskWarnings.length > 0 ? `
-                            <div class="section-subtitle">3. Avvertenze e Pericoli Critici Operativi</div>
-                            ${riskWarnings.map(w => `<div class="warning-box">⚠️ ${w}</div>`).join('')}
-                        ` : ''}
-                    </div>
-
-                    <div class="footer-page">
-                        <span>${tenant.ragioneSociale}</span>
-                        <span>Estratto DVR — Pagina ${singlePageCount++}</span>
-                    </div>
-                </div>
-
-                <!-- Pagina Risorse Specifiche del Protocollo (Operatori + Attrezzature) -->
-                ${(operatoriCoinvolti.length > 0 || attrezzatureCoinvolte.length > 0) ? `
-                <div class="page">
-                    <div class="page-content">
-                        <div class="header-doc">
-                            <span>Estratto DVR — D.Lgs. 81/08</span>
-                            <h2>SCHEDA PROTOCOLLO</h2>
-                        </div>
-                        
-                        <h2 class="chapter-title">${service.service_name.toUpperCase()}</h2>
-                        
-                        <div class="section-subtitle">Risorse Specifiche del Protocollo</div>
-                        <p>Elenco delle figure professionali necessarie e delle attrezzature/macchinari di reparto impiegati nello svolgimento delle mansioni associate:</p>
-
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; height: 350px;">
-                            <div class="info-box" style="margin: 0; display: flex; flex-direction: column;">
-                                <div class="info-title" style="color:#0f172a; border-bottom: 2px solid #0f172a; font-size: 9pt;">👥 Operatori e Figure</div>
-                                ${operatoriCoinvolti.length > 0 ? `
-                                    <ul style="margin: 0; padding-left: 18px; font-size: 9pt; color: #334155; line-height: 1.6; flex: 1;">
-                                        ${operatoriCoinvolti.map(op => `<li style="margin-bottom: 6px;"><strong>${op}</strong></li>`).join('')}
-                                    </ul>
-                                ` : `
-                                    <div style="font-size: 9pt; color: #94a3b8; font-style: italic; padding: 20px 10px;">Nessun operatore specifico.</div>
-                                `}
-                            </div>
-                            <div class="info-box" style="margin: 0; display: flex; flex-direction: column;">
-                                <div class="info-title" style="color:#0f172a; border-bottom: 2px solid #0f172a; font-size: 9pt;">⚙️ Attrezzature di Reparto</div>
-                                ${attrezzatureCoinvolte.length > 0 ? `
-                                    <ul style="margin: 0; padding-left: 18px; font-size: 9pt; color: #334155; line-height: 1.6; flex: 1;">
-                                        ${attrezzatureCoinvolte.map(eq => `<li style="margin-bottom: 6px;"><strong>${eq}</strong></li>`).join('')}
-                                    </ul>
-                                ` : `
-                                    <div style="font-size: 9pt; color: #94a3b8; font-style: italic; padding: 20px 10px;">Nessuna attrezzatura specifica.</div>
-                                `}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="footer-page">
-                        <span>${tenant.ragioneSociale}</span>
-                        <span>Estratto DVR — Pagina ${singlePageCount++}</span>
-                    </div>
-                </div>
-                ` : ''}
         `;
 
-        // Pagine Checklist (Chunked per evitare overflow su capitoli lunghi)
-        const checklistChunks = DVRPrintEngine.chunkArray(listItems, 10);
-        checklistChunks.forEach((chunk, index) => {
-            const isFirst = index === 0;
-            html += `
-                <!-- Pagina Checklist -->
-                <div class="page">
-                    <div class="page-content">
-                        <div class="header-doc">
-                            <span>Estratto DVR — D.Lgs. 81/08</span>
-                            <h2>SCHEDA PROTOCOLLO</h2>
-                        </div>
-                        
-                        <h2 class="chapter-title">${service.service_name.toUpperCase()} ${isFirst ? '' : '(Continua)'}</h2>
-                        
-                        <div class="section-subtitle">4. Stato delle Conformità Strutturali (Checklist) ${isFirst ? '' : '(Continua)'}</div>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th style="width: 15%;">ID</th>
-                                    <th style="width: 25%;">Area</th>
-                                    <th style="width: 45%;">Azione di Conformità Requisita</th>
-                                    <th style="width: 15%; text-align:center;">Stato</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${chunk.map(item => {
-                                    const isDone = !!state[item.id || item.question_id];
-                                    return `
-                                        <tr>
-                                            <td style="font-family: monospace; font-size: 8pt; font-weight: bold;">${item.id || item.question_id}</td>
-                                            <td><strong>${item.area || 'Compliance'}</strong></td>
-                                            <td>${item.action || item.text || ""}</td>
-                                            <td style="text-align:center;">
-                                                ${isDone
-                                                    ? '<span class="badge badge-success">ATTUATA ✓</span>'
-                                                    : '<span class="badge badge-danger">IN ATTESA ✗</span>'}
-                                            </td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody>
-                        </table>
-
-                        <div style="margin-top:30px; border-top:1px solid #e2e8f0; padding-top:12px; font-size:8pt; color:#64748b; text-align:center;">
-                            La presente scheda costituisce parte integrante e sostanziale del Documento di Valutazione dei Rischi aziendale.
-                        </div>
+        // ─── PAGINA 1: COPERTINA ───
+        html += `
+            <div class="page cover">
+                <div class="cover-header">
+                    <div style="font-size: 7pt; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; color: #64748b;">
+                        SiteBoS Documentazione Automatica
                     </div>
-                    
+                    <div class="cover-title">${rawName}</div>
+                    <div class="cover-subtitle">${shortDesc}</div>
+                </div>
+
+                <div class="info-box">
+                    <div class="info-title">Metadati di Sistema</div>
+                    <div class="info-row">
+                        <span class="info-label">Identificativo SKU</span>
+                        <span class="info-value">${sku}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Tipo Elemento</span>
+                        <span class="info-value">${sIdentity.item_type || 'PRODUCT'}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Prezzo Base di Listino</span>
+                        <span class="info-value">${basePrice}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Verticalizzazione</span>
+                        <span class="info-value" style="text-transform: uppercase;">${vertical}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Data Creazione</span>
+                        <span class="info-value">${service.metadata?.created_at ? new Date(service.metadata.created_at).toLocaleDateString('it-IT') : dateStr}</span>
+                    </div>
+                </div>
+
+                <div class="footer-page">
+                    <span>TrinAi Platform</span>
+                    <span>Documentazione Tecnica</span>
+                </div>
+            </div>
+        `;
+
+        // ─── PAGINA 2: SCHEDA PRODOTTO ED OPZIONI ───
+        if (longDesc || (sCommercial.extra_options && sCommercial.extra_options.length > 0)) {
+            html += `
+                <div class="page">
+                    <div>
+                        <div class="header-doc">
+                            <span>SKU: ${sku}</span>
+                            <h2>SCHEDA PRODOTTO & COMMERCIALE</h2>
+                        </div>
+                        <div class="chapter-title">Specifiche Generali</div>
+                        
+                        ${longDesc ? `
+                            <div class="section-subtitle">Descrizione Estesa</div>
+                            <p>${longDesc}</p>
+                        ` : ''}
+
+                        ${sCommercial.extra_options && sCommercial.extra_options.length > 0 ? `
+                            <div class="section-subtitle">Opzioni Commerciali Correlate</div>
+                            <table>
+                               <thead>
+                                   <tr>
+                                       <th>Nome Opzione / Servizio Integrato</th>
+                                       <th style="width: 100px; text-align: right;">Prezzo Extra</th>
+                                   </tr>
+                               </thead>
+                               <tbody>
+                                   ${sCommercial.extra_options.map(opt => `
+                                       <tr>
+                                           <td><strong>${opt.name}</strong></td>
+                                           <td style="text-align: right; font-weight: 700; color: #0284c7;">+ ${opt.price} ${sPricing.currency || 'EUR'}</td>
+                                       </tr>
+                                   `).join('')}
+                               </tbody>
+                            </table>
+                        ` : ''}
+
+                        ${sIdentity.tags && sIdentity.tags.length > 0 ? `
+                            <div style="margin-top: 15px;">
+                                <span class="info-label" style="font-size: 7.5pt; font-weight: 800; text-transform: uppercase;">Tag: </span>
+                                ${sIdentity.tags.map(t => `<span class="badge badge-info" style="margin-right: 4px; font-size: 6.5pt;">${t}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
                     <div class="footer-page">
-                        <span>${tenant.ragioneSociale}</span>
-                        <span>Estratto DVR — Pagina ${singlePageCount++}</span>
+                        <span>${rawName}</span>
+                        <span>Pagina 2</span>
                     </div>
                 </div>
             `;
-        });
-
-        // Pagine Mitigazione (Chunked per evitare overflow)
-        if (mitigationData && mitigationData.controlli_mitigazione && mitigationData.controlli_mitigazione.length > 0) {
-            const mitigationChunks = DVRPrintEngine.chunkArray(mitigationData.controlli_mitigazione, 5);
-            mitigationChunks.forEach((chunk, index) => {
-                const isFirst = index === 0;
-                html += `
-                    <!-- Pagina Protocollo Specifico di Mitigazione -->
-                    <div class="page">
-                        <div class="page-content">
-                            <div class="header-doc">
-                                <span>Estratto DVR — D.Lgs. 81/08</span>
-                                <h2>SCHEDA PROTOCOLLO</h2>
-                            </div>
-                            
-                            <h2 class="chapter-title">${service.service_name.toUpperCase()} ${isFirst ? '' : '(Continua)'}</h2>
-                            
-                            <div class="section-subtitle">5. Protocollo Specifico di Mitigazione Fase per Fase ${isFirst ? '' : '(Continua)'}</div>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th style="width:25%">Fase Operativa</th>
-                                        <th style="width:30%">Check / Evidenza Richiesta</th>
-                                        <th style="width:25%">Criterio di Accettazione</th>
-                                        <th style="width:20%">Responsabile</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${chunk.map(mit => `
-                                        <tr>
-                                            <td><strong>${mit.fase_operativa}</strong></td>
-                                            <td>${mit.check_prestabilito}<br><span class="badge badge-info" style="margin-top:4px;">Tipo: ${mit.tipo_evidenza}</span></td>
-                                            <td style="color:#0f172a; font-weight:600;">${mit.criterio_accettazione}</td>
-                                            <td>${mit.operatore_responsabile}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                            
-                            <div style="margin-top:30px; border-top:1px solid #e2e8f0; padding-top:12px; font-size:8pt; color:#64748b; text-align:center;">
-                                La presente scheda costituisce parte integrante e sostanziale del Documento di Valutazione dei Rischi aziendale.
-                            </div>
-                        </div>
-                        
-                        <div class="footer-page">
-                            <span>${tenant.ragioneSociale}</span>
-                            <span>Estratto DVR — Pagina ${singlePageCount++}</span>
-                        </div>
-                    </div>
-                `;
-            });
         }
 
-        html += `</body></html>`;
+        // ─── PAGINA 3: BASE CONOSCENZA AI (KNOWLEDGE BASE) ───
+        if (kf && (kf.summary || kf.sections)) {
+            html += `
+                <div class="page">
+                    <div>
+                        <div class="header-doc">
+                            <span>SKU: ${sku}</span>
+                            <h2>BASE CONOSCENZA AI & FAQ</h2>
+                        </div>
+                        <div class="chapter-title">Addestramento Modello AI</div>
 
-        const overlay = document.createElement('div');
-        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.98);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:sans-serif;';
-        overlay.innerHTML = '<div style="width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #0f172a;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px;"></div><div id="pdf-progress" style="font-weight:bold;font-size:14px;color:#0f172a;">Digitalizzazione Alta Definizione...</div><style>@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}</style>';
-        document.body.appendChild(overlay);
+                        ${kf.summary ? `
+                            <div class="section-subtitle">Sintesi Cognitiva</div>
+                            <p style="font-weight: 500; color: #0f172a;">${kf.summary}</p>
+                        ` : ''}
 
+                        ${kf.answer_fragment ? `
+                            <div class="section-subtitle">Risposta Primaria Predefinita</div>
+                            <p>${kf.answer_fragment}</p>
+                        ` : ''}
+
+                        ${kf.sections && kf.sections.length > 0 ? `
+                            <div class="section-subtitle">Sezioni Didattiche & FAQ</div>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                ${kf.sections.slice(0, 3).map(sec => `
+                                    <div style="margin-bottom: 12px; border-bottom: 1px solid #f1f5f9; padding-bottom: 8px;">
+                                        <div style="font-weight: 800; font-size: 8.5pt; color: #0f172a; margin-bottom: 3px;">Q: ${sec.question}</div>
+                                        <p style="margin-bottom: 4px; font-size: 8pt;">${sec.answer}</p>
+                                        ${sec.analogy ? `<div class="analogy-box">💡 <strong>Analogia:</strong> ${sec.analogy}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="footer-page">
+                        <span>${rawName}</span>
+                        <span>Pagina 3</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ─── PAGINA 4: PROCESSO AZIENDALE (SOP) ───
+        if (blueprint && blueprint.stages && blueprint.stages.length > 0) {
+            html += `
+                <div class="page">
+                    <div>
+                        <div class="header-doc">
+                            <span>SKU: ${sku}</span>
+                            <h2>PROCESSO AZIENDALE E SOP</h2>
+                        </div>
+                        <div class="chapter-title">Mappatura del Flusso Operativo</div>
+
+                        <div class="info-box" style="padding: 10px 14px; margin: 8px 0 16px 0;">
+                            <div style="display: flex; justify-content: space-between; font-size: 8pt;">
+                                <span><strong>Tempo Stimato Totale:</strong> ${blueprint.summary?.estimated_total_time_minutes || 'N/A'} minuti</span>
+                                <span><strong>Costo Stimato Risorse:</strong> ${blueprint.summary?.estimated_total_cost || '0.00 EUR'}</span>
+                                <span><strong>Tipo Flusso:</strong> ${blueprint.blueprint_type || 'DIGITAL_FLOW'}</span>
+                            </div>
+                        </div>
+
+                        <div class="section-subtitle">Fasi del Processo</div>
+                        ${blueprint.stages.map(stage => `
+                            <div style="margin-bottom: 14px; border-left: 2px solid #0f172a; padding-left: 10px;">
+                                <div style="font-weight: 800; font-size: 9pt; color: #0f172a;">
+                                    Fase ${stage.stage_order || stage.stage_id}: ${stage.stage_name}
+                                </div>
+                                <div style="font-size: 7.5pt; color: #64748b; margin-bottom: 6px;">${stage.description || ''}</div>
+                                
+                                ${stage.steps ? stage.steps.map(step => `
+                                    <div class="step-container">
+                                        <div style="font-weight: 700; font-size: 8pt; color: #0284c7;">
+                                            Step ${step.step_id}: ${step.step_name} (${step.estimated_time_minutes} min)
+                                        </div>
+                                        <div style="font-size: 8pt; color: #334155; margin-top: 3px;">
+                                            <strong>Istruzioni:</strong> ${step.instructions}
+                                        </div>
+                                        
+                                        ${step.quality_check && step.quality_check.is_required ? `
+                                            <div style="font-size: 7.5pt; margin-top: 4px; color: #16a34a; background: #f0fdf4; padding: 4px 6px; border-radius: 4px;">
+                                                ✔️ <strong>Verifica Qualità (${step.quality_check.evidence_type}):</strong> ${step.quality_check.check_description}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `).join('') : ''}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="footer-page">
+                        <span>${rawName}</span>
+                        <span>Pagina 4</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ─── PAGINA 5: ANALISI FINANZIARIA E RACCOMANDAZIONI ───
+        if (blueprint && (blueprint.operations_financial_health_rating || blueprint.pricing_and_tariff_strategy_advisory || (blueprint.operations_cost_optimization_recommendations && blueprint.operations_cost_optimization_recommendations.length > 0))) {
+            const hasRecommendations = blueprint.operations_cost_optimization_recommendations && blueprint.operations_cost_optimization_recommendations.length > 0;
+            const ratingText = (blueprint.operations_financial_health_rating || "").replace(/_/g, ' ');
+            
+            html += `
+                <div class="page">
+                    <div>
+                        <div class="header-doc">
+                            <span>SKU: ${sku}</span>
+                            <h2>ANALISI ECONOMICA & EFFICIENZA</h2>
+                        </div>
+                        <div class="chapter-title">Sostenibilità & Ottimizzazione Costi</div>
+
+                        ${blueprint.operations_financial_health_rating ? `
+                            <div style="margin-bottom: 15px;">
+                                <span class="badge badge-success" style="font-size: 8.5pt; padding: 4px 8px; font-weight: 900; letter-spacing: 0.05em;">
+                                    🏆 Rating Profitto: ${ratingText}
+                                </span>
+                            </div>
+                        ` : ''}
+
+                        ${blueprint.pricing_and_tariff_strategy_advisory ? `
+                            <div class="section-subtitle">Consulenza Strategica e Tariffaria</div>
+                            <p style="font-style: italic; font-weight: 500; color: #1e293b; line-height: 1.5; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
+                                "${blueprint.pricing_and_tariff_strategy_advisory}"
+                            </p>
+                        ` : ''}
+
+                        ${hasRecommendations ? `
+                            <div class="section-subtitle" style="margin-top: 20px;">Raccomandazioni di Efficienza Operativa</div>
+                            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+                                ${blueprint.operations_cost_optimization_recommendations.map((rec, rIdx) => `
+                                    <div style="display: flex; gap: 8px; font-size: 8.5pt; color: #334155; line-height: 1.45; border-bottom: 1px dashed #f1f5f9; padding-bottom: 6px;">
+                                        <span style="font-weight: 900; color: #0284c7;">${rIdx + 1}.</span>
+                                        <span>${rec}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="footer-page">
+                        <span>${rawName}</span>
+                        <span>Pagina 5</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `
+            </body>
+            </html>
+        `;
+
+        // ═════════ COMPILAZIONE PDF VIA HTML2CANVAS & JSPDF ═════════
         const container = document.createElement('div');
         container.style.cssText = 'position:absolute;top:0;left:-9999px;width:794px;opacity:1;z-index:99998;';
         container.innerHTML = html;
@@ -678,15 +554,17 @@ const CatalogPrintEngine = {
 
             if (isMobile) {
                 try {
-                    const webhookUrl = typeof WEBHOOK_URL !== 'undefined' ? WEBHOOK_URL : 'https://prod.workflow.trinai.it/webhook/7f254dec-e28f-452a-afb9-2a2a90206cbb';
+                    const webhookUrl = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
                     const sessionAsh = typeof ash !== 'undefined' ? ash : (new URLSearchParams(window.location.search)).get('ash') || 'dev';
                     const initData = tgApp?.initData || '';
                     const pdfBase64Uri = pdf.output('datauristring');
                     const base64Data = pdfBase64Uri.split(',')[1];
-                    const filename = `DVR_Scheda_${service.service_name.replace(/\s+/g, '_')}.pdf`;
+                    
+                    const cleanShort = (sIdentity.short_name || sIdentity.item_name || 'Scheda').replace(/[^a-zA-Z0-9]/g, '_');
+                    const filename = `${cleanShort}_${sku}.pdf`;
 
                     const webhookPayload = {
-                        action: 'document_to_valut',
+                        action: 'print_mobile',
                         base64: base64Data,
                         mimetype: 'application/pdf',
                         filename: filename,
@@ -694,14 +572,14 @@ const CatalogPrintEngine = {
                         _auth: initData
                     };
 
-                    fetch(webhookUrl, {
+                    await fetch(webhookUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(webhookPayload)
                     });
 
                     if (tgApp && tgApp.showAlert) {
-                        tgApp.showAlert("✅ Scheda Protocollo generata in Alta Qualità! In arrivo nella chat.");
+                        tgApp.showAlert("✅ Scheda Tecnica generata in Alta Qualità! In arrivo nella chat.");
                     } else {
                         alert("✅ Documento generato e inviato al server.");
                     }
@@ -714,27 +592,18 @@ const CatalogPrintEngine = {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `DVR_Scheda_${service.service_name.replace(/\s+/g, '_')}.pdf`;
-                a.style.display = 'none';
-                document.body.appendChild(a);
+                const cleanShort = (sIdentity.short_name || sIdentity.item_name || 'Scheda').replace(/[^a-zA-Z0-9]/g, '_');
+                a.download = `${cleanShort}_${sku}.pdf`;
                 a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 5000);
+                URL.revokeObjectURL(url);
             }
-        } catch (err) {
-            console.error('Single PDF Error:', err);
-            alert('Errore generazione capitolo: ' + err.message);
+        } catch (e) {
+            console.error(e);
         } finally {
             document.body.removeChild(container);
-            document.body.removeChild(overlay);
             if (window.hideLoader) window.hideLoader();
         }
-    },
-
-
-    // ══════════════════════════════════════════════════════════════════════
-    // 2. STAMPA DEL LIBRO COMPLETO DVR (ALTA QUALITÀ)
-    // ══════════════════════════════════════════════════════════════════════
+    }
 };
 
 window.CatalogPrintEngine = CatalogPrintEngine;
