@@ -274,6 +274,9 @@
     </div>
 
     <!-- MODAL EDIT CATEGORY -->
+    <!-- TAG nascosto per preservare il prefisso database della categoria -->
+    <input type="hidden" id="edit-cat-tag">
+
     <div id="edit-cat-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[5000] flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 border border-slate-150 shadow-2xl">
             <div class="flex justify-between items-start">
@@ -287,16 +290,23 @@
                     <i class="fas fa-times text-xs text-slate-600"></i>
                 </button>
             </div>
-            
-            <div class="space-y-3">
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black text-slate-400 uppercase ml-1">Nome Completo</label>
-                    <input type="text" id="edit-cat-long" class="w-full bg-slate-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition">
+
+            <!-- Icona + Nome breve (identico al modal voce) -->
+            <div class="grid grid-cols-4 gap-3">
+                <div class="col-span-1 space-y-1">
+                    <label class="text-[8px] font-black text-slate-400 uppercase ml-1">Icona</label>
+                    <input type="text" id="edit-cat-icon" readonly onclick="openEmojiPickerDrawer('cat')" placeholder="📁" class="w-full bg-slate-50 p-3 rounded-xl text-center text-sm font-bold border border-transparent focus:border-black outline-none cursor-pointer transition select-none">
                 </div>
-                <div class="space-y-1">
-                    <label class="text-[8px] font-black text-slate-400 uppercase ml-1">Etichetta Breve (con eventuale icona)</label>
-                    <input type="text" id="edit-cat-short" class="w-full bg-slate-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition">
+                <div class="col-span-3 space-y-1">
+                    <label class="text-[8px] font-black text-slate-400 uppercase ml-1">Nome Breve</label>
+                    <input type="text" id="edit-cat-short" placeholder="Nome Categoria" class="w-full bg-slate-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition">
                 </div>
+            </div>
+
+            <!-- Nome Completo -->
+            <div class="space-y-1">
+                <label class="text-[8px] font-black text-slate-400 uppercase ml-1">Nome Completo Descrittivo</label>
+                <input type="text" id="edit-cat-long" class="w-full bg-slate-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none transition">
             </div>
 
             <div class="flex gap-3 pt-2">
@@ -1297,14 +1307,47 @@
         }
 
         // Modals & Emoji Picker
-        window.openEditModal = (n, s, id) => { currentEditingCatId = id; document.getElementById('edit-cat-long').value = n; document.getElementById('edit-cat-short').value = s; document.getElementById('edit-cat-modal').classList.remove('hidden'); };
+        // Estrae il tag tecnico [SOP]/[SER]/[PRO] da una stringa e restituisce { tag, clean }
+        function extractDbTag(str) {
+            const match = (str || '').match(/^\[?(SOP|SER|PRO)\]?\s*/i);
+            if (match) return { tag: match[0].trim(), clean: str.slice(match[0].length).trim() };
+            return { tag: '', clean: (str || '').trim() };
+        }
+
+        window.openEditModal = (n, s, id) => {
+            currentEditingCatId = id;
+
+            // Estrai il tag dal nome completo e preservalo
+            const { tag, clean: cleanName } = extractDbTag(n);
+            document.getElementById('edit-cat-tag').value = tag;
+            document.getElementById('edit-cat-long').value = cleanName;
+
+            // Popola icona e nome breve separati
+            const { icon: shortIcon, text: shortText } = splitShortName(s || cleanName);
+            document.getElementById('edit-cat-icon').value = shortIcon;
+            document.getElementById('edit-cat-short').value = shortText;
+
+            document.getElementById('edit-cat-modal').classList.remove('hidden');
+        };
+
         window.closeEditModal = () => { document.getElementById('edit-cat-modal').classList.add('hidden'); };
-        
+
         window.saveEditCategory = async () => {
             const id = currentEditingCatId;
-            const name = document.getElementById('edit-cat-long').value;
-            const short_name = document.getElementById('edit-cat-short').value;
-            if (!name) { alert("Nome richiesto"); return; }
+            const tag = document.getElementById('edit-cat-tag').value;        // es. "[SOP]"
+            const cleanLong = document.getElementById('edit-cat-long').value.trim();
+            const icon = document.getElementById('edit-cat-icon').value.trim();
+            const shortText = document.getElementById('edit-cat-short').value.trim();
+
+            if (!cleanLong) { tg.showAlert("Il nome completo è obbligatorio."); return; }
+
+            // Ricompone nome completo: [TAG] + nome pulito
+            const name = tag ? `${tag} ${cleanLong}` : cleanLong;
+            // Ricompone short_name: icona + nome breve
+            const short_name = icon ? `${icon} ${shortText || cleanLong}` : (shortText || cleanLong);
+
+            playTick(800, 0.03, 0.05);
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
             try {
                 const res = await fetch(WEBHOOK_URL, {
@@ -1341,14 +1384,20 @@
             currentEditingProduct = null;
         };
 
+
+        let currentEmojiTarget = 'prod'; // 'prod' | 'cat'
+
         window.setPresetEmoji = (emoji) => {
-            playTick(850, 0.02, 0.05);
+            playTick(700, 0.02, 0.04);
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            document.getElementById('edit-prod-icon').value = emoji;
+            const fieldId = currentEmojiTarget === 'cat' ? 'edit-cat-icon' : 'edit-prod-icon';
+            document.getElementById(fieldId).value = emoji;
         };
 
+
         let isEmojiPickerScriptLoaded = false;
-        window.openEmojiPickerDrawer = () => {
+        window.openEmojiPickerDrawer = (target) => {
+            currentEmojiTarget = target || 'prod';
             const drawer = document.getElementById('emoji-picker-drawer');
             drawer.classList.remove('hidden');
             setTimeout(() => drawer.classList.remove('translate-y-full'), 10);
@@ -1384,7 +1433,8 @@
             picker.addEventListener('emoji-click', event => {
                 playTick(850, 0.02, 0.05);
                 if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-                document.getElementById('edit-prod-icon').value = event.detail.unicode;
+                const fieldId = currentEmojiTarget === 'cat' ? 'edit-cat-icon' : 'edit-prod-icon';
+                document.getElementById(fieldId).value = event.detail.unicode;
                 closeEmojiPickerDrawer();
             });
             container.appendChild(picker);
