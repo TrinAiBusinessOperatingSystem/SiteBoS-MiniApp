@@ -603,6 +603,100 @@ const CatalogPrintEngine = {
             document.body.removeChild(container);
             if (window.hideLoader) window.hideLoader();
         }
+    },
+
+    printAiGuide: async function (payload) {
+        if (!payload) return null;
+        if (window.showLoader) window.showLoader("Generazione Guida AI...");
+
+        let htmlContent = payload.html_content || payload.content || "";
+        let title = payload.title || "Guida Generata con AI";
+
+        if (!htmlContent && payload.knowledge_fragments) {
+            const kf = payload.knowledge_fragments;
+            htmlContent = `
+                <div class="chapter-title">${kf.title || title}</div>
+                <p style="font-size: 10pt; font-weight: 500; color: #0f172a;">${kf.summary || ''}</p>
+                <div style="margin-top: 15px; border-left: 3px solid #0f172a; padding-left: 10px; font-style: italic; color: #334155;">
+                    ${kf.answer_fragment || ''}
+                </div>
+                <div style="margin-top: 20px;">
+                    ${kf.sections ? kf.sections.map(sec => `
+                        <div style="margin-bottom: 15px; border-bottom: 1px dashed #e2e8f0; padding-bottom: 10px;">
+                            <h4 style="font-weight: 800; font-size: 9pt; color: #0f172a; margin-bottom: 4px;">Q: ${sec.question}</h4>
+                            <p style="font-size: 8.5pt; color: #334155; text-align: justify;">${sec.answer}</p>
+                            ${sec.analogy ? `<div class="analogy-box">💡 <strong>Analogia:</strong> ${sec.analogy}</div>` : ''}
+                        </div>
+                    `).join('') : ''}
+                </div>
+            `;
+        }
+
+        const html = `
+            <!DOCTYPE html>
+            <html lang="it">
+            <head>
+                <meta charset="UTF-8">
+                ${dvrCommonStyles}
+            </head>
+            <body>
+                <div class="page">
+                    <div>
+                        <div class="header-doc">
+                            <span>SiteBoS AI Writer</span>
+                            <h2>GUIDA INFORMATIVA</h2>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            ${htmlContent}
+                        </div>
+                    </div>
+                    <div class="footer-page">
+                        <span>Generato con AI</span>
+                        <span>Pagina 1</span>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        const container = document.createElement('div');
+        container.style.cssText = 'position:absolute;top:0;left:-9999px;width:794px;opacity:1;z-index:99998;';
+        container.innerHTML = html;
+        document.body.appendChild(container);
+
+        try {
+            await new Promise(r => setTimeout(r, 800));
+
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+            const pages = container.querySelectorAll('.page');
+            const progressText = document.getElementById('pdf-progress');
+
+            for (let i = 0; i < pages.length; i++) {
+                if (progressText) progressText.innerText = `Elaborazione Pagina ${i + 1} di ${pages.length}...`;
+
+                const canvas = await html2canvas(pages[i], {
+                    scale: 3,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    windowWidth: 794
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                if (i > 0) pdf.addPage();
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+            }
+
+            const pdfBase64Uri = pdf.output('datauristring');
+            return pdfBase64Uri.split(',')[1];
+        } catch (e) {
+            console.error("Errore generazione Guida AI:", e);
+            return null;
+        } finally {
+            document.body.removeChild(container);
+            if (window.hideLoader) window.hideLoader();
+        }
     }
 };
 

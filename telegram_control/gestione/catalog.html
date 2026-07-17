@@ -815,6 +815,76 @@
                 }
             });
 
+            // 9. Crea la Guida con AI (Solo se Prodotto e categoria "Asset digitali")
+            const isProduct = currentMacro === 'PRO' || (activeProduct && (activeProduct.item_type === 'PRODUCT' || activeProduct.item_type === 'product'));
+            const isAssetDigitali = activeCategory && activeCategory.name && activeCategory.name.toLowerCase().includes('asset digitali');
+            
+            if (isProduct && isAssetDigitali) {
+                list.push({
+                    id: 'create_ai_guide',
+                    label: 'Crea Guida con AI',
+                    desc: 'Genera automaticamente la guida digitale con l\'intelligenza artificiale.',
+                    icon: 'fa-brain',
+                    action: async () => {
+                        playTick(900, 0.04, 0.06);
+                        if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                        
+                        window.showLoader("Generazione Guida con AI...");
+                        try {
+                            // Chiamata di creazione guida
+                            const createRes = await fetch('https://prod.workflow.trinai.it/webhook/ab2f9701-2cf6-42ed-834e-ada69a01b3eb', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'create',
+                                    sop_id: currentSopId,
+                                    ash: ash,
+                                    msg: msg,
+                                    _auth: tg.initData
+                                })
+                            });
+                            
+                            if (!createRes.ok) throw new Error("Errore durante la creazione della guida.");
+                            const payload = await createRes.json();
+                            
+                            // Genera il PDF in base64 senza forzare il download locale
+                            const base64Data = await CatalogPrintEngine.printAiGuide(payload);
+                            if (!base64Data) throw new Error("Errore durante la compilazione del PDF.");
+                            
+                            window.showLoader("Salvataggio e Invio Guida...");
+                            
+                            // Chiamata di salvataggio sullo stesso webhook
+                            const cleanShort = (activeProduct.short_name || activeProduct.name || 'Guida_AI').replace(/[^a-zA-Z0-9]/g, '_');
+                            const filename = `${cleanShort}_${currentSopId}.pdf`;
+                            
+                            const saveRes = await fetch('https://prod.workflow.trinai.it/webhook/ab2f9701-2cf6-42ed-834e-ada69a01b3eb', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'save',
+                                    base64: base64Data,
+                                    mimetype: 'application/pdf',
+                                    filename: filename,
+                                    sop_id: currentSopId,
+                                    ash: ash,
+                                    msg: msg,
+                                    _auth: tg.initData
+                                })
+                            });
+                            
+                            if (!saveRes.ok) throw new Error("Errore durante il salvataggio della guida.");
+                            
+                            tg.showAlert("✅ Guida creata con successo e inviata in chat!");
+                        } catch (err) {
+                            console.error('Errore creazione guida AI:', err);
+                            tg.showAlert("Errore: " + err.message);
+                        } finally {
+                            window.hideLoader();
+                        }
+                    }
+                });
+            }
+
             return list;
         }
 
