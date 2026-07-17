@@ -40,16 +40,49 @@
             height: 100dvh;
         }
 
-        /* 3D Stack Container */
+        /* 3D Horizontal Cylinder Carousel for Macro Tabs */
+        .macro-carousel-container {
+            position: relative;
+            width: 100%;
+            height: 44px;
+            perspective: 800px;
+            transform-style: preserve-3d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .macro-tab-item-3d {
+            position: absolute;
+            width: 100px;
+            text-align: center;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), 
+                        opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                        color 0.3s ease;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            backface-visibility: hidden;
+            border-bottom: 2px solid transparent;
+            padding-bottom: 4px;
+        }
+        
+        .macro-tab-item-3d.active {
+            border-bottom-color: #0f172a;
+        }
+
+        /* 3D Stack Container (Rectangular Proportions) */
         .stack-container {
             position: relative;
             width: 100%;
-            height: 360px;
+            height: 250px;
             perspective: 1200px;
             transform-style: preserve-3d;
         }
 
-        /* 3D Cards */
+        /* 3D Cards - Shorter Rectangular Style */
         .platform-card-3d {
             position: absolute;
             top: 5%;
@@ -65,7 +98,7 @@
             align-items: center;
             justify-content: space-between;
             text-align: center;
-            padding: 1.5rem;
+            padding: 1.2rem;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.005);
             transform-origin: center center;
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
@@ -87,16 +120,6 @@
             transform: scale(0.98) !important;
         }
 
-        .macro-tab-item {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .macro-tab-item.active {
-            color: #000000;
-            font-weight: 900;
-            transform: scale(1.08);
-        }
-
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -113,21 +136,6 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
-        }
-
-        .fade-in-up {
-            animation: fadeInUp 0.3s ease-out forwards;
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
         }
     </style>
 </head>
@@ -156,28 +164,30 @@
             </button>
         </header>
 
-        <!-- SUB-MENU HEADER (Shown inside Category Items) -->
-        <div id="submenu-header" class="hidden bg-slate-900 text-white p-3 rounded-2xl flex items-center justify-between shadow-md shrink-0">
-            <div class="flex items-center gap-2">
-                <i id="submenu-icon" class="fas fa-folder-open text-xs text-slate-400"></i>
-                <span id="submenu-title" class="text-[10px] font-black uppercase tracking-wider text-slate-200">Categoria</span>
+        <!-- MACRO SELECTOR CAROUSEL (3D Cylindrical Horizontal) -->
+        <div id="macro-carousel-wrapper" class="w-full overflow-hidden select-none z-50 py-1 bg-white/70 border border-slate-200/50 rounded-2xl shadow-sm backdrop-blur-md shrink-0 flex justify-center max-w-[85%] mx-auto relative">
+            <div id="macro-carousel" class="macro-carousel-container">
+                <button onclick="setMacro('SOP')" id="btn-SOP" class="macro-tab-item-3d text-slate-400">Procedure</button>
+                <button onclick="setMacro('SER')" id="btn-SER" class="macro-tab-item-3d text-slate-400">Servizi</button>
+                <button onclick="setMacro('PRO')" id="btn-PRO" class="macro-tab-item-3d text-slate-400">Prodotti</button>
             </div>
-            <button onclick="exitCategory()" class="text-slate-400 hover:text-white transition text-xs font-black uppercase tracking-widest">
-                <i class="fas fa-arrow-left mr-1"></i> Categorie
+        </div>
+
+        <!-- POSITION INDICATOR (Shown inside Category/Action Items, transparent and elegant style) -->
+        <div id="submenu-header" class="hidden bg-white/40 border border-slate-200/40 backdrop-blur-md p-3 rounded-2xl flex items-center justify-between shadow-sm shrink-0 select-none">
+            <div class="flex items-center gap-2">
+                <div class="w-5 h-5 rounded-lg bg-slate-900 text-white flex items-center justify-center text-[9px] shadow-sm">
+                    <i id="submenu-icon" class="fas fa-folder-open"></i>
+                </div>
+                <span id="submenu-title" class="text-[9px] font-black uppercase tracking-widest text-slate-700">Categoria</span>
+            </div>
+            <button onclick="handleTopBack()" class="text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-800 transition flex items-center gap-1">
+                <i class="fas fa-arrow-left text-[7px]"></i> <span id="submenu-back-text">Indietro</span>
             </button>
         </div>
 
-        <!-- MACRO SELECTOR CAROUSEL (Horizontal Scroll/Swipe) -->
-        <div id="macro-carousel-wrapper" class="w-full overflow-hidden select-none z-50 py-1 bg-white/70 border border-slate-200/50 rounded-2xl shadow-sm backdrop-blur-md shrink-0">
-            <div id="macro-carousel" class="flex gap-8 px-6 py-1 justify-center items-center transition-transform duration-300">
-                <button onclick="setMacro('SOP')" id="btn-SOP" class="macro-tab-item active text-[10px] font-black uppercase tracking-wider text-black py-1.5 border-b-2 border-black">Procedure</button>
-                <button onclick="setMacro('SER')" id="btn-SER" class="macro-tab-item text-[10px] font-black uppercase tracking-wider text-gray-400 py-1.5 border-b-2 border-transparent">Servizi</button>
-                <button onclick="setMacro('PRO')" id="btn-PRO" class="macro-tab-item text-[10px] font-black uppercase tracking-wider text-gray-400 py-1.5 border-b-2 border-transparent">Prodotti</button>
-            </div>
-        </div>
-
         <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
-        <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full min-h-[380px]">
+        <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full min-h-[260px]">
             <!-- 3D Card Stack -->
             <div id="stack-container" class="stack-container">
                 <!-- Rendered dynamically -->
@@ -200,7 +210,7 @@
         <!-- FOOTER STATS & NEW BUTTON -->
         <footer class="space-y-3 shrink-0">
             <!-- Action Button -->
-            <button id="main-action-btn" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] text-[10px] uppercase tracking-widest" onclick="handleNewAction()">
+            <button id="main-action-btn" class="w-full bg-slate-900 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] text-[10px] uppercase tracking-widest animate-pulse" onclick="handleNewAction()">
                 <i class="fas fa-plus"></i> <span id="main-action-btn-text">Nuova Categoria</span>
             </button>
 
@@ -228,79 +238,6 @@
         </header>
         <div class="flex-1 w-full overflow-hidden">
             <iframe id="quickEditorFrame" src="about:blank" class="w-full h-full border-0"></iframe>
-        </div>
-    </div>
-
-    <!-- MAIN PRODUCT HUB DRAWER (DETAILS & OPERATIONS) -->
-    <div id="hub-drawer" class="fixed inset-x-0 bottom-0 top-[10%] bg-slate-50 rounded-t-[2.5rem] border-t border-slate-200 z-[2000] hidden transition-all duration-300 translate-y-full shadow-2xl overflow-y-auto">
-        <div class="max-w-md mx-auto p-6 space-y-6">
-            <header class="flex justify-between items-center">
-                <div>
-                    <h3 id="hub-product-name" class="text-lg font-black uppercase tracking-tight leading-none text-slate-900">Dettagli Prodotto</h3>
-                    <p id="hub-product-sku" class="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: —</p>
-                </div>
-                <button onclick="closeHub()" class="w-10 h-10 bg-white border border-slate-200 rounded-full flex items-center justify-center active:scale-90 transition shadow-sm">
-                    <i class="fas fa-times text-slate-600"></i>
-                </button>
-            </header>
-
-            <!-- Actions Grid -->
-            <div class="grid grid-cols-3 gap-3">
-                <button onclick="launchSubEditor('edit-product.html')" class="bg-white border border-slate-150 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition shadow-sm text-center">
-                    <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center"><i class="fas fa-edit text-lg"></i></div>
-                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-800">Scheda Info</span>
-                </button>
-                <button id="hub-advanced-btn" onclick="openAdvancedManagement()" class="bg-white border border-slate-150 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition shadow-sm text-center">
-                    <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center"><i class="fas fa-sliders text-lg"></i></div>
-                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-800">Avanzate</span>
-                </button>
-                <button onclick="openBlueprintEditor()" class="bg-white border border-slate-150 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition shadow-sm text-center">
-                    <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center"><i class="fas fa-diagram-project text-lg"></i></div>
-                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-800">Blueprint SOP</span>
-                </button>
-            </div>
-
-            <!-- Second Row Actions -->
-            <div class="grid grid-cols-2 gap-3">
-                <button id="hub-blog-btn" onclick="launchSubEditor('edit-blog.html')" class="bg-white border border-slate-150 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition shadow-sm text-center hidden">
-                    <!-- Dynamic -->
-                </button>
-                <button id="hub-social-btn" onclick="openSocialViewer()" class="bg-white border border-slate-150 p-4 rounded-2xl flex flex-col items-center justify-center gap-2 active:scale-95 transition shadow-sm text-center hidden">
-                    <!-- Dynamic -->
-                </button>
-            </div>
-
-            <!-- Other Configs -->
-            <div class="bg-white border border-slate-100 rounded-3xl p-5 space-y-4 shadow-sm">
-                <h4 class="text-[9px] font-black uppercase tracking-widest text-slate-400">Impostazioni BoS</h4>
-                
-                <!-- Security assistant toggle -->
-                <div class="flex justify-between items-center py-2">
-                    <div>
-                        <p class="text-xs font-black uppercase">Assistente Sicurezza</p>
-                        <p class="text-[8px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">Mostra nella conformità</p>
-                    </div>
-                    <button id="security-assistant-btn" onclick="toggleSecurityAssistant()" class="w-12 h-7 bg-slate-200 rounded-full p-1 transition-colors duration-200 focus:outline-none flex items-center">
-                        <div class="w-5 h-5 bg-white rounded-full shadow-md transform transition-transform duration-200"></div>
-                    </button>
-                </div>
-
-                <button onclick="launchSubEditor('edit-knowledge.html')" class="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl flex items-center justify-between transition text-left">
-                    <div>
-                        <p class="text-xs font-black uppercase">Base Conoscenza AI</p>
-                        <p class="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Gestisci FAQ e manuali operativi</p>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-300"></i>
-                </button>
-
-                <button onclick="launchSubEditor('supervisor_hub.html')" class="w-full bg-slate-50 hover:bg-slate-100 p-4 rounded-2xl flex items-center justify-between transition text-left">
-                    <div>
-                        <p class="text-xs font-black uppercase text-blue-600">Supervisor Hub</p>
-                        <p class="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Monitora i workflow attivi su questo SKU</p>
-                    </div>
-                    <i class="fas fa-chevron-right text-slate-300"></i>
-                </button>
-            </div>
         </div>
     </div>
 
@@ -438,7 +375,6 @@
         let ash = urlParams.get('ash');
         let msg = urlParams.get('msg') || urlParams.get('message_id');
 
-        // Robust parsing for dirty ash: TOKEN?msg=ID
         if (ash && ash.includes('?msg=')) {
             const parts = ash.split('?msg=');
             ash = parts[0];
@@ -447,12 +383,16 @@
 
         let fullCatalog = [];
         let currentMacro = 'SOP';
-        let currentViewLevel = 'categories'; // 'categories' or 'items'
+        let currentViewLevel = 'categories'; // 'categories', 'items' or 'actions'
         
         let activeCategory = null;
+        let activeProduct = null;
+        
         let modules = [];
         let activeIdx = 0;
-        let parentActiveIdx = 0;
+        
+        let parentCategoryActiveIdx = 0;
+        let parentItemActiveIdx = 0;
 
         let currentEditingCatId = null;
         let currentProductData = null;
@@ -465,7 +405,7 @@
         const dotContainer = document.getElementById('dot-indicators');
         const dotWrapper = document.getElementById('dot-indicators-wrapper');
 
-        // Sensorial Feedback
+        // Audio Sensory Feedback
         let audioCtx = null;
         function playTick(freq = 800, dur = 0.03, vol = 0.05) {
             try {
@@ -516,36 +456,50 @@
             currentMacro = macro;
             currentViewLevel = 'categories';
             activeCategory = null;
+            activeProduct = null;
             activeIdx = 0;
 
-            document.querySelectorAll('.macro-tab-item').forEach(b => {
-                b.classList.remove('active', 'text-black', 'border-black');
-                b.classList.add('text-gray-400', 'border-transparent');
-            });
-            const activeBtn = document.getElementById('btn-' + macro);
-            activeBtn.classList.add('active', 'text-black', 'border-black');
-            activeBtn.classList.remove('text-gray-400', 'border-transparent');
-
-            // Slide effect
-            const carousel = document.getElementById('macro-carousel');
-            const idx = ['SOP', 'SER', 'PRO'].indexOf(macro);
-            const translateOffset = (1 - idx) * 15;
-            carousel.style.transform = `translateX(${translateOffset}px)`;
-
             renderCatalog();
+        }
+
+        function updateMacroLayout() {
+            const macros = ['SOP', 'SER', 'PRO'];
+            const activeMacroIdx = macros.indexOf(currentMacro);
+            
+            macros.forEach((macro, idx) => {
+                const el = document.getElementById('btn-' + macro);
+                if (!el) return;
+                
+                const diff = idx - activeMacroIdx;
+                let rotateY = diff * 35; 
+                let translateZ = -Math.abs(diff) * 50; 
+                let translateX = diff * 85; 
+                let opacity = 1 - Math.abs(diff) * 0.55;
+                
+                el.style.transform = `translate3d(${translateX}px, 0, ${translateZ}px) rotateY(${rotateY}deg)`;
+                el.style.opacity = Math.max(0.15, opacity);
+                
+                if (diff === 0) {
+                    el.className = "macro-tab-item-3d active text-black";
+                } else {
+                    el.className = "macro-tab-item-3d text-slate-400";
+                }
+            });
         }
 
         function renderCatalog() {
             container.innerHTML = "";
             dotContainer.innerHTML = "";
 
+            updateMacroLayout();
+
             if (currentViewLevel === 'categories') {
                 document.getElementById('submenu-header').classList.add('hidden');
                 document.getElementById('main-action-btn-text').innerText = "Nuova Categoria";
+                document.getElementById('main-action-btn').classList.remove('hidden');
                 
                 modules = fullCatalog.filter(c => c.macrocategories === currentMacro);
                 
-                // Count overall active/ghost for this macro
                 let activeTotal = 0, ghostTotal = 0;
                 modules.forEach(cat => {
                     const sub = cat.subcategories || [];
@@ -554,10 +508,12 @@
                 });
                 document.getElementById('count-active').innerText = activeTotal;
                 document.getElementById('count-ghost').innerText = ghostTotal;
-            } else {
+            } else if (currentViewLevel === 'items') {
                 document.getElementById('submenu-header').classList.remove('hidden');
                 document.getElementById('submenu-title').innerText = activeCategory.name;
+                document.getElementById('submenu-back-text').innerText = "Categorie";
                 document.getElementById('main-action-btn-text').innerText = "Aggiungi Voce";
+                document.getElementById('main-action-btn').classList.remove('hidden');
                 
                 modules = activeCategory.subcategories || [];
                 
@@ -565,6 +521,13 @@
                 let ghostTotal = modules.filter(p => !p.blueprint_ready).length;
                 document.getElementById('count-active').innerText = activeTotal;
                 document.getElementById('count-ghost').innerText = ghostTotal;
+            } else { // 'actions'
+                document.getElementById('submenu-header').classList.remove('hidden');
+                document.getElementById('submenu-title').innerText = activeProduct.short_name || activeProduct.name;
+                document.getElementById('submenu-back-text').innerText = "Voci";
+                document.getElementById('main-action-btn').classList.add('hidden'); // hidden for action menu
+                
+                modules = compileActionCards();
             }
 
             if (modules.length === 0) {
@@ -581,6 +544,101 @@
             buildStack();
         }
 
+        function compileActionCards() {
+            if (!activeProduct || !currentProductData) return [];
+            
+            const list = [];
+            
+            // 1. Scheda Info
+            list.push({
+                id: 'info',
+                label: 'Scheda Info',
+                desc: 'Modifica i dettagli e le caratteristiche generali del prodotto/servizio.',
+                icon: 'fa-edit',
+                action: () => launchSubEditor('edit-product.html')
+            });
+
+            // 2. Avanzate
+            const isSemi = activeProduct.item_type === 'SEMI_FINISHED' || 
+                           activeProduct.item_type === 'semilavorato' || 
+                           activeProduct.item_type === 'SEMI_FINISHED_PRODUCT' ||
+                           currentProductData.blueprint_type === 'SOP_SEMILAVORATO' ||
+                           (activeProduct.callback_data && activeProduct.callback_data.includes("SEMI"));
+            
+            if (currentMacro !== 'SOP' || isSemi) {
+                list.push({
+                    id: 'advanced',
+                    label: 'Avanzate',
+                    desc: 'Gestisci la scomposizione dei costi, ricetta (BOM) e parametri avanzati.',
+                    icon: 'fa-sliders',
+                    action: () => openAdvancedManagement()
+                });
+            }
+
+            // 3. Blueprint SOP
+            list.push({
+                id: 'blueprint',
+                label: 'Blueprint SOP',
+                desc: 'Configura la logica esecutiva passo-passo e la conformità di processo.',
+                icon: 'fa-diagram-project',
+                action: () => openBlueprintEditor()
+            });
+
+            // 4. Blog & Story
+            const hasBlog = currentProductData.blog_active;
+            list.push({
+                id: 'blog',
+                label: hasBlog ? 'Blog & Story' : 'Attiva Blog',
+                desc: hasBlog ? 'Gestisci e modifica gli articoli generati dall\'IA per la tua vetrina.' : 'Attiva la generazione automatica di articoli per la vetrina con l\'AI.',
+                icon: 'fa-pen-nib',
+                color: hasBlog ? '' : 'text-blue-600',
+                action: () => hasBlog ? launchSubEditor('edit-blog.html') : activateService('blog')
+            });
+
+            // 5. Social Posts
+            const hasSocial = currentProductData.post;
+            list.push({
+                id: 'social',
+                label: hasSocial ? 'Social Posts' : 'Attiva Social',
+                desc: hasSocial ? 'Visualizza e ottimizza i post pronti per la condivisione sui canali social.' : 'Attiva la scrittura automatica di post social ottimizzati per il marketing.',
+                icon: 'fa-share-nodes',
+                color: hasSocial ? '' : 'text-blue-600',
+                action: () => hasSocial ? openSocialViewer() : activateService('social')
+            });
+
+            // 6. Base Conoscenza AI
+            list.push({
+                id: 'knowledge',
+                label: 'Base Conoscenza',
+                desc: 'Istruisci l\'assistente virtuale inserendo FAQ, manuali e materiali di supporto.',
+                icon: 'fa-brain',
+                action: () => launchSubEditor('edit-knowledge.html')
+            });
+
+            // 7. Supervisor Hub
+            list.push({
+                id: 'supervisor',
+                label: 'Supervisor Hub',
+                desc: 'Monitora in tempo reale i task e lo stato di avanzamento operativo di questa voce.',
+                icon: 'fa-user-gear',
+                action: () => launchSubEditor('supervisor_hub.html')
+            });
+
+            // 8. Stampa Cartellino (Future Use)
+            list.push({
+                id: 'print',
+                label: 'Stampa',
+                desc: 'Card per la futura integrazione di stampa automatica cartellini ed etichette.',
+                icon: 'fa-print',
+                action: () => {
+                    playTick(400);
+                    tg.showAlert("La funzionalità di stampa non è ancora abilitata su questa console.");
+                }
+            });
+
+            return list;
+        }
+
         function buildStack() {
             container.innerHTML = "";
             dotContainer.innerHTML = "";
@@ -591,78 +649,101 @@
                 card.className = `platform-card-3d select-none`;
                 
                 if (currentViewLevel === 'categories') {
-                    // Category Card
+                    // Category Card - Clean rectangular layout
                     const subcats = mod.subcategories || [];
                     const activeSubcats = subcats.filter(p => p.blueprint_ready).length;
                     
                     card.innerHTML = `
-                        <div class="w-full flex justify-between items-center">
+                        <div class="w-full flex justify-between items-center shrink-0">
                             <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Categoria</span>
                             <div class="flex gap-2">
-                                <button class="w-8 h-8 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-900 transition active:scale-90" onclick="event.stopPropagation(); window.openEditModal('${mod.name}', '${mod.short_name || ''}', '${mod.callback_data}')">
-                                    <i class="fas fa-pen text-xs"></i>
+                                <button class="w-7 h-7 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-900 transition active:scale-90" onclick="event.stopPropagation(); window.openEditModal('${mod.name}', '${mod.short_name || ''}', '${mod.callback_data}')">
+                                    <i class="fas fa-pen text-[10px]"></i>
                                 </button>
-                                <button class="w-8 h-8 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 transition active:scale-90" onclick="event.stopPropagation(); window.deleteCategory('${mod.callback_data}', '${mod.name}')">
-                                    <i class="fas fa-trash text-xs"></i>
+                                <button class="w-7 h-7 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 transition active:scale-90" onclick="event.stopPropagation(); window.deleteCategory('${mod.callback_data}', '${mod.name}')">
+                                    <i class="fas fa-trash text-[10px]"></i>
                                 </button>
                             </div>
                         </div>
                         
-                        <div class="my-auto py-2">
-                            <h2 class="text-lg font-black tracking-tight text-slate-900 leading-snug uppercase px-2">${mod.short_name || mod.name}</h2>
-                            <div class="flex justify-center items-center gap-2 mt-3">
-                                <span class="px-2.5 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[8px] font-black uppercase tracking-wider">${subcats.length} Voci</span>
-                                ${activeSubcats > 0 ? `<span class="px-2.5 py-0.5 bg-blue-600 text-white rounded-full text-[8px] font-black uppercase tracking-wider shadow-sm">${activeSubcats} Attive</span>` : ''}
+                        <div class="my-auto">
+                            <h2 class="text-sm font-black tracking-tight text-slate-900 leading-snug uppercase px-2">${mod.short_name || mod.name}</h2>
+                            <div class="flex justify-center items-center gap-1.5 mt-2">
+                                <span class="px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full text-[7px] font-black uppercase tracking-wider">${subcats.length} Voci</span>
+                                ${activeSubcats > 0 ? `<span class="px-2 py-0.5 bg-blue-600 text-white rounded-full text-[7px] font-black uppercase tracking-wider shadow-sm">${activeSubcats} Attive</span>` : ''}
                             </div>
                         </div>
 
-                        <div class="w-full text-center">
-                            <span class="text-[8px] font-black uppercase tracking-widest text-blue-600 flex items-center justify-center gap-1.5 animate-pulse">
-                                Espandi Categoria <i class="fas fa-chevron-right text-[7px]"></i>
+                        <div class="w-full text-center shrink-0">
+                            <span class="text-[7px] font-black uppercase tracking-widest text-blue-600 flex items-center justify-center gap-1 animate-pulse">
+                                Espandi Categoria <i class="fas fa-chevron-right text-[6px]"></i>
                             </span>
                         </div>
                     `;
-                } else {
-                    // Item Card
+                } else if (currentViewLevel === 'items') {
+                    // Item Card - Rectangular card acting as a trigger
                     const { icon, text } = splitShortName(mod.short_name || mod.name || '');
                     const isSecurity = mod.show_in_security_assistant === true;
                     
                     card.innerHTML = `
-                        <div class="w-full flex justify-between items-center">
+                        <div class="w-full flex justify-between items-center shrink-0">
                             <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">SKU Voce</span>
-                            <button class="w-8 h-8 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 transition active:scale-90" onclick="event.stopPropagation(); window.deleteProduct('${mod.callback_data}', '${mod.name}')">
-                                <i class="fas fa-trash text-xs"></i>
+                            <button class="w-7 h-7 bg-slate-50 border border-slate-100 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-600 transition active:scale-90" onclick="event.stopPropagation(); window.deleteProduct('${mod.callback_data}', '${mod.name}')">
+                                <i class="fas fa-trash text-[10px]"></i>
                             </button>
                         </div>
 
-                        <div class="my-auto py-2 space-y-4">
-                            <div class="w-16 h-16 bg-slate-50 rounded-3xl mx-auto flex items-center justify-center text-3xl shadow-sm border border-slate-100">
+                        <div class="my-auto flex items-center gap-4 w-full px-2 text-left">
+                            <div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-slate-100 shrink-0">
                                 ${icon || '💡'}
                             </div>
-                            <div>
-                                <h3 class="text-sm font-black tracking-tight text-slate-900 leading-snug uppercase px-3">${text}</h3>
-                                <p class="text-[8px] font-bold text-slate-400 uppercase mt-1">ID: ${mod.callback_data}</p>
+                            <div class="overflow-hidden">
+                                <h3 class="text-xs font-black tracking-tight text-slate-900 leading-snug uppercase truncate">${text}</h3>
+                                <p class="text-[7px] font-bold text-slate-400 uppercase mt-0.5 truncate">ID: ${mod.callback_data}</p>
                             </div>
-                            <div class="flex justify-center gap-2">
-                                <span class="px-2 py-0.5 ${mod.blueprint_ready ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-400'} rounded-full text-[7px] font-black uppercase tracking-widest">
+                        </div>
+
+                        <div class="w-full flex justify-between items-center shrink-0">
+                            <div class="flex gap-1.5">
+                                <span class="px-2 py-0.5 ${mod.blueprint_ready ? 'bg-slate-900 text-white' : 'bg-slate-150 text-slate-500'} rounded-full text-[6px] font-black uppercase tracking-widest">
                                     ${mod.blueprint_ready ? 'Attivo' : 'Suggerito'}
                                 </span>
                                 ${isSecurity ? `
-                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[7px] font-black uppercase tracking-widest flex items-center gap-1">
-                                    <i class="fas fa-shield-halved text-[6px]"></i> Sicurezza
+                                <span class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-[6px] font-black uppercase tracking-widest flex items-center gap-0.5">
+                                    <i class="fas fa-shield-halved text-[5px]"></i> Sicurezza
                                 </span>` : ''}
+                            </div>
+                            <span class="text-[7px] font-black uppercase tracking-wider text-blue-600 flex items-center gap-1 animate-pulse">
+                                ${mod.blueprint_ready ? 'Gestisci' : 'Attiva'} <i class="fas fa-chevron-right text-[6px]"></i>
+                            </span>
+                        </div>
+                    `;
+                } else {
+                    // Action Option Card (Level 3 Sottomenu)
+                    card.innerHTML = `
+                        <div class="w-full text-left shrink-0">
+                            <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Opzione Gestione</span>
+                        </div>
+
+                        <div class="my-auto flex items-center gap-4 w-full px-2 text-left">
+                            <div class="w-12 h-12 bg-slate-950 text-white rounded-2xl flex items-center justify-center text-xl shadow-sm shrink-0">
+                                <i class="fas ${mod.icon} ${mod.color || ''}"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <h3 class="text-xs font-black tracking-tight text-slate-900 leading-none uppercase mb-1">${mod.label}</h3>
+                                <p class="text-[8px] text-slate-400 font-medium leading-tight">${mod.desc}</p>
                             </div>
                         </div>
 
-                        <div class="w-full flex gap-2">
-                            <button class="flex-1 py-3 bg-slate-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition shadow-md" onclick="event.stopPropagation(); window.openProduct('${mod.blueprint_ready ? 'edit-blueprint.html' : 'add-product.html'}', '${mod.callback_data}', '${activeCategory.callback_data}')">
-                                ${mod.blueprint_ready ? 'Gestisci' : 'Attiva'}
-                            </button>
+                        <div class="w-full text-right shrink-0">
+                            <span class="text-[7px] font-black uppercase tracking-wider text-blue-600 flex items-center justify-end gap-1 animate-pulse">
+                                Apri <i class="fas fa-chevron-right text-[6px]"></i>
+                            </span>
                         </div>
                     `;
                 }
 
-                // Gestures isolation for swipe triggers
+                // Gestures trigger
                 let touchStartX = 0;
                 let touchStartY = 0;
                 let isSwipeAction = false;
@@ -693,7 +774,7 @@
 
                 container.appendChild(card);
 
-                // Dot Indicator
+                // Dot indicator
                 const dot = document.createElement('div');
                 dot.id = `dot-${idx}`;
                 dot.className = `w-2.5 h-2.5 rounded-full bg-slate-300 transition-all duration-300 cursor-pointer`;
@@ -708,9 +789,14 @@
         function handleActiveCardClick() {
             if (currentViewLevel === 'categories') {
                 enterCategory(modules[activeIdx]);
+            } else if (currentViewLevel === 'items') {
+                enterActions(modules[activeIdx]);
             } else {
-                const prod = modules[activeIdx];
-                window.openProduct(prod.blueprint_ready ? 'edit-blueprint.html' : 'add-product.html', prod.callback_data, activeCategory.callback_data);
+                // Trigger option's custom action
+                const opt = modules[activeIdx];
+                if (opt && opt.action) {
+                    opt.action();
+                }
             }
         }
 
@@ -719,7 +805,7 @@
             playTick(900, 0.04, 0.06);
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             
-            parentActiveIdx = activeIdx;
+            parentCategoryActiveIdx = activeIdx;
             activeCategory = cat;
             currentViewLevel = 'items';
             activeIdx = 0;
@@ -732,8 +818,67 @@
 
             currentViewLevel = 'categories';
             activeCategory = null;
-            activeIdx = parentActiveIdx;
+            activeIdx = parentCategoryActiveIdx;
             renderCatalog();
+        }
+
+        async function enterActions(prod) {
+            if (!prod) return;
+            playTick(900, 0.04, 0.06);
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            parentItemActiveIdx = activeIdx;
+            activeProduct = prod;
+            
+            // Inline loader
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full w-full">
+                    <div class="spinner"></div>
+                    <p class="text-[8px] font-black uppercase tracking-widest text-slate-400 mt-3">Caricamento moduli...</p>
+                </div>
+            `;
+            dotWrapper.classList.add('hidden');
+
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_ghost_info', sop_id: prod.callback_data, ash: ash, msg: msg, _auth: tg.initData })
+                });
+                const info = await res.json();
+                const rawInfo = Array.isArray(info) ? info[0] : info;
+                currentProductData = rawInfo;
+                currentVatNumber = rawInfo.vat_number || rawInfo.vatnumber || rawInfo.vat || '';
+                currentSopId = prod.callback_data;
+                currentSecurityState = rawInfo.show_in_security_assistant === true || prod.show_in_security_assistant === true;
+
+                currentViewLevel = 'actions';
+                activeIdx = 0;
+                renderCatalog();
+            } catch (e) {
+                console.error(e);
+                tg.showAlert("Errore durante il caricamento dei dettagli.");
+                currentViewLevel = 'items';
+                renderCatalog();
+            }
+        }
+
+        function exitActions() {
+            playTick(600, 0.04, 0.06);
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            currentViewLevel = 'items';
+            activeProduct = null;
+            activeIdx = parentItemActiveIdx;
+            renderCatalog();
+        }
+
+        function handleTopBack() {
+            if (currentViewLevel === 'actions') {
+                exitActions();
+            } else if (currentViewLevel === 'items') {
+                exitCategory();
+            }
         }
 
         function selectIdx(idx) {
@@ -752,9 +897,9 @@
                 if (!card) return;
 
                 const diff = idx - activeIdx;
-                let translateY = diff * 58; 
+                let translateY = diff * 50; 
                 let translateZ = -Math.abs(diff) * 70; 
-                let rotateX = diff * -8; 
+                let rotateX = diff * -7; 
                 let scale = 1 - Math.abs(diff) * 0.04; 
                 let opacity = 0;
                 let zIndex = 100 - Math.abs(diff);
@@ -787,7 +932,7 @@
             });
         }
 
-        // Back Button management to avoid duplicates
+        // Back Button click routing
         let backButtonHandler = null;
         function setupTelegramBackButton() {
             if (!tg.BackButton) return;
@@ -796,7 +941,9 @@
                 tg.BackButton.offClick(backButtonHandler);
             }
             backButtonHandler = () => {
-                if (currentViewLevel === 'items') {
+                if (currentViewLevel === 'actions') {
+                    exitActions();
+                } else if (currentViewLevel === 'items') {
                     exitCategory();
                 } else {
                     window.location.href = `../dashboard/dashboard.html?ash=${ash}&msg=${msg || ''}`;
@@ -838,16 +985,13 @@
 
             if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > threshold) {
                 if (diffX < 0) {
-                    // Swipe Left -> Expand/Go in
-                    if (currentViewLevel === 'categories') {
-                        enterCategory(modules[activeIdx]);
-                    } else {
-                        const prod = modules[activeIdx];
-                        window.openProduct(prod.blueprint_ready ? 'edit-blueprint.html' : 'add-product.html', prod.callback_data, activeCategory.callback_data);
-                    }
+                    // Swipe Left -> Enter/Expand
+                    handleActiveCardClick();
                 } else {
                     // Swipe Right -> Go back
-                    if (currentViewLevel === 'items') {
+                    if (currentViewLevel === 'actions') {
+                        exitActions();
+                    } else if (currentViewLevel === 'items') {
                         exitCategory();
                     } else {
                         window.location.href = `../dashboard/dashboard.html?ash=${ash}&msg=${msg || ''}`;
@@ -855,10 +999,8 @@
                 }
             } else if (Math.abs(diffY) > Math.abs(diffX) && Math.abs(diffY) > threshold) {
                 if (diffY < 0) {
-                    // Swipe Up -> Next
                     if (activeIdx < modules.length - 1) selectIdx(activeIdx + 1);
                 } else {
-                    // Swipe Down -> Prev
                     if (activeIdx > 0) selectIdx(activeIdx - 1);
                 }
             }
@@ -877,7 +1019,7 @@
             }
         }, { passive: false });
 
-        // Swipe support on Macro tab Carousel itself
+        // Horizontal Swipe for Macro tab Carousel
         let macroStartX = 0;
         const macroCarousel = document.getElementById('macro-carousel');
         const macrosList = ['SOP', 'SER', 'PRO'];
@@ -910,81 +1052,15 @@
         window.goToAddCategory = () => { location.href = `add-category.html?ash=${ash}&msg=${msg || ''}&macro=${currentMacro}`; };
         window.goToAddProduct = (catId) => { location.href = `add-product.html?ash=${ash}&msg=${msg || ''}&catId=${catId}`; };
 
-        // Open Sub-page or drawer
+        // Open Sub-page inside quick editor drawer (Iframe)
         window.openProduct = async (page, pId, catId) => {
+            // Seleziona la pagina corretta in base all'azione
             if (page === 'edit-blueprint.html') {
-                currentSopId = pId;
-                currentSocialData = null; 
-                currentVatNumber = null; 
-                currentProductData = null; 
-
+                // Inserita per compatibilità di richiamo da altri editor,
+                // reindirizza al flusso Actions stack 3D
                 const match = modules.find(p => p.callback_data === pId);
-                document.getElementById('hub-product-name').innerText = match ? (match.short_name || match.name) : 'Dettagli';
-                document.getElementById('hub-product-sku').innerText = `ID: ${pId}`;
-
-                const isSemi = match && (match.item_type === 'SEMI_FINISHED' || match.item_type === 'semilavorato' || match.item_type === 'SEMI_FINISHED_PRODUCT');
-                const advancedBtn = document.getElementById('hub-advanced-btn');
-                if (advancedBtn) {
-                    if (currentMacro === 'SOP' && !isSemi) {
-                        advancedBtn.classList.add('opacity-40');
-                    } else {
-                        advancedBtn.classList.remove('opacity-40');
-                    }
-                }
-
-                currentSecurityState = match && match.show_in_security_assistant === true;
-                updateSecurityBtnUI();
-
-                try {
-                    const res = await fetch(WEBHOOK_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ action: 'get_ghost_info', sop_id: pId, ash: ash, msg: msg, _auth: tg.initData })
-                    });
-                    const info = await res.json();
-                    const rawInfo = Array.isArray(info) ? info[0] : info;
-                    currentProductData = rawInfo;
-                    currentVatNumber = rawInfo.vat_number || rawInfo.vatnumber || rawInfo.vat || '';
-
-                    // Blog button setup
-                    const blogBtn = document.getElementById('hub-blog-btn');
-                    blogBtn.classList.remove('hidden');
-                    if (rawInfo.blog_active) {
-                        blogBtn.onclick = () => launchSubEditor('edit-blog.html');
-                        blogBtn.innerHTML = `
-                        <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center"><i class="fas fa-pen-nib text-lg"></i></div>
-                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-800 font-bold mt-1">Blog & Story</span>`;
-                    } else {
-                        blogBtn.onclick = () => activateService('blog');
-                        blogBtn.innerHTML = `
-                        <div class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-md relative"><i class="fas fa-pen-nib text-lg"></i></div>
-                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-600 mt-1 font-bold">Attiva Blog</span>`;
-                    }
-
-                    // Social Post button setup
-                    const socialBtn = document.getElementById('hub-social-btn');
-                    socialBtn.classList.remove('hidden');
-                    if (rawInfo.post) {
-                        currentSocialData = rawInfo.post;
-                        socialBtn.onclick = () => openSocialViewer();
-                        socialBtn.innerHTML = `
-                        <div class="w-12 h-12 bg-black text-white rounded-2xl flex items-center justify-center"><i class="fas fa-share-nodes text-lg"></i></div>
-                        <span class="text-[9px] font-black uppercase tracking-widest text-slate-800 font-bold mt-1">Social Posts</span>`;
-                    } else {
-                        socialBtn.onclick = () => activateService('social');
-                        socialBtn.innerHTML = `
-                        <div class="w-12 h-12 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-md relative"><i class="fas fa-share-nodes text-lg"></i></div>
-                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-600 mt-1 font-bold">Attiva Social</span>`;
-                    }
-                } catch (e) { console.error(e); }
-
-                const hub = document.getElementById('hub-drawer');
-                hub.classList.remove('hidden');
-                setTimeout(() => hub.classList.remove('translate-y-full'), 10);
-
-                if (tg.BackButton) {
-                    tg.BackButton.show();
-                    tg.BackButton.onClick(closeHub);
+                if (match) {
+                    enterActions(match);
                 }
                 return;
             }
@@ -992,7 +1068,7 @@
         };
 
         window.openAdvancedManagement = () => {
-            const match = modules.find(p => p.callback_data === currentSopId);
+            const match = activeProduct;
             const itemType = currentProductData?.identity?.item_type || match?.item_type || '';
             const isSemi = itemType === 'SEMI_FINISHED' || itemType === 'semilavorato' || itemType === 'SEMI_FINISHED_PRODUCT' || currentProductData?.blueprint_type === 'SOP_SEMILAVORATO' || (currentSopId && currentSopId.includes("SEMI"));
 
@@ -1065,9 +1141,7 @@
                     currentSecurityState = result.new_state === true;
                     updateSecurityBtnUI();
                     
-                    // Sincronizza locale
-                    const match = modules.find(p => p.callback_data === currentSopId);
-                    if (match) match.show_in_security_assistant = currentSecurityState;
+                    if (activeProduct) activeProduct.show_in_security_assistant = currentSecurityState;
                 } else {
                     currentSecurityState = !currentSecurityState;
                     updateSecurityBtnUI();
@@ -1080,13 +1154,6 @@
                 tg.showAlert("Errore di connessione.");
             }
         };
-
-        function closeHub() {
-            const hub = document.getElementById('hub-drawer');
-            hub.classList.add('translate-y-full');
-            setTimeout(() => hub.classList.add('hidden'), 300);
-            setupTelegramBackButton();
-        }
 
         function launchSubEditor(page) {
             const drawer = document.getElementById('quick-editor-drawer');
@@ -1111,9 +1178,7 @@
                 document.getElementById('quickEditorFrame').src = 'about:blank';
             }, 300);
 
-            if (tg.BackButton) {
-                tg.BackButton.onClick(closeHub);
-            }
+            setupTelegramBackButton();
         }
 
         // Modals & Emoji Picker
@@ -1297,7 +1362,6 @@
                 </div>`;
             });
 
-            // Master Prompt Section
             const promptVal = currentSocialData.prompt || '';
             const veoVal = currentSocialData.veo_master_prompt_8s || '';
             container.innerHTML += `
@@ -1329,7 +1393,7 @@
             const drawer = document.getElementById('social-viewer-drawer');
             drawer.classList.add('translate-y-full');
             setTimeout(() => drawer.classList.add('hidden'), 300);
-            if (tg.BackButton) tg.BackButton.onClick(closeHub);
+            setupTelegramBackButton(); // returns to action stack back handler
         };
 
         window.savePrompts = async () => {
@@ -1397,7 +1461,6 @@
             });
         };
 
-        // Initialize setup
         if (!ash) {
             document.getElementById('loader').innerHTML = `<div class="font-black text-red-500">ASH MISSING</div>`;
         } else {
