@@ -8,6 +8,7 @@
     
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="identity_logic.js"></script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -39,7 +40,7 @@
             height: 100dvh;
         }
 
-        /* 3D Stack Container - Identico a index1 */
+        /* 3D Stack Container */
         .stack-container {
             position: relative;
             width: 100%;
@@ -51,12 +52,12 @@
         /* TrinAi Platform Styled Cards */
         .platform-card-3d {
             position: absolute;
-            top: 8%;
-            left: 6%;
-            width: 88%;
-            height: 84%;
+            top: 10%;
+            left: 8%;
+            width: 84%;
+            height: 80%;
             background: #ffffff;
-            border: 1.5px solid transparent; /* Bordi invisibili per evitare artefatti spezzati sui lati */
+            border: 1.5px solid transparent; /* Bordi invisibili sullo sfondo per evitare artefatti */
             border-radius: 1.5rem;
             color: #0f172a;
             display: flex;
@@ -76,21 +77,15 @@
             cursor: pointer;
         }
 
-        /* Active highlight for focused card (Platform Shadow & Border) */
+        /* Active card border and platform shadow */
         .platform-card-3d.active {
-            border-color: #cbd5e1; /* Bordo visibile solo sulla card attiva in primo piano */
+            border-color: #cbd5e1; /* Bordo pulito e continuo lungo tutti gli angoli */
             box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 
                         0 10px 10px -5px rgba(15, 23, 42, 0.04);
         }
 
         .platform-card-3d:active {
             transform: scale(0.98) !important;
-        }
-
-        /* Dynamic dot line */
-        .active-dot {
-            height: 1.5rem !important;
-            background-color: #0f172a !important;
         }
 
         /* Swipe hint animation */
@@ -110,7 +105,7 @@
 </head>
 <body class="flex flex-col justify-between p-6 safe-area-inset pb-10">
 
-    <!-- HEADER / TENANT BRANDING (Identico a index1) -->
+    <!-- HEADER / TENANT BRANDING -->
     <header class="flex justify-between items-center bg-white/85 backdrop-blur-md p-4 rounded-3xl border border-gray-200/50 shrink-0 shadow-sm select-none z-50">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center font-black shadow-md">
@@ -135,7 +130,7 @@
             <i class="fas fa-chevron-up text-xs"></i>
         </button>
 
-        <!-- 3D Card Stack (Stessa Struttura di index1) -->
+        <!-- 3D Card Stack -->
         <div id="stack-container" class="stack-container">
             <!-- Rendered dynamically -->
         </div>
@@ -145,19 +140,21 @@
             <i class="fas fa-chevron-down text-xs"></i>
         </button>
 
-        <!-- Dynamic Side Dot Indicators -->
-        <div id="dot-indicators" class="absolute -right-1 top-1/2 -translate-y-1/2 flex flex-col gap-2 z-50">
-            <!-- Rendered dynamically -->
+        <!-- Dynamic Side Dot Indicators with Scrubbing Area (Pill layout) -->
+        <div id="dot-indicators-wrapper" class="absolute -right-2 top-1/2 -translate-y-1/2 z-50 py-4 px-2.5 bg-slate-100/90 border border-slate-200 rounded-full shadow-md backdrop-blur-sm select-none touch-none">
+            <div id="dot-indicators" class="flex flex-col gap-2.5 items-center">
+                <!-- Rendered dynamically -->
+            </div>
         </div>
 
         <!-- Swipe Hint -->
         <div class="swipe-hint absolute bottom-8 flex flex-col items-center gap-1.5 text-gray-400 pointer-events-none select-none">
-            <i class="fas fa-angles-up text-xs"></i>
-            <span class="text-[8px] font-black uppercase tracking-widest">Scorri Verticalmente</span>
+            <i class="fas fa-arrows-up-down-left-right text-xs"></i>
+            <span class="text-[8px] font-black uppercase tracking-widest">Su/Giù: Scegli • Sinistra: Entra • Destra: Esci</span>
         </div>
     </main>
 
-    <!-- FOOTER / STATS (Identico a index1) -->
+    <!-- FOOTER / STATS -->
     <footer class="flex justify-between items-center text-[8px] font-black uppercase tracking-widest text-gray-400 select-none px-2 shrink-0 z-50">
         <span>SiteBoS V5.0</span>
         <button id="admin-panel-btn" class="hidden text-black/50 hover:text-black transition flex items-center gap-1.5 bg-white border border-gray-100 px-3.5 py-1.5 rounded-full active:scale-95">
@@ -191,14 +188,16 @@
         const urlParams = new URLSearchParams(window.location.search);
         const ash = urlParams.get('ash');
         const msgId = urlParams.get('msg');
-        // Dynamic modules setup - Identica Struttura (5 moduli attivi)
-        const modules = [
+
+        // Dynamic modules setup - 5 moduli attivi con relativi sottomenu
+        const mainModules = [
             {
                 id: "identity_hub",
                 label: "Identità & Setup",
                 desc: "Gestisci l'anagrafica aziendale, la verticalizzazione del settore ed il setup dei conti finanziari.",
-                url: "identity_hub.html",
-                icon: "fa-id-card"
+                url: "#",
+                icon: "fa-id-card",
+                sub: window.identitySubMenu
             },
             {
                 id: "catalog",
@@ -211,15 +210,27 @@
                 id: "logistics_operations",
                 label: "Logistica & Op.",
                 desc: "Evasione degli ordini e-commerce, pianificazione dell'agenda ed avvio delle commesse lavorative.",
-                url: "tm_menu", 
-                icon: "fa-clock"
+                url: "#", 
+                icon: "fa-clock",
+                sub: [
+                    { id: "orders", label: "Ordini Live", desc: "Gestisci in tempo reale gli ordini in entrata ed il tracking di spedizione.", url: "orders-manager.html", icon: "fa-shopping-cart" },
+                    { id: "jobs", label: "Piano Lavori", desc: "Organizza le code di lavoro e pianifica le priorità operative.", url: "job-create.html", icon: "fa-tasks" },
+                    { id: "solver", label: "Percorsi AI", desc: "Algoritmi predittivi di ottimizzazione percorsi e logistica consegne.", url: "solver.html", icon: "fa-route" },
+                    { id: "agenda", label: "Agenda", desc: "Visualizzazione degli slot orari e sincronizzazione degli appuntamenti.", url: "agenda.html", icon: "fa-calendar-alt" }
+                ]
             },
             {
                 id: "intelligence_hub",
                 label: "Suite Intelligence",
                 desc: "Analisi di mercato territoriali, controllo di gestione CFO, risorse umane e conformità DVR.",
-                url: "int_", 
-                icon: "fa-chart-line"
+                url: "#", 
+                icon: "fa-chart-line",
+                sub: [
+                    { id: "intel_gen", label: "Intelligence Gen.", desc: "Modulo di controllo direzionale e reportistica sintetica.", url: "agents/agent_intelligence.html", icon: "fa-brain" },
+                    { id: "intel_market", label: "Analisi Concorrenza", desc: "Benchmarking automatizzato dei competitor territoriali.", url: "agents/analisi-mercato.html", icon: "fa-search-dollar" },
+                    { id: "intel_safety", label: "Sicurezza & Compl.", desc: "Verifica DVR, sicurezza sul lavoro e adempimenti normativi.", url: "agents/assistente-sicurezza.html", icon: "fa-shield-halved" },
+                    { id: "intel_mgmt", label: "Controllo Gestione", desc: "Monitoraggio flussi di cassa, bilancio e marginalità di studio.", url: "agents/controllo_gestione.html", icon: "fa-coins" }
+                ]
             },
             {
                 id: "support_hub",
@@ -230,10 +241,27 @@
             }
         ];
 
+        let modules = [...mainModules];
+        let currentMenuLevel = 'main';
+        let parentActiveIdx = 0;
         let activeIdx = 0;
         let audioCtx = null;
         const container = document.getElementById('stack-container');
         const dotContainer = document.getElementById('dot-indicators');
+        const dotWrapper = document.getElementById('dot-indicators-wrapper');
+
+        // Handle Telegram native back button behavior
+        function handleTelegramBack() {
+            if (currentMenuLevel === 'sub') {
+                modules = mainModules;
+                currentMenuLevel = 'main';
+                activeIdx = parentActiveIdx;
+                tg.BackButton.hide();
+                tg.BackButton.offClick(handleTelegramBack);
+                buildStack();
+                playMechanicalTick();
+            }
+        }
 
         // Play procedural mechanical tick tone using Web Audio API
         function playMechanicalTick() {
@@ -286,27 +314,27 @@
                     <p class="text-[10px] text-slate-500 leading-relaxed px-3">${mod.desc}</p>
                 `;
                 
-                // Gesture detection
-                let touchStartY = 0;
+                // Swipe gesture isolation parameters
                 let touchStartX = 0;
-                let isSwipe = false;
+                let touchStartY = 0;
+                let isSwipeAction = false;
 
                 card.addEventListener('touchstart', e => {
-                    touchStartY = e.touches[0].clientY;
                     touchStartX = e.touches[0].clientX;
-                    isSwipe = false;
+                    touchStartY = e.touches[0].clientY;
+                    isSwipeAction = false;
                 }, { passive: true });
 
                 card.addEventListener('touchmove', e => {
-                    const diffY = Math.abs(e.touches[0].clientY - touchStartY);
                     const diffX = Math.abs(e.touches[0].clientX - touchStartX);
-                    if (diffY > 10 || diffX > 10) {
-                        isSwipe = true; 
+                    const diffY = Math.abs(e.touches[0].clientY - touchStartY);
+                    if (diffX > 10 || diffY > 10) {
+                        isSwipeAction = true;
                     }
                 }, { passive: true });
 
                 card.addEventListener('click', () => {
-                    if (isSwipe) return;
+                    if (isSwipeAction) return;
                     
                     if (audioCtx && audioCtx.state === 'suspended') {
                         audioCtx.resume();
@@ -321,10 +349,10 @@
 
                 container.appendChild(card);
 
-                // Dot Indicator
-                const dot = document.createElement('button');
-                dot.className = `w-1.5 h-1.5 rounded-full bg-slate-300 transition-all duration-300 ${idx === 0 ? 'active-dot' : ''}`;
+                // Dot Indicator inside vertical pill wrapper
+                const dot = document.createElement('div');
                 dot.id = `dot-${idx}`;
+                dot.className = `w-2.5 h-2.5 rounded-full bg-slate-300 transition-all duration-300 cursor-pointer`;
                 dot.onclick = () => selectIdx(idx);
                 dotContainer.appendChild(dot);
             });
@@ -341,7 +369,7 @@
 
                 const diff = idx - activeIdx;
                 
-                let translateY = diff * 62; 
+                let translateY = diff * 58; 
                 let translateZ = -Math.abs(diff) * 70; 
                 let rotateX = diff * -8; 
                 let scale = 1 - Math.abs(diff) * 0.04; 
@@ -370,9 +398,9 @@
                 // Update dots
                 if (dot) {
                     if (idx === activeIdx) {
-                        dot.className = "w-1.5 h-4.5 rounded-full bg-slate-900 transition-all duration-300";
+                        dot.className = "w-2.5 h-6 rounded-full bg-slate-900 transition-all duration-300";
                     } else {
-                        dot.className = "w-1.5 h-1.5 rounded-full bg-slate-300 transition-all duration-300";
+                        dot.className = "w-2.5 h-2.5 rounded-full bg-slate-300 transition-all duration-300";
                     }
                 }
             });
@@ -400,22 +428,70 @@
             }
         };
 
-        // Swipe scroll
+        // Touch scrubbing logic for Dot Indicator wrapper
+        function handleDotScrub(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = dotWrapper.getBoundingClientRect();
+            const relativeY = touch.clientY - rect.top;
+            
+            let ratio = relativeY / rect.height;
+            ratio = Math.max(0, Math.min(0.99, ratio));
+            
+            const targetIdx = Math.floor(ratio * modules.length);
+            if (targetIdx !== activeIdx) {
+                selectIdx(targetIdx);
+            }
+        }
+
+        dotWrapper.addEventListener('touchstart', handleDotScrub, { passive: false });
+        dotWrapper.addEventListener('touchmove', handleDotScrub, { passive: false });
+
+        // Swipe scroll logic (Vertical AND Horizontal support)
+        let swipeStartX = 0;
         let swipeStartY = 0;
+        let swipeEndX = 0;
         let swipeEndY = 0;
 
         container.addEventListener('touchstart', e => {
+            swipeStartX = e.changedTouches[0].screenX;
             swipeStartY = e.changedTouches[0].screenY;
         }, { passive: true });
 
         container.addEventListener('touchend', e => {
+            swipeEndX = e.changedTouches[0].screenX;
             swipeEndY = e.changedTouches[0].screenY;
-            const distance = swipeEndY - swipeStartY;
+            
+            const diffX = swipeEndX - swipeStartX;
+            const diffY = swipeEndY - swipeStartY;
             const threshold = 35;
-            if (distance > threshold) {
-                navigateStack(-1);
-            } else if (distance < -threshold) {
-                navigateStack(1);
+
+            // Determine dominant direction
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                // Horizontal Swipe
+                if (Math.abs(diffX) > threshold) {
+                    if (diffX < 0) {
+                        // Swipe left -> enter next menu (active module subpage)
+                        const activeMod = modules[activeIdx];
+                        openModule(activeMod.id, activeMod.url);
+                    } else {
+                        // Swipe right -> return to previous menu (close Telegram WebApp or exit sub-menu)
+                        if (currentMenuLevel === 'sub') {
+                            handleTelegramBack();
+                        } else {
+                            tg.close();
+                        }
+                    }
+                }
+            } else {
+                // Vertical Swipe
+                if (Math.abs(diffY) > threshold) {
+                    if (diffY < 0) {
+                        navigateStack(1); // Swipe up -> advance
+                    } else {
+                        navigateStack(-1); // Swipe down -> go back
+                    }
+                }
             }
         }, { passive: true });
 
@@ -428,11 +504,50 @@
             }
         }, { passive: true });
 
-        // Redirect URL logic
+        // Redirect URL logic or dynamic Sub-menu loading
         window.openModule = function(id, url) {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            
+            const selectedMod = modules[activeIdx];
+            if (selectedMod && selectedMod.sub) {
+                // Save current main menu activeIdx
+                parentActiveIdx = activeIdx;
+                // Switch to sub-menu
+                modules = selectedMod.sub;
+                currentMenuLevel = 'sub';
+                activeIdx = 0;
+                
+                // Show Telegram Native Back Button
+                tg.BackButton.show();
+                tg.BackButton.onClick(handleTelegramBack);
+                
+                buildStack();
+                playMechanicalTick();
+                return;
+            }
+
+            // Check if this sub-module action is intercepted (e.g. external link confirmation)
+            if (window.handleIdentityAction && window.handleIdentityAction(selectedMod, ash, msgId)) {
+                return;
+            }
+
+            // Normal HTML page redirection
             window.location.href = `../${url}?ash=${ash}&msg=${msgId}`;
         };
+
+        // Check if a specific sub-menu is requested via URL parameter
+        const initialMenu = urlParams.get('menu');
+        if (initialMenu === 'identity_hub') {
+            const selectedMod = mainModules.find(m => m.id === 'identity_hub');
+            if (selectedMod && selectedMod.sub) {
+                parentActiveIdx = mainModules.indexOf(selectedMod);
+                modules = selectedMod.sub;
+                currentMenuLevel = 'sub';
+                activeIdx = 0;
+                tg.BackButton.show();
+                tg.BackButton.onClick(handleTelegramBack);
+            }
+        }
 
         buildStack();
     </script>

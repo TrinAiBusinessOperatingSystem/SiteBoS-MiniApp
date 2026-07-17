@@ -6,11 +6,11 @@ Questa cartella contiene i componenti dell'interfaccia utente (UI) per la gestio
 
 ### 1. WebApp di Gestione (Owner)
 Queste pagine permettono all'Owner di configurare il proprio sistema:
-- `edit_owner.html`: Dashboard principale per la gestione del profilo, P.IVA e chiavi API.
-- `bot_config.html`: Pannello di controllo per le personalità e le restrizioni del bot clienti.
+- `identity/edit_owner.html`: Dashboard principale per la gestione del profilo, P.IVA e chiavi API.
+- `identity/bot_config.html`: Pannello di controllo per le personalità e le restrizioni del bot clienti.
 - `edit-product.html` & `edit-blueprint.html`: Interfacce per la gestione del catalogo servizi e delle procedure (SOP).
 - `edit-knowledge.html`: Editor per la Knowledge Base aziendale.
-- `edit-blog.html` & `minisite.html`: Strumenti di design e pubblicazione per la presenza online.
+- `edit-blog.html`: Strumenti di design e pubblicazione per la presenza online.
 
 ### 2. Strumenti Operativi
 - `assistant.html`: Hub per il controllo degli agenti e il billing dei crediti.
@@ -21,6 +21,11 @@ Queste pagine permettono all'Owner di configurare il proprio sistema:
 ### 3. Moduli Specializzati
 - `softskill/`: Un sottomodulo interattivo (150 domande) per la valutazione delle competenze trasversali.
 - `legal.html`: Centro di conformità legale (Privacy Policy, GDPR, AI Act disclaimer).
+
+### 4. Versioni Deprecate
+I file non più in uso ma conservati per storico:
+- `old_version/identity_hub.html`: Vecchia interfaccia di selezione del settore merceologico.
+- `old_version/minisite.html`: Vecchio configuratore locale del minisite aziendale.
 
 ## Sviluppo & Design
 Tutte le interfacce seguono lo stile **`dark-tech`** definito nel `project_dna.md`:

@@ -15,7 +15,7 @@ La dashboard inviata dal workflow n8n [dashboard.json](file:///c:/Users/garof/De
 2. **Generazione Risposta**: Il backend controlla lo stato dell'utente (onboarding completato, crediti sufficienti, ecc.).
 3. **Pulsante Unico**: Viene inviato un messaggio di stato sintetico con **un solo bottone inline**:
    * **Testo**: `🚀 Apri Console SiteBoS` o `💻 Accedi alla Dashboard`
-   * **Azione**: Apre la Telegram MiniApp puntando a un URL unico all'interno della nuova cartella dedicata (es. `dashboard/index.html`).
+   * **Azione**: Apre la Telegram MiniApp puntando a un URL unico all'interno della nuova cartella dedicata (es. `dashboard/dashboard.html`).
    * **Parametri URL**: L'URL include l'autenticazione sicura `ash` (generata dinamicamente con HMAC sul backend) e i parametri contestuali.
 
 ```
@@ -86,7 +86,7 @@ La struttura dinamica della dashboard viene salvata in una nuova collezione Mong
       "id": "identity_hub",
       "label": "🏢 Identità & Setup",
       "type": "web_app",
-      "url_path": "identity_hub.html",
+      "url_path": "dashboard/dashboard.html?menu=identity_hub",
       "roles_allowed": ["admin"],
       "enabled": true,
       "order": 1
@@ -145,9 +145,9 @@ Per eliminare ridondanze (rimuovendo il pulsante **SuperVisor Hub** dalla grigli
 
 ### 🏢 1. AREA IMPOSTAZIONI & IDENTITÀ CORE (Setup del Tenant)
 Questi file gestiscono i dati anagrafici, fiscali e l'identità del proprietario. Sulla dashboard sono riassunti sotto la voce **Identità & Setup** (accessibile principalmente ad Admin).
-*   [identity_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/identity_hub.html): Selettore iniziale per la verticalizzazione del settore merceologico.
-*   [edit_owner.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit_owner.html): Anagrafica proprietario e associazione del token del Bot Telegram.
-*   [advanced-setup.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/advanced-setup.html) / [advanced-setup-dental.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/advanced-setup-dental.html): Setup avanzato, scomposizione finanziaria dei costi aziendali e link di invito staff.
+*   [identity_logic.js](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/dashboard/identity_logic.js): Modulo di logica e definizione del sottomenu di Identità & Setup (integrato direttamente all'interno di `dashboard.html`).
+*   [edit_owner.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/identity/edit_owner.html): Anagrafica proprietario e associazione del token del Bot Telegram.
+*   [advanced-setup.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/identity/advanced-setup.html) / [advanced-setup-dental.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/identity/advanced-setup-dental.html): Setup avanzato, scomposizione finanziaria dei costi aziendali e link di invito staff.
 
 ### 📋 2. AREA GESTIONE AZIENDALE (Il Portale Unico Catalogo)
 **Scelta Architetturale**: [catalog.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/catalog.html) funge da *Product Hub* unico. Tutti i file correlati alla gestione dei singoli prodotti/servizi/SOP vengono lanciati unicamente tramite cassetti o frame da qui, evitando di ingolfare la dashboard principale.
@@ -160,7 +160,6 @@ Questi file gestiscono i dati anagrafici, fiscali e l'identità del proprietario
     *   [edit-blueprint.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-blueprint.html) / [edit-blueprint-product.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-blueprint-product.html): Diagramma della logica esecutiva e conformità.
 *   **Marketing & Vetrine**:
     *   [edit-blog.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-blog.html): Stesura e modifica degli articoli per il blog.
-    *   [minisite.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/minisite.html): Creazione offerte promozionali e landing page.
 *   **Supervisione di Dettaglio**:
     *   [supervisor_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/supervisor_hub.html): Esecuzione e monitoraggio dei task associati al *singolo SKU* selezionato dal catalogo (non globale).
 
@@ -184,12 +183,19 @@ Aggrega i moduli di analisi strategica, compliance ed esame delle risorse umane 
 
 ### ⚙️ 5. AREA CONTATTO CLIENTE (External Channels Setup)
 Configurazione dei canali esterni di vendita e prenotazione.
-*   [bot_config.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/bot_config.html): Configurazione del Bot Telegram rivolto ai clienti.
+*   [bot_config.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/identity/bot_config.html): Configurazione del Bot Telegram rivolto ai clienti.
 *   [booking.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/booking.html): Portale di prenotazione autonomo esposto al pubblico.
 *   [ecommerce.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/ecommerce.html) / [preventivi.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/preventivi.html): Carrello vendite e calcolatore preventivi.
 
 ### 💬 6. AREA SUPPORTO & MANUTENZIONE (Support & System)
-*   [support_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/support_hub.html) / [handover.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/handover.html): Presa in carico man## 🎨 7. CAROSELLO VERTICALE & DESIGN SYSTEM (UI/UX MiniApp - OdS SB-2026-009)
+*   [support_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/support_hub.html) / [handover.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/handover.html): Presa in carico man.
+
+### ⏳ 7. CARTELLE DEPRECATE / STORICHE
+*   `telegram_control/old_version/`: Contiene i file legacy conservati per tracciabilità storica:
+    *   `identity_hub.html`: Vecchia interfaccia del selettore del settore merceologico.
+    *   `minisite.html`: Vecchio configuratore locale del minisite aziendale.
+
+## 🎨 8. CAROSELLO VERTICALE & DESIGN SYSTEM (UI/UX MiniApp - OdS SB-2026-009)
 Per uniformare l'interfaccia della Telegram MiniApp all'estetica premium della piattaforma desktop, viene implementato un **Carosello Verticale (3D Vertical Focus Stack)** conforme alle direttive dell'OdS SB-2026-009.
 
 ### 🎛️ Specifiche Tecnico-Estetiche Applicate:
@@ -231,7 +237,7 @@ Per uniformare l'interfaccia della Telegram MiniApp all'estetica premium della p
 ## 🛠️ PROSSIMI PASSI PER L'IMPLEMENTAZIONE
 Le specifiche dell'OdS SB-2026-009 sono state interamente implementate nel prototipo client. I passi successivi prevedono:
 1. **Modificare [dashboard.json](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/n8n_workflows/n8n_workflow/SiteBoS-App-Hook/dashboard/dashboard.json)**:
-   * Ridurre la tastiera inline generata a un singolo pulsante WebApp puntante a `dashboard/index.html`.
+   * Ridurre la tastiera inline generata a un singolo pulsante WebApp puntante a `dashboard/dashboard.html`.
 2. **Integrare la Persistenza MongoDB**:
    * Implementare l'endpoint API `/api/dashboard/layout` per caricare/aggiornare l'ordinamento dinamico delle card.
 3. **Aggiornare la Sincronizzazione**:
