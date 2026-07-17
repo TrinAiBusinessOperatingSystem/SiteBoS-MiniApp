@@ -273,10 +273,11 @@ const CatalogPrintEngine = {
         const service = payload.service_catalog || {};
         const blueprint = payload.process_blueprints || {};
         const kf = payload.knowledge_fragments || {};
+        const adv = payload.advanced || {};
 
-        const sIdentity = service.identity || {};
-        const sPricing = service.pricing || {};
-        const sCommercial = service.commercial_setup || {};
+        const sIdentity = service.identity || adv.identity || {};
+        const sPricing = service.pricing || adv.pricing || {};
+        const sCommercial = service.commercial_setup || adv.commercial_setup || {};
 
         const rawName = sIdentity.item_name || blueprint.blueprint_name || "Scheda Tecnica";
         const shortDesc = sIdentity.description?.short || blueprint.blueprint_description || "";
@@ -286,8 +287,9 @@ const CatalogPrintEngine = {
         const basePrice = sPricing.base_price !== undefined ? `${sPricing.base_price} ${sPricing.currency || 'EUR'}` : 'N/A';
 
         // ═════════ DATI DI PROPRIETÀ (OWNER INFO) ═════════
-        const tenantName = payload.tenant?.ragioneSociale || "TRINAI SRL";
-        const tenantVat = payload.tenant?.pIva || "02564250849";
+        const owner = payload.owner_data || payload.tenant || {};
+        const tenantName = owner.ragioneSociale || owner.company_name || owner.ragione_sociale || "TRINAI SRL";
+        const tenantVat = owner.pIva || owner.vat_number || owner.p_iva || "02564250849";
 
         // Helper per il piè di pagina uniforme su tutte le pagine
         const makeFooter = (pageNum) => `
@@ -349,6 +351,23 @@ const CatalogPrintEngine = {
         `;
 
         // ─── PAGINA 2: SCHEDA PRODOTTO, OPZIONI ED ADVANCED ───
+        
+        // Risoluzione dei parametri advanced
+        const ops = service.operations || adv.operations || {};
+        const taxable = sPricing.tax_info?.taxable !== undefined ? sPricing.tax_info.taxable : (sPricing.tax_rate_percentage > 0);
+        const taxRate = sPricing.tax_info?.tax_rate_percentage || sPricing.tax_rate_percentage || 22;
+        const cogsVal = sPricing.cost_of_goods !== undefined && sPricing.cost_of_goods !== null ? sPricing.cost_of_goods : adv.pricing?.cost_of_goods;
+        
+        // Calcolo automatico COGS dalla BOM se non presente direttamente
+        let computedCogs = 0;
+        const bomItems = adv.bom || service.bom || [];
+        bomItems.forEach(item => {
+            const qty = parseFloat(item.qty || item.usage || 0);
+            const unitCost = parseFloat(item.unit_cost || item.cost || 0);
+            computedCogs += qty * unitCost;
+        });
+        const finalCogs = (cogsVal !== undefined && cogsVal !== null) ? cogsVal : computedCogs;
+
         html += `
             <div class="page">
                 <div>
@@ -388,31 +407,61 @@ const CatalogPrintEngine = {
                     <div class="info-box" style="margin-top: 5px;">
                         <div class="info-row">
                             <span class="info-label">Costo dei Materiali (COGS)</span>
-                            <span class="info-value">${sPricing.cost_of_goods !== null && sPricing.cost_of_goods !== undefined ? `${sPricing.cost_of_goods} ${sPricing.currency || 'EUR'}` : 'Non Definito / Nullo'}</span>
+                            <span class="info-value">${finalCogs > 0 ? `${finalCogs.toFixed(2)} ${sPricing.currency || 'EUR'}` : 'Non Definito / Nullo'}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Regime Fiscale Aliquota IVA</span>
-                            <span class="info-value">${sPricing.tax_info?.taxable ? `Soggetta ad IVA (${sPricing.tax_info.tax_rate_percentage}%)` : 'Esente IVA'}</span>
+                            <span class="info-value">${taxable ? `Soggetta ad IVA (${taxRate}%)` : 'Esente IVA'}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Richiede Prenotazione Slot</span>
-                            <span class="info-value">${service.operations?.requires_booking ? 'Sì (Richiede slot in Agenda)' : 'No'}</span>
+                            <span class="info-value">${ops.requires_booking ? 'Sì (Richiede slot in Agenda)' : 'No'}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Controllo Scorte Magazzino</span>
-                            <span class="info-value">${service.operations?.requires_inventory_check ? 'Sì (Check scorte attivo)' : 'No'}</span>
+                            <span class="info-value">${ops.requires_inventory_check ? 'Sì (Check scorte attivo)' : 'No'}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">Tempo di Esecuzione (Fulfillment)</span>
-                            <span class="info-value">${service.operations?.fulfillment_time?.value || 0} ${service.operations?.fulfillment_time?.unit || 'minuti'}</span>
+                            <span class="info-value">${ops.fulfillment_time?.value || 0} ${ops.fulfillment_time?.unit || 'minuti'}</span>
                         </div>
-                        ${service.operations?.provider_info?.required_skill_tags && service.operations.provider_info.required_skill_tags.length > 0 ? `
+                        ${ops.provider_info?.required_skill_tags && ops.provider_info.required_skill_tags.length > 0 ? `
                         <div class="info-row">
                             <span class="info-label">Competenze Operatore Richieste</span>
-                            <span class="info-value">${service.operations.provider_info.required_skill_tags.join(', ')}</span>
+                            <span class="info-value">${ops.provider_info.required_skill_tags.join(', ')}</span>
                         </div>
                         ` : ''}
                     </div>
+
+                    <!-- Rendering BOM se presente -->
+                    ${bomItems.length > 0 ? `
+                        <div class="section-subtitle" style="margin-top: 15px;">Distinta Base dei Componenti (BOM)</div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Componente / Risorsa</th>
+                                    <th style="width: 80px; text-align: center;">Quantità</th>
+                                    <th style="width: 100px; text-align: right;">Costo Unitario</th>
+                                    <th style="width: 100px; text-align: right;">Totale</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${bomItems.map(item => {
+                                    const qty = parseFloat(item.qty || item.usage || 0);
+                                    const uCost = parseFloat(item.unit_cost || item.cost || 0);
+                                    const tot = qty * uCost;
+                                    return `
+                                        <tr>
+                                            <td><strong>${item.name || item.item_sku || 'Risorsa'}</strong><br/><span style="font-size: 6.5pt; color: #64748b;">SKU: ${item.item_sku || 'N/A'}</span></td>
+                                            <td style="text-align: center;">${qty} ${item.unit_of_measure || 'pz'}</td>
+                                            <td style="text-align: right;">${uCost.toFixed(2)} ${sPricing.currency || 'EUR'}</td>
+                                            <td style="text-align: right; font-weight: 700;">${tot.toFixed(2)} ${sPricing.currency || 'EUR'}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    ` : ''}
 
                     ${sIdentity.tags && sIdentity.tags.length > 0 ? `
                         <div style="margin-top: 10px;">
@@ -659,8 +708,9 @@ const CatalogPrintEngine = {
         if (!payload) return null;
         if (window.showLoader) window.showLoader("Generazione Guida AI...");
 
-        const tenantName = payload.tenant?.ragioneSociale || "TRINAI SRL";
-        const tenantVat = payload.tenant?.pIva || "02564250849";
+        const owner = payload.owner_data || payload.tenant || {};
+        const tenantName = owner.ragioneSociale || owner.company_name || owner.ragione_sociale || "TRINAI SRL";
+        const tenantVat = owner.pIva || owner.vat_number || owner.p_iva || "02564250849";
 
         let htmlContent = payload.html_content || payload.content || "";
         let title = payload.title || "Guida Generata con AI";
