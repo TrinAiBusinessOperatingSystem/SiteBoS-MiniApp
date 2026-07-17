@@ -240,6 +240,29 @@ const dvrCommonStyles = `
 `;
 
 const CatalogPrintEngine = {
+    normalizeKey: function (key) {
+        const k = (key || '').toLowerCase().trim();
+        if (k === 'common' || k === 'comune') return 'comune';
+        if (k === 'dental' || k === 'dentale') return 'dental';
+        if (k === 'health' || k === 'sanita' || k === 'sanità') return 'health';
+        if (k === 'beauty' || k === 'estetica') return 'beauty';
+        if (k === 'food' || k === 'ristorazione') return 'food';
+        if (k === 'hospitality' || k === 'ospitalita' || k === 'ospitalità') return 'hospitality';
+        if (k === 'professional' || k === 'ufficio' || k === 'uffici') return 'professional';
+        if (k === 'workshop' || k === 'officina' || k === 'artigianato') return 'workshop';
+        if (k === 'construction' || k === 'cantiere' || k === 'edilizia') return 'construction';
+        return 'generic';
+    },
+
+    parametriVerticali: {
+        "comune": { D: 2, C: 1, desc_d: "Infortuni o patologie professionali generiche", normativa_rif: "D.Lgs. 81/08 Titolo II" },
+        "generic": { D: 2, C: 1, desc_d: "Infortuni lievi (scivolamento, caduta in piano)", normativa_rif: "D.Lgs. 81/08 Titolo II" },
+        "dental": { D: 3, C: 2, desc_d: "Patogeni ematogeni e respiratori a danno grave", normativa_rif: "D.Lgs. 81/08 Titolo X" },
+        "health": { D: 3, C: 2, desc_d: "Patogeni biologici a danno grave, rischi chimici", normativa_rif: "D.Lgs. 81/08 Titolo X, Legge Gelli-Bianco" },
+        "beauty": { D: 2, C: 2, desc_d: "Patogeni a danno moderato, lesioni cutanee", normativa_rif: "D.Lgs. 81/08 Titolo VIII, D.M. 206/2015" },
+        "food": { D: 3, C: 2, desc_d: "Tossinfezioni, trasmissione alimentare, tagli, ustioni", normativa_rif: "Regolamento CE 852/2004 (HACCP)" }
+    },
+
     printSingleService: async function (payload) {
         if (!payload) return;
         if (window.showLoader) window.showLoader("Generazione PDF...");
@@ -261,6 +284,19 @@ const CatalogPrintEngine = {
         const sku = sIdentity.item_sku || blueprint.service_sku || "N/A";
         const vertical = sIdentity.vertical || "N/A";
         const basePrice = sPricing.base_price !== undefined ? `${sPricing.base_price} ${sPricing.currency || 'EUR'}` : 'N/A';
+
+        // ═════════ DATI DI PROPRIETÀ (OWNER INFO) ═════════
+        const tenantName = payload.tenant?.ragioneSociale || "TRINAI SRL";
+        const tenantVat = payload.tenant?.pIva || "02564250849";
+
+        // Helper per il piè di pagina uniforme su tutte le pagine
+        const makeFooter = (pageNum) => `
+            <div class="footer-page">
+                <span>Proprietà di: ${tenantName} - P.IVA: ${tenantVat}</span>
+                <span style="font-size: 6.5pt; color: #ef4444; font-weight: 800; letter-spacing: 0.05em;">[ DOCUMENTO INTERNO RISERVATO - VIETATA LA RIPRODUZIONE ]</span>
+                <span>Pagina ${pageNum}</span>
+            </div>
+        `;
 
         // ═════════ COSTRUZIONE DELLE PAGINE HTML ═════════
         let html = `
@@ -308,63 +344,86 @@ const CatalogPrintEngine = {
                     </div>
                 </div>
 
-                <div class="footer-page">
-                    <span>TrinAi Platform</span>
-                    <span>Documentazione Tecnica</span>
-                </div>
+                ${makeFooter(1)}
             </div>
         `;
 
-        // ─── PAGINA 2: SCHEDA PRODOTTO ED OPZIONI ───
-        if (longDesc || (sCommercial.extra_options && sCommercial.extra_options.length > 0)) {
-            html += `
-                <div class="page">
-                    <div>
-                        <div class="header-doc">
-                            <span>SKU: ${sku}</span>
-                            <h2>SCHEDA PRODOTTO & COMMERCIALE</h2>
-                        </div>
-                        <div class="chapter-title">Specifiche Generali</div>
-                        
-                        ${longDesc ? `
-                            <div class="section-subtitle">Descrizione Estesa</div>
-                            <p>${longDesc}</p>
-                        ` : ''}
+        // ─── PAGINA 2: SCHEDA PRODOTTO, OPZIONI ED ADVANCED ───
+        html += `
+            <div class="page">
+                <div>
+                    <div class="header-doc">
+                        <span>SKU: ${sku}</span>
+                        <h2>SCHEDA PRODOTTO & COMMERCIALE</h2>
+                    </div>
+                    <div class="chapter-title">Specifiche Generali</div>
+                    
+                    ${longDesc ? `
+                        <div class="section-subtitle">Descrizione Estesa</div>
+                        <p>${longDesc}</p>
+                    ` : ''}
 
-                        ${sCommercial.extra_options && sCommercial.extra_options.length > 0 ? `
-                            <div class="section-subtitle">Opzioni Commerciali Correlate</div>
-                            <table>
-                               <thead>
+                    ${sCommercial.extra_options && sCommercial.extra_options.length > 0 ? `
+                        <div class="section-subtitle">Opzioni Commerciali Correlate</div>
+                        <table>
+                           <thead>
+                               <tr>
+                                   <th>Nome Opzione / Servizio Integrato</th>
+                                   <th style="width: 100px; text-align: right;">Prezzo Extra</th>
+                               </tr>
+                           </thead>
+                           <tbody>
+                               ${sCommercial.extra_options.map(opt => `
                                    <tr>
-                                       <th>Nome Opzione / Servizio Integrato</th>
-                                       <th style="width: 100px; text-align: right;">Prezzo Extra</th>
+                                       <td><strong>${opt.name}</strong></td>
+                                       <td style="text-align: right; font-weight: 700; color: #0284c7;">+ ${opt.price} ${sPricing.currency || 'EUR'}</td>
                                    </tr>
-                               </thead>
-                               <tbody>
-                                   ${sCommercial.extra_options.map(opt => `
-                                       <tr>
-                                           <td><strong>${opt.name}</strong></td>
-                                           <td style="text-align: right; font-weight: 700; color: #0284c7;">+ ${opt.price} ${sPricing.currency || 'EUR'}</td>
-                                       </tr>
-                                   `).join('')}
-                               </tbody>
-                            </table>
-                        ` : ''}
+                               `).join('')}
+                           </tbody>
+                        </table>
+                    ` : ''}
 
-                        ${sIdentity.tags && sIdentity.tags.length > 0 ? `
-                            <div style="margin-top: 15px;">
-                                <span class="info-label" style="font-size: 7.5pt; font-weight: 800; text-transform: uppercase;">Tag: </span>
-                                ${sIdentity.tags.map(t => `<span class="badge badge-info" style="margin-right: 4px; font-size: 6.5pt;">${t}</span>`).join('')}
-                            </div>
+                    <!-- Parametri Avanzati (Advanced Management) -->
+                    <div class="section-subtitle">Parametri Avanzati & Operativi</div>
+                    <div class="info-box" style="margin-top: 5px;">
+                        <div class="info-row">
+                            <span class="info-label">Costo dei Materiali (COGS)</span>
+                            <span class="info-value">${sPricing.cost_of_goods !== null && sPricing.cost_of_goods !== undefined ? `${sPricing.cost_of_goods} ${sPricing.currency || 'EUR'}` : 'Non Definito / Nullo'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Regime Fiscale Aliquota IVA</span>
+                            <span class="info-value">${sPricing.tax_info?.taxable ? `Soggetta ad IVA (${sPricing.tax_info.tax_rate_percentage}%)` : 'Esente IVA'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Richiede Prenotazione Slot</span>
+                            <span class="info-value">${service.operations?.requires_booking ? 'Sì (Richiede slot in Agenda)' : 'No'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Controllo Scorte Magazzino</span>
+                            <span class="info-value">${service.operations?.requires_inventory_check ? 'Sì (Check scorte attivo)' : 'No'}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Tempo di Esecuzione (Fulfillment)</span>
+                            <span class="info-value">${service.operations?.fulfillment_time?.value || 0} ${service.operations?.fulfillment_time?.unit || 'minuti'}</span>
+                        </div>
+                        ${service.operations?.provider_info?.required_skill_tags && service.operations.provider_info.required_skill_tags.length > 0 ? `
+                        <div class="info-row">
+                            <span class="info-label">Competenze Operatore Richieste</span>
+                            <span class="info-value">${service.operations.provider_info.required_skill_tags.join(', ')}</span>
+                        </div>
                         ` : ''}
                     </div>
-                    <div class="footer-page">
-                        <span>${rawName}</span>
-                        <span>Pagina 2</span>
-                    </div>
+
+                    ${sIdentity.tags && sIdentity.tags.length > 0 ? `
+                        <div style="margin-top: 10px;">
+                            <span class="info-label" style="font-size: 7.5pt; font-weight: 800; text-transform: uppercase;">Tag: </span>
+                            ${sIdentity.tags.map(t => `<span class="badge badge-info" style="margin-right: 4px; font-size: 6.5pt;">${t}</span>`).join('')}
+                        </div>
+                    ` : ''}
                 </div>
-            `;
-        }
+                ${makeFooter(2)}
+            </div>
+        `;
 
         // ─── PAGINA 3: BASE CONOSCENZA AI (KNOWLEDGE BASE) ───
         if (kf && (kf.summary || kf.sections)) {
@@ -400,10 +459,7 @@ const CatalogPrintEngine = {
                             </div>
                         ` : ''}
                     </div>
-                    <div class="footer-page">
-                        <span>${rawName}</span>
-                        <span>Pagina 3</span>
-                    </div>
+                    ${makeFooter(3)}
                 </div>
             `;
         }
@@ -454,10 +510,7 @@ const CatalogPrintEngine = {
                             </div>
                         `).join('')}
                     </div>
-                    <div class="footer-page">
-                        <span>${rawName}</span>
-                        <span>Pagina 4</span>
-                    </div>
+                    ${makeFooter(4)}
                 </div>
             `;
         }
@@ -503,10 +556,7 @@ const CatalogPrintEngine = {
                             </div>
                         ` : ''}
                     </div>
-                    <div class="footer-page">
-                        <span>${rawName}</span>
-                        <span>Pagina 5</span>
-                    </div>
+                    ${makeFooter(5)}
                 </div>
             `;
         }
@@ -609,6 +659,9 @@ const CatalogPrintEngine = {
         if (!payload) return null;
         if (window.showLoader) window.showLoader("Generazione Guida AI...");
 
+        const tenantName = payload.tenant?.ragioneSociale || "TRINAI SRL";
+        const tenantVat = payload.tenant?.pIva || "02564250849";
+
         let htmlContent = payload.html_content || payload.content || "";
         let title = payload.title || "Guida Generata con AI";
 
@@ -651,7 +704,8 @@ const CatalogPrintEngine = {
                         </div>
                     </div>
                     <div class="footer-page">
-                        <span>Generato con AI</span>
+                        <span>Proprietà di: ${tenantName} - P.IVA: ${tenantVat}</span>
+                        <span style="font-size: 6.5pt; color: #ef4444; font-weight: 800; letter-spacing: 0.05em;">[ DOCUMENTO INTERNO RISERVATO - VIETATA LA RIPRODUZIONE ]</span>
                         <span>Pagina 1</span>
                     </div>
                 </div>
