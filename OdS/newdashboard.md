@@ -95,7 +95,7 @@ La struttura dinamica della dashboard viene salvata in una nuova collezione Mong
       "id": "catalog",
       "label": "📋 Gestione Aziendale",
       "type": "web_app",
-      "url_path": "catalog.html",
+      "url_path": "gestione/catalog.html",
       "roles_allowed": ["admin", "operator"],
       "enabled": true,
       "order": 2
@@ -150,18 +150,18 @@ Questi file gestiscono i dati anagrafici, fiscali e l'identità del proprietario
 *   [advanced-setup.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/identity/advanced-setup.html) / [advanced-setup-dental.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/identity/advanced-setup-dental.html): Setup avanzato, scomposizione finanziaria dei costi aziendali e link di invito staff.
 
 ### 📋 2. AREA GESTIONE AZIENDALE (Il Portale Unico Catalogo)
-**Scelta Architetturale**: [catalog.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/catalog.html) funge da *Product Hub* unico. Tutti i file correlati alla gestione dei singoli prodotti/servizi/SOP vengono lanciati unicamente tramite cassetti o frame da qui, evitando di ingolfare la dashboard principale.
+**Scelta Architetturale**: [catalog.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/catalog.html) funge da *Product Hub* unico. Tutti i file correlati alla gestione dei singoli prodotti/servizi/SOP vengono lanciati unicamente tramite cassetti o frame da qui, evitando di ingolfare la dashboard principale.
 *   **Creazione e Inserimento**:
-    *   [add-category.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/add-category.html): Creazione nuova categoria merceologica.
-    *   [add-product.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/add-product.html): Creazione nuova voce (prodotto/SOP/servizio).
+    *   [add-category.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/add-category.html): Creazione nuova categoria merceologica.
+    *   [add-product.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/add-product.html): Creazione nuova voce (prodotto/SOP/servizio).
 *   **Modifica Dettagli e Contenuti**:
-    *   [edit-product.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-product.html) / [edit-semilavorati.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-semilavorati.html) / [edit-article.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-article.html): Edit dei prezzi, delle schede tecniche o delle materie prime (BOM).
-    *   [edit-knowledge.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-knowledge.html): Modifica FAQ e manuali per la base di conoscenza AI.
-    *   [edit-blueprint.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-blueprint.html) / [edit-blueprint-product.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-blueprint-product.html): Diagramma della logica esecutiva e conformità.
+    *   [edit-product.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/edit-product.html) / [edit-semilavorati.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/edit-semilavorati.html) / [edit-article.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/edit-article.html): Edit dei prezzi, delle schede tecniche o delle materie prime (BOM).
+    *   [edit-knowledge.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/edit-knowledge.html): Modifica FAQ e manuali per la base di conoscenza AI.
+    *   [edit-blueprint.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/edit-blueprint.html) / [edit-blueprint-product.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/edit-blueprint-product.html): Diagramma della logica esecutiva e conformità.
 *   **Marketing & Vetrine**:
-    *   [edit-blog.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/edit-blog.html): Stesura e modifica degli articoli per il blog.
+    *   [edit-blog.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/edit-blog.html): Stesura e modifica degli articoli per il blog.
 *   **Supervisione di Dettaglio**:
-    *   [supervisor_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/supervisor_hub.html): Esecuzione e monitoraggio dei task associati al *singolo SKU* selezionato dal catalogo (non globale).
+    *   [supervisor_hub.html](file:///c:/Users/garof/Desktop/TrinAi/SiteBoS-MiniApp/telegram_control/gestione/supervisor_hub.html): Esecuzione e monitoraggio dei task associati al *singolo SKU* selezionato dal catalogo (non globale).
 
 ### ⏳ 3. AREA LOGISTICA & OPERAZIONI (Time & Logistics Hub)
 Gestisce i flussi di evasione temporale e fisica delle attività aziendali. Inizializzato tramite il callback `tm_menu` di Telegram.
