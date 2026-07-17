@@ -108,8 +108,9 @@
     <!-- HEADER / TENANT BRANDING -->
     <header class="flex justify-between items-center bg-white/85 backdrop-blur-md p-4 rounded-3xl border border-gray-200/50 shrink-0 shadow-sm select-none z-50">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center font-black shadow-md">
-                <span class="text-sm">SB</span>
+            <div class="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center font-black shadow-md overflow-hidden">
+                <span id="tenant-logo-fallback" class="text-sm">SB</span>
+                <img id="tenant-logo" class="hidden w-full h-full object-cover" alt="Logo">
             </div>
             <div>
                 <h1 id="tenant-name" class="text-xs font-black uppercase tracking-tight leading-none text-black">TRINAI SRL</h1>
@@ -121,6 +122,19 @@
             <span id="credits-count" class="text-[10px] font-black text-black">--- CR</span>
         </div>
     </header>
+
+    <!-- SUB-MENU HEADER (Hidden by default, shown when inside a sub-menu) -->
+    <div id="submenu-header" class="hidden flex justify-between items-center bg-white/85 backdrop-blur-md p-4 rounded-3xl border border-gray-200/50 shrink-0 shadow-sm select-none z-50 mt-2">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-black text-white rounded-2xl flex items-center justify-center font-black shadow-md">
+                <i id="submenu-icon" class="fas fa-folder-open text-sm"></i>
+            </div>
+            <div>
+                <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">Area Sottomenu</span>
+                <h2 id="submenu-title" class="text-xs font-black uppercase tracking-tight leading-none text-black mt-1">NOME SOTTOMENU</h2>
+            </div>
+        </div>
+    </div>
 
     <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
     <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full max-w-sm mx-auto">
@@ -256,6 +270,13 @@
                 modules = mainModules;
                 currentMenuLevel = 'main';
                 activeIdx = parentActiveIdx;
+                
+                // Hide Submenu Header
+                const submenuHeader = document.getElementById('submenu-header');
+                if (submenuHeader) {
+                    submenuHeader.classList.add('hidden');
+                }
+                
                 tg.BackButton.hide();
                 tg.BackButton.offClick(handleTelegramBack);
                 buildStack();
@@ -517,6 +538,16 @@
                 currentMenuLevel = 'sub';
                 activeIdx = 0;
                 
+                // Update Submenu Header
+                const submenuHeader = document.getElementById('submenu-header');
+                const submenuTitle = document.getElementById('submenu-title');
+                const submenuIcon = document.getElementById('submenu-icon');
+                if (submenuHeader && submenuTitle && submenuIcon) {
+                    submenuTitle.innerText = selectedMod.label;
+                    submenuIcon.className = `fas ${selectedMod.icon || 'fa-folder-open'} text-sm`;
+                    submenuHeader.classList.remove('hidden');
+                }
+                
                 // Show Telegram Native Back Button
                 tg.BackButton.show();
                 tg.BackButton.onClick(handleTelegramBack);
@@ -544,11 +575,85 @@
                 modules = selectedMod.sub;
                 currentMenuLevel = 'sub';
                 activeIdx = 0;
+                
+                // Update Submenu Header
+                const submenuHeader = document.getElementById('submenu-header');
+                const submenuTitle = document.getElementById('submenu-title');
+                const submenuIcon = document.getElementById('submenu-icon');
+                if (submenuHeader && submenuTitle && submenuIcon) {
+                    submenuTitle.innerText = selectedMod.label;
+                    submenuIcon.className = `fas ${selectedMod.icon || 'fa-folder-open'} text-sm`;
+                    submenuHeader.classList.remove('hidden');
+                }
+                
                 tg.BackButton.show();
                 tg.BackButton.onClick(handleTelegramBack);
             }
         }
 
+        async function fetchDashboardData() {
+            if (!ash) return;
+            const WH_URL = "https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4";
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        msg: msgId,
+                        action: 'get_owner_data'
+                    })
+                });
+                const result = await response.json();
+                if (result.status === 'success' && result.owner_data) {
+                    const data = result.owner_data;
+                    
+                    // Update company name
+                    const tenantNameEl = document.getElementById('tenant-name');
+                    if (tenantNameEl && data.ragione_sociale) {
+                        tenantNameEl.innerText = data.ragione_sociale.toUpperCase();
+                    }
+                    
+                    // Update credits
+                    const creditsEl = document.getElementById('credits-count');
+                    if (creditsEl && data.credits_balance !== undefined) {
+                        creditsEl.innerText = `${data.credits_balance} CR`;
+                    }
+                    
+                    // Update logo if available
+                    const vat = data.vat_number || data.fiscal_code;
+                    if (vat) {
+                        const logoUrl = data.logo_url || data.logo || `https://minisite.trinai.it/minisite/${vat}/images/logo.png`;
+                        const logoImg = document.getElementById('tenant-logo');
+                        const logoFallback = document.getElementById('tenant-logo-fallback');
+                        if (logoImg && logoFallback) {
+                            let attempts = 0;
+                            logoImg.src = logoUrl;
+                            logoImg.onload = () => {
+                                logoFallback.classList.add('hidden');
+                                logoImg.classList.remove('hidden');
+                            };
+                            logoImg.onerror = () => {
+                                attempts++;
+                                if (attempts === 1) {
+                                    logoImg.src = logoUrl.replace(/\.[a-zA-Z0-9]+$/, '.jpg');
+                                } else if (attempts === 2) {
+                                    logoImg.src = 'TrinAi_Logo.jpg';
+                                } else {
+                                    logoImg.classList.add('hidden');
+                                    logoFallback.classList.remove('hidden');
+                                }
+                            };
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Errore recupero dati dashboard:", error);
+            }
+        }
+
+        fetchDashboardData();
         buildStack();
     </script>
 </body>
