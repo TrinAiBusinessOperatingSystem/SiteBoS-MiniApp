@@ -194,10 +194,20 @@
 
         <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
         <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full min-h-[260px]">
+            <!-- Desktop Nav Up -->
+            <button onclick="playTick(750, 0.03, 0.05); navigateStack(-1)" class="absolute top-0 z-50 w-9 h-9 bg-white/80 border border-slate-200/50 rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 active:scale-90 transition-transform">
+                <i class="fas fa-chevron-up text-[10px]"></i>
+            </button>
+
             <!-- 3D Card Stack -->
             <div id="stack-container" class="stack-container">
                 <!-- Rendered dynamically -->
             </div>
+
+            <!-- Desktop Nav Down -->
+            <button onclick="playTick(750, 0.03, 0.05); navigateStack(1)" class="absolute bottom-0 z-50 w-9 h-9 bg-white/80 border border-slate-200/50 rounded-full shadow-sm flex items-center justify-center text-slate-600 hover:text-slate-900 active:scale-90 transition-transform">
+                <i class="fas fa-chevron-down text-[10px]"></i>
+            </button>
 
             <!-- Dynamic Side Dot Indicators with Scrubbing Area -->
             <div id="dot-indicators-wrapper" class="absolute -right-2 top-1/2 -translate-y-1/2 z-50 py-4 px-2.5 bg-slate-100/90 border border-slate-200 rounded-full shadow-md backdrop-blur-sm select-none touch-none">
@@ -876,7 +886,17 @@
             if (currentViewLevel === 'categories') {
                 enterCategory(modules[activeIdx]);
             } else if (currentViewLevel === 'items') {
-                enterActions(modules[activeIdx]);
+                const prod = modules[activeIdx];
+                if (!prod) return;
+                if (prod.blueprint_ready) {
+                    // Prodotto già attivo → apre il pannello di gestione
+                    enterActions(prod);
+                } else {
+                    // Prodotto suggerito → va alla pagina di attivazione (equivale al vecchio pulsante "Attiva")
+                    playTick(900, 0.04, 0.06);
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                    location.href = `add-product.html?ash=${ash}&msg=${msg || ''}&catId=${activeCategory.callback_data}&ghostId=${prod.callback_data}`;
+                }
             } else {
                 // Trigger option's custom action
                 const opt = modules[activeIdx];
@@ -975,6 +995,13 @@
             activeIdx = idx;
             updateStackLayout();
         }
+
+        window.navigateStack = function(direction) {
+            const targetIdx = activeIdx + direction;
+            if (targetIdx >= 0 && targetIdx < modules.length) {
+                selectIdx(targetIdx);
+            }
+        };
 
         function updateStackLayout() {
             modules.forEach((_, idx) => {
