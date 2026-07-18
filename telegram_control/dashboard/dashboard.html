@@ -240,10 +240,38 @@
         }
 
         // Gestione Help Overlay Modal
+        window.switchHelpTab = function(tab) {
+            const btnMobile = document.getElementById('tab-btn-mobile');
+            const btnDesktop = document.getElementById('tab-btn-desktop');
+            const contentMobile = document.getElementById('tab-content-mobile');
+            const contentDesktop = document.getElementById('tab-content-desktop');
+            if (!btnMobile || !btnDesktop || !contentMobile || !contentDesktop) return;
+
+            if (tab === 'mobile') {
+                btnMobile.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+                btnMobile.classList.remove('text-slate-400');
+                btnDesktop.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+                btnDesktop.classList.add('text-slate-400');
+                contentMobile.classList.remove('hidden');
+                contentDesktop.classList.add('hidden');
+            } else {
+                btnDesktop.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+                btnDesktop.classList.remove('text-slate-400');
+                btnMobile.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+                btnMobile.classList.add('text-slate-400');
+                contentDesktop.classList.remove('hidden');
+                contentMobile.classList.add('hidden');
+            }
+        };
+
         window.toggleHelpModal = function(show) {
             const overlay = document.getElementById('help-overlay');
             if (!overlay) return;
             if (show) {
+                // Auto-rilevamento dispositivo all'apertura
+                const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window.Telegram?.WebApp && window.Telegram.WebApp.platform !== 'unknown' && window.Telegram.WebApp.platform !== 'tdesktop' && window.Telegram.WebApp.platform !== 'weba');
+                window.switchHelpTab(isMobileDevice ? 'mobile' : 'desktop');
+
                 overlay.classList.remove('hidden');
                 setTimeout(() => {
                     overlay.classList.remove('opacity-0');
@@ -257,6 +285,34 @@
                 }, 300);
             }
         };
+
+        // Keyboard navigation control for Desktop
+        window.addEventListener('keydown', e => {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(e.key)) {
+                if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                    return;
+                }
+                e.preventDefault();
+                
+                if (e.key === 'ArrowUp') {
+                    playMechanicalTick();
+                    navigateStack(-1);
+                } else if (e.key === 'ArrowDown') {
+                    playMechanicalTick();
+                    navigateStack(1);
+                } else if (e.key === 'ArrowLeft' || e.key === 'Enter') {
+                    playMechanicalTick();
+                    // Entra nel sottomenu del modulo attivo
+                    if (typeof modules !== 'undefined' && modules[activeIdx]) {
+                        enterModule(modules[activeIdx]);
+                    }
+                } else if (e.key === 'ArrowRight' || e.key === 'Escape') {
+                    playMechanicalTick();
+                    // Torna indietro
+                    handleTelegramBack();
+                }
+            }
+        });
 
         // Parse token and messages
         const urlParams = new URLSearchParams(window.location.search);
@@ -557,6 +613,33 @@
         dotWrapper.addEventListener('touchstart', handleDotScrub, { passive: false });
         dotWrapper.addEventListener('touchmove', handleDotScrub, { passive: false });
 
+        // Mouse scrubbing logic for Desktop (Hold click & drag scroll)
+        let isScrubbingMouse = false;
+
+        function handleMouseScrub(e) {
+            if (!isScrubbingMouse) return;
+            const rect = dotWrapper.getBoundingClientRect();
+            const relativeY = e.clientY - rect.top;
+            
+            let ratio = relativeY / rect.height;
+            ratio = Math.max(0, Math.min(0.99, ratio));
+            
+            const targetIdx = Math.floor(ratio * modules.length);
+            if (targetIdx !== activeIdx) {
+                selectIdx(targetIdx);
+            }
+        }
+
+        dotWrapper.addEventListener('mousedown', e => {
+            isScrubbingMouse = true;
+            handleMouseScrub(e);
+        });
+
+        window.addEventListener('mousemove', handleMouseScrub);
+        window.addEventListener('mouseup', () => {
+            isScrubbingMouse = false;
+        });
+
         // Swipe scroll logic (Vertical AND Horizontal support)
         let swipeStartX = 0;
         let swipeStartY = 0;
@@ -758,40 +841,104 @@
             <div class="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-md">
                 <i class="fas fa-arrows-up-down-left-right text-lg"></i>
             </div>
-            <h3 class="text-xs font-black uppercase tracking-wider text-slate-900 mb-6">Guida Interattiva Gestures</h3>
+            <h3 class="text-xs font-black uppercase tracking-wider text-slate-900 mb-4">Guida Interattiva Gestures</h3>
 
-            <!-- Gestures List -->
-            <div class="space-y-4 text-left">
-                <!-- Gesture 1 -->
+            <!-- Tabs Navigation -->
+            <div class="flex bg-slate-100 p-1 rounded-xl mb-5 text-[9px] font-black uppercase tracking-wider select-none">
+                <button id="tab-btn-mobile" onclick="switchHelpTab('mobile')" class="flex-1 py-2 rounded-lg transition-all">Smartphone</button>
+                <button id="tab-btn-desktop" onclick="switchHelpTab('desktop')" class="flex-1 py-2 rounded-lg transition-all">PC Desktop</button>
+            </div>
+
+            <!-- Tab Content: Mobile -->
+            <div id="tab-content-mobile" class="space-y-4 text-left">
+                <!-- Swipe Up/Down -->
                 <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
                     <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
                         <i class="fas fa-arrows-up-down text-xs"></i>
                     </div>
                     <div>
-                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Scorrimento Verticale</div>
-                        <div class="text-[8px] font-semibold text-slate-400">Trascina su/giù o usa le frecce per navigare tra le voci</div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Scorrimento Card</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Trascina il dito su/giù per sfogliare la pila 3D</div>
                     </div>
                 </div>
 
-                <!-- Gesture 2 -->
+                <!-- Swipe Left -->
                 <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
                     <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
                         <i class="fas fa-arrow-left text-xs"></i>
                     </div>
                     <div>
-                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Entra nel Menu</div>
-                        <div class="text-[8px] font-semibold text-slate-400">Trascina la card a sinistra per visualizzare le opzioni</div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Entra / Seleziona</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Trascina la card verso sinistra per aprire il menu</div>
                     </div>
                 </div>
 
-                <!-- Gesture 3 -->
-                <div class="flex items-center gap-3.5 pb-1">
+                <!-- Swipe Right -->
+                <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
                     <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
                         <i class="fas fa-arrow-right text-xs"></i>
                     </div>
                     <div>
                         <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Torna Indietro</div>
-                        <div class="text-[8px] font-semibold text-slate-400">Trascina a destra o usa il tasto Sinistro per uscire</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Trascina la card verso destra per uscire o chiudere</div>
+                    </div>
+                </div>
+
+                <!-- Scrubbing -->
+                <div class="flex items-center gap-3.5 pb-1">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                        <i class="fas fa-ellipsis-vertical text-xs"></i>
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Scorrimento Rapido</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Trascina il dito sulla barra dei dot laterale destra</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Desktop -->
+            <div id="tab-content-desktop" class="space-y-4 text-left hidden">
+                <!-- Keys Up/Down -->
+                <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 font-black text-xs">
+                        ↑↓
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Frecce Tastiera</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Usa le frecce Su / Giù sulla tastiera per navigare</div>
+                    </div>
+                </div>
+
+                <!-- Enter / Arrow Left -->
+                <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 font-black text-[9px]">
+                        Enter
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Apri / Seleziona</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Premi Invio o la freccia sinistra (←) per entrare</div>
+                    </div>
+                </div>
+
+                <!-- Esc / Arrow Right -->
+                <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 font-black text-xs">
+                        Esc
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Esci / Chiudi</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Premi Esc o la freccia destra (→) per tornare indietro</div>
+                    </div>
+                </div>
+
+                <!-- Mouse Scrubbing -->
+                <div class="flex items-center gap-3.5 pb-1">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                        <i class="fas fa-mouse text-xs"></i>
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Trascina Mouse</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Tieni premuto e trascina il mouse sulla barra dot laterale</div>
                     </div>
                 </div>
             </div>
