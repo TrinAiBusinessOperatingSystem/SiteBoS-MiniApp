@@ -270,6 +270,11 @@
                 </div>
             </div>
 
+            <!-- Float Speech Audio Button (Mobile Only) -->
+            <button id="btn-nav-audio" onclick="playTick(750, 0.03, 0.05); toggleCatalogAudio()" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 md:hidden" style="top: calc(50% - 155px);">
+                <i class="fas fa-volume-high text-[10px]"></i>
+            </button>
+
             <!-- Float Help Gesture Button -->
             <button onclick="playTick(750, 0.03, 0.05); toggleHelpModal(true)" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900" style="top: calc(50% - 110px);">
                 <i class="fas fa-question text-[10px]"></i>
@@ -457,6 +462,47 @@
         if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#ffffff');
         tg.ready(); tg.expand();
+
+        // Logica Speech Audio Guide (Play / Stop)
+        let catalogAudio = null;
+        let isAudioPlaying = false;
+
+        window.toggleCatalogAudio = function() {
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+            
+            if (!catalogAudio) {
+                catalogAudio = new Audio('catalog.wav');
+                catalogAudio.addEventListener('ended', () => {
+                    isAudioPlaying = false;
+                    catalogAudio.currentTime = 0;
+                    if (icon) {
+                        icon.className = 'fas fa-volume-high text-[10px]';
+                        btn.classList.remove('bg-slate-900/10', 'text-slate-900');
+                    }
+                });
+            }
+
+            if (isAudioPlaying) {
+                catalogAudio.pause();
+                catalogAudio.currentTime = 0; // Ripristina all'inizio (Comportamento Stop)
+                isAudioPlaying = false;
+                if (icon) {
+                    icon.className = 'fas fa-volume-high text-[10px]';
+                    btn.classList.remove('bg-slate-900/10', 'text-slate-900');
+                }
+            } else {
+                catalogAudio.play().then(() => {
+                    isAudioPlaying = true;
+                    if (icon) {
+                        icon.className = 'fas fa-stop text-[10px]';
+                        btn.classList.add('bg-slate-900/10', 'text-slate-900');
+                    }
+                }).catch(err => {
+                    console.error("Errore riproduzione audio:", err);
+                });
+            }
+        };
 
         // Gestione Help Overlay Modal
         window.switchHelpTab = function(tab) {
