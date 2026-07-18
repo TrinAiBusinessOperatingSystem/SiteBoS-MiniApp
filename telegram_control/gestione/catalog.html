@@ -21,6 +21,25 @@
     <script src="catalog-print-engine.js"></script>
 
     <script>
+(function() {
+    // Riferimento locale e temporaneo all'SDK per il controllo iniziale
+    const tempTg = window.Telegram?.WebApp;
+    const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+
+    if (!isTelegramSession) {
+        const currentPath = window.location.pathname;
+        let redirectPath = "index.html";
+
+        if (//telegram_control/[^/]+//.test(currentPath)) {
+            redirectPath = "../../index.html";
+        } else if (currentPath.includes("/telegram_control/")) {
+            redirectPath = "../index.html";
+        }
+
+        window.location.replace(redirectPath);
+    }
+})();
+
         tailwind.config = {
             darkMode: 'class',
             theme: {
@@ -85,14 +104,15 @@
             height: 200px;
             perspective: 1200px;
             transform-style: preserve-3d;
+            flex-shrink: 0;
         }
 
         /* 3D Cards - Shorter Rectangular Style */
         .platform-card-3d {
             position: absolute;
             top: 5%;
-            left: 12%;
-            width: 76%;
+            left: 14% !important;
+            width: 72% !important;
             height: 90%;
             background: #ffffff;
             border: 1.5px solid transparent;
@@ -218,9 +238,9 @@
         </div>
 
         <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
-        <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full min-h-[260px]">
+        <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full py-12" style="min-height: 280px; max-height: calc(100vh - 280px); max-height: calc(100dvh - 280px);">
             <!-- Desktop/Mobile Nav Up -->
-            <button onclick="playTick(750, 0.03, 0.05); navigateStack(-1)" class="btn-glass-minimal absolute top-0 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
+            <button onclick="playTick(750, 0.03, 0.05); navigateStack(-1)" class="btn-glass-minimal absolute top-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
                 <i class="fas fa-chevron-up text-[10px]"></i>
             </button>
 
@@ -230,12 +250,12 @@
             </div>
 
             <!-- Mobile/Desktop Nav Back (Left Side) -->
-            <button id="btn-nav-back" onclick="playTick(750, 0.03, 0.05); handleTopBack()" class="btn-glass-minimal absolute left-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hidden" style="top: calc(50% - 18px);">
+            <button id="btn-nav-back" onclick="playTick(750, 0.03, 0.05); handleTopBack()" class="btn-glass-minimal absolute left-1 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 hidden" style="top: calc(50% - 18px);">
                 <i class="fas fa-chevron-left text-[10px]"></i>
             </button>
 
             <!-- Desktop/Mobile Nav Down -->
-            <button onclick="playTick(750, 0.03, 0.05); navigateStack(1)" class="btn-glass-minimal absolute bottom-0 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
+            <button onclick="playTick(750, 0.03, 0.05); navigateStack(1)" class="btn-glass-minimal absolute bottom-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
                 <i class="fas fa-chevron-down text-[10px]"></i>
             </button>
 
@@ -425,6 +445,8 @@
         'use strict';
         const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
         const tg = window.Telegram.WebApp;
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#ffffff');
         tg.ready(); tg.expand();
 
         // Configurazione Loader e Stampa
