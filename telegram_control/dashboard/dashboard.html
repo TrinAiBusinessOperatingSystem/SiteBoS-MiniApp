@@ -245,12 +245,43 @@
         let dashboardAudio = null;
         let isAudioPlaying = false;
 
+        function getDashboardAudioFile() {
+            if (currentMenuLevel === 'main') {
+                return 'gesture_guide.wav';
+            }
+            const parentMod = mainModules[parentActiveIdx];
+            if (parentMod) {
+                if (parentMod.id === 'identity_hub') {
+                    return 'identity.wav';
+                }
+            }
+            return 'gesture_guide.wav';
+        }
+
+        window.stopDashboardAudio = function() {
+            if (isAudioPlaying && dashboardAudio) {
+                dashboardAudio.pause();
+                dashboardAudio.currentTime = 0;
+            }
+            isAudioPlaying = false;
+            dashboardAudio = null;
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (icon) {
+                icon.className = 'fas fa-volume-high text-[10px]';
+            }
+            if (btn) {
+                btn.classList.remove('bg-slate-900/10', 'text-slate-900');
+            }
+        };
+
         window.toggleDashboardAudio = function() {
             const btn = document.getElementById('btn-nav-audio');
             const icon = btn ? btn.querySelector('i') : null;
             
             if (!dashboardAudio) {
-                dashboardAudio = new Audio('gesture_guide.wav');
+                const audioFile = getDashboardAudioFile();
+                dashboardAudio = new Audio(audioFile);
                 dashboardAudio.addEventListener('ended', () => {
                     isAudioPlaying = false;
                     dashboardAudio.currentTime = 0;
@@ -437,6 +468,7 @@
         // Handle Telegram native back button behavior
         function handleTelegramBack() {
             if (currentMenuLevel === 'sub') {
+                window.stopDashboardAudio();
                 modules = mainModules;
                 currentMenuLevel = 'main';
                 activeIdx = parentActiveIdx;
@@ -760,6 +792,7 @@
             
             const selectedMod = modules[activeIdx];
             if (selectedMod && selectedMod.sub) {
+                window.stopDashboardAudio();
                 // Save current main menu activeIdx
                 parentActiveIdx = activeIdx;
                 // Switch to sub-menu

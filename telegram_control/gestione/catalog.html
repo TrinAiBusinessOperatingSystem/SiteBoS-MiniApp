@@ -472,12 +472,37 @@
         let catalogAudio = null;
         let isAudioPlaying = false;
 
+        function getCatalogAudioFile() {
+            if (currentViewLevel === 'items') {
+                return 'add-product.wav';
+            }
+            return 'catalog.wav';
+        }
+
+        window.stopCatalogAudio = function() {
+            if (isAudioPlaying && catalogAudio) {
+                catalogAudio.pause();
+                catalogAudio.currentTime = 0;
+            }
+            isAudioPlaying = false;
+            catalogAudio = null;
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (icon) {
+                icon.className = 'fas fa-volume-high text-[10px]';
+            }
+            if (btn) {
+                btn.classList.remove('bg-slate-900/10', 'text-slate-900');
+            }
+        };
+
         window.toggleCatalogAudio = function() {
             const btn = document.getElementById('btn-nav-audio');
             const icon = btn ? btn.querySelector('i') : null;
             
             if (!catalogAudio) {
-                catalogAudio = new Audio('catalog.wav');
+                const audioFile = getCatalogAudioFile();
+                catalogAudio = new Audio(audioFile);
                 catalogAudio.addEventListener('ended', () => {
                     isAudioPlaying = false;
                     catalogAudio.currentTime = 0;
@@ -691,6 +716,7 @@
         // Horizontal Macro Tabs Navigation
         function setMacro(macro) {
             if (currentMacro === macro && currentViewLevel === 'categories') return;
+            window.stopCatalogAudio();
             playTick(700, 0.03, 0.05);
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
@@ -1238,6 +1264,7 @@
 
         function enterCategory(cat) {
             if (!cat) return;
+            window.stopCatalogAudio();
             playTick(900, 0.04, 0.06);
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             
@@ -1249,6 +1276,7 @@
         }
 
         function exitCategory() {
+            window.stopCatalogAudio();
             playTick(600, 0.04, 0.06);
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
@@ -1260,6 +1288,7 @@
 
         async function enterActions(prod) {
             if (!prod) return;
+            window.stopCatalogAudio();
             playTick(900, 0.04, 0.06);
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
@@ -1300,6 +1329,7 @@
         }
 
         function exitActions() {
+            window.stopCatalogAudio();
             playTick(600, 0.04, 0.06);
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
