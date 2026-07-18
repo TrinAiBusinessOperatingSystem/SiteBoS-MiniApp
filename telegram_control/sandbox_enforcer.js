@@ -12,23 +12,33 @@ const iifeBlock = `(function() {
         const currentPath = window.location.pathname;
         let redirectPath = "index.html";
 
-        if (/\/telegram_control\/[^/]+\//.test(currentPath)) {
-            redirectPath = "../../index.html";
-        } else if (currentPath.includes("/telegram_control/")) {
-            redirectPath = "../index.html";
+        if (currentPath.includes('/telegram_control/')) {
+            const parts = currentPath.split('/telegram_control/');
+            const subPath = parts[1] || '';
+            if (subPath.includes('/')) {
+                redirectPath = "../../index.html";
+            } else {
+                redirectPath = "../index.html";
+            }
         }
 
         window.location.replace(redirectPath);
     }
 })();`;
 
+const oldBlockRegex = /\(function\(\)\s*\{\s*\/\/\s*Riferimento locale e temporaneo[\s\S]*?\}\)\(\);/g;
+
 function processFile(filePath) {
     let content = fs.readFileSync(filePath, 'utf8');
     let modified = false;
 
-    // Controlla se l'IIFE o la logica di sandbox è già stata iniettata
-    if (!content.includes('isTelegramSession') && !content.includes('tempTg')) {
-        // Cerca il primo tag <script> in linea (senza attributo src)
+    if (oldBlockRegex.test(content)) {
+        // Se c'è già il vecchio blocco (con il bug dei commenti), lo sostituiamo
+        content = content.replace(oldBlockRegex, iifeBlock);
+        modified = true;
+        console.log(`[FIXED OLD SANDBOX REDIRECT] ${filePath}`);
+    } else if (!content.includes('isTelegramSession') && !content.includes('tempTg')) {
+        // Se non c'è, lo iniettiamo a inizio del primo tag script in linea
         const scriptRegex = /<script(?![^>]*\bsrc\b)[^>]*>/i;
         if (scriptRegex.test(content)) {
             content = content.replace(scriptRegex, (match) => `${match}\n${iifeBlock}\n`);
