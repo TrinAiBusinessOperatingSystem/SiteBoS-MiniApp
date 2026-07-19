@@ -213,6 +213,11 @@
             </div>
         </div>
 
+        <!-- Float User Guide Button -->
+        <button onclick="playMechanicalTick(); openUserGuide('../userguide/01_intro.html')" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900" style="top: calc(50% - 200px);" title="Manuale Utente">
+            <i class="fas fa-globe text-[10px]"></i>
+        </button>
+
         <!-- Float Speech Audio Button -->
         <button id="btn-nav-audio" onclick="playMechanicalTick(); toggleDashboardAudio()" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 md:hidden" style="top: calc(50% - 155px);">
             <i class="fas fa-volume-high text-[10px]"></i>
@@ -222,6 +227,26 @@
         <button onclick="playMechanicalTick(); toggleHelpModal(true)" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900" style="top: calc(50% - 110px);">
             <i class="fas fa-question text-[10px]"></i>
         </button>
+
+        <!-- User Guide Drawer -->
+        <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
+            <div id="userguide-drawer" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto h-[85vh] bg-white rounded-t-3xl border-t border-slate-200 shadow-2xl flex flex-col translate-y-full transition-transform duration-300" onclick="event.stopPropagation()">
+                <!-- Drawer Header / Handle -->
+                <div class="w-full flex items-center justify-between p-4 border-b border-slate-100 shrink-0 select-none">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
+                        <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente</span>
+                    </div>
+                    <button onclick="closeUserGuide()" class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-90 transition">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+                <!-- Drawer Iframe Content -->
+                <div class="flex-1 w-full overflow-hidden bg-slate-50 relative">
+                    <iframe id="userguide-iframe" class="w-full h-full border-none" src=""></iframe>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- FOOTER / STATS -->
@@ -247,7 +272,7 @@
 
         function getDashboardAudioFile() {
             if (currentMenuLevel === 'main') {
-                return 'gesture_guide.wav';
+                return 'dashboard.wav';
             }
             const parentMod = mainModules[parentActiveIdx];
             if (parentMod) {
@@ -255,7 +280,7 @@
                     return 'identity.wav';
                 }
             }
-            return 'gesture_guide.wav';
+            return 'dashboard.wav';
         }
 
         window.stopDashboardAudio = function() {
@@ -273,6 +298,35 @@
             if (btn) {
                 btn.classList.remove('bg-slate-900/10', 'text-slate-900');
             }
+        };
+
+        window.openUserGuide = function(url) {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            const iframe = document.getElementById('userguide-iframe');
+            if (!overlay || !drawer || !iframe) return;
+
+            window.stopDashboardAudio();
+
+            iframe.src = url;
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                drawer.classList.remove('translate-y-full');
+            }, 10);
+        };
+
+        window.closeUserGuide = function() {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            if (!overlay || !drawer) return;
+
+            overlay.classList.add('opacity-0');
+            drawer.classList.add('translate-y-full');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                document.getElementById('userguide-iframe').src = "";
+            }, 300);
         };
 
         window.toggleDashboardAudio = function() {
