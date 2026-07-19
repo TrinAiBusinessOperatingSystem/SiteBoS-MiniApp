@@ -82,9 +82,15 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 <body class="p-5 pb-24">
 
     <div class="max-w-md mx-auto space-y-6">
-        <header class="mb-6">
-            <h1 class="text-xl font-black tracking-tighter uppercase leading-tight">Bot Configuration</h1>
-            <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 italic">Setup Personalità AI</p>
+        <header class="mb-6 flex justify-between items-start">
+            <div>
+                <h1 class="text-xl font-black tracking-tighter uppercase leading-tight">Bot Configuration</h1>
+                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 italic">Setup Personalità AI</p>
+            </div>
+            <!-- Speech Audio Button -->
+            <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition">
+                <i class="fas fa-volume-high text-xs"></i>
+            </button>
         </header>
 
         <div id="main-loader" class="flex flex-col items-center py-20 space-y-4">
@@ -280,6 +286,49 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 saveLoader.classList.add('hidden');
             }
         }
+        let voiceAudio = null;
+        let isAudioPlaying = false;
+
+        window.toggleAudio = function() {
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+            
+            if (!voiceAudio) {
+                voiceAudio = new Audio('bot_config.wav');
+                voiceAudio.addEventListener('ended', () => {
+                    isAudioPlaying = false;
+                    voiceAudio.currentTime = 0;
+                    if (icon) {
+                        icon.className = 'fas fa-volume-high text-xs';
+                        btn.classList.remove('bg-black', 'text-white', 'border-black');
+                        btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+                    }
+                });
+            }
+
+            if (isAudioPlaying) {
+                voiceAudio.pause();
+                voiceAudio.currentTime = 0;
+                isAudioPlaying = false;
+                if (icon) {
+                    icon.className = 'fas fa-volume-high text-xs';
+                    btn.classList.remove('bg-black', 'text-white', 'border-black');
+                    btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+                }
+            } else {
+                voiceAudio.play().then(() => {
+                    isAudioPlaying = true;
+                    if (icon) {
+                        icon.className = 'fas fa-stop text-xs';
+                        btn.classList.remove('bg-white', 'text-slate-500', 'border-gray-200');
+                        btn.classList.add('bg-black', 'text-white', 'border-black');
+                    }
+                }).catch(err => {
+                    console.error("Errore riproduzione audio:", err);
+                });
+            }
+        };
+
         window.onload = loadData;
     </script>
 </body>

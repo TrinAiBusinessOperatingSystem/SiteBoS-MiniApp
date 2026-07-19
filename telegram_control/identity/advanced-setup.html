@@ -184,6 +184,12 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-2"></span>
                 <span class="w-2.5 h-2.5 rounded-full bg-gray-200 transition-all duration-300" id="dot-step-3"></span>
             </div>
+            <!-- Speech Audio Button -->
+            <button id="btn-nav-audio" onclick="toggleAudio()"
+                class="w-8 h-8 rounded-xl bg-gray-50 border border-border flex items-center justify-center text-gray-500 hover:bg-black hover:text-white hover:border-black active:scale-95 transition-all duration-200"
+                title="Guida Vocale">
+                <i class="fas fa-volume-high text-xs"></i>
+            </button>
             <button id="btn-save-draft" onclick="saveDraftManually()"
                 class="w-8 h-8 rounded-xl bg-gray-50 border border-border flex items-center justify-center text-gray-500 hover:bg-black hover:text-white hover:border-black active:scale-95 transition-all duration-200"
                 title="Salva Bozza">
@@ -1768,6 +1774,7 @@
             closeDrawer();
             closeVerticalPicker();
             closeManageVerticalsDrawer();
+            if (typeof window.stopAudio === 'function') window.stopAudio();
             currentStep = step;
 
             // Hide all steps and dashboard
@@ -1810,6 +1817,7 @@
             closeDrawer();
             closeVerticalPicker();
             closeManageVerticalsDrawer();
+            if (typeof window.stopAudio === 'function') window.stopAudio();
             if (currentStep === 3) {
                 saveCurrentTabFinancials();
             }
@@ -4687,6 +4695,73 @@
                 hideLoader();
             }
         }
+        let voiceAudio = null;
+        let isAudioPlaying = false;
+
+        function getAudioFileForState() {
+            const dashboardEl = document.getElementById('section-dashboard');
+            const isDbActive = dashboardEl && !dashboardEl.classList.contains('hidden');
+            return isDbActive ? 'advanced_setup_dashboard.wav' : 'advanced_setup_wizard.wav';
+        }
+
+        window.stopAudio = function() {
+            if (isAudioPlaying && voiceAudio) {
+                voiceAudio.pause();
+                voiceAudio.currentTime = 0;
+            }
+            isAudioPlaying = false;
+            voiceAudio = null;
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (icon) {
+                icon.className = 'fas fa-volume-high text-xs';
+            }
+            if (btn) {
+                btn.classList.remove('bg-black', 'text-white', 'border-black');
+                btn.classList.add('bg-gray-50', 'text-gray-500', 'border-border');
+            }
+        };
+
+        window.toggleAudio = function() {
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+            
+            if (!voiceAudio) {
+                const audioFile = getAudioFileForState();
+                voiceAudio = new Audio(audioFile);
+                voiceAudio.addEventListener('ended', () => {
+                    isAudioPlaying = false;
+                    voiceAudio.currentTime = 0;
+                    if (icon) {
+                        icon.className = 'fas fa-volume-high text-xs';
+                        btn.classList.remove('bg-black', 'text-white', 'border-black');
+                        btn.classList.add('bg-gray-50', 'text-gray-500', 'border-border');
+                    }
+                });
+            }
+
+            if (isAudioPlaying) {
+                voiceAudio.pause();
+                voiceAudio.currentTime = 0;
+                isAudioPlaying = false;
+                if (icon) {
+                    icon.className = 'fas fa-volume-high text-xs';
+                    btn.classList.remove('bg-black', 'text-white', 'border-black');
+                    btn.classList.add('bg-gray-50', 'text-gray-500', 'border-border');
+                }
+            } else {
+                voiceAudio.play().then(() => {
+                    isAudioPlaying = true;
+                    if (icon) {
+                        icon.className = 'fas fa-stop text-xs';
+                        btn.classList.remove('bg-gray-50', 'text-gray-500', 'border-border');
+                        btn.classList.add('bg-black', 'text-white', 'border-black');
+                    }
+                }).catch(err => {
+                    console.error("Errore riproduzione audio:", err);
+                });
+            }
+        };
     </script>
 </body>
 
