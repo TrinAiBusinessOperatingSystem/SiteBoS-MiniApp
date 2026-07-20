@@ -520,7 +520,7 @@ function navTo(section) {
     'badges': 'operator_badges.html',
     'training': 'operator_training.html',
     'calendar': 'operator_calendar.html',
-    'job-create': '../job-create.html'
+    'job-create': '../operativita/job-create.html'
   };
   
   const page = routes[section];
