@@ -5,7 +5,7 @@ Questa cartella contiene i componenti dell'interfaccia utente (UI) per la gestio
 ---
 
 ## Rotta Principale (Index Redirect)
-*   `index.html`: Pagina d'ingresso principale che effettua un redirect automatico e immediato verso la login della dashboard di TrinAi (`https://dashboard.trinai.it/login`).
+*   `index.html`: Pagina d'ingresso principale che effettua un redirect automatico verso il portale della Guida Utente SiTeBoS (`userguide/index.html`).
 
 ---
 
