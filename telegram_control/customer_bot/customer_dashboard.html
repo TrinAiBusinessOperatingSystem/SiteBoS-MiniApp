@@ -1,25 +1,21 @@
 <!DOCTYPE html>
 <html lang="it">
-
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="color-scheme" content="dark">
-    <title>SiteBoS HUD | Client Console</title>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Hub Servizi | SiteBoS</title>
+    
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
+    
     <!-- Tailwind CSS & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Share+Tech+Mono&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
     <script>
-        //
+        // BLOCCO DI SICUREZZA TELEGRAM DISABILITATO PER CONSENTIRE L'ESPLORAZIONE IN LOCALE / BROWSER
         /*
         (function() {
             const tempTg = window.Telegram?.WebApp;
@@ -36,23 +32,23 @@
                 extend: {
                     fontFamily: {
                         sans: ['Plus Jakarta Sans', 'sans-serif'],
-                        mono: ['Share Tech Mono', 'monospace'],
                     }
                 }
             }
         }
     </script>
-
+    
     <style>
         body {
-            background-color: #000000 !important;
-            color: #ffffff !important;
+            background-color: #ffffff !important;
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f5f8 100%) !important;
+            color: #0f172a !important;
             font-family: 'Plus Jakarta Sans', sans-serif;
             -webkit-tap-highlight-color: transparent;
             overflow: hidden;
             height: 100vh;
             height: 100dvh;
-            background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-image: radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
             background-size: 16px 16px;
         }
 
@@ -60,107 +56,105 @@
             display: none;
         }
 
-        /* Ambient Breathing JARVIS Core Glow */
-        @keyframes corePulse {
-            0% {
-                box-shadow: 0 0 10px rgba(255, 255, 255, 0.05), 0 0 20px rgba(255, 255, 255, 0.02);
-            }
-
-            50% {
-                box-shadow: 0 0 20px rgba(255, 255, 255, 0.2), 0 0 35px rgba(255, 255, 255, 0.08);
-            }
-
-            100% {
-                box-shadow: 0 0 10px rgba(255, 255, 255, 0.05), 0 0 20px rgba(255, 255, 255, 0.02);
-            }
+        /* Viewport Transition */
+        .viewport-wrapper {
+            display: flex;
+            width: 300vw;
+            height: 100%;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
+        .viewport-screen {
+            width: 100vw;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Glassmorphic White Drawer Panel */
+        .hud-panel {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        /* Ambient Breathing Core Shadow Glow (Unified Black/Slate pulse) */
+        @keyframes corePulse {
+            0% { box-shadow: 0 0 10px rgba(15, 23, 42, 0.04), 0 0 20px rgba(15, 23, 42, 0.02); }
+            50% { box-shadow: 0 0 25px rgba(15, 23, 42, 0.12), 0 0 40px rgba(15, 23, 42, 0.06); }
+            100% { box-shadow: 0 0 10px rgba(15, 23, 42, 0.04), 0 0 20px rgba(15, 23, 42, 0.02); }
+        }
         .jarvis-core-pulse {
             animation: corePulse 3s infinite ease-in-out;
         }
 
-        @keyframes messageIn {
-            from {
-                opacity: 0;
-                transform: translateY(5px);
-            }
+        @keyframes messageIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-anim { animation: messageIn 0.25s ease forwards; }
 
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .msg-anim {
-            animation: messageIn 0.25s ease forwards;
-        }
-
-        /* Satellite Styles */
+        /* Satellite Styles (Unified White/Black Outline) */
         .satellite {
             position: absolute;
             width: 52px;
             height: 52px;
             border-radius: 50%;
-            background: #000000;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            color: #0f172a;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                        box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
             will-change: transform, opacity;
         }
-
         .satellite.focused {
-            border-color: #ffffff;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            border-color: #0f172a;
+            box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.15), 
+                        0 4px 6px -2px rgba(15, 23, 42, 0.05);
         }
 
-        /* Navigation Drawer */
+        /* Drawer Slide Transition */
         .drawer-transition {
             transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
     </style>
 </head>
-
 <body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm justify-between">
 
-    <!-- TOP BAR -->
-    <header
-        class="p-4 bg-black/60 backdrop-blur-md border-b border-white/10 flex justify-between items-center z-50 shrink-0 select-none">
+    <!-- TOP BAR (HEADER ALIGNMENT WITH OWNER STYLE) -->
+    <header class="p-4 bg-white/85 backdrop-blur-md border-b border-slate-200/85 flex justify-between items-center z-50 shrink-0 select-none shadow-sm">
         <div class="flex items-center gap-3">
-            <button onclick="toggleDrawer(true)"
-                class="w-10 h-10 border border-white/10 flex items-center justify-center rounded-2xl bg-white/5 text-white active:bg-white/10 transition">
+            <button onclick="toggleDrawer(true)" class="w-10 h-10 border border-slate-200 flex items-center justify-center rounded-2xl bg-white text-slate-800 active:bg-slate-50 transition shadow-sm">
                 <i class="fas fa-bars text-sm"></i>
             </button>
             <div>
-                <h1 id="tenant-name" class="text-[10px] font-mono tracking-widest uppercase text-white leading-none">
-                    SYS_INITIALIZING</h1>
-                <p class="text-[7px] font-mono uppercase tracking-widest text-white/50 mt-1">Holographic HUD</p>
+                <h1 id="tenant-name" class="text-xs font-black uppercase tracking-tight leading-none text-slate-900">STUDIO_HUB</h1>
+                <p class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mt-1">Console Servizi Cliente</p>
             </div>
         </div>
-        <button onclick="tg.close()"
-            class="w-10 h-10 rounded-2xl border border-white/10 flex items-center justify-center text-white/60 active:bg-white/10 transition">
+        <button onclick="tg.close()" class="w-10 h-10 rounded-2xl border border-slate-200 flex items-center justify-center text-slate-600 bg-white active:bg-slate-50 transition shadow-sm">
             <i class="fas fa-times text-sm"></i>
         </button>
     </header>
 
-    <!-- 3D ORBIT AREA (PRISTINE VIEWPORT) -->
+    <!-- 3D ORBIT AREA (LIGHT IMMERSIVE VIEWPORT) -->
     <main id="orbit-viewport" class="relative flex-1 w-full flex items-center justify-center select-none touch-none">
-
-        <!-- SVG Tilted Orbit Ellipse (Dimensionata per non sovrapporsi) -->
-        <svg class="absolute w-[320px] h-[130px] pointer-events-none opacity-20">
-            <ellipse cx="160" cy="65" rx="145" ry="55" fill="none" stroke="white" stroke-width="1.2"
-                stroke-dasharray="4,5" />
+        
+        <!-- SVG Tilted Orbit Ellipse (Owner Light Grey Stroke) -->
+        <svg class="absolute w-[320px] h-[180px] pointer-events-none opacity-40">
+            <ellipse cx="160" cy="90" rx="145" ry="80" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4,5" />
         </svg>
 
-        <!-- Breathing Glow Ring -->
-        <div class="absolute w-24 h-24 rounded-full border border-white/5 jarvis-core-pulse"></div>
+        <!-- Soft Shadow Pulse Ring -->
+        <div class="absolute w-24 h-24 rounded-full border border-slate-200/30 jarvis-core-pulse"></div>
 
-        <!-- JARVIS CORE MICROPHONE -->
-        <div id="jarvis-core" onclick="handleCoreClick()"
-            class="w-20 h-20 rounded-full bg-white text-black flex flex-col items-center justify-center cursor-pointer shadow-2xl active:scale-95 transition-transform duration-300 z-10 border border-black">
-            <i class="fas fa-microphone text-lg animate-pulse"></i>
+        <!-- UNIFIED WHITE/BLACK MIC CORE -->
+        <div id="jarvis-core" onclick="handleCoreClick()" class="w-20 h-20 rounded-full bg-white text-black flex flex-col items-center justify-center cursor-pointer shadow-xl active:scale-95 transition-transform duration-300 z-10 border-2 border-slate-900">
+            <i class="fas fa-microphone text-lg"></i>
         </div>
 
         <!-- SATELLITES CAROUSEL -->
@@ -170,58 +164,48 @@
 
     </main>
 
-    <!-- SYSTEM ACCESS FOOTER (SINGLE CLEAN RUN TRIGGER) -->
-    <footer class="p-4 bg-black/60 border-t border-white/10 z-40 select-none">
-        <button onclick="executeActiveModule()" id="exec-btn-text"
-            class="w-full bg-white text-black font-mono text-[10px] tracking-[0.25em] uppercase py-4 rounded-2xl active:scale-95 transition-transform duration-150">
+    <!-- SYSTEM ACCESS FOOTER (SINGLE CLEAN PILL TRIGGER) -->
+    <footer class="p-4 bg-white/80 backdrop-blur-md border-t border-slate-200/80 z-40 select-none shadow-sm">
+        <button onclick="executeActiveModule()" id="exec-btn-text" class="w-full bg-slate-950 text-white font-black text-[10px] tracking-[0.25em] uppercase py-4 rounded-2xl active:scale-95 transition-transform duration-150 shadow-md">
             ---
         </button>
     </footer>
 
-    <!-- SIDE DRAWER: CONSOLE AI & HISTORICAL LOGS -->
-    <div id="drawer-overlay"
-        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden transition-opacity duration-300"
-        onclick="toggleDrawer(false)">
-        <div id="nav-drawer"
-            class="fixed top-0 left-0 h-full w-[85%] max-w-sm bg-black border-r border-white/10 flex flex-col justify-between drawer-transition -translate-x-full"
-            onclick="event.stopPropagation()">
-
+    <!-- SIDE DRAWER: COGNITIVE CONSOLE & ARCHIVES (LIGHT GLASS THEME) -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-[100] hidden transition-opacity duration-300" onclick="toggleDrawer(false)">
+        <div id="nav-drawer" class="fixed top-0 left-0 h-full w-[85%] max-w-sm bg-white/95 border-r border-slate-200/80 flex flex-col justify-between drawer-transition -translate-x-full shadow-2xl" onclick="event.stopPropagation()">
+            
             <!-- Drawer Header -->
-            <div class="p-4 border-b border-white/10 flex justify-between items-center bg-white/[0.02]">
-                <span class="text-[9px] font-mono tracking-widest text-white/40 uppercase">CONSOLE_SYSTEM_LOGS</span>
-                <button onclick="toggleDrawer(false)" class="text-white/60"><i
-                        class="fas fa-chevron-left text-sm"></i></button>
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <span class="text-[9px] font-black tracking-widest text-slate-400 uppercase">Console Servizi</span>
+                <button onclick="toggleDrawer(false)" class="text-slate-400 hover:text-slate-800"><i class="fas fa-chevron-left text-sm"></i></button>
             </div>
 
             <!-- Drawer Scrollable Content -->
             <div class="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
-
+                
                 <!-- COGNITIVE CHAT BOX -->
                 <div class="space-y-3">
-                    <h4 class="text-[8px] font-mono tracking-widest text-white/30 uppercase">COGNITIVE_INTERFACE</h4>
-                    <div id="chat-container" class="space-y-3 font-mono text-[10px] leading-relaxed">
-                        <div class="msg-anim text-white/40">Sistemi di puntamento attivi. Digita un comando per operare:
-                        </div>
+                    <h4 class="text-[8px] font-black tracking-widest text-slate-400 uppercase">Assistente AI</h4>
+                    <div id="chat-container" class="space-y-3 text-[11px] leading-relaxed">
+                        <div class="msg-anim text-slate-400">Sistemi di puntamento attivi. Scrivi un messaggio per interagire con lo studio:</div>
                     </div>
                 </div>
 
                 <!-- TACTICAL ARCHIVE LIST -->
-                <div class="space-y-3 pt-4 border-t border-white/5">
-                    <h4 class="text-[8px] font-mono tracking-widest text-white/30 uppercase">DATABASE_PRATICHE</h4>
-                    <div id="history-container" class="space-y-2 font-mono text-[9px] text-white/30">
-                        <div>NESSUNA TRANSAZIONE RILEVATA</div>
+                <div class="space-y-3 pt-4 border-t border-slate-100">
+                    <h4 class="text-[8px] font-black tracking-widest text-slate-400 uppercase">Archivio Pratiche</h4>
+                    <div id="history-container" class="space-y-2 text-[9px] text-slate-400">
+                        <div>Nessuna operazione salvata nel database</div>
                     </div>
                 </div>
 
             </div>
 
             <!-- Drawer Interactive Input Bar -->
-            <div class="p-3 border-t border-white/10 bg-white/[0.01] flex items-center gap-2">
-                <input type="text" id="chat-input" placeholder="Comando AI..."
-                    class="flex-1 bg-white/[0.04] border border-white/10 text-white rounded-xl py-2.5 px-3 text-[11px] font-mono focus:outline-none focus:border-white/50">
-                <button onclick="sendText()"
-                    class="w-9 h-9 bg-white text-black rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition-all"><i
-                        class="fas fa-paper-plane text-xs"></i></button>
+            <div class="p-3 border-t border-slate-100 bg-slate-50/50 flex items-center gap-2">
+                <input type="text" id="chat-input" placeholder="Scrivi una richiesta..." class="flex-1 bg-white border border-slate-200 text-slate-800 rounded-xl py-2.5 px-3 text-[11px] focus:outline-none focus:border-slate-400 shadow-sm">
+                <button onclick="sendText()" class="w-9 h-9 bg-slate-950 text-white rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-md"><i class="fas fa-paper-plane text-xs"></i></button>
             </div>
 
         </div>
@@ -266,10 +250,10 @@
 
         // --- FISICA DI ROTAZIONE & SATELLITI (TILTED ORBIT) ---
         const orbitContainer = document.getElementById('satellites-orbit');
-        const rx = 145; // Raggio orizzontale espanso
-        const ry = 55;  // Raggio verticale aumentato per evitare sovrapposizione
-
-        let currentAngle = Math.PI / 2; // Primo satellite davanti
+        const rx = 145; 
+        const ry = 80;  
+        
+        let currentAngle = Math.PI / 2; 
         let isDragging = false;
         let startX = 0;
         let baseAngle = 0;
@@ -327,8 +311,6 @@
         function findActiveSatellite() {
             let rawIdx = Math.round((Math.PI / 2 - currentAngle) / (Math.PI / 2));
             activeIdx = ((rawIdx % 4) + 4) % 4;
-
-            // Aggiorna l'etichetta del pulsante solo con il nome del modulo
             document.getElementById('exec-btn-text').innerText = satellitesData[activeIdx].label;
         }
 
@@ -357,7 +339,6 @@
         function onDragMove(clientX) {
             if (!isDragging) return;
             const dx = clientX - startX;
-            // Modificatore di inversione dello swipe (segno - invece di +)
             currentAngle = baseAngle - (dx * 0.007);
             updateSatellites();
             findActiveSatellite();
@@ -412,10 +393,10 @@
         function addMessage(sender, text) {
             const container = document.getElementById('chat-container');
             const element = document.createElement('div');
-            element.className = "msg-anim space-y-0.5 border-l border-white/10 pl-2 mt-2";
+            element.className = "msg-anim space-y-0.5 border-l border-slate-200 pl-2 mt-2";
             element.innerHTML = `
-                <div class="text-[8px] text-white/30">${sender === 'user' ? '[STATION]' : '[JARVIS]'}</div>
-                <div class="${sender === 'user' ? 'text-white' : 'text-white/70'}">${text}</div>
+                <div class="text-[8px] text-slate-400">${sender === 'user' ? 'Tu' : 'Assistente'}</div>
+                <div class="text-slate-800 font-semibold">${text}</div>
             `;
             container.appendChild(element);
             container.scrollTop = container.scrollHeight;
@@ -436,14 +417,14 @@
                     body: JSON.stringify({
                         action: 'npl_chat',
                         message: text,
-                        _auth: tg.initData,
+                        _auth: tg.initData || "debug_auth_mode",
                         ash: ash
                     })
                 });
                 const data = await response.json();
-
+                
                 if (data.redirect_url) {
-                    addMessage('ai', `>>> REDIRECT: <code>${data.redirect_url}</code>`);
+                    addMessage('ai', `Reindirizzamento: <code>${data.redirect_url}</code>`);
                     setTimeout(() => {
                         window.location.href = `${data.redirect_url}?ash=${ash}`;
                     }, 1200);
@@ -451,7 +432,7 @@
                     addMessage('ai', data.reply);
                 }
             } catch (err) {
-                addMessage('ai', "SYSTEM_ERROR: OFFLINE");
+                addMessage('ai', "Errore di connessione col server.");
             }
         }
 
@@ -464,7 +445,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        _auth: tg.initData,
+                        _auth: tg.initData || "debug_auth_mode",
                         ash: ash,
                         action: 'get_owner_data'
                     })
@@ -474,7 +455,7 @@
                     const data = result.owner_data;
                     document.getElementById('tenant-name').innerText = (data.ragione_sociale || "SYSTEM_NOMINAL").toUpperCase();
                     document.getElementById('sys-credits').innerText = `CR: ${data.credits_balance || 0}`;
-
+                    
                     const vat = data.vat_number || data.fiscal_code;
                     if (vat) {
                         const logoUrl = data.logo_url || data.logo || `https://minisite.trinai.it/minisite/${vat}/images/logo.png`;
@@ -492,18 +473,18 @@
                     if (data.active_orders && data.active_orders.length > 0) {
                         const container = document.getElementById('history-container');
                         container.innerHTML = data.active_orders.map(o => `
-                            <div class="p-2 border border-white/5 bg-white/[0.01] rounded-xl space-y-1">
-                                <div class="flex justify-between text-[7px] text-white/30">
+                            <div class="p-2 border border-slate-100 bg-white rounded-xl space-y-1">
+                                <div class="flex justify-between text-[7px] text-slate-400">
                                     <span>ID: ${o.id}</span>
                                     <span>${o.status}</span>
                                 </div>
-                                <div class="text-white">${o.description || 'DATAPACK_REC'}</div>
+                                <div class="text-slate-800 font-semibold">${o.description || 'ORDINE_ACQUISTO'}</div>
                             </div>
                         `).join('');
                     }
                 }
             } catch (error) {
-                document.getElementById('tenant-name').innerText = "JARVIS_HUB";
+                document.getElementById('tenant-name').innerText = "STUDIO MEDICALE";
             }
         }
 
@@ -512,5 +493,4 @@
         findActiveSatellite();
     </script>
 </body>
-
 </html>
