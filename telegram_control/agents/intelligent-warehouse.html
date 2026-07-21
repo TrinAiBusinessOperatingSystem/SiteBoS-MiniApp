@@ -82,6 +82,70 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         }
         .upload-area:active { transform: scale(0.98); }
         .upload-area.dragover { border-color: #000; background: #fafafa; }
+
+        /* 3D Stack Container */
+        .stack-container {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            perspective: 1200px;
+            transform-style: preserve-3d;
+            flex-shrink: 0;
+        }
+
+        .platform-card-3d {
+            position: absolute;
+            top: 5%;
+            left: 14% !important;
+            width: 72% !important;
+            height: 90%;
+            background: #ffffff;
+            border: 1.5px solid transparent;
+            border-radius: 1.5rem;
+            color: #0f172a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            text-align: center;
+            padding: 1.2rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.01), 0 2px 4px -1px rgba(0, 0, 0, 0.005);
+            transform-origin: center center;
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        filter 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.6s ease;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            cursor: pointer;
+        }
+
+        .platform-card-3d.active {
+            border-color: #cbd5e1;
+            box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 
+                        0 10px 10px -5px rgba(15, 23, 42, 0.04);
+        }
+
+        .platform-card-3d:active {
+            transform: scale(0.98) !important;
+        }
+
+        .btn-glass-minimal {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            color: #64748b;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .btn-glass-minimal:hover {
+            background: #ffffff;
+            color: #1e293b;
+        }
+        .btn-glass-minimal:active {
+            transform: scale(0.90) !important;
+        }
     </style>
 
     <script>
@@ -105,75 +169,50 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
     <div class="max-w-md mx-auto space-y-6 animate-fade-in" id="app-content">
         
         <!-- HEADER -->
-        <header class="space-y-1 py-2 text-center">
-            <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1">Magazzino</div>
-            <h1 id="header-title" class="text-xl font-black tracking-tighter uppercase leading-none">Magazzino Intelligente</h1>
-            <p id="header-subtitle" class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 italic">Carico Acquisti (IN)</p>
+        <header class="flex justify-between items-start pt-2 shrink-0">
+            <div>
+                <div class="inline-block px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase tracking-widest rounded-full mb-1 italic">
+                    Logistica AI
+                </div>
+                <h1 id="header-title" class="text-xl font-black tracking-tighter uppercase leading-none text-slate-900">Magazzino Intelligente</h1>
+                <p id="header-subtitle" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1 italic">Carico Acquisti (IN)</p>
+            </div>
         </header>
 
-        <!-- MAIN MENU CONTAINER -->
-        <div id="main-menu-container" class="space-y-6 animate-fade-in">
+        <!-- MAIN MENU CONTAINER (3D CARD STACK) -->
+        <div id="main-menu-container" class="space-y-4 animate-fade-in">
             <!-- DIRECTION TOGGLE (IN / OUT) -->
-            <div class="flex bg-gray-100 rounded-2xl p-1 max-w-xs mx-auto border border-border">
-                <button onclick="setDirection('IN')" id="toggle-in" class="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 bg-black text-white">
+            <div class="w-[72%] select-none z-50 p-1 bg-white/30 border border-slate-100/50 rounded-2xl shadow-sm backdrop-blur-sm shrink-0 flex items-center justify-between mx-auto relative">
+                <button onclick="setDirection('IN')" id="toggle-in" class="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 bg-slate-900 text-white shadow-sm">
                     <i class="fas fa-arrow-down mr-1"></i> Carico (IN)
                 </button>
-                <button onclick="setDirection('OUT')" id="toggle-out" class="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-gray-500 hover:text-black">
+                <button onclick="setDirection('OUT')" id="toggle-out" class="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-slate-400 hover:text-slate-900">
                     <i class="fas fa-arrow-up mr-1"></i> Scarico (OUT)
                 </button>
             </div>
 
-            <!-- MAIN MENU - CARICO (IN) -->
-            <div id="main-menu-in" class="grid grid-cols-2 gap-4 animate-fade-in">
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('xml')">
-                    <i class="fas fa-file-code text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Fattura XML</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">File Strutturato</div>
-                </div>
-                
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('pdf')">
-                    <i class="fas fa-file-pdf text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Fattura PDF / Foto</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Estrazione AI</div>
-                </div>
-                
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('photo')">
-                    <i class="fas fa-receipt text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Ricevuta / Nota Spese</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Spesa Operativa</div>
-                </div>
-                
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('vision')">
-                    <i class="fas fa-eye text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Ai LotSnap (Vision)</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Acquisizione 360</div>
-                </div>
-            </div>
+            <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
+            <div class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full py-6 min-h-[250px]">
+                <!-- Nav Up -->
+                <button onclick="navigateStack(-1)" class="btn-glass-minimal absolute top-0 left-1/2 -translate-x-1/2 z-50 w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
+                    <i class="fas fa-chevron-up text-[9px]"></i>
+                </button>
 
-            <!-- MAIN MENU - SCARICO (OUT) -->
-            <div id="main-menu-out" class="grid grid-cols-2 gap-4 animate-fade-in hidden">
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('xml')">
-                    <i class="fas fa-file-invoice text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Fattura Attiva XML</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">SDI / Clienti</div>
+                <!-- 3D Card Stack -->
+                <div id="stack-container" class="stack-container">
+                    <!-- Rendered dynamically -->
                 </div>
-                
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openMode('pdf')">
-                    <i class="fas fa-file-medical text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Fattura Paziente PDF</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Estrazione AI</div>
-                </div>
-                
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openProductionMode()">
-                    <i class="fas fa-hammer text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Prod. Semilavorati</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Deduci BOM / Lotto</div>
-                </div>
-                
-                <div class="bg-white rounded-3xl p-6 border border-border shadow-sm text-center cursor-pointer hover:border-black transition active:scale-95" onclick="openManualMode()">
-                    <i class="fas fa-keyboard text-3xl mb-3 text-black"></i>
-                    <div class="font-black text-[10px] uppercase tracking-widest">Scarico Manuale</div>
-                    <div class="text-[8px] text-gray-500 font-bold uppercase tracking-widest mt-1">Inserimento Rapido</div>
+
+                <!-- Nav Down -->
+                <button onclick="navigateStack(1)" class="btn-glass-minimal absolute bottom-0 left-1/2 -translate-x-1/2 z-50 w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
+                    <i class="fas fa-chevron-down text-[9px]"></i>
+                </button>
+
+                <!-- Dynamic Side Dot Indicators -->
+                <div id="dot-indicators-wrapper" class="absolute -right-2 top-1/2 -translate-y-1/2 z-50 py-3 px-2 bg-slate-100/90 border border-slate-200 rounded-full shadow-md backdrop-blur-sm select-none">
+                    <div id="dot-indicators" class="flex flex-col gap-2 items-center">
+                        <!-- Rendered dynamically -->
+                    </div>
                 </div>
             </div>
         </div>
@@ -413,38 +452,182 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         };
     }
 
+    let modules = [];
+    let activeIdx = 0;
+
+    const stackContainer = document.getElementById('stack-container');
+    const dotContainer = document.getElementById('dot-indicators');
+
+    function getModulesForDirection(dir) {
+        if (dir === 'IN') {
+            return [
+                { id: 'xml', label: 'Fattura XML', desc: 'Importa file XML da fattura elettronica SDI per il carico.', icon: 'fa-file-code', action: () => openMode('xml') },
+                { id: 'pdf', label: 'Fattura PDF / Foto', desc: 'Estrazione automatica dei dati da documento cartaceo con IA OCR.', icon: 'fa-file-pdf', action: () => openMode('pdf') },
+                { id: 'photo', label: 'Ricevuta / Nota Spese', desc: 'Registrazione spese operative da scontrino o ricevuta.', icon: 'fa-receipt', action: () => openMode('photo') },
+                { id: 'vision', label: 'Ai LotSnap (Vision)', desc: 'Riconoscimento 360 lotti e scadenze con la fotocamera.', icon: 'fa-eye', action: () => openMode('vision') }
+            ];
+        } else {
+            return [
+                { id: 'xml_out', label: 'Fattura Attiva XML', desc: 'Scarico giacenza da fatturazione elettronica emessa.', icon: 'fa-file-invoice', action: () => openMode('xml') },
+                { id: 'pdf_out', label: 'Fattura Paziente PDF', desc: 'Deduzione articoli da fattura sanitaria emessa.', icon: 'fa-file-medical', action: () => openMode('pdf') },
+                { id: 'prod', label: 'Prod. Semilavorati', desc: 'Deduci ricetta distinta base (BOM) per lavorazioni interne.', icon: 'fa-hammer', action: () => openProductionMode() },
+                { id: 'manual', label: 'Scarico Manuale', desc: 'Inserimento rapido e rettifica manuale delle giacenze.', icon: 'fa-keyboard', action: () => openManualMode() }
+            ];
+        }
+    }
+
+    function buildStack() {
+        if (!stackContainer || !dotContainer) return;
+        stackContainer.innerHTML = "";
+        dotContainer.innerHTML = "";
+
+        modules = getModulesForDirection(currentDirection);
+        if (activeIdx >= modules.length) activeIdx = 0;
+
+        modules.forEach((mod, idx) => {
+            const card = document.createElement('div');
+            card.className = `platform-card-3d ${idx === activeIdx ? 'active' : ''}`;
+            card.id = `card-${idx}`;
+
+            card.innerHTML = `
+                <div class="w-full text-left shrink-0">
+                    <span class="text-[8px] font-black uppercase tracking-widest text-slate-400 italic">Opzione Logistica</span>
+                </div>
+
+                <div class="my-auto flex items-center gap-4 w-full px-2 text-left">
+                    <div class="w-12 h-12 bg-slate-950 text-white rounded-2xl flex items-center justify-center text-xl shadow-sm shrink-0">
+                        <i class="fas ${mod.icon}"></i>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="text-xs font-black tracking-tight text-slate-900 leading-none uppercase mb-1">${mod.label}</h3>
+                        <p class="text-[10px] text-slate-600 font-bold leading-snug mt-1">${mod.desc}</p>
+                    </div>
+                </div>
+
+                <div class="w-full text-right shrink-0">
+                    <span class="text-[7px] font-black uppercase tracking-wider text-blue-600 flex items-center justify-end gap-1 animate-pulse">
+                        Apri <i class="fas fa-chevron-right text-[6px]"></i>
+                    </span>
+                </div>
+            `;
+
+            let touchStartX = 0, touchStartY = 0, isSwipe = false;
+            card.addEventListener('touchstart', e => {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isSwipe = false;
+            }, { passive: true });
+
+            card.addEventListener('touchmove', e => {
+                if (Math.abs(e.touches[0].clientX - touchStartX) > 10 || Math.abs(e.touches[0].clientY - touchStartY) > 10) {
+                    isSwipe = true;
+                }
+            }, { passive: true });
+
+            card.addEventListener('click', () => {
+                if (isSwipe) return;
+                if (idx === activeIdx) {
+                    mod.action();
+                } else {
+                    selectIdx(idx);
+                }
+            });
+
+            stackContainer.appendChild(card);
+
+            const dot = document.createElement('button');
+            dot.className = `w-2 h-2 rounded-full transition-all duration-300 ${idx === activeIdx ? 'bg-slate-900 scale-125' : 'bg-slate-300 hover:bg-slate-400'}`;
+            dot.addEventListener('click', () => selectIdx(idx));
+            dotContainer.appendChild(dot);
+        });
+
+        updateStackPositions();
+    }
+
+    function selectIdx(targetIdx) {
+        if (targetIdx < 0 || targetIdx >= modules.length) return;
+        activeIdx = targetIdx;
+
+        const cards = stackContainer.querySelectorAll('.platform-card-3d');
+        cards.forEach((card, idx) => {
+            if (idx === activeIdx) card.classList.add('active');
+            else card.classList.remove('active');
+        });
+
+        const dots = dotContainer.querySelectorAll('button');
+        dots.forEach((dot, idx) => {
+            if (idx === activeIdx) dot.className = "w-2 h-2 rounded-full transition-all duration-300 bg-slate-900 scale-125";
+            else dot.className = "w-2 h-2 rounded-full transition-all duration-300 bg-slate-300 hover:bg-slate-400";
+        });
+
+        updateStackPositions();
+    }
+
+    function updateStackPositions() {
+        const cards = stackContainer.querySelectorAll('.platform-card-3d');
+        cards.forEach((card, idx) => {
+            const diff = idx - activeIdx;
+            let translateY = diff * 28;
+            let translateZ = -Math.abs(diff) * 50;
+            let rotateX = -diff * 6;
+            let opacity = 1 - Math.abs(diff) * 0.35;
+            let filter = Math.abs(diff) > 0 ? `blur(${Math.min(Math.abs(diff) * 1.5, 3)}px)` : 'none';
+
+            if (Math.abs(diff) > 2) opacity = 0;
+
+            card.style.transform = `translate3d(0, ${translateY}px, ${translateZ}px) rotateX(${rotateX}deg)`;
+            card.style.opacity = Math.max(0, opacity);
+            card.style.filter = filter;
+            card.style.zIndex = 100 - Math.abs(diff) * 10;
+        });
+    }
+
+    window.navigateStack = function(direction) {
+        let targetIdx = activeIdx + direction;
+        if (targetIdx >= 0 && targetIdx < modules.length) {
+            selectIdx(targetIdx);
+        }
+    };
+
+    window.addEventListener('keydown', e => {
+        if (['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) {
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
+            e.preventDefault();
+            if (e.key === 'ArrowUp') navigateStack(-1);
+            if (e.key === 'ArrowDown') navigateStack(1);
+            if (e.key === 'Enter' && modules[activeIdx]) modules[activeIdx].action();
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
         setupFileInputs();
         setupDragAndDrop();
+        buildStack();
     });
 
     // --- DIRECTION TOGGLE LOGIC ---
     function setDirection(dir) {
         currentDirection = dir;
-        
+        activeIdx = 0;
+
         const btnIn = document.getElementById('toggle-in');
         const btnOut = document.getElementById('toggle-out');
-        const menuIn = document.getElementById('main-menu-in');
-        const menuOut = document.getElementById('main-menu-out');
         const titleText = document.getElementById('header-title');
         const subtitleText = document.getElementById('header-subtitle');
-        
+
         if (dir === 'IN') {
-            btnIn.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 bg-black text-white";
-            btnOut.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-gray-500 hover:text-black";
-            menuIn.classList.remove('hidden');
-            menuOut.classList.add('hidden');
+            btnIn.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 bg-slate-900 text-white shadow-sm";
+            btnOut.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-slate-400 hover:text-slate-900";
             titleText.innerText = "Magazzino Intelligente";
             subtitleText.innerText = "Carico Acquisti (IN)";
         } else {
-            btnIn.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-gray-500 hover:text-black";
-            btnOut.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 bg-black text-white";
-            menuIn.classList.add('hidden');
-            menuOut.classList.remove('hidden');
+            btnIn.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-slate-400 hover:text-slate-900";
+            btnOut.className = "flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 bg-slate-900 text-white shadow-sm";
             titleText.innerText = "Magazzino Intelligente";
             subtitleText.innerText = "Scarico Vendite (OUT)";
         }
-        
+
+        buildStack();
         if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
     }
 
