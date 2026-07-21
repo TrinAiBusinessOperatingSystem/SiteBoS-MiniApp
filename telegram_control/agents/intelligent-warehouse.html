@@ -192,10 +192,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             </div>
 
             <!-- CAROUSEL VIEWPORT CONTAINER (3D VIEW) -->
-            <div class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full py-6 min-h-[250px]">
-                <!-- Nav Up -->
-                <button onclick="navigateStack(-1)" class="btn-glass-minimal absolute top-0 left-1/2 -translate-x-1/2 z-50 w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
-                    <i class="fas fa-chevron-up text-[9px]"></i>
+            <main class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full py-12" style="min-height: 280px; max-height: calc(100vh - 280px); max-height: calc(100dvh - 280px);">
+                <!-- Desktop/Mobile Nav Up -->
+                <button onclick="playTick(750, 0.03, 0.05); navigateStack(-1)" class="btn-glass-minimal absolute top-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
+                    <i class="fas fa-chevron-up text-[10px]"></i>
                 </button>
 
                 <!-- 3D Card Stack -->
@@ -203,18 +203,33 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     <!-- Rendered dynamically -->
                 </div>
 
-                <!-- Nav Down -->
-                <button onclick="navigateStack(1)" class="btn-glass-minimal absolute bottom-0 left-1/2 -translate-x-1/2 z-50 w-8 h-8 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
-                    <i class="fas fa-chevron-down text-[9px]"></i>
+                <!-- Desktop/Mobile Nav Down -->
+                <button onclick="playTick(750, 0.03, 0.05); navigateStack(1)" class="btn-glass-minimal absolute bottom-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
+                    <i class="fas fa-chevron-down text-[10px]"></i>
                 </button>
 
-                <!-- Dynamic Side Dot Indicators -->
-                <div id="dot-indicators-wrapper" class="absolute -right-2 top-1/2 -translate-y-1/2 z-50 py-3 px-2 bg-slate-100/90 border border-slate-200 rounded-full shadow-md backdrop-blur-sm select-none">
-                    <div id="dot-indicators" class="flex flex-col gap-2 items-center">
+                <!-- Dynamic Side Dot Indicators with Scrubbing Area -->
+                <div id="dot-indicators-wrapper" class="absolute -right-2 top-1/2 -translate-y-1/2 z-50 py-4 px-2.5 bg-slate-100/90 border border-slate-200 rounded-full shadow-md backdrop-blur-sm select-none touch-none">
+                    <div id="dot-indicators" class="flex flex-col gap-2.5 items-center">
                         <!-- Rendered dynamically -->
                     </div>
                 </div>
-            </div>
+
+                <!-- Float User Guide Button -->
+                <button onclick="playTick(750, 0.03, 0.05); openUserGuide('../userguide/07_magazzino_logistica.html')" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900" style="top: calc(50% - 200px);" title="Manuale Utente">
+                    <i class="fas fa-globe text-[10px]"></i>
+                </button>
+
+                <!-- Float Speech Audio Button -->
+                <button id="btn-nav-audio" onclick="playTick(750, 0.03, 0.05); toggleCatalogAudio()" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900" style="top: calc(50% - 155px);">
+                    <i class="fas fa-volume-high text-[10px]"></i>
+                </button>
+
+                <!-- Float Help Gesture Button -->
+                <button onclick="playTick(750, 0.03, 0.05); toggleHelpModal(true)" class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900" style="top: calc(50% - 110px);">
+                    <i class="fas fa-question text-[10px]"></i>
+                </button>
+            </main>
         </div>
 
         <div id="modes-container" class="hidden">
@@ -1693,39 +1708,230 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             }
         };
 
-        window.toggleAudio = function() {
+        // Audio Sensory Feedback (Tick)
+        let audioCtx = null;
+        function playTick(freq = 800, dur = 0.03, vol = 0.05) {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + dur);
+                osc.start();
+                osc.stop(audioCtx.currentTime + dur);
+            } catch (e) { console.warn(e); }
+        }
+
+        // Touch Scrubbing on dotWrapper & Vertical Swipe on stackContainer
+        const dotWrapper = document.getElementById('dot-indicators-wrapper');
+        if (dotWrapper) {
+            dotWrapper.addEventListener('touchmove', e => {
+                const rect = dotWrapper.getBoundingClientRect();
+                const touchY = e.touches[0].clientY - rect.top;
+                const ratio = Math.max(0, Math.min(1, touchY / rect.height));
+                const targetIdx = Math.floor(ratio * modules.length);
+                selectIdx(targetIdx);
+            }, { passive: true });
+        }
+
+        if (stackContainer) {
+            let touchStartY = 0, touchStartX = 0;
+            stackContainer.addEventListener('touchstart', e => {
+                touchStartY = e.touches[0].clientY;
+                touchStartX = e.touches[0].clientX;
+            }, { passive: true });
+
+            stackContainer.addEventListener('touchend', e => {
+                const diffY = touchStartY - e.changedTouches[0].clientY;
+                const diffX = touchStartX - e.changedTouches[0].clientX;
+                if (Math.abs(diffY) > 40 && Math.abs(diffY) > Math.abs(diffX)) {
+                    playTick(750, 0.03, 0.05);
+                    if (diffY > 0) navigateStack(1);
+                    else navigateStack(-1);
+                }
+            }, { passive: true });
+        }
+
+        window.openUserGuide = function(url) {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            const iframe = document.getElementById('userguide-iframe');
+            if (!overlay || !drawer || !iframe) return;
+
+            iframe.src = url;
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                drawer.classList.remove('translate-y-full');
+            }, 10);
+        };
+
+        window.closeUserGuide = function() {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            if (!overlay || !drawer) return;
+
+            overlay.classList.add('opacity-0');
+            drawer.classList.add('translate-y-full');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                document.getElementById('userguide-iframe').src = "";
+            }, 300);
+        };
+
+        let catalogAudio = null;
+        let isCatalogAudioPlaying = false;
+        window.toggleCatalogAudio = function() {
             const btn = document.getElementById('btn-nav-audio');
             const icon = btn ? btn.querySelector('i') : null;
-
-            if (!voiceAudio) {
-                voiceAudio = new Audio(finalAudioUrl);
-                voiceAudio.addEventListener('ended', () => {
-                    isAudioPlaying = false;
-                    voiceAudio.currentTime = 0;
-                    if (icon) {
-                        icon.className = 'fas fa-volume-high text-xs';
-                        btn.classList.remove('bg-black', 'text-white', 'border-black');
-                        btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
-                    }
+            if (!catalogAudio) {
+                catalogAudio = new Audio('catalog.wav');
+                catalogAudio.addEventListener('ended', () => {
+                    isCatalogAudioPlaying = false;
+                    catalogAudio.currentTime = 0;
+                    if (icon) icon.className = 'fas fa-volume-high text-[10px]';
+                    if (btn) btn.classList.remove('bg-slate-900/10', 'text-slate-900');
                 });
             }
-
-            if (isAudioPlaying) {
-                window.stopAudio();
+            if (isCatalogAudioPlaying) {
+                catalogAudio.pause();
+                catalogAudio.currentTime = 0;
+                isCatalogAudioPlaying = false;
+                if (icon) icon.className = 'fas fa-volume-high text-[10px]';
+                if (btn) btn.classList.remove('bg-slate-900/10', 'text-slate-900');
             } else {
-                voiceAudio.play().then(() => {
-                    isAudioPlaying = true;
-                    if (icon) {
-                        icon.className = 'fas fa-stop text-xs';
-                        btn.classList.remove('bg-white', 'text-slate-500', 'border-gray-200');
-                        btn.classList.add('bg-black', 'text-white', 'border-black');
-                    }
-                }).catch(err => {
-                    console.error("Errore riproduzione audio:", err);
-                });
+                catalogAudio.play().then(() => {
+                    isCatalogAudioPlaying = true;
+                    if (icon) icon.className = 'fas fa-stop text-[10px]';
+                    if (btn) btn.classList.add('bg-slate-900/10', 'text-slate-900');
+                }).catch(err => console.error(err));
+            }
+        };
+
+        window.switchHelpTab = function(tab) {
+            const btnMobile = document.getElementById('tab-btn-mobile');
+            const btnDesktop = document.getElementById('tab-btn-desktop');
+            const contentMobile = document.getElementById('tab-content-mobile');
+            const contentDesktop = document.getElementById('tab-content-desktop');
+            if (!btnMobile || !btnDesktop || !contentMobile || !contentDesktop) return;
+
+            if (tab === 'mobile') {
+                btnMobile.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+                btnMobile.classList.remove('text-slate-400');
+                btnDesktop.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+                btnDesktop.classList.add('text-slate-400');
+                contentMobile.classList.remove('hidden');
+                contentDesktop.classList.add('hidden');
+            } else {
+                btnDesktop.classList.add('bg-white', 'text-slate-900', 'shadow-sm');
+                btnDesktop.classList.remove('text-slate-400');
+                btnMobile.classList.remove('bg-white', 'text-slate-900', 'shadow-sm');
+                btnMobile.classList.add('text-slate-400');
+                contentDesktop.classList.remove('hidden');
+                contentMobile.classList.add('hidden');
+            }
+        };
+
+        window.toggleHelpModal = function(show) {
+            const overlay = document.getElementById('help-overlay');
+            if (!overlay) return;
+            if (show) {
+                const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (window.Telegram?.WebApp && window.Telegram.WebApp.platform !== 'unknown' && window.Telegram.WebApp.platform !== 'tdesktop');
+                window.switchHelpTab(isMobileDevice ? 'mobile' : 'desktop');
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    overlay.querySelector('.modal-content').classList.remove('scale-95');
+                }, 10);
+            } else {
+                overlay.classList.add('opacity-0');
+                overlay.querySelector('.modal-content').classList.add('scale-95');
+                setTimeout(() => { overlay.classList.add('hidden'); }, 300);
             }
         };
     })();
     </script>
+
+    <!-- HELP OVERLAY MODAL -->
+    <div id="help-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+        <div class="modal-content bg-white rounded-3xl p-6 max-w-sm w-full space-y-4 border border-slate-150 shadow-2xl transition-all duration-300 scale-95">
+            <div class="flex justify-between items-center pb-2 border-b border-slate-100">
+                <span class="text-xs font-black uppercase tracking-tight text-slate-800 flex items-center gap-2">
+                    <i class="fas fa-hand text-slate-900"></i> Guida ai Gesti & Navigazione
+                </span>
+                <button onclick="toggleHelpModal(false)" class="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+
+            <div class="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                <button id="tab-btn-mobile" onclick="switchHelpTab('mobile')" class="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 bg-white text-slate-900 shadow-sm">
+                    <i class="fas fa-mobile-screen mr-1"></i> Mobile (Touch)
+                </button>
+                <button id="tab-btn-desktop" onclick="switchHelpTab('desktop')" class="flex-1 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-slate-400">
+                    <i class="fas fa-desktop mr-1"></i> PC (Tastiera)
+                </button>
+            </div>
+
+            <div id="tab-content-mobile" class="space-y-4 pt-2">
+                <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                        <i class="fas fa-hand-pointer text-xs"></i>
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Tap sulla Card</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Tocca la card attiva per aprirla; tocca le card in background per portarle in primo piano</div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0">
+                        <i class="fas fa-arrows-up-down text-xs"></i>
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Swipe Verticale</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Fai uno scorrimento (swipe) verso l'alto o il basso sulle card 3D per scorrere la lista</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-content-desktop" class="space-y-4 pt-2 hidden">
+                <div class="flex items-center gap-3.5 border-b border-slate-100 pb-3">
+                    <div class="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700 shrink-0 font-black text-xs">
+                        ↑ ↓
+                    </div>
+                    <div>
+                        <div class="text-[9px] font-black uppercase text-slate-900 tracking-wider">Frecce Verticali</div>
+                        <div class="text-[8px] font-semibold text-slate-400">Usa le frecce Su / Giù sulla tastiera per navigare</div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="toggleHelpModal(false)" class="w-full mt-6 bg-slate-900 hover:bg-black text-white font-black py-3.5 rounded-2xl text-[9px] uppercase tracking-widest shadow-md transition-all active:scale-[0.98]">
+                Ho Capito
+            </button>
+        </div>
+    </div>
+
+    <!-- USER GUIDE DRAWER -->
+    <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
+        <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
+            <div class="w-full flex items-center justify-between p-4 border-b border-slate-100 shrink-0 select-none">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
+                    <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente</span>
+                </div>
+                <button onclick="closeUserGuide()" class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-90 transition">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="flex-1 w-full overflow-hidden bg-slate-50 relative">
+                <iframe id="userguide-iframe" class="w-full h-full border-none" src=""></iframe>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
