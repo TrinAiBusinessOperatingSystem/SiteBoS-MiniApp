@@ -2,8 +2,12 @@
 // SiteBoS Operator Dashboard - 3D Orbital Satellites Engine v3.0
 
 const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
+if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
+if (tg.enableClosingConfirmation) tg.enableClosingConfirmation();
+
 const ash = window.TwaGuard?.requireAsh?.();
 window.TwaGuard?.cleanupUrl?.(['ash']);
+
 
 // Config API Endpoint
 const API_ENDPOINT = 'https://trinai.api.workflow.dcmake.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
