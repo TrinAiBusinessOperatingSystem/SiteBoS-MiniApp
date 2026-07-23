@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Owner Dashboard MVP 1 - Dual Concentric Orbits | SiteBoS</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #ffffff !important;
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f5f8 100%) !important;
+            color: #0f172a !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            background-image: radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Ambient Breathing Core Shadow Glow */
+        @keyframes corePulse {
+            0% { box-shadow: 0 0 10px rgba(15, 23, 42, 0.04), 0 0 20px rgba(15, 23, 42, 0.02); }
+            50% { box-shadow: 0 0 25px rgba(15, 23, 42, 0.12), 0 0 40px rgba(15, 23, 42, 0.06); }
+            100% { box-shadow: 0 0 10px rgba(15, 23, 42, 0.04), 0 0 20px rgba(15, 23, 42, 0.02); }
+        }
+        .jarvis-core-pulse {
+            animation: corePulse 3s infinite ease-in-out;
+        }
+
+        /* Satellite Item & Floating Label */
+        .satellite-item {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            will-change: transform, opacity;
+            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .satellite-btn {
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 14px -2px rgba(15, 23, 42, 0.10);
+            transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                        box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Inner Ring Satellites (Size: 48px -> Focused 56px) */
+        .satellite-item.inner .satellite-btn {
+            width: 48px;
+            height: 48px;
+        }
+        .satellite-item.inner.focused .satellite-btn {
+            border-color: #0f172a;
+            transform: scale(1.22);
+            box-shadow: 0 12px 20px -3px rgba(15, 23, 42, 0.22);
+        }
+
+        /* Outer Ring Satellites (Size: 54px -> Focused 64px) */
+        .satellite-item.outer .satellite-btn {
+            width: 54px;
+            height: 54px;
+        }
+        .satellite-item.outer.focused .satellite-btn {
+            border-color: #0f172a;
+            transform: scale(1.20);
+            box-shadow: 0 14px 24px -4px rgba(15, 23, 42, 0.24);
+        }
+
+        .satellite-label {
+            margin-top: 6px;
+            padding: 3px 8px;
+            border-radius: 9999px;
+            background: rgba(15, 23, 42, 0.92);
+            color: #ffffff;
+            font-size: 8px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            opacity: 0.35;
+            transform: translateY(-2px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+        .satellite-item.focused .satellite-label {
+            opacity: 1;
+            transform: translateY(0);
+            background: #0f172a;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
+        }
+
+        /* Drawer Slide Transition */
+        .drawer-transition {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm justify-between select-none">
+
+    <!-- TOP BAR HEADER -->
+    <header class="p-4 bg-white/85 backdrop-blur-md border-b border-slate-200/85 flex justify-between items-center z-50 shrink-0 shadow-sm">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleDrawer(true)" class="w-10 h-10 border border-slate-200 flex items-center justify-center rounded-2xl bg-white text-slate-800 active:bg-slate-50 transition shadow-sm" title="Apri Chat / Assistente">
+                <i class="fas fa-comment-dots text-xs"></i>
+            </button>
+            <div>
+                <h1 id="tenant-name" class="text-xs font-black uppercase tracking-tight leading-none text-slate-900">STUDIO MEDICALE BOS</h1>
+                <p class="text-[8px] font-bold uppercase tracking-widest text-purple-600 mt-1">OWNER CONSOLE (DUAL RING MVP)</p>
+            </div>
+        </div>
+        <div class="bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-2xl flex items-center gap-1.5">
+            <i class="fas fa-crown text-purple-600 text-[10px]"></i>
+            <span id="sys-credits" class="text-[10px] font-black text-purple-900">OWNER PRO</span>
+        </div>
+    </header>
+
+    <!-- 3D DUAL-RING ORBIT VIEWPORT -->
+    <main id="orbit-viewport" class="relative flex-1 w-full flex items-center justify-center select-none touch-none">
+        
+        <!-- SVG Inner Ellipse (Anello Interno: 4 Satelliti) -->
+        <svg class="absolute w-[230px] h-[150px] pointer-events-none opacity-30">
+            <ellipse cx="115" cy="75" rx="105" ry="65" fill="none" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="3,4" />
+        </svg>
+
+        <!-- SVG Outer Ellipse (Anello Esterno: 7 Satelliti) -->
+        <svg class="absolute w-[350px] h-[240px] pointer-events-none opacity-40">
+            <ellipse cx="175" cy="120" rx="160" ry="110" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4,5" />
+        </svg>
+
+        <!-- Soft Shadow Pulse Ring -->
+        <div class="absolute w-24 h-24 rounded-full border border-purple-200/40 jarvis-core-pulse"></div>
+
+        <!-- CORE ASSISTENTE VOCALE OWNER -->
+        <div id="jarvis-core" onclick="handleCoreClick()" class="w-20 h-20 rounded-full bg-white text-black flex flex-col items-center justify-center cursor-pointer shadow-xl active:scale-95 transition-transform duration-300 z-10 border-2 border-slate-900 overflow-hidden relative">
+            <div id="operator-avatar" class="w-full h-full flex items-center justify-center text-xl font-bold bg-slate-50 text-slate-800">
+                <i class="fas fa-microphone text-slate-900 text-lg"></i>
+            </div>
+        </div>
+
+        <!-- SATELLITES ORBIT CAROUSEL (Anello Interno + Esterno) -->
+        <div id="satellites-orbit" class="absolute inset-0 pointer-events-none">
+            <!-- 11 Satelliti divisi su due orbite inietati da JS -->
+        </div>
+
+    </main>
+
+    <!-- FOOTER MINIMALE SUPPORTO -->
+    <footer class="p-3 bg-white/60 backdrop-blur-md border-t border-slate-200/50 z-40 text-center">
+        <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+            <i class="fas fa-layer-group text-purple-600 mr-1"></i> Orbita Doppia Concentrica: 4 Core Interni + 7 Avanzati Esterni
+        </span>
+    </footer>
+
+    <!-- DRAWER OVERLAY (z-index 999 per coprire satelliti) -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-[999] hidden transition-opacity duration-300" onclick="toggleDrawer(false)">
+        <!-- NAV DRAWER z-[1000] -->
+        <div id="nav-drawer" class="fixed top-0 left-0 h-full w-full bg-white flex flex-col justify-between drawer-transition -translate-x-full shadow-2xl z-[1000]" onclick="event.stopPropagation()">
+            
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <span id="drawer-header-title" class="text-[9px] font-black tracking-widest text-slate-400 uppercase">Assistente AI Owner & Console</span>
+                <button onclick="toggleDrawer(false)" class="w-10 h-10 rounded-2xl border border-slate-200 flex items-center justify-center text-slate-600 bg-white active:bg-slate-50 transition shadow-sm">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Drawer Content Container -->
+            <div id="drawer-content-body" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                <div class="p-4 bg-slate-900 text-white rounded-2xl space-y-2">
+                    <div class="text-[9px] font-black text-purple-400 uppercase tracking-wider">Pannello Owner Studio</div>
+                    <div class="text-sm font-bold">Assistente Vocale AI per Direzione</div>
+                    <p class="text-[11px] text-slate-300">Modulo per reportistica finanziaria, stato commesse, gestione minisi ed integrazioni workflow.</p>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <h4 class="text-[9px] font-black text-slate-400 uppercase tracking-wider">Stato Sistema</h4>
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-800">Fatturato Mese</span>
+                        <span class="text-xs font-black text-emerald-600">€ 24.850,00</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center">
+                        <span class="text-xs font-bold text-slate-800">Commessi ed Ordini</span>
+                        <span class="text-xs font-black text-blue-600">42 Attivi</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Drawer Chat Input Bar -->
+            <div class="p-4 border-t border-slate-100 bg-white flex items-center gap-2">
+                <input type="text" id="chat-input" placeholder="Chiedi report fatturato o stato commesse..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-[11px] focus:outline-none focus:border-slate-400 shadow-sm">
+                <button onclick="alert('Assistente Owner: Funzionalità pronta!')" class="w-11 h-11 bg-slate-950 text-white rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition-all shadow-md"><i class="fas fa-paper-plane text-xs"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROCEDURAL LOGIC DUAL RING -->
+    <script>
+        'use strict';
+        const tg = window.Telegram?.WebApp || { ready:()=>{}, expand:()=>{}, HapticFeedback:{ impactOccurred:()=>{} } };
+        try { tg.ready(); tg.expand(); } catch(_) {}
+
+        // 11 Satelliti Owner (4 Anello Interno + 7 Anello Esterno)
+        const innerSatellites = [
+            { id: 'billing', label: 'BILLING & CASSA', icon: 'fa-file-invoice-dollar', color: '#10b981', ring: 'inner' },
+            { id: 'analytics', label: 'ANALYTICS & KPI', icon: 'fa-chart-line', color: '#3b82f6', ring: 'inner' },
+            { id: 'tasks', label: 'COMMESSE & OdS', icon: 'fa-tasks', color: '#8b5cf6', ring: 'inner' },
+            { id: 'ai-console', label: 'AI ASSISTANT', icon: 'fa-robot', color: '#ec4899', ring: 'inner' }
+        ];
+
+        const outerSatellites = [
+            { id: 'minisite', label: 'MINISITE ENGINE', icon: 'fa-globe', color: '#6366f1', ring: 'outer' },
+            { id: 'finetuning', label: 'FINE-TUNING AI', icon: 'fa-sliders-h', color: '#a855f7', ring: 'outer' },
+            { id: 'n8n', label: 'WORKFLOWS N8N', icon: 'fa-project-diagram', color: '#f97316', ring: 'outer' },
+            { id: 'team', label: 'TEAM & OPERATORI', icon: 'fa-users', color: '#06b6d4', ring: 'outer' },
+            { id: 'backup', label: 'BACKUP & DATABASE', icon: 'fa-database', color: '#64748b', ring: 'outer' },
+            { id: 'webhooks', label: 'API & WEBHOOKS', icon: 'fa-network-wired', color: '#eab308', ring: 'outer' },
+            { id: 'compliance', label: 'COMPLIANCE & GDPR', icon: 'fa-shield-alt', color: '#14b8a6', ring: 'outer' }
+        ];
+
+        const satellitesData = [...innerSatellites, ...outerSatellites];
+
+        // Orbital Parameters
+        const innerRx = 105, innerRy = 65;
+        const outerRx = 160, outerRy = 110;
+        
+        let innerAngle = Math.PI / 2;
+        let outerAngle = Math.PI / 2;
+        
+        let isDragging = false;
+        let startX = 0;
+        let baseInnerAngle = 0;
+        let baseOuterAngle = 0;
+        let activeIdx = 0;
+        let animationFrameId = null;
+
+        function buildSatellites() {
+            const container = document.getElementById('satellites-orbit');
+            if (!container) return;
+            container.innerHTML = '';
+
+            satellitesData.forEach((sat, idx) => {
+                const div = document.createElement('div');
+                div.className = `satellite-item pointer-events-auto ${sat.ring}`;
+                div.id = `sat-${idx}`;
+                div.innerHTML = `
+                    <div class="satellite-btn" style="border-color:${sat.color}">
+                        <i class="fas ${sat.icon} ${sat.ring === 'inner' ? 'text-base' : 'text-lg'}" style="color:${sat.color}"></i>
+                    </div>
+                    <div class="satellite-label" style="border-left: 2px solid ${sat.color}">
+                        ${sat.label}
+                    </div>
+                `;
+
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    
+                    if (idx === activeIdx) {
+                        alert(`Apertura modulo Owner: ${sat.label}`);
+                    } else {
+                        rotateSatToCenter(idx);
+                    }
+                });
+
+                container.appendChild(div);
+            });
+
+            updateSatellites();
+        }
+
+        function rotateSatToCenter(idx) {
+            const isInner = idx < innerSatellites.length;
+            const ringIdx = isInner ? idx : idx - innerSatellites.length;
+            const ringTotal = isInner ? innerSatellites.length : outerSatellites.length;
+            const stepAngle = (2 * Math.PI) / ringTotal;
+
+            const targetRingAngle = Math.PI / 2 - ringIdx * stepAngle;
+            
+            if (isInner) {
+                let rawDiff = targetRingAngle - innerAngle;
+                let shortest = Math.atan2(Math.sin(rawDiff), Math.cos(rawDiff));
+                animateRing('inner', innerAngle + shortest);
+            } else {
+                let rawDiff = targetRingAngle - outerAngle;
+                let shortest = Math.atan2(Math.sin(rawDiff), Math.cos(rawDiff));
+                animateRing('outer', outerAngle + shortest);
+            }
+            activeIdx = idx;
+        }
+
+        function animateRing(ring, target) {
+            function step() {
+                if (ring === 'inner') {
+                    let diff = target - innerAngle;
+                    if (Math.abs(diff) < 0.005) {
+                        innerAngle = target;
+                        updateSatellites();
+                    } else {
+                        innerAngle += diff * 0.18;
+                        updateSatellites();
+                        requestAnimationFrame(step);
+                    }
+                } else {
+                    let diff = target - outerAngle;
+                    if (Math.abs(diff) < 0.005) {
+                        outerAngle = target;
+                        updateSatellites();
+                    } else {
+                        outerAngle += diff * 0.18;
+                        updateSatellites();
+                        requestAnimationFrame(step);
+                    }
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        function updateSatellites() {
+            const container = document.getElementById('satellites-orbit');
+            if (!container) return;
+
+            const centerX = container.clientWidth / 2;
+            const centerY = container.clientHeight / 2;
+
+            satellitesData.forEach((sat, idx) => {
+                const satEl = document.getElementById(`sat-${idx}`);
+                if (!satEl) return;
+
+                const isInner = sat.ring === 'inner';
+                const ringTotal = isInner ? innerSatellites.length : outerSatellites.length;
+                const ringIdx = isInner ? idx : idx - innerSatellites.length;
+                const stepAngle = (2 * Math.PI) / ringTotal;
+                const currentRingAngle = isInner ? innerAngle : outerAngle;
+                const rx = isInner ? innerRx : outerRx;
+                const ry = isInner ? innerRy : outerRy;
+
+                let angle = currentRingAngle + (ringIdx * stepAngle);
+                let x = rx * Math.cos(angle);
+                let y = ry * Math.sin(angle);
+
+                let sin = Math.sin(angle);
+                let scale = 0.70 + 0.30 * ((sin + 1) / 2);
+                let opacity = 0.35 + 0.65 * ((sin + 1) / 2);
+                let zIndex = Math.round((sin + 1) * 100) + (isInner ? 10 : 0);
+
+                const itemSize = isInner ? 28 : 35;
+                satEl.style.transform = `translate3d(${centerX + x - itemSize}px, ${centerY + y - itemSize}px, 0) scale(${scale})`;
+                satEl.style.opacity = opacity;
+                satEl.style.zIndex = zIndex;
+
+                if (idx === activeIdx) satEl.classList.add('focused');
+                else satEl.classList.remove('focused');
+            });
+        }
+
+        function toggleDrawer(show) {
+            const overlay = document.getElementById('drawer-overlay');
+            const drawer = document.getElementById('nav-drawer');
+            if (!overlay || !drawer) return;
+            if (show) {
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    drawer.classList.remove('-translate-x-full');
+                }, 10);
+            } else {
+                overlay.classList.add('opacity-0');
+                drawer.classList.add('-translate-x-full');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        function handleCoreClick() {
+            toggleDrawer(true);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            buildSatellites();
+        });
+    </script>
+</body>
+</html>

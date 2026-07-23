@@ -405,7 +405,10 @@
         function findActiveSatellite() {
             let rawIdx = Math.round((Math.PI / 2 - currentAngle) / (Math.PI / 2));
             activeIdx = ((rawIdx % 4) + 4) % 4;
-            document.getElementById('exec-btn-text').innerText = satellitesData[activeIdx].label;
+            const execBtn = document.getElementById('exec-btn-text');
+            if (execBtn && satellitesData[activeIdx]) {
+                execBtn.innerText = satellitesData[activeIdx].label;
+            }
         }
 
         function executeActiveModule() {
@@ -475,20 +478,23 @@
             snapToNearest();
         }
 
-        orbitViewport.addEventListener('touchstart', e => { onDragStart(e.touches[0].clientX); }, { passive: true });
-        orbitViewport.addEventListener('touchmove', e => { onDragMove(e.touches[0].clientX); }, { passive: true });
-        orbitViewport.addEventListener('touchend', onDragEnd, { passive: true });
+        if (orbitViewport) {
+            orbitViewport.addEventListener('touchstart', e => { onDragStart(e.touches[0].clientX); }, { passive: true });
+            orbitViewport.addEventListener('touchmove', e => { onDragMove(e.touches[0].clientX); }, { passive: true });
+            orbitViewport.addEventListener('touchend', onDragEnd, { passive: true });
 
-        orbitViewport.addEventListener('mousedown', e => { onDragStart(e.clientX); });
-        window.addEventListener('mousemove', e => { onDragMove(e.clientX); });
-        window.addEventListener('mouseup', onDragEnd);
+            orbitViewport.addEventListener('mousedown', e => { onDragStart(e.clientX); });
+            window.addEventListener('mousemove', e => { onDragMove(e.clientX); });
+            window.addEventListener('mouseup', onDragEnd);
+        }
 
         function snapToNearest() {
-            let rawDiff = Math.round((currentAngle - Math.PI / 2) / (Math.PI / 2)) * (Math.PI / 2) + Math.PI / 2 - currentAngle;
-            let shortestDiff = Math.atan2(Math.sin(rawDiff), Math.cos(rawDiff));
-            let targetAngle = currentAngle + shortestDiff;
+            const stepAngle = (2 * Math.PI) / 4;
+            let rawIdx = Math.round((Math.PI / 2 - currentAngle) / stepAngle);
+            let targetAngle = Math.PI / 2 - rawIdx * stepAngle;
             animateTo(targetAngle);
         }
+
 
         function animateTo(target) {
             if (animationFrameId) {
