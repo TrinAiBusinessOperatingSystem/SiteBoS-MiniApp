@@ -8,6 +8,7 @@
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -230,9 +231,10 @@
                 <div class="space-y-1.5">
                     <label class="text-[9px] font-black uppercase tracking-wider text-slate-500">Formato di Output</label>
                     <div class="relative">
-                        <select id="export-format" onchange="updateFileExtension()" class="w-full bg-slate-50 border border-gray-150 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-black appearance-none cursor-pointer">
+                        <select id="export-format" onchange="updateFileExtension(); updatePreviewContent();" class="w-full bg-slate-50 border border-gray-150 rounded-2xl px-4 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-black appearance-none cursor-pointer">
                             <option value="jsonl_unsloth" selected>Standard JSONL (per Unsloth / Hugging Face)</option>
                             <option value="gemini_format">Gemini Format (Google AI Studio / Vertex AI)</option>
+                            <option value="zip_claude">Pacchetto Claude Skill (.ZIP)</option>
                             <option value="zip_rag">Pacchetto Markdown .ZIP (per RAG Voiceflow / Botpress)</option>
                             <option value="pls_eleven">Dizionario di Pronuncia .PLS (per ElevenLabs)</option>
                         </select>
@@ -401,30 +403,209 @@
         function updateFileExtension() {
             const format = document.getElementById('export-format').value;
             let ext = '.jsonl';
-            if (format === 'zip_rag') ext = '.zip';
+            if (format === 'zip_claude' || format === 'zip_rag') ext = '.zip';
             if (format === 'pls_eleven') ext = '.pls';
             document.getElementById('file-ext').innerText = ext;
         }
 
+        // TOOL SCHEMAS FOR ROLE INJECTION
+        const TOOL_SCHEMAS = {
+            support: [
+                {
+                    name: "get_booking_slots",
+                    description: "Verifica disponibilità slot orari per appuntamenti e consulenze.",
+                    parameters: {
+                        type: "object",
+                        properties: { date: { type: "string", description: "Data richiesta YYYY-MM-DD" } },
+                        required: ["date"]
+                    }
+                }
+            ],
+            sales: [
+                {
+                    name: "calculate_quote",
+                    description: "Calcola il preventivo commerciale per prodotti o servizi con opzioni extra.",
+                    parameters: {
+                        type: "object",
+                        properties: {
+                            service_id: { type: "string", description: "ID o SKU del servizio" },
+                            extras: { type: "array", items: { type: "string" }, description: "Lista opzioni extra" }
+                        },
+                        required: ["service_id"]
+                    }
+                }
+            ],
+            ops: [
+                {
+                    name: "check_warehouse_stock",
+                    description: "Verifica la giacenza ed il punto di riordine di componenti e materie prime.",
+                    parameters: {
+                        type: "object",
+                        properties: { sku: { type: "string", description: "SKU articolo o componente" } },
+                        required: ["sku"]
+                    }
+                }
+            ],
+            analyst: [
+                {
+                    name: "get_margin_analytics",
+                    description: "Recupera i dati di marginalità e saturazione scorte.",
+                    parameters: {
+                        type: "object",
+                        properties: { period: { type: "string", description: "Periodo di analisi (es. monthly, quarterly)" } },
+                        required: ["period"]
+                    }
+                }
+            ]
+        };
+
+        function getRoleSystemPrompt(role) {
+            if (role === 'support') return "Sei l'Agente Supporto di SiteBoS. Rispondi con tono professionale, gestisci le richieste di assistenza e assisti i clienti nella prenotazione degli appuntamenti.";
+            if (role === 'sales') return "Sei l'Agente Venditore di SiteBoS. Utilizza listini aggiornati, guida i clienti verso la soluzione ideale e fornisci preventivi dettagliati.";
+            if (role === 'ops') return "Sei l'Agente Operations di SiteBoS. Monitora le procedure operative (SOP), verifica la disponibilità a magazzino ed assicura la compliance delle commesse.";
+            return "Sei l'Agente Analista Business di SiteBoS. Elabora reportistica di marginalità, monitora gli indici aziendali ed eroga insights strategici per la direzione.";
+        }
+
+        function buildDatasetSample(role) {
+            const sysPrompt = getRoleSystemPrompt(role);
+            if (role === 'support') {
+                return [
+                    {
+                        messages: [
+                            { role: "system", content: sysPrompt },
+                            { role: "user", content: "Quali sono i vostri orari di apertura per la consulenza?" },
+                            { role: "assistant", content: "Siamo operativi dal lunedì al venerdì, dalle 09:00 alle 18:00. Desidera prenotare uno slot?" }
+                        ]
+                    },
+                    {
+                        messages: [
+                            { role: "system", content: sysPrompt },
+                            { role: "user", content: "Vorrei fissare un appuntamento per domani pomeriggio." },
+                            {
+                                role: "assistant",
+                                tool_calls: [
+                                    {
+                                        id: "call_slot_101",
+                                        type: "function",
+                                        function: { name: "get_booking_slots", arguments: JSON.stringify({ date: "tomorrow_afternoon" }) }
+                                    }
+                                ]
+                            },
+                            { role: "tool", tool_call_id: "call_slot_101", name: "get_booking_slots", content: JSON.stringify({ available_slots: ["15:00", "16:30"] }) },
+                            { role: "assistant", content: "Per domani pomeriggio abbiamo disponibilità negli orari 15:00 e 16:30. Quale preferisce?" }
+                        ]
+                    }
+                ];
+            } else if (role === 'sales') {
+                return [
+                    {
+                        messages: [
+                            { role: "system", content: sysPrompt },
+                            { role: "user", content: "Quanto costa il servizio Setup Completo?" },
+                            { role: "assistant", content: "Il servizio Setup Completo ha un costo di €299,00 una tantum, come indicato nel nostro catalogo aziendale." }
+                        ]
+                    },
+                    {
+                        messages: [
+                            { role: "system", content: sysPrompt },
+                            { role: "user", content: "Puoi calcolarmi il prezzo del Setup Completo includendo l'opzione extra Sedazione?" },
+                            {
+                                role: "assistant",
+                                tool_calls: [
+                                    {
+                                        id: "call_quote_202",
+                                        type: "function",
+                                        function: { name: "calculate_quote", arguments: JSON.stringify({ service_id: "SRV_SETUP", extras: ["OPT_SEDATION"] }) }
+                                    }
+                                ]
+                            },
+                            { role: "tool", tool_call_id: "call_quote_202", name: "calculate_quote", content: JSON.stringify({ total_price: 348.00, breakdown: { base: 299.00, extra: 49.00 } }) },
+                            { role: "assistant", content: "Il preventivo per il Setup Completo comprensivo di opzione extra Sedazione ammonta a €348,00 IVA inclusa (€299,00 base + €49,00 extra)." }
+                        ]
+                    }
+                ];
+            } else if (role === 'ops') {
+                return [
+                    {
+                        messages: [
+                            { role: "system", content: sysPrompt },
+                            { role: "user", content: "Abbiamo scorte sufficienti per il componente MAT-50?" },
+                            {
+                                role: "assistant",
+                                tool_calls: [
+                                    {
+                                        id: "call_stock_303",
+                                        type: "function",
+                                        function: { name: "check_warehouse_stock", arguments: JSON.stringify({ sku: "MAT-50" }) }
+                                    }
+                                ]
+                            },
+                            { role: "tool", tool_call_id: "call_stock_303", name: "check_warehouse_stock", content: JSON.stringify({ sku: "MAT-50", current_stock: 14, reorder_point: 5 }) },
+                            { role: "assistant", content: "Attualmente abbiamo 14 unità di MAT-50 a magazzino, oltre la soglia minima di riordine imposta a 5 pezzi." }
+                        ]
+                    }
+                ];
+            } else {
+                return [
+                    {
+                        messages: [
+                            { role: "system", content: sysPrompt },
+                            { role: "user", content: "Mostrami l'analisi della marginalità del mese." },
+                            {
+                                role: "assistant",
+                                tool_calls: [
+                                    {
+                                        id: "call_an_404",
+                                        type: "function",
+                                        function: { name: "get_margin_analytics", arguments: JSON.stringify({ period: "monthly" }) }
+                                    }
+                                ]
+                            },
+                            { role: "tool", tool_call_id: "call_an_404", name: "get_margin_analytics", content: JSON.stringify({ avg_margin_pct: 68.5, revenue: 14200.00 }) },
+                            { role: "assistant", content: "Per questo mese la marginalità media si attesta al 68.5%, con un fatturato stimato di €14.200,00." }
+                        ]
+                    }
+                ];
+            }
+        }
+
         function updatePreviewContent() {
             const codeEl = document.getElementById('preview-code');
-            let content = '';
+            const format = document.getElementById('export-format').value;
 
-            if (currentRole === 'support') {
-                content = `{\n  "messages": [\n    {"role": "system", "content": "Sei l'Agente Supporto di SiteBoS. Rispondi con tono professionale."},\n    {"role": "user", "content": "Quali sono i vostri orari di apertura?"},\n    {"role": "assistant", "content": "Siamo aperti dal lunedì al venerdì, dalle 09:00 alle 18:00."}\n  ]\n}\n\n{\n  "messages": [\n    {"role": "system", "content": "Sei l'Agente Supporto. Puoi invocare 'get_booking_slots' per le disponibilità."},\n    {"role": "user", "content": "Vorrei fissare un appuntamento per domani pomeriggio."},\n    {"role": "assistant", "tool_calls": [\n      {\n        "id": "call_abc123",\n        "type": "function",\n        "function": {\n          "name": "get_booking_slots",\n          "arguments": "{\\"date\\": \\"tomorrow_afternoon\\"}"\n        }\n      }\n    ]}\n  ]\n}`;
-            } else if (currentRole === 'sales') {
-                content = `{\n  "messages": [\n    {"role": "system", "content": "Sei l'Agente Venditore di SiteBoS. Utilizza listini aggiornati."},\n    {"role": "user", "content": "Quanto costa il servizio Setup Completo?"},\n    {"role": "assistant", "content": "Il servizio Setup Completo ha un costo di €299,00 una tantum, come indicato nel catalogo."}\n  ]\n}`;
-            } else if (currentRole === 'ops') {
-                content = `{\n  "messages": [\n    {"role": "system", "content": "Sei l'Agente Operations. Monitori SOP e checklist."},\n    {"role": "user", "content": "Qual è il prossimo passo per l'attivazione dell'account?"},\n    {"role": "assistant", "content": "Il prossimo passo della procedura prevede l'invio del codice fiscale per la verifica anagrafica."}\n  ]\n}`;
+            if (format === 'zip_claude') {
+                const sysPrompt = getRoleSystemPrompt(currentRole);
+                const tools = TOOL_SCHEMAS[currentRole] || [];
+                const skillContent = `---
+name: ${currentRole.toUpperCase()}_Agent_Skill
+description: Skill operativa SiteBoS per l'agente specialista ${currentRole.toUpperCase()} con integrazione Tool Calling nativa.
+---
+
+# SYSTEM INSTRUCTIONS
+${sysPrompt}
+
+# TOOLS INTEGRATI
+${JSON.stringify(tools, null, 2)}
+`;
+                codeEl.innerText = "📁 STRUTTURA ARCHIVIO CLAUDE SKILL (.ZIP):\n├── SKILL.md\n├── references/tool_schemas.json\n└── examples/conversations.jsonl\n\n--- ANTEPRIMA SKILL.MD ---\n\n" + skillContent;
+            } else if (format === 'gemini_format') {
+                const sample = buildDatasetSample(currentRole);
+                const geminiFormatted = sample.map(item => ({
+                    contents: item.messages.filter(m => m.role !== 'system').map(m => ({
+                        role: m.role === 'assistant' ? 'model' : 'user',
+                        parts: [{ text: m.content || JSON.stringify(m.tool_calls) }]
+                    }))
+                }));
+                codeEl.innerText = JSON.stringify(geminiFormatted[0], null, 2);
             } else {
-                content = `{\n  "messages": [\n    {"role": "system", "content": "Sei l'Agente Analista Business. Elabori reportistica di marginalità."},\n    {"role": "user", "content": "Mostrami il tasso di scorte del magazzino."},\n    {"role": "assistant", "content": "Attualmente l'indice di saturazione scorte è al 72%, con 12 articoli sotto la soglia minima."}\n  ]\n}`;
+                const sample = buildDatasetSample(currentRole);
+                codeEl.innerText = sample.map(s => JSON.stringify(s)).join('\n\n');
             }
-
-            codeEl.innerText = content;
         }
 
         // Preview Drawer Actions
         function openPreview() {
+            updatePreviewContent();
             const overlay = document.getElementById('preview-drawer-overlay');
             const drawer = document.getElementById('preview-drawer');
             overlay.classList.remove('hidden');
@@ -447,21 +628,84 @@
             }, 300);
         }
 
-        function simulateExtraction() {
-            const format = document.getElementById('export-format').value;
-            const ext = document.getElementById('file-ext').innerText;
-            const roleLabel = document.getElementById('role-' + currentRole).querySelector('h4').innerText;
+        function downloadBlob(blob, fileName) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
 
+        async function simulateExtraction() {
+            const format = document.getElementById('export-format').value;
+            const roleLabel = document.getElementById('role-' + currentRole).querySelector('h4').innerText;
             const tg = window.Telegram?.WebApp;
-            if (tg) {
-                tg.HapticFeedback.notificationOccurred('success');
-                tg.showPopup({
-                    title: 'Crew Builder',
-                    message: 'Dataset ' + roleLabel + ' (' + ext + ') generato correttamente! Il file è pronto per essere scaricato o inviato a n8n.',
-                    buttons: [{ type: 'ok' }]
-                });
+
+            if (tg) tg.HapticFeedback.notificationOccurred('success');
+
+            const dataset = buildDatasetSample(currentRole);
+
+            if (format === 'zip_claude') {
+                if (typeof JSZip === 'undefined') {
+                    alert('Libreria JSZip in caricamento... Riprova tra un secondo.');
+                    return;
+                }
+                const zip = new JSZip();
+                const sysPrompt = getRoleSystemPrompt(currentRole);
+                const tools = TOOL_SCHEMAS[currentRole] || [];
+
+                const skillMd = `---
+name: ${currentRole.toUpperCase()}_Agent_Skill
+description: Skill generata per l'Agente ${roleLabel} su SiteBoS.
+---
+
+# SYSTEM INSTRUCTIONS & DIRECTIVES
+${sysPrompt}
+
+# INSTRUCTIONS & BEST PRACTICES
+1. Mantieni costante l'allineamento con le regole del tenant.
+2. Rispetta la riservatezza dei dati aziendali.
+3. Invoca i tool integrati quando sono richiesti parametri operativi.
+`;
+
+                zip.file("SKILL.md", skillMd);
+                zip.file("references/tool_schemas.json", JSON.stringify(tools, null, 2));
+                zip.file("examples/conversations.jsonl", dataset.map(d => JSON.stringify(d)).join('\n'));
+
+                const zipBlob = await zip.generateAsync({ type: "blob" });
+                downloadBlob(zipBlob, `claude_skill_${currentRole}.zip`);
+
+                if (tg) {
+                    tg.showPopup({
+                        title: 'Claude Skill Generata',
+                        message: `Il pacchetto ZIP per l'agente ${roleLabel} è stato generato e scaricato correttamente!`,
+                        buttons: [{ type: 'ok' }]
+                    });
+                }
+            } else if (format === 'gemini_format') {
+                const geminiFormatted = dataset.map(item => ({
+                    contents: item.messages.filter(m => m.role !== 'system').map(m => ({
+                        role: m.role === 'assistant' ? 'model' : 'user',
+                        parts: [{ text: m.content || JSON.stringify(m.tool_calls) }]
+                    }))
+                }));
+                const jsonlText = geminiFormatted.map(g => JSON.stringify(g)).join('\n');
+                const blob = new Blob([jsonlText], { type: 'application/x-jsonlines' });
+                downloadBlob(blob, `dataset_gemini_${currentRole}.jsonl`);
+            } else if (format === 'pls_eleven') {
+                const xmlPls = `<?xml version="1.0" encoding="UTF-8"?>\n<lexeme>\n  <grapheme>SiteBoS</grapheme>\n  <phoneme>site-bos</phoneme>\n</lexeme>`;
+                const blob = new Blob([xmlPls], { type: 'application/pls+xml' });
+                downloadBlob(blob, `dictionary_${currentRole}.pls`);
             } else {
-                alert('Dataset ' + roleLabel + ' (' + ext + ') generato correttamente! Il file è pronto.');
+                // Default Standard JSONL (Unsloth / Hugging Face)
+                const jsonlText = dataset.map(d => JSON.stringify(d)).join('\n');
+                const blob = new Blob([jsonlText], { type: 'application/x-jsonlines' });
+                downloadBlob(blob, `dataset_unsloth_${currentRole}.jsonl`);
             }
         }
 
@@ -470,6 +714,7 @@
             selectRole('support', 85);
         });
     </script>
+
 
     <!-- User Guide and Audio Guide Integration Engine -->
     <script>

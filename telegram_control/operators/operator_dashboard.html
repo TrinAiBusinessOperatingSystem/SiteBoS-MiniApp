@@ -1,407 +1,213 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="color-scheme" content="light">
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Dashboard Operatore</title>
-  
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="../style.css">
-  <link rel="stylesheet" href="operators.css">
-  <script src="twa_guard.js"></script>
-</head>
-<body>
-
-  <!-- LOADER -->
-  <div id="loader">
-    <div class="spinner-ring"></div>
-    <div style="margin-top:10px; opacity:0.7; text-align:center;">Caricamento Dashboard...</div>
-  </div>
-
-  <!-- MAIN CONTENT -->
-  <div id="app-content" class="container hidden fade-in">
+    <title>Dashboard Operatore | SiteBoS</title>
     
-    <!-- HEADER OPERATOR -->
-    <div class="dashboard-header">
-      <div class="header-info">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <div class="avatar-circle" id="operator-avatar" style="width:50px; height:50px; font-size:20px;">
-            👤
-          </div>
-          <div>
-            <h1 id="operatorName" style="font-size:18px; margin:0;">Operatore</h1>
-            <small id="operatorRole" style="color:var(--text-muted); font-size:12px;">Ruolo</small>
-            <small id="companyInfo" style="display:block; color:var(--text-secondary); font-size:11px; margin-top:2px;">
-              🏢 <span id="companyName">Company</span> • Attivo dal <span id="memberSince">...</span>
-            </small>
-          </div>
-        </div>
-      </div>
-      
-      <div class="header-actions" style="display:flex; align-items:center; gap:8px;">
-        <button class="btn-icon" onclick="openSettings()" title="Impostazioni">
-          <i class="fas fa-cog"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- BIG FIVE PERSONALITY TRAITS -->
-    <div style="margin-bottom:20px;">
-      <h4 style="opacity:0.7; text-transform:uppercase; font-size:12px; letter-spacing:1px; margin-bottom:12px;">🧠 Profilo Personalità (Big Five)</h4>
-      
-      <div style="display:grid; grid-template-columns:repeat(5, 1fr); gap:8px;">
-        <!-- Openness -->
-        <div class="stat-box" style="text-align:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; border:1px solid var(--glass-border);">
-          <div style="font-size:18px; margin-bottom:4px;">🌈</div>
-          <div id="big5-openness" style="font-size:18px; font-weight:700; color:#a78bfa;">-</div>
-          <div style="font-size:8px; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">Apertura</div>
-        </div>
-        
-        <!-- Conscientiousness -->
-        <div class="stat-box" style="text-align:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; border:1px solid var(--glass-border);">
-          <div style="font-size:18px; margin-bottom:4px;">📋</div>
-          <div id="big5-conscientiousness" style="font-size:18px; font-weight:700; color:#34d399;">-</div>
-          <div style="font-size:8px; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">Coscienz.</div>
-        </div>
-        
-        <!-- Extraversion -->
-        <div class="stat-box" style="text-align:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; border:1px solid var(--glass-border);">
-          <div style="font-size:18px; margin-bottom:4px;">🎉</div>
-          <div id="big5-extraversion" style="font-size:18px; font-weight:700; color:#fbbf24;">-</div>
-          <div style="font-size:8px; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">Estrovers.</div>
-        </div>
-        
-        <!-- Agreeableness -->
-        <div class="stat-box" style="text-align:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; border:1px solid var(--glass-border);">
-          <div style="font-size:18px; margin-bottom:4px;">🤝</div>
-          <div id="big5-agreeableness" style="font-size:18px; font-weight:700; color:#60a5fa;">-</div>
-          <div style="font-size:8px; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">Amichez.</div>
-        </div>
-        
-        <!-- Neuroticism -->
-        <div class="stat-box" style="text-align:center; background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; border:1px solid var(--glass-border);">
-          <div style="font-size:18px; margin-bottom:4px;">⚡</div>
-          <div id="big5-neuroticism" style="font-size:18px; font-weight:700; color:#f87171;">-</div>
-          <div style="font-size:8px; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">Nevrotic.</div>
-        </div>
-      </div>
-    </div>
-
-    <div style="margin-bottom:15px;">
-      <h4 style="opacity:0.7; text-transform:uppercase; font-size:12px; letter-spacing:1px;">Gestione Operativa</h4>
-    </div>
-
-    <!-- DASH GRID (Senza Crescita Personale) -->
-    <div class="dash-grid">
-
-      <!-- TASK ATTIVI -->
-      <div class="dash-card" onclick="navTo('tasks')">
-        <div class="dash-icon"><i class="fas fa-tasks"></i></div>
-        <div class="dash-label">Task Attivi</div>
-        <div class="dash-sub" id="sub-tasks">0 in corso</div>
-      </div>
-
-      <!-- CREA JOB -->
-      <div class="dash-card" onclick="navTo('job-create')" style="border: 1px solid var(--primary);">
-        <div class="dash-icon" style="background: rgba(0,0,0,0.1);"><i class="fas fa-briefcase"></i></div>
-        <div class="dash-label">Crea Job</div>
-        <div class="dash-sub">Nuova Missione</div>
-      </div>
-
-      <!-- BADGE -->
-      <div class="dash-card" onclick="navTo('badges')">
-        <div class="dash-icon" style="background:rgba(245, 158, 11, 0.2);">
-          <i class="fas fa-trophy"></i>
-        </div>
-        <div class="dash-label">Badge</div>
-        <div class="dash-sub" id="sub-badges">0/12 sbloccati</div>
-      </div>
-
-      <!-- FORMAZIONE -->
-      <div class="dash-card" onclick="navTo('training')">
-        <div class="dash-icon" style="background:rgba(34, 197, 94, 0.2);">
-          <i class="fas fa-graduation-cap"></i>
-        </div>
-        <div class="dash-label">Formazione</div>
-        <div class="dash-sub" id="sub-training">0 moduli disponibili</div>
-      </div>
-
-      <!-- CALENDARIO -->
-      <div class="dash-card" onclick="navTo('calendar')">
-        <div class="dash-icon"><i class="fas fa-calendar-alt"></i></div>
-        <div class="dash-label">Calendario</div>
-        <div class="dash-sub" id="sub-calendar">Prossimi eventi</div>
-      </div>
-
-    </div>
-
-    <!-- SEZIONE CRESCITA DETTAGLIATA -->
-    <div class="form-section" style="margin-top:30px;">
-      <div class="form-section-title">🌱 Crescita Personale</div>
-      
-      <!-- PROFILO COMPETENZE TECNICHE -->
-      <div class="card" onclick="navToSkills()" style="cursor:pointer; margin-bottom:15px; padding:15px;">
-        <div style="display:flex; align-items:center; gap:15px;">
-          <div style="font-size:40px;">🧠</div>
-          <div style="flex:1;">
-            <div style="font-weight:600; margin-bottom:4px;">Profilo Competenze</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Hard skills e specializzazioni tecniche</div>
-            <div class="progress-bar" style="height:8px; background:rgba(255,255,255,0.1); border-radius:10px; overflow:hidden;">
-              <div id="progress-skills" class="progress-fill" style="width:0%; height:100%; background:var(--primary); transition:width 0.5s;"></div>
-            </div>
-          </div>
-          <div id="percent-skills" style="font-size:20px; font-weight:700; color:var(--primary);">0%</div>
-        </div>
-      </div>
-
-      <!-- PROFILO COMPORTAMENTALE (SOFT SKILLS) -->
-      <div class="card" onclick="goToSoftSkills()" style="cursor:pointer; margin-bottom:15px; padding:15px;">
-        <div style="display:flex; align-items:center; gap:15px;">
-          <div style="font-size:40px;">🎯</div>
-          <div style="flex:1;">
-            <div style="font-weight:600; margin-bottom:4px;">Profilo Comportamentale</div>
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Soft skills e attitudini personali</div>
-            <div class="progress-bar" style="height:8px; background:rgba(255,255,255,0.1); border-radius:10px; overflow:hidden;">
-              <div id="progress-softskills" class="progress-fill" style="width:0%; height:100%; background:var(--success); transition:width 0.5s;"></div>
-            </div>
-          </div>
-          <div id="percent-softskills" style="font-size:20px; font-weight:700; color:var(--success);">0%</div>
-        </div>
-      </div>
-
-      <!-- MODULI FORMATIVI CONSIGLIATI -->
-      <div class="card" style="padding:15px;">
-        <h4 style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-          <i class="fas fa-graduation-cap"></i> Moduli Consigliati
-        </h4>
-        <div id="recommended-modules">
-          <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
-            <i class="fas fa-spinner fa-spin"></i> Caricamento moduli...
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- NOTIFICHE RECENTI -->
-    <div class="card" style="margin-top:20px; padding:15px;">
-      <h4 style="margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-        <i class="fas fa-bell"></i> Notifiche Recenti
-      </h4>
-      <div id="notifications-list">
-        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;">
-          Nessuna notifica
-        </div>
-      </div>
-    </div>
-
-    <div style="text-align:center; margin-top:30px; margin-bottom:30px; opacity:0.3; font-size:10px;">
-      <p>SiteBoS Operator v1.0</p>
-    </div>
-
-  </div>
-
-  <script src="operator_dashboard_logic.js"></script>
-
-    <!-- User Guide and Audio Guide Integration Engine -->
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    
+    <!-- Tailwind CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <script>
-    (function() {
-        if (document.getElementById('userguide-drawer-overlay')) return;
-
-        // 1. Determine HTML filename to play the correct WAV file
-        const pathParts = window.location.pathname.split('/');
-        const pageName = pathParts[pathParts.length - 1] || 'index.html';
-        const baseName = pageName.replace('.html', '');
-        
-        let audioSrc = baseName + '.wav';
-        if (baseName === 'add-product') audioSrc = 'catalog_add-product.wav';
-        if (baseName === 'edit-product') audioSrc = 'catalog_edit-product.wav';
-
-        // 2. Determine corresponding userguide page
-        let guidePage = 'userguide/index.html';
-        if (window.location.pathname.includes('/gestione/')) {
-            guidePage = 'userguide/03_catalog.html';
-        } else if (window.location.pathname.includes('/identity/')) {
-            guidePage = 'userguide/02_onboarding.html';
-        } else if (window.location.pathname.includes('/agents/')) {
-            if (baseName.includes('controllo')) guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName.includes('sicurezza')) guidePage = 'userguide/11_agente_sicurezza.html';
-            else guidePage = 'userguide/01_intro.html';
-        } else {
-            if (baseName === 'agenda') guidePage = 'userguide/10_agenda_radar.html';
-            else if (baseName === 'certificator') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'intelligent-warehouse') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'orders-manager') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'job-create') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'pianificazione_itinerari') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'fine-tuning') guidePage = 'userguide/12_fine_tuning.html';
-            else if (baseName === 'risorse_umane') guidePage = 'userguide/06_team.html';
-            else if (baseName === 'analisi-mercato') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'agent_intelligence') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'agenda') guidePage = 'userguide/10_agenda_radar.html';
-            else if (baseName === 'assistente-sicurezza') guidePage = 'userguide/11_agente_sicurezza.html';
-            else if (baseName === 'controllo_gestione') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'ecommerce') guidePage = 'userguide/04_online.html';
-            else if (baseName === 'preventivi') guidePage = 'userguide/09_controllo_gestione.html';
-        }
-
-        // Calculate relative path depth
-        const tcIndex = window.location.pathname.indexOf('/telegram_control/');
-        let rootPath = '';
-        if (tcIndex !== -1) {
-            const subPath = window.location.pathname.substring(tcIndex + '/telegram_control/'.length);
-            const slashCount = (subPath.match(/\//g) || []).length;
-            rootPath = '../'.repeat(slashCount);
-        }
-        
-        const finalGuideUrl = rootPath + guidePage;
-        const finalAudioUrl = audioSrc;
-
-        // 3. Inject Font Awesome stylesheet if missing
-        if (!document.querySelector('link[href*="font-awesome"]') && !document.querySelector('link[href*="all.min.css"]')) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
-            document.head.appendChild(link);
-        }
-
-        // 4. Inject Drawer HTML structure into Body
-        const drawerHtml = `
-        <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
-            <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
-                <div class="w-full flex items-center justify-between p-4 border-b border-slate-100 shrink-0 select-none">
-                    <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
-                        <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente</span>
-                    </div>
-                    <button onclick="closeUserGuide()" class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-90 transition">
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
-                </div>
-                <div class="flex-1 w-full overflow-hidden bg-slate-50 relative">
-                    <iframe id="userguide-iframe" class="w-full h-full border-none" src=""></iframe>
-                </div>
-            </div>
-        </div>`;
-        document.body.insertAdjacentHTML('beforeend', drawerHtml);
-
-        // 5. Inject Globe and Volume Buttons
-        const header = document.querySelector('header');
-        let buttonContainer = null;
-        if (header) {
-            buttonContainer = header.querySelector('.flex.gap-2') || header.querySelector('.flex.items-center.gap-2') || header.querySelector('.flex.gap-3');
-        }
-
-        const btnHtml = `
-        <!-- User Guide Button -->
-        <button id="btn-nav-guide" onclick="openUserGuide('${finalGuideUrl}')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Manuale Utente">
-            <i class="fas fa-globe text-xs"></i>
-        </button>
-        <!-- Speech Audio Button -->
-        <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Guida Vocale">
-            <i class="fas fa-volume-high text-xs"></i>
-        </button>`;
-
-        if (buttonContainer) {
-            buttonContainer.insertAdjacentHTML('afterbegin', btnHtml);
-        } else if (header) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'flex gap-2 items-center';
-            wrapper.innerHTML = btnHtml;
-            header.appendChild(wrapper);
-        } else {
-            const floatingDiv = document.createElement('div');
-            floatingDiv.className = 'fixed top-4 right-4 flex gap-2 z-50';
-            floatingDiv.innerHTML = btnHtml;
-            document.body.appendChild(floatingDiv);
-        }
-
-        // 6. Action Functions (Drawer & Audio)
-        let voiceAudio = null;
-        let isAudioPlaying = false;
-
-        window.openUserGuide = function(url) {
-            const overlay = document.getElementById('userguide-drawer-overlay');
-            const drawer = document.getElementById('userguide-drawer');
-            const iframe = document.getElementById('userguide-iframe');
-            if (!overlay || !drawer || !iframe) return;
-
-            window.stopAudio();
-            
-            iframe.src = url;
-            overlay.classList.remove('hidden');
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-                drawer.classList.remove('translate-y-full');
-            }, 10);
-        };
-
-        window.closeUserGuide = function() {
-            const overlay = document.getElementById('userguide-drawer-overlay');
-            const drawer = document.getElementById('userguide-drawer');
-            if (!overlay || !drawer) return;
-
-            overlay.classList.add('opacity-0');
-            drawer.classList.add('translate-y-full');
-            setTimeout(() => {
-                overlay.classList.add('hidden');
-                document.getElementById('userguide-iframe').src = "";
-            }, 300);
-        };
-
-        window.stopAudio = function() {
-            if (isAudioPlaying && voiceAudio) {
-                voiceAudio.pause();
-                voiceAudio.currentTime = 0;
-            }
-            isAudioPlaying = false;
-            voiceAudio = null;
-            const btn = document.getElementById('btn-nav-audio');
-            const icon = btn ? btn.querySelector('i') : null;
-            if (icon) {
-                icon.className = 'fas fa-volume-high text-xs';
-            }
-            if (btn) {
-                btn.classList.remove('bg-black', 'text-white', 'border-black');
-                btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
-            }
-        };
-
-        window.toggleAudio = function() {
-            const btn = document.getElementById('btn-nav-audio');
-            const icon = btn ? btn.querySelector('i') : null;
-
-            if (!voiceAudio) {
-                voiceAudio = new Audio(finalAudioUrl);
-                voiceAudio.addEventListener('ended', () => {
-                    isAudioPlaying = false;
-                    voiceAudio.currentTime = 0;
-                    if (icon) {
-                        icon.className = 'fas fa-volume-high text-xs';
-                        btn.classList.remove('bg-black', 'text-white', 'border-black');
-                        btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
                     }
-                });
+                }
             }
-
-            if (isAudioPlaying) {
-                window.stopAudio();
-            } else {
-                voiceAudio.play().then(() => {
-                    isAudioPlaying = true;
-                    if (icon) {
-                        icon.className = 'fas fa-stop text-xs';
-                        btn.classList.remove('bg-white', 'text-slate-500', 'border-gray-200');
-                        btn.classList.add('bg-black', 'text-white', 'border-black');
-                    }
-                }).catch(err => {
-                    console.error("Errore riproduzione audio:", err);
-                });
-            }
-        };
-    })();
+        }
     </script>
+    
+    <style>
+        body {
+            background-color: #ffffff !important;
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f5f8 100%) !important;
+            color: #0f172a !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            overflow: hidden;
+            height: 100vh;
+            height: 100dvh;
+            background-image: radial-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px);
+            background-size: 16px 16px;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Ambient Breathing Core Shadow Glow */
+        @keyframes corePulse {
+            0% { box-shadow: 0 0 10px rgba(15, 23, 42, 0.04), 0 0 20px rgba(15, 23, 42, 0.02); }
+            50% { box-shadow: 0 0 25px rgba(15, 23, 42, 0.12), 0 0 40px rgba(15, 23, 42, 0.06); }
+            100% { box-shadow: 0 0 10px rgba(15, 23, 42, 0.04), 0 0 20px rgba(15, 23, 42, 0.02); }
+        }
+        .jarvis-core-pulse {
+            animation: corePulse 3s infinite ease-in-out;
+        }
+
+        /* Satellite Wrapper & Floating Button */
+        .satellite-item {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            will-change: transform, opacity;
+            transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .satellite-btn {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 14px -2px rgba(15, 23, 42, 0.10);
+            transition: border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                        box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .satellite-item.focused .satellite-btn {
+            border-color: #0f172a;
+            box-shadow: 0 14px 24px -4px rgba(15, 23, 42, 0.22), 
+                        0 6px 10px -2px rgba(15, 23, 42, 0.10);
+            transform: scale(1.18);
+        }
+
+        /* Etichetta posizionata direttamente SOTTO il Satellite */
+        .satellite-label {
+            margin-top: 8px;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            background: rgba(15, 23, 42, 0.92);
+            color: #ffffff;
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            opacity: 0.4;
+            transform: translateY(-2px);
+            transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .satellite-item.focused .satellite-label {
+            opacity: 1;
+            transform: translateY(0);
+            background: #0f172a;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.25);
+        }
+
+        /* Drawer Slide Transition */
+        .drawer-transition {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm justify-between select-none">
+
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 bg-white z-[2000] flex flex-col items-center justify-center">
+        <div class="w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+        <div class="mt-4 text-xs font-bold uppercase tracking-wider text-slate-500">Caricamento Dashboard...</div>
+    </div>
+
+    <!-- TOP BAR HEADER -->
+    <header class="p-4 bg-white/85 backdrop-blur-md border-b border-slate-200/85 flex justify-between items-center z-50 shrink-0 shadow-sm">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleDrawer(true)" class="w-10 h-10 border border-slate-200 flex items-center justify-center rounded-2xl bg-white text-slate-800 active:bg-slate-50 transition shadow-sm" title="Dettagli Operatore">
+                <i class="fas fa-bars text-xs"></i>
+            </button>
+            <div>
+                <h1 id="operatorName" class="text-xs font-black uppercase tracking-tight leading-none text-slate-900">OPERATORE</h1>
+                <p id="operatorRole" class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mt-1">OPERATOR CONSOLE</p>
+            </div>
+        </div>
+        <div class="bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 rounded-2xl flex items-center gap-2">
+            <i class="fas fa-building text-slate-400 text-[10px]"></i>
+            <span id="companyName" class="text-[10px] font-black text-slate-900 uppercase">COMPANY</span>
+        </div>
+    </header>
+
+    <!-- 3D ORBIT VIEWPORT -->
+    <main id="orbit-viewport" class="relative flex-1 w-full flex items-center justify-center select-none touch-none">
+        
+        <!-- SVG Tilted Orbit Ellipse -->
+        <svg class="absolute w-[330px] h-[230px] pointer-events-none opacity-40">
+            <ellipse cx="165" cy="115" rx="150" ry="105" fill="none" stroke="#cbd5e1" stroke-width="1.2" stroke-dasharray="4,5" />
+        </svg>
+
+        <!-- Soft Shadow Pulse Ring -->
+        <div class="absolute w-24 h-24 rounded-full border border-slate-200/40 jarvis-core-pulse"></div>
+
+        <!-- CORE ASSISTENTE VOCALE / PROFILO (Mantiene la sua funzione originale per l'AI) -->
+        <div id="jarvis-core" onclick="handleCoreClick()" class="w-20 h-20 rounded-full bg-white text-black flex flex-col items-center justify-center cursor-pointer shadow-xl active:scale-95 transition-transform duration-300 z-10 border-2 border-slate-900 overflow-hidden relative">
+            <div id="operator-avatar" class="w-full h-full flex items-center justify-center text-2xl font-bold bg-slate-50 text-slate-800">
+                👤
+            </div>
+        </div>
+
+        <!-- SATELLITES ORBIT CAROUSEL (Satelliti + Etichetta posizionata sotto ciascun satellite) -->
+        <div id="satellites-orbit" class="absolute inset-0 pointer-events-none">
+            <!-- Satelliti iniettati dinamicamente da JS -->
+        </div>
+
+    </main>
+
+    <!-- FOOTER SUPPORTO MINIMALE -->
+    <footer class="p-3 bg-white/60 backdrop-blur-md border-t border-slate-200/50 z-40 text-center">
+        <button onclick="toggleDrawer(true)" class="text-[9px] font-bold text-slate-400 uppercase tracking-widest hover:text-slate-700 transition">
+            <i class="fas fa-info-circle mr-1"></i> Tocca il Satellite o scorri l'orbita per selezionare
+        </button>
+    </footer>
+
+    <!-- DRAWER OVERLAY (z-index 999 per coprire satelliti) -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-950/20 backdrop-blur-sm z-[999] hidden transition-opacity duration-300" onclick="toggleDrawer(false)">
+        <!-- NAV DRAWER z-[1000] -->
+        <div id="nav-drawer" class="fixed top-0 left-0 h-full w-full bg-white flex flex-col justify-between drawer-transition -translate-x-full shadow-2xl z-[1000]" onclick="event.stopPropagation()">
+            
+            <!-- Drawer Header -->
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                <span id="drawer-header-title" class="text-[9px] font-black tracking-widest text-slate-400 uppercase">Scheda Operatore & Moduli</span>
+                <button onclick="toggleDrawer(false)" class="w-10 h-10 rounded-2xl border border-slate-200 flex items-center justify-center text-slate-600 bg-white active:bg-slate-50 transition shadow-sm">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+
+            <!-- Drawer Content Container -->
+            <div id="drawer-content-body" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+                <!-- Dettagli iniettati dinamicamente da JS -->
+            </div>
+
+            <!-- Drawer Footer -->
+            <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+                <button onclick="openSettings()" class="w-full py-3.5 border border-slate-200 bg-white text-slate-900 font-bold text-xs rounded-2xl active:bg-slate-100 transition shadow-sm flex items-center justify-center gap-2">
+                    <i class="fas fa-cog text-slate-500"></i> Modifica Profilo Operatore
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGICA DASHBOARD SATELLITI OPERATORE -->
+    <script src="operator_dashboard_logic.js"></script>
+
 </body>
 </html>

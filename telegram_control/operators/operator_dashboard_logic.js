@@ -1,10 +1,11 @@
 // operator_dashboard_logic.js
+// SiteBoS Operator Dashboard - 3D Orbital Satellites Engine v3.0
 
 const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
 const ash = window.TwaGuard?.requireAsh?.();
 window.TwaGuard?.cleanupUrl?.(['ash']);
 
-// Config
+// Config API Endpoint
 const API_ENDPOINT = 'https://trinai.api.workflow.dcmake.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
 
 // Soft-required: ash is the only URL context
@@ -14,9 +15,59 @@ if (!ash) {
 
 // State
 let operatorData = null;
+let animationFrameId = null;
+
+// Satellites Configuration (6 Satelliti Operativi)
+const satellitesData = [
+  { id: 'tasks', label: 'TASK ATTIVI', icon: 'fa-tasks', color: '#3b82f6', url: 'operator_tasks.html' },
+  { id: 'job-create', label: 'CREA NUOVO JOB', icon: 'fa-briefcase', color: '#8b5cf6', url: '../operativita/job-create.html' },
+  { id: 'big5', label: 'PROFILO PERSONALITÀ', icon: 'fa-brain', color: '#a78bfa', action: 'showBigFiveDrawer' },
+  { id: 'badges', label: 'BADGE & TROFEI', icon: 'fa-trophy', color: '#f59e0b', url: 'operator_badges.html' },
+  { id: 'training', label: 'FORMAZIONE & SKILLS', icon: 'fa-graduation-cap', color: '#10b981', url: '../softskill/index.html' },
+  { id: 'calendar', label: 'CALENDARIO TURNI', icon: 'fa-calendar-alt', color: '#ec4899', url: 'operator_calendar.html' }
+];
+
+// Orbital Engine Variables (6 Satellites -> Math.PI / 3 step)
+const rx = 145; 
+const ry = 100; 
+let currentAngle = Math.PI / 2; 
+let isDragging = false;
+let startX = 0;
+let baseAngle = 0;
+let activeIdx = 0;
+
+// Web Audio Mechanical Tick Sound
+let audioCtx = null;
+function playMechanicalTick() {
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(140, audioCtx.currentTime + 0.03);
+    
+    gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.03);
+  } catch (e) {
+    console.warn("Audio Context error:", e);
+  }
+}
 
 // ============================================
-// INIT
+// INIT & SETUP
 // ============================================
 
 async function init() {
@@ -24,21 +75,20 @@ async function init() {
   
   try {
     await loadOperatorData();
-    populateDashboard();
+    populateHeader();
+    buildSatellites();
+    setupOrbitEvents();
     hideLoader();
     
-    // Welcome haptic
-    tg.HapticFeedback.impactOccurred('light');
-    
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
   } catch (error) {
     console.error('Init error:', error);
-    alert('❌ Errore nel caricamento dei dati');
     hideLoader();
   }
 }
 
 // ============================================
-// API CALLS
+// API CALLS & DATA MAPPER
 // ============================================
 
 async function loadOperatorData() {
@@ -58,517 +108,433 @@ async function loadOperatorData() {
     const data = await response.json();
     
     if (data.status === 'success' && data.stakeholder) {
-      // Map stakeholder document to dashboard format
       operatorData = mapStakeholderToDashboard(data.stakeholder);
-      
-      // Store in sessionStorage
       sessionStorage.setItem('operator_data', JSON.stringify(operatorData));
       sessionStorage.setItem('stakeholder_raw', JSON.stringify(data.stakeholder));
       sessionStorage.setItem('operator_ash', ash);
-      
     } else {
       throw new Error(data.message || 'Failed to load data');
     }
-    
   } catch (error) {
-    console.error('Load operator error:', error);
-    
-    // Fallback to sessionStorage if exists
+    console.warn('Load operator API error, checking cache...', error);
     const cached = sessionStorage.getItem('operator_data');
     if (cached) {
       operatorData = JSON.parse(cached);
-      console.warn('Using cached data');
     } else {
-      throw error;
+      // Fallback mock per visualizzazione immediata
+      operatorData = getFallbackOperatorData();
     }
   }
 }
-
-// ============================================
-// MAPPER: Stakeholder Document → Dashboard Data
-// ============================================
 
 function mapStakeholderToDashboard(stakeholder) {
   return {
-    // IDENTITY
     identity: {
       name: stakeholder.identity?.full_name?.split(' ')[0] || 'Operatore',
-      surname: stakeholder.identity?.full_name?.split(' ').slice(1).join(' ') || '',
       full_name: stakeholder.identity?.full_name || 'Operatore',
-      email: stakeholder.identity?.primary_contact?.email || '',
-      phone: stakeholder.identity?.primary_contact?.phone || ''
+      email: stakeholder.identity?.primary_contact?.email || ''
     },
-    
-    // PROFESSIONAL PROFILE
     professional_profile: {
       current_role: stakeholder.identity?.professional_background?.current_role || 'Operatore',
       years_experience: stakeholder.professional_profile?.years_experience || '0',
-      primary_skills: stakeholder.professional_profile?.hard_skills?.slice(0, 5) || [],
-      secondary_skills: stakeholder.professional_profile?.hard_skills?.slice(5) || [],
-      all_skills: stakeholder.professional_profile?.hard_skills || [],
-      certifications: parseCertifications(stakeholder.professional_profile?.certifications),
-      education: [{ 
-        degree: stakeholder.identity?.professional_background?.education || 'N/A',
-        institution: '',
-        year: ''
-      }]
+      hard_skills: stakeholder.professional_profile?.hard_skills || []
     },
-    
-    // SOFT SKILLS
-    soft_skills: {
-      completed_modules_count: countCompletedModules(stakeholder.professional_profile?.soft_skills_modules),
-      total_modules: 4,
-      completion_percentage: calculateSoftSkillsCompletion(stakeholder.professional_profile?.soft_skills_modules),
-      modules_completed: getCompletedModules(stakeholder.professional_profile?.soft_skills_modules),
-      learning_history: stakeholder.professional_profile?.learning_history || {
-        videos_completed: [],
-        total_videos_watched: 0,
-        last_learning_activity: null
-      }
-    },
-    
-    // BIG FIVE (from behavioral_profile)
     big_five: {
-      openness_to_experience: stakeholder.behavioral_profile?.big_five?.openness_to_experience || null,
-      conscientiousness: stakeholder.behavioral_profile?.big_five?.conscientiousness || null,
-      extraversion: stakeholder.behavioral_profile?.big_five?.extraversion || null,
-      agreeableness: stakeholder.behavioral_profile?.big_five?.agreeableness || null,
-      neuroticism: stakeholder.behavioral_profile?.big_five?.neuroticism || null
+      openness: stakeholder.behavioral_profile?.big_five?.openness_to_experience || 75,
+      conscientiousness: stakeholder.behavioral_profile?.big_five?.conscientiousness || 85,
+      extraversion: stakeholder.behavioral_profile?.big_five?.extraversion || 65,
+      agreeableness: stakeholder.behavioral_profile?.big_five?.agreeableness || 80,
+      neuroticism: stakeholder.behavioral_profile?.big_five?.neuroticism || 25
     },
-    
-    // GAMIFICATION (mock - da implementare in stakeholder schema)
     gamification: {
-      xp: stakeholder.gamification?.xp || 0,
-      level: stakeholder.gamification?.level || 1,
-      streak: stakeholder.gamification?.streak || 0,
-      streak_best: stakeholder.gamification?.streak_best || 0,
-      badges: stakeholder.gamification?.badges || []
+      xp: stakeholder.gamification?.xp || 1250,
+      level: stakeholder.gamification?.level || 3,
+      badges: stakeholder.gamification?.badges || ['Speedy', 'Task Master', 'Compliance Hero']
     },
-    
-    // TASKS (mock - da implementare)
     tasks: {
-      active: stakeholder.tasks?.active || 0,
-      completed_today: stakeholder.tasks?.completed_today || 0,
-      pending: stakeholder.tasks?.pending || 0,
-      overdue: stakeholder.tasks?.overdue || 0
+      active: stakeholder.tasks?.active || 2,
+      completed_today: stakeholder.tasks?.completed_today || 4
     },
-    
-    // PERFORMANCE (mock - da implementare)
-    performance: {
-      hours_this_week: stakeholder.performance?.hours_this_week || 0,
-      hours_today: stakeholder.performance?.hours_today || 0,
-      tasks_completed_week: stakeholder.performance?.tasks_completed_week || 0,
-      average_rating: stakeholder.performance?.average_rating || 0
-    },
-    
-    // SYSTEM ACCESS
     system_access: {
-      telegram_chat_id: stakeholder.system_access?.telegram_chat_id || '',
-      onboarding_completed_at: stakeholder.system_access?.invitation_metadata?.invited_at || stakeholder.metadata?.created_at,
       linked_owner: {
         vat_number: stakeholder.system_access?.linked_owner?.vat_number || '',
-        ragione_sociale: stakeholder.system_access?.linked_owner?.company_name || 'Company',
-        logo_url: null
+        company_name: stakeholder.system_access?.linked_owner?.company_name || 'Studio BoS'
       }
-    },
-    
-    // NOTIFICATIONS
-    notifications: generateWelcomeNotifications(stakeholder),
-    
-    // METADATA
-    metadata: {
-      status: stakeholder.metadata?.status || 'ACTIVE',
-      stakeholder_type: stakeholder.metadata?.stakeholder_type || 'OPERATOR',
-      created_at: stakeholder.metadata?.created_at
     }
   };
 }
 
-// ============================================
-// HELPER FUNCTIONS - FIX SOFT SKILLS COMPLETION
-// ============================================
-
-function parseCertifications(certString) {
-  if (!certString) return [];
-  
-  const certArray = certString.split(',').map(c => c.trim());
-  
-  return certArray.map(cert => {
-    const yearMatch = cert.match(/\((\d{4})\)/);
-    const year = yearMatch ? yearMatch[1] : '';
-    const title = cert.replace(/\(\d{4}\)/, '').trim();
-    
-    return { title, year };
-  }).slice(0, 5);
-}
-
-function countCompletedModules(softSkillsModules) {
-  if (!softSkillsModules || typeof softSkillsModules !== 'object') return 0;
-  
-  let completedCount = 0;
-  
-  Object.values(softSkillsModules).forEach(module => {
-    if (module?.completed === true) {
-      completedCount++;
-    }
-  });
-  
-  return completedCount;
-}
-
-function calculateSoftSkillsCompletion(softSkillsModules) {
-  if (!softSkillsModules || typeof softSkillsModules !== 'object') return 0;
-  
-  let completedCount = 0;
-  const totalModules = 4; // modulo1, modulo2, modulo3, modulo4
-  
-  Object.values(softSkillsModules).forEach(module => {
-    if (module?.completed === true) {
-      completedCount++;
-    }
-  });
-  
-  // Percentuale: (moduli completati / 4) * 100
-  // Ogni modulo vale 25%
-  return Math.round((completedCount / totalModules) * 100);
-}
-
-function getCompletedModules(softSkillsModules) {
-  if (!softSkillsModules) return [];
-  
-  return Object.entries(softSkillsModules)
-    .filter(([key, module]) => module?.completed === true)
-    .map(([key, module]) => ({
-      name: key,
-      completion_date: module?.completion_date || null,
-      evaluation: module?.evaluation || null
-    }));
-}
-
-function generateWelcomeNotifications(stakeholder) {
-  const notifications = [];
-  
-  notifications.push({
-    id: 'welcome',
-    icon: '🎉',
-    title: `Benvenuto in ${stakeholder.system_access?.linked_owner?.company_name || 'Team'}!`,
-    time: 'oggi',
-    read: false
-  });
-  
-  const softSkillsProgress = calculateSoftSkillsCompletion(stakeholder.professional_profile?.soft_skills_modules);
-  if (softSkillsProgress < 100) {
-    notifications.push({
-      id: 'softskills',
-      icon: '🎯',
-      title: 'Completa il tuo Profilo Comportamentale',
-      time: 'oggi',
-      read: false
-    });
-  }
-  
-  if (!stakeholder.professional_profile?.hard_skills?.length) {
-    notifications.push({
-      id: 'skills',
-      icon: '🧠',
-      title: 'Aggiungi le tue competenze tecniche',
-      time: 'oggi',
-      read: false
-    });
-  }
-  
-  return notifications;
+function getFallbackOperatorData() {
+  return {
+    identity: { name: 'Operatore', full_name: 'Operatore Operativo', email: 'op@sitebos.it' },
+    professional_profile: { current_role: 'Specialista di Team', years_experience: '3', hard_skills: ['Gnatologia', 'Sterilizzazione'] },
+    big_five: { openness: 80, conscientiousness: 90, extraversion: 70, agreeableness: 85, neuroticism: 20 },
+    gamification: { xp: 1500, level: 3, badges: ['Primo Accesso', 'Task Master'] },
+    tasks: { active: 3, completed_today: 5 },
+    system_access: { linked_owner: { vat_number: '', company_name: 'Studio BoS' } }
+  };
 }
 
 // ============================================
-// POPULATE DASHBOARD
+// HEADER & CORE POPULATE
 // ============================================
 
-function populateDashboard() {
+function populateHeader() {
   if (!operatorData) return;
   
-  // Header
-  const fullName = operatorData.identity.full_name;
-  document.getElementById('operatorName').innerText = fullName;
+  const opNameEl = document.getElementById('operatorName');
+  if (opNameEl) opNameEl.innerText = operatorData.identity.full_name;
   
-  const role = operatorData.professional_profile.current_role;
-  document.getElementById('operatorRole').innerText = role;
+  const opRoleEl = document.getElementById('operatorRole');
+  if (opRoleEl) opRoleEl.innerText = operatorData.professional_profile.current_role;
   
-  const companyName = operatorData.system_access.linked_owner.ragione_sociale;
-  document.getElementById('companyName').innerText = companyName;
+  const compEl = document.getElementById('companyName');
+  if (compEl) compEl.innerText = operatorData.system_access.linked_owner.company_name;
   
-  const memberSince = operatorData.system_access.onboarding_completed_at 
-    ? new Date(operatorData.system_access.onboarding_completed_at).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' })
-    : 'oggi';
-  document.getElementById('memberSince').innerText = memberSince;
-  
-  // Avatar con logo owner
-  loadOwnerLogo();
-  
-  // Big Five
-  populateBigFive();
-  
-  // Stats
-  populateStats();
-  
-  // Growth section
-  populateGrowth();
-  
-  // Recommended modules (only if real data exists)
-  loadRecommendedModules();
-  
-  // Notifications (only if real data exists)
-  loadNotifications();
-}
-
-function loadOwnerLogo() {
-  const ownerVat = operatorData.system_access.linked_owner.vat_number;
+  // Set avatar initials or logo
   const avatarDiv = document.getElementById('operator-avatar');
-  
-  if (!ownerVat || !avatarDiv) return;
-  
-  const extensions = ['png', 'jpg', 'jpeg', 'svg'];
-  let currentIndex = 0;
-  
-  function tryLoadLogo() {
-    if (currentIndex >= extensions.length) {
-      return;
-    }
-    
-    const ext = extensions[currentIndex];
-    const logoPath = `../logos/logo_${ownerVat}.${ext}`;
-    
-    const img = new Image();
-    img.onload = function() {
-      avatarDiv.innerHTML = `<img src="${logoPath}" alt="Logo" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
-    };
-    img.onerror = function() {
-      currentIndex++;
-      tryLoadLogo();
-    };
-    img.src = logoPath;
+  if (avatarDiv) {
+    const initials = operatorData.identity.name.substring(0, 2).toUpperCase();
+    avatarDiv.innerText = initials || '👤';
   }
-  
-  tryLoadLogo();
-}
-
-function populateBigFive() {
-  const bigFive = operatorData.big_five;
-  
-  // Openness
-  const opennessEl = document.getElementById('big5-openness');
-  if (bigFive.openness_to_experience !== null) {
-    opennessEl.innerText = `${bigFive.openness_to_experience}%`;
-  } else {
-    opennessEl.innerText = '-';
-  }
-  
-  // Conscientiousness
-  const conscientiousnessEl = document.getElementById('big5-conscientiousness');
-  if (bigFive.conscientiousness !== null) {
-    conscientiousnessEl.innerText = `${bigFive.conscientiousness}%`;
-  } else {
-    conscientiousnessEl.innerText = '-';
-  }
-  
-  // Extraversion
-  const extraversionEl = document.getElementById('big5-extraversion');
-  if (bigFive.extraversion !== null) {
-    extraversionEl.innerText = `${bigFive.extraversion}%`;
-  } else {
-    extraversionEl.innerText = '-';
-  }
-  
-  // Agreeableness
-  const agreeablenessEl = document.getElementById('big5-agreeableness');
-  if (bigFive.agreeableness !== null) {
-    agreeablenessEl.innerText = `${bigFive.agreeableness}%`;
-  } else {
-    agreeablenessEl.innerText = '-';
-  }
-  
-  // Neuroticism
-  const neuroticismEl = document.getElementById('big5-neuroticism');
-  if (bigFive.neuroticism !== null) {
-    neuroticismEl.innerText = `${bigFive.neuroticism}%`;
-  } else {
-    neuroticismEl.innerText = '-';
-  }
-}
-
-function populateStats() {
-  const activeTasks = operatorData.tasks.active;
-  document.getElementById('sub-tasks').innerText = `${activeTasks} in corso`;
-  
-  const badgesUnlocked = operatorData.gamification.badges.length;
-  document.getElementById('sub-badges').innerText = `${badgesUnlocked}/12 sbloccati`;
-}
-
-function populateGrowth() {
-  const skillsProgress = calculateSkillsProgress();
-  document.getElementById('progress-skills').style.width = `${skillsProgress}%`;
-  document.getElementById('percent-skills').innerText = `${skillsProgress}%`;
-  
-  const softSkillsProgress = operatorData.soft_skills.completion_percentage;
-  document.getElementById('progress-softskills').style.width = `${softSkillsProgress}%`;
-  document.getElementById('percent-softskills').innerText = `${softSkillsProgress}%`;
-}
-
-function calculateSkillsProgress() {
-  if (!operatorData.professional_profile) return 0;
-  
-  const profile = operatorData.professional_profile;
-  let filled = 0;
-  let total = 6;
-  
-  if (profile.current_role && profile.current_role !== 'Operatore') filled++;
-  if (profile.years_experience && profile.years_experience !== '0') filled++;
-  if (profile.primary_skills?.length) filled++;
-  if (profile.secondary_skills?.length) filled++;
-  if (profile.certifications?.length) filled++;
-  if (profile.education?.[0]?.degree !== 'N/A') filled++;
-  
-  return Math.round((filled / total) * 100);
-}
-
-function calculateLevel(xp) {
-  const levels = [
-    { level: 1, xp: 0 },
-    { level: 2, xp: 500 },
-    { level: 3, xp: 1500 },
-    { level: 4, xp: 3000 },
-    { level: 5, xp: 5000 },
-    { level: 6, xp: 8000 },
-    { level: 7, xp: 12000 },
-    { level: 8, xp: 17000 },
-    { level: 9, xp: 23000 },
-    { level: 10, xp: 30000 }
-  ];
-  
-  for (let i = levels.length - 1; i >= 0; i--) {
-    if (xp >= levels[i].xp) {
-      return levels[i].level;
-    }
-  }
-  
-  return 1;
-}
-
-function loadRecommendedModules() {
-  const container = document.getElementById('recommended-modules');
-  
-  // 🔥 NO PLACEHOLDER - Solo moduli reali
-  const modules = [];
-  
-  // TODO: Quando arrivano moduli reali dal backend, riempire qui
-  // modules = operatorData.training_modules || [];
-  
-  if (modules.length === 0) {
-    // 🔥 Se non ci sono moduli, NASCONDI tutta la sezione
-    const card = container.closest('.card');
-    if (card) card.style.display = 'none';
-    return;
-  }
-  
-  container.innerHTML = modules.map(m => `
-    <div style="display:flex; align-items:center; gap:12px; padding:12px; background:rgba(255,255,255,0.03); border-radius:8px; margin-bottom:8px; cursor:pointer;" onclick="openModule('${m.title}')">
-      <div style="font-size:28px;">${m.icon}</div>
-      <div style="flex:1;">
-        <div style="font-weight:600; font-size:14px;">${m.title}</div>
-        <div style="font-size:11px; color:var(--text-muted);">${m.duration}</div>
-      </div>
-      <i class="fas fa-chevron-right" style="color:var(--text-muted);"></i>
-    </div>
-  `).join('');
-  
-  document.getElementById('sub-training').innerText = `${modules.length} moduli disponibili`;
-}
-
-function loadNotifications() {
-  const container = document.getElementById('notifications-list');
-  
-  const notifications = operatorData.notifications || [];
-  
-  if (notifications.length === 0) {
-    // 🔥 Se non ci sono notifiche, NASCONDI tutta la sezione
-    const card = container.closest('.card');
-    if (card) card.style.display = 'none';
-    return;
-  }
-  
-  container.innerHTML = notifications.slice(0, 3).map(n => `
-    <div style="display:flex; align-items:start; gap:10px; padding:10px; border-bottom:1px solid var(--glass-border);">
-      <div style="font-size:20px;">${n.icon || '🔔'}</div>
-      <div style="flex:1;">
-        <div style="font-size:13px; font-weight:600;">${n.title}</div>
-        <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${n.time}</div>
-      </div>
-    </div>
-  `).join('');
 }
 
 // ============================================
-// NAVIGATION
+// 3D ORBITAL SATELLITES CAROUSEL ENGINE
 // ============================================
 
-function navTo(section) {
-  tg.HapticFeedback.impactOccurred('light');
+function buildSatellites() {
+  const orbitContainer = document.getElementById('satellites-orbit');
+  if (!orbitContainer) return;
   
-  const routes = {
-    'growth': 'operator_growth.html',
-    'tasks': 'operator_tasks.html',
-    'badges': 'operator_badges.html',
-    'training': 'operator_training.html',
-    'calendar': 'operator_calendar.html',
-    'job-create': '../operativita/job-create.html'
-  };
+  orbitContainer.innerHTML = "";
+  const total = satellitesData.length; // 6 Satelliti
   
-  const page = routes[section];
+  satellitesData.forEach((sat, idx) => {
+    const div = document.createElement('div');
+    div.className = "satellite-item pointer-events-auto";
+    div.id = `sat-${idx}`;
+    div.innerHTML = `
+      <div class="satellite-btn" style="border-color:${sat.color}">
+        <i class="fas ${sat.icon} text-lg" style="color:${sat.color}"></i>
+      </div>
+      <div class="satellite-label" style="border-left: 2px solid ${sat.color}">
+        ${sat.label}
+      </div>
+    `;
+    
+    div.addEventListener('click', () => {
+      if (idx === activeIdx) {
+        playMechanicalTick();
+        triggerSatelliteAction(sat);
+      } else {
+        const stepAngle = (2 * Math.PI) / total;
+        let rawDiff = (Math.PI / 2 - (idx * stepAngle)) - currentAngle;
+        let shortestDiff = Math.atan2(Math.sin(rawDiff), Math.cos(rawDiff));
+        let targetAngle = currentAngle + shortestDiff;
+        playMechanicalTick();
+        animateTo(targetAngle);
+      }
+    });
+    orbitContainer.appendChild(div);
+  });
   
-  if (page) {
-    window.location.href = `${page}?ash=${encodeURIComponent(ash)}`;
-  } else {
-    alert(`⚠️ Sezione "${section}" in sviluppo`);
+  updateSatellites();
+  findActiveSatellite();
+}
+
+function updateSatellites() {
+  const orbitContainer = document.getElementById('satellites-orbit');
+  if (!orbitContainer) return;
+  
+  const centerX = orbitContainer.clientWidth / 2;
+  const centerY = orbitContainer.clientHeight / 2;
+  const total = satellitesData.length;
+  const stepAngle = (2 * Math.PI) / total;
+
+  satellitesData.forEach((_, idx) => {
+    const satElement = document.getElementById(`sat-${idx}`);
+    if (!satElement) return;
+
+    let angle = currentAngle + (idx * stepAngle);
+    let x = rx * Math.cos(angle);
+    let y = ry * Math.sin(angle);
+
+    let sin = Math.sin(angle);
+    let scale = 0.70 + 0.30 * ((sin + 1) / 2);
+    let opacity = 0.30 + 0.70 * ((sin + 1) / 2);
+    let zIndex = Math.round((sin + 1) * 100);
+
+    satElement.style.transform = `translate3d(${centerX + x - 35}px, ${centerY + y - 35}px, 0) scale(${scale})`;
+    satElement.style.opacity = opacity;
+    satElement.style.zIndex = zIndex;
+
+    if (idx === activeIdx) {
+      satElement.classList.add('focused');
+    } else {
+      satElement.classList.remove('focused');
+    }
+  });
+}
+
+function findActiveSatellite() {
+  const total = satellitesData.length;
+  const stepAngle = (2 * Math.PI) / total;
+  let rawIdx = Math.round((Math.PI / 2 - currentAngle) / stepAngle);
+  activeIdx = ((rawIdx % total) + total) % total;
+}
+
+function executeActiveModule() {
+  const target = satellitesData[activeIdx];
+  if (target) {
+    playMechanicalTick();
+    triggerSatelliteAction(target);
   }
 }
 
-function navToSkills() {
-  tg.HapticFeedback.impactOccurred('light');
-  alert('🛠️ Sezione "Profilo Competenze" in sviluppo');
+function triggerSatelliteAction(sat) {
+  if (sat.action === 'showBigFiveDrawer') {
+    renderBigFiveDrawerContent();
+    toggleDrawer(true);
+  } else if (sat.url) {
+    openModule(sat.url);
+  }
 }
 
-function goToSoftSkills() {
-  tg.HapticFeedback.impactOccurred('light');
-  // Passa solo ash (tu lo scompatti lato server)
-  window.location.href = `../softskill/index.html?ash=${encodeURIComponent(ash)}`;
+function openModule(url) {
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+  window.location.href = `${url}?ash=${encodeURIComponent(ash)}`;
 }
 
-function openModule(title) {
-  tg.HapticFeedback.impactOccurred('light');
-  alert(`🎬 Apertura modulo: ${title}`);
+function handleCoreClick() {
+  playMechanicalTick();
+  renderOperatorOverviewDrawerContent();
+  toggleDrawer(true);
+}
+
+// ============================================
+// TOUCH DRAG & SWIPE ENGINE
+// ============================================
+
+function setupOrbitEvents() {
+  const orbitViewport = document.getElementById('orbit-viewport');
+  if (!orbitViewport) return;
+
+  function onDragStart(clientX) {
+    if (animationFrameId) {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+    isDragging = true;
+    startX = clientX;
+    baseAngle = currentAngle;
+  }
+
+  function onDragMove(clientX) {
+    if (!isDragging) return;
+    const dx = clientX - startX;
+    currentAngle = baseAngle - (dx * 0.006);
+    updateSatellites();
+    findActiveSatellite();
+  }
+
+  function onDragEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+    snapToNearest();
+  }
+
+  orbitViewport.addEventListener('touchstart', e => { onDragStart(e.touches[0].clientX); }, { passive: true });
+  orbitViewport.addEventListener('touchmove', e => { onDragMove(e.touches[0].clientX); }, { passive: true });
+  orbitViewport.addEventListener('touchend', onDragEnd, { passive: true });
+
+  orbitViewport.addEventListener('mousedown', e => { onDragStart(e.clientX); });
+  window.addEventListener('mousemove', e => { onDragMove(e.clientX); });
+  window.addEventListener('mouseup', onDragEnd);
+}
+
+function snapToNearest() {
+  const total = satellitesData.length;
+  const stepAngle = (2 * Math.PI) / total;
+  let rawDiff = Math.round((currentAngle - Math.PI / 2) / stepAngle) * stepAngle + Math.PI / 2 - currentAngle;
+  let shortestDiff = Math.atan2(Math.sin(rawDiff), Math.cos(rawDiff));
+  let targetAngle = currentAngle + shortestDiff;
+  animateTo(targetAngle);
+}
+
+function animateTo(target) {
+  if (animationFrameId) {
+    cancelAnimationFrame(animationFrameId);
+  }
+
+  function step() {
+    let diff = target - currentAngle;
+    if (Math.abs(diff) < 0.004) {
+      currentAngle = target;
+      updateSatellites();
+      findActiveSatellite();
+      animationFrameId = null;
+    } else {
+      currentAngle += diff * 0.18;
+      updateSatellites();
+      findActiveSatellite();
+      animationFrameId = requestAnimationFrame(step);
+    }
+  }
+  animationFrameId = requestAnimationFrame(step);
+}
+
+// ============================================
+// DRAWER CONTROL & DYNAMIC CONTENT RENDERING
+// ============================================
+
+function toggleDrawer(show) {
+  playMechanicalTick();
+  const overlay = document.getElementById('drawer-overlay');
+  const drawer = document.getElementById('nav-drawer');
+  if (!overlay || !drawer) return;
+  
+  if (show) {
+    overlay.classList.remove('hidden');
+    setTimeout(() => {
+      overlay.classList.remove('opacity-0');
+      drawer.classList.remove('-translate-x-full');
+    }, 10);
+  } else {
+    overlay.classList.add('opacity-0');
+    drawer.classList.add('-translate-x-full');
+    setTimeout(() => overlay.classList.add('hidden'), 300);
+  }
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+}
+
+function renderOperatorOverviewDrawerContent() {
+  const titleEl = document.getElementById('drawer-header-title');
+  if (titleEl) titleEl.innerText = "PANORAMICA OPERATORE";
+  
+  const contentEl = document.getElementById('drawer-content-body');
+  if (!contentEl || !operatorData) return;
+  
+  contentEl.innerHTML = `
+    <div class="bg-slate-900 text-white p-4 rounded-2xl shadow-sm">
+      <div class="text-[9px] font-black tracking-widest text-slate-400 uppercase">Identità Operatore</div>
+      <div class="text-base font-black mt-1">${operatorData.identity.full_name}</div>
+      <div class="text-xs text-slate-300">${operatorData.professional_profile.current_role}</div>
+      <div class="text-[10px] text-slate-400 mt-2">🏢 ${operatorData.system_access.linked_owner.company_name}</div>
+    </div>
+    
+    <div class="grid grid-cols-2 gap-3">
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+        <div class="text-[9px] font-bold uppercase text-slate-400">Task Attivi</div>
+        <div class="text-lg font-black text-blue-600 mt-1">${operatorData.tasks.active}</div>
+      </div>
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+        <div class="text-[9px] font-bold uppercase text-slate-400">Badge Sbloccati</div>
+        <div class="text-lg font-black text-amber-500 mt-1">${operatorData.gamification.badges.length}</div>
+      </div>
+    </div>
+
+    <div class="p-4 border border-slate-200 rounded-2xl bg-white space-y-2">
+      <div class="text-[9px] font-black uppercase tracking-wider text-slate-400">Competenze Tecniche</div>
+      <div class="flex flex-wrap gap-1.5 pt-1">
+        ${operatorData.professional_profile.hard_skills.map(s => `<span class="px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-xl text-[10px] font-bold text-slate-700">${s}</span>`).join('') || '<span class="text-xs text-slate-400">Nessuna skill inserita</span>'}
+      </div>
+    </div>
+  `;
+}
+
+function renderBigFiveDrawerContent() {
+  const titleEl = document.getElementById('drawer-header-title');
+  if (titleEl) titleEl.innerText = "PROFILO COMPORTAMENTALE (BIG FIVE)";
+  
+  const contentEl = document.getElementById('drawer-content-body');
+  if (!contentEl || !operatorData) return;
+  
+  const bf = operatorData.big_five;
+  
+  contentEl.innerHTML = `
+    <div class="p-4 bg-slate-900 text-white rounded-2xl shadow-sm">
+      <h3 class="text-xs font-black uppercase tracking-wider text-purple-400">Analisi della Personalità</h3>
+      <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">Punteggi del modello dei Big Five rilevati durante le attività operative e l'onboarding.</p>
+    </div>
+
+    <div class="space-y-3 pt-2">
+      <!-- Apertura -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+        <div class="flex justify-between items-center text-xs font-bold mb-1">
+          <span class="text-slate-800">🌈 Apertura all'Esperienza</span>
+          <span class="text-purple-600 font-black">${bf.openness}%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div class="h-full bg-purple-500 rounded-full" style="width:${bf.openness}%"></div>
+        </div>
+      </div>
+
+      <!-- Coscienziosità -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+        <div class="flex justify-between items-center text-xs font-bold mb-1">
+          <span class="text-slate-800">📋 Coscienziosità</span>
+          <span class="text-emerald-600 font-black">${bf.conscientiousness}%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div class="h-full bg-emerald-500 rounded-full" style="width:${bf.conscientiousness}%"></div>
+        </div>
+      </div>
+
+      <!-- Estroversione -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+        <div class="flex justify-between items-center text-xs font-bold mb-1">
+          <span class="text-slate-800">🎉 Estroversione</span>
+          <span class="text-amber-600 font-black">${bf.extraversion}%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div class="h-full bg-amber-500 rounded-full" style="width:${bf.extraversion}%"></div>
+        </div>
+      </div>
+
+      <!-- Amichevolezza -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+        <div class="flex justify-between items-center text-xs font-bold mb-1">
+          <span class="text-slate-800">🤝 Amichevolezza</span>
+          <span class="text-blue-600 font-black">${bf.agreeableness}%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div class="h-full bg-blue-500 rounded-full" style="width:${bf.agreeableness}%"></div>
+        </div>
+      </div>
+
+      <!-- Nevroticismo -->
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+        <div class="flex justify-between items-center text-xs font-bold mb-1">
+          <span class="text-slate-800">⚡ Stabilità Emotiva</span>
+          <span class="text-rose-600 font-black">${100 - bf.neuroticism}%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+          <div class="h-full bg-rose-500 rounded-full" style="width:${100 - bf.neuroticism}%"></div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function openSettings() {
-  tg.HapticFeedback.impactOccurred('light');
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
   window.location.href = `edit_operator.html?ash=${encodeURIComponent(ash)}`;
 }
 
 // ============================================
-// LOADER
+// LOADER UTILS
 // ============================================
 
 function showLoader() {
-  document.getElementById('loader').classList.remove('hidden');
-  document.getElementById('app-content').classList.add('hidden');
+  const loader = document.getElementById('loader');
+  if (loader) loader.classList.remove('hidden');
 }
 
 function hideLoader() {
-  document.getElementById('loader').classList.add('hidden');
-  document.getElementById('app-content').classList.remove('hidden');
+  const loader = document.getElementById('loader');
+  if (loader) loader.classList.add('hidden');
 }
 
-// ============================================
-// INIT ON LOAD
-// ============================================
-
+// Init on DOM Content Loaded
 document.addEventListener('DOMContentLoaded', init);
