@@ -559,24 +559,45 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         updateStackPositions();
     }
 
-    function selectIdx(targetIdx) {
-        if (targetIdx < 0 || targetIdx >= modules.length) return;
+    function selectIdx(idx) {
+        if (!modules || modules.length === 0) return;
+        let targetIdx = (idx + modules.length) % modules.length;
+        if (targetIdx === activeIdx) return;
+
+        const isWrapping = (activeIdx === modules.length - 1 && targetIdx === 0) || (activeIdx === 0 && targetIdx === modules.length - 1);
+        if (isWrapping) {
+            // playTick(950, 0.05, 0.07);
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+        } else {
+            // playTick(750, 0.03, 0.05);
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+        }
+
         activeIdx = targetIdx;
 
         const cards = stackContainer.querySelectorAll('.platform-card-3d');
-        cards.forEach((card, idx) => {
-            if (idx === activeIdx) card.classList.add('active');
+        cards.forEach((card, i) => {
+            if (i === activeIdx) card.classList.add('active');
             else card.classList.remove('active');
         });
 
         const dots = dotContainer.querySelectorAll('button');
-        dots.forEach((dot, idx) => {
-            if (idx === activeIdx) dot.className = "w-2 h-2 rounded-full transition-all duration-300 bg-slate-900 scale-125";
+        dots.forEach((dot, i) => {
+            if (i === activeIdx) dot.className = "w-2 h-2 rounded-full transition-all duration-300 bg-slate-900 scale-125";
             else dot.className = "w-2 h-2 rounded-full transition-all duration-300 bg-slate-300 hover:bg-slate-400";
         });
 
         updateStackPositions();
     }
+
+    window.navigateStack = function(direction) {
+        if (!modules || modules.length === 0) return;
+        selectIdx(activeIdx + direction);
+    };
 
     function updateStackPositions() {
         const cards = stackContainer.querySelectorAll('.platform-card-3d');

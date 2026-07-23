@@ -725,24 +725,27 @@
 
         // Index Selection and Sensory execution
         function selectIdx(idx) {
-            if (idx >= 0 && idx < modules.length && idx !== activeIdx) {
-                activeIdx = idx;
-                
-                playMechanicalTick();
+            if (!modules || modules.length === 0) return;
+            let targetIdx = (idx + modules.length) % modules.length;
+            if (targetIdx === activeIdx) return;
 
-                if (tg.HapticFeedback) {
-                    tg.HapticFeedback.impactOccurred('light');
-                }
-                
-                updateStackLayout();
+            // Highlight side dot and play distinct feedback when wrapping around from start to end or end to start
+            const isWrapping = (activeIdx === modules.length - 1 && targetIdx === 0) || (activeIdx === 0 && targetIdx === modules.length - 1);
+            if (isWrapping) {
+                playMechanicalTick();
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            } else {
+                playMechanicalTick();
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
             }
+
+            activeIdx = targetIdx;
+            updateStackLayout();
         }
 
         window.navigateStack = function(direction) {
-            const targetIdx = activeIdx + direction;
-            if (targetIdx >= 0 && targetIdx < modules.length) {
-                selectIdx(targetIdx);
-            }
+            if (!modules || modules.length === 0) return;
+            selectIdx(activeIdx + direction);
         };
 
         // Touch scrubbing logic for Dot Indicator wrapper
