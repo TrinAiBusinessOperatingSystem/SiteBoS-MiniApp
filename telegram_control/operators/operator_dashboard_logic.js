@@ -191,12 +191,12 @@ function populateHeader() {
   const compEl = document.getElementById('companyName');
   if (compEl) compEl.innerText = operatorData.system_access.linked_owner.company_name;
   
-  // Set avatar initials or logo
+  // Set microphone icon (Operatore è sempre in modalità PRO)
   const avatarDiv = document.getElementById('operator-avatar');
   if (avatarDiv) {
-    const initials = operatorData.identity.name.substring(0, 2).toUpperCase();
-    avatarDiv.innerText = initials || '👤';
+    avatarDiv.innerHTML = `<i class="fas fa-microphone text-slate-900 text-lg"></i>`;
   }
+
 }
 
 // ============================================
@@ -223,19 +223,22 @@ function buildSatellites() {
       </div>
     `;
     
-    div.addEventListener('click', () => {
+    div.addEventListener('click', (e) => {
+      e.stopPropagation();
+      playMechanicalTick();
+      if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+      
       if (idx === activeIdx) {
-        playMechanicalTick();
         triggerSatelliteAction(sat);
       } else {
         const stepAngle = (2 * Math.PI) / total;
         let rawDiff = (Math.PI / 2 - (idx * stepAngle)) - currentAngle;
         let shortestDiff = Math.atan2(Math.sin(rawDiff), Math.cos(rawDiff));
         let targetAngle = currentAngle + shortestDiff;
-        playMechanicalTick();
         animateTo(targetAngle);
       }
     });
+
     orbitContainer.appendChild(div);
   });
   
