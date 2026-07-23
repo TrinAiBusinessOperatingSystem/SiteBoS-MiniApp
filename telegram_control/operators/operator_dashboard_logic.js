@@ -356,11 +356,11 @@ function setupOrbitEvents() {
 function snapToNearest() {
   const total = satellitesData.length;
   const stepAngle = (2 * Math.PI) / total;
-  let rawDiff = Math.round((currentAngle - Math.PI / 2) / stepAngle) * stepAngle + Math.PI / 2 - currentAngle;
-  let shortestDiff = Math.atan2(Math.sin(rawDiff), Math.cos(rawDiff));
-  let targetAngle = currentAngle + shortestDiff;
+  let rawIdx = Math.round((Math.PI / 2 - currentAngle) / stepAngle);
+  let targetAngle = Math.PI / 2 - rawIdx * stepAngle;
   animateTo(targetAngle);
 }
+
 
 function animateTo(target) {
   if (animationFrameId) {
