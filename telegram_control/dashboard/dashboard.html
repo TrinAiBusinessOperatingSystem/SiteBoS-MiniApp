@@ -579,6 +579,31 @@
             }
         }
 
+        window.navigateOwnerUrl = function(targetUrl) {
+            if (!targetUrl || targetUrl === '#') return;
+            if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+                if (tg && tg.openLink) {
+                    tg.openLink(targetUrl);
+                } else {
+                    window.open(targetUrl, '_blank');
+                }
+                return;
+            }
+            const cleanPath = targetUrl.replace(/^\.\.\//, '');
+            const hasQuery = cleanPath.includes('?');
+            const p = hasQuery ? '&' : '?';
+            let finalUrl = `../${cleanPath}`;
+
+            if (ash && !finalUrl.includes('ash=')) {
+                finalUrl += `${p}ash=${encodeURIComponent(ash)}`;
+            }
+            if (msgId && !finalUrl.includes('msg=')) {
+                const p2 = finalUrl.includes('?') ? '&' : '?';
+                finalUrl += `${p2}msg=${encodeURIComponent(msgId)}`;
+            }
+            window.location.href = finalUrl;
+        };
+
         function matchLocalSemanticIntent(query) {
             const q = query.toLowerCase();
             const statusText = document.getElementById('voice-status-text');
@@ -588,45 +613,45 @@
                 if (statusText) statusText.innerText = "Trovato: Catalogo Prodotti";
                 if (transcriptText) transcriptText.innerText = `"Rilevata intenzione: Gestione Catalogo"`;
                 renderVoiceActions([
-                    { label: "🚀 1. APRI CATALOGO (1.5s)", action: () => openModule('catalog', 'gestione/catalog.html'), badge: "Auto-Avvio" },
-                    { label: "📦 2. NUOVO PRODOTTO", action: () => window.location.href = '../gestione/add-product.html', badge: "Azione" },
-                    { label: "📋 3. NUOVA CATEGORIA", action: () => window.location.href = '../gestione/add-category.html', badge: "Azione" }
+                    { label: "🚀 1. APRI CATALOGO (1.5s)", action: () => navigateOwnerUrl('gestione/catalog.html'), badge: "Auto-Avvio" },
+                    { label: "📦 2. NUOVO PRODOTTO", action: () => navigateOwnerUrl('gestione/add-product.html'), badge: "Azione" },
+                    { label: "📋 3. NUOVA CATEGORIA", action: () => navigateOwnerUrl('gestione/add-category.html'), badge: "Azione" }
                 ]);
-                startAutoCountdown(() => openModule('catalog', 'gestione/catalog.html'));
+                startAutoCountdown(() => navigateOwnerUrl('gestione/catalog.html'));
             } else if (q.includes('agenda') || q.includes('appuntamento') || q.includes('orari')) {
                 if (statusText) statusText.innerText = "Trovato: Agenda Aziendale";
                 if (transcriptText) transcriptText.innerText = `"Rilevata intenzione: Agenda & Calendario"`;
                 renderVoiceActions([
-                    { label: "🚀 1. APRI AGENDA (1.5s)", action: () => openModule('intel_agenda', 'agents/agenda.html'), badge: "Auto-Avvio" },
-                    { label: "📅 2. PRENOTAZIONI LIVE", action: () => openModule('intel_agenda', 'agents/agenda.html'), badge: "Azione" }
+                    { label: "🚀 1. APRI AGENDA (1.5s)", action: () => navigateOwnerUrl('agents/agenda.html'), badge: "Auto-Avvio" },
+                    { label: "📅 2. PRENOTAZIONI LIVE", action: () => navigateOwnerUrl('agents/agenda.html'), badge: "Azione" }
                 ]);
-                startAutoCountdown(() => openModule('intel_agenda', 'agents/agenda.html'));
+                startAutoCountdown(() => navigateOwnerUrl('agents/agenda.html'));
             } else if (q.includes('ordine') || q.includes('ordini') || q.includes('commessa') || q.includes('spedizione')) {
                 if (statusText) statusText.innerText = "Trovato: Operatività Ordini";
                 if (transcriptText) transcriptText.innerText = `"Rilevata intenzione: Ordini & Delivery"`;
                 renderVoiceActions([
-                    { label: "🚀 1. ORDINI LIVE (1.5s)", action: () => window.location.href = '../operativita/orders-manager.html', badge: "Auto-Avvio" },
-                    { label: "⚙️ 2. PIANO LAVORI", action: () => window.location.href = '../operativita/job-create.html', badge: "Azione" },
-                    { label: "🗺️ 3. LOGISTICA PERCORSI", action: () => window.location.href = '../operativita/pianificazione_itinerari.html', badge: "AI" }
+                    { label: "🚀 1. ORDINI LIVE (1.5s)", action: () => navigateOwnerUrl('operativita/orders-manager.html'), badge: "Auto-Avvio" },
+                    { label: "⚙️ 2. PIANO LAVORI", action: () => navigateOwnerUrl('operativita/job-create.html'), badge: "Azione" },
+                    { label: "🗺️ 3. LOGISTICA PERCORSI", action: () => navigateOwnerUrl('operativita/pianificazione_itinerari.html'), badge: "AI" }
                 ]);
-                startAutoCountdown(() => window.location.href = '../operativita/orders-manager.html');
+                startAutoCountdown(() => navigateOwnerUrl('operativita/orders-manager.html'));
             } else if (q.includes('bot') || q.includes('titolare') || q.includes('azienda') || q.includes('iva')) {
                 if (statusText) statusText.innerText = "Trovato: Configurazione Identity";
                 if (transcriptText) transcriptText.innerText = `"Rilevata intenzione: Identity & Bot Setup"`;
                 renderVoiceActions([
-                    { label: "🚀 1. SETUP BOT (1.5s)", action: () => window.location.href = '../identity/bot_config.html', badge: "Auto-Avvio" },
-                    { label: "👤 2. DATI TITOLARE", action: () => window.location.href = '../identity/edit_owner.html', badge: "Azione" },
-                    { label: "🏛️ 3. SETUP AVANZATO", action: () => window.location.href = '../identity/advanced-setup.html', badge: "Fiscal" }
+                    { label: "🚀 1. SETUP BOT (1.5s)", action: () => navigateOwnerUrl('identity/bot_config.html'), badge: "Auto-Avvio" },
+                    { label: "👤 2. DATI TITOLARE", action: () => navigateOwnerUrl('identity/edit_owner.html'), badge: "Azione" },
+                    { label: "🏛️ 3. SETUP AVANZATO", action: () => navigateOwnerUrl('identity/advanced-setup.html'), badge: "Fiscal" }
                 ]);
-                startAutoCountdown(() => window.location.href = '../identity/bot_config.html');
+                startAutoCountdown(() => navigateOwnerUrl('identity/bot_config.html'));
             } else if (q.includes('supporto') || q.includes('assistenza') || q.includes('help') || q.includes('ticket')) {
                 if (statusText) statusText.innerText = "Trovato: Supporto & Ticket";
                 if (transcriptText) transcriptText.innerText = `"Rilevata intenzione: Supporto Tecnico & Bot"`;
                 renderVoiceActions([
-                    { label: "🚀 1. SUPPORT HUB (1.5s)", action: () => window.location.href = '../supporto/support_hub.html', badge: "Auto-Avvio" },
-                    { label: "💬 2. BOT TELEGRAM (@TrinAi_Site_bot)", action: () => window.open('https://t.me/TrinAi_Site_bot', '_blank'), badge: "Direct Bot" }
+                    { label: "🚀 1. SUPPORT HUB (1.5s)", action: () => navigateOwnerUrl('supporto/support_hub.html'), badge: "Auto-Avvio" },
+                    { label: "💬 2. BOT TELEGRAM (@TrinAi_Site_bot)", action: () => navigateOwnerUrl('https://t.me/TrinAi_Site_bot'), badge: "Direct Bot" }
                 ]);
-                startAutoCountdown(() => window.location.href = '../supporto/support_hub.html');
+                startAutoCountdown(() => navigateOwnerUrl('supporto/support_hub.html'));
             } else if (q.includes('crediti') || q.includes('saldo') || q.includes('ricarica')) {
                 if (statusText) statusText.innerText = "Trovato: Saldo Crediti";
                 if (transcriptText) transcriptText.innerText = `"Rilevata intenzione: Crediti & Billing"`;
@@ -638,9 +663,9 @@
                 if (statusText) statusText.innerText = "Come posso aiutarti?";
                 if (transcriptText) transcriptText.innerText = `"${query}"`;
                 renderVoiceActions([
-                    { label: "📦 1. CATALOGO PRODOTTI", action: () => openModule('catalog', 'gestione/catalog.html'), badge: "Naviga" },
-                    { label: "📅 2. AGENDA AZIENDALE", action: () => openModule('intel_agenda', 'agents/agenda.html'), badge: "Naviga" },
-                    { label: "⚙️ 3. CONFIGURAZIONE", action: () => openModule('identity_hub', '#'), badge: "Naviga" }
+                    { label: "📦 1. CATALOGO PRODOTTI", action: () => navigateOwnerUrl('gestione/catalog.html'), badge: "Naviga" },
+                    { label: "📅 2. AGENDA AZIENDALE", action: () => navigateOwnerUrl('agents/agenda.html'), badge: "Naviga" },
+                    { label: "⚙️ 3. CONFIGURAZIONE", action: () => navigateOwnerUrl('identity/bot_config.html'), badge: "Naviga" }
                 ]);
             }
         }
@@ -674,10 +699,19 @@
             if (transcriptText) transcriptText.innerText = `"${data.transcript || data.message || ''}"`;
 
             if (data.actions && data.actions.length > 0) {
-                renderVoiceActions(data.actions);
-                if (data.auto_navigate && data.target_url) {
+                const parsedActions = data.actions.map(act => {
+                    if ((act.target_url || act.url) && !act.action) {
+                        return {
+                            ...act,
+                            action: () => navigateOwnerUrl(act.target_url || act.url)
+                        };
+                    }
+                    return act;
+                });
+                renderVoiceActions(parsedActions);
+                if (data.auto_navigate && (data.target_url || data.url)) {
                     startAutoCountdown(() => {
-                        window.location.href = `../${data.target_url}`;
+                        navigateOwnerUrl(data.target_url || data.url);
                     });
                 }
             }
