@@ -733,6 +733,33 @@
                 const raw = await res.json();
                 const data = Array.isArray(raw) ? raw[0] : (raw.catalog || raw);
                 fullCatalog = data.categories || data.catalog?.categories || [];
+
+                // Parsing dei parametri URL per deep-linking da Agente Vocale (macro, cat, category)
+                const initialMacro = urlParams.get('macro');
+                if (initialMacro) {
+                    const mUpper = initialMacro.toUpperCase();
+                    if (['SOP', 'SER', 'PRO'].includes(mUpper)) {
+                        currentMacro = mUpper;
+                    } else if (mUpper.startsWith('PROD')) {
+                        currentMacro = 'PRO';
+                    } else if (mUpper.startsWith('SERV')) {
+                        currentMacro = 'SER';
+                    } else if (mUpper.startsWith('PROC') || mUpper.startsWith('SOP')) {
+                        currentMacro = 'SOP';
+                    }
+                }
+
+                const initialCat = urlParams.get('cat') || urlParams.get('category');
+                if (initialCat) {
+                    const targetCat = fullCatalog.find(c => (c.name || '').toLowerCase().includes(initialCat.toLowerCase()) || (c.short_name || '').toLowerCase().includes(initialCat.toLowerCase()));
+                    if (targetCat) {
+                        currentMacro = targetCat.macrocategories || currentMacro;
+                        activeCategory = targetCat;
+                        currentViewLevel = 'items';
+                        activeIdx = 0;
+                    }
+                }
+
                 renderCatalog();
             } catch (e) {
                 console.error("Load Error:", e);

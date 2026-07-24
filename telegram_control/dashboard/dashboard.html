@@ -579,7 +579,43 @@
             }
         }
 
-        window.navigateOwnerUrl = function(targetUrl) {
+        window.navigateOwnerUrl = function(targetUrl, modId) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            
+            // 1. Rilevamento sottomenu 3D nativo nella Dashboard (es. operativita, intelligence_hub, identity_hub)
+            const searchId = modId || targetUrl;
+            const targetModIdx = mainModules.findIndex(m => m.id === searchId || m.url === targetUrl);
+            
+            if (targetModIdx !== -1 && mainModules[targetModIdx].sub) {
+                const selectedMod = mainModules[targetModIdx];
+                window.stopDashboardAudio();
+                parentActiveIdx = targetModIdx;
+                modules = selectedMod.sub;
+                currentMenuLevel = 'sub';
+                activeIdx = 0;
+                
+                // Update Submenu Header
+                const submenuHeader = document.getElementById('submenu-header');
+                const submenuTitle = document.getElementById('submenu-title');
+                const submenuIcon = document.getElementById('submenu-icon');
+                if (submenuHeader && submenuTitle && submenuIcon) {
+                    submenuTitle.innerText = selectedMod.label;
+                    submenuIcon.className = `fas ${selectedMod.icon || 'fa-folder-open'} text-sm`;
+                    submenuHeader.classList.remove('hidden');
+                }
+                
+                // Show Telegram Native Back Button
+                if (tg && tg.BackButton) {
+                    tg.BackButton.show();
+                    tg.BackButton.onClick(handleTelegramBack);
+                }
+                
+                buildStack();
+                playMechanicalTick();
+                return;
+            }
+
+            // 2. Gestione link esterni
             if (!targetUrl || targetUrl === '#') return;
             if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                 if (tg && tg.openLink) {
@@ -589,6 +625,8 @@
                 }
                 return;
             }
+
+            // 3. Reindirizzamento diretto verso pagina HTML con token ash e msg
             const cleanPath = targetUrl.replace(/^\.\.\//, '');
             const hasQuery = cleanPath.includes('?');
             const p = hasQuery ? '&' : '?';
@@ -700,18 +738,18 @@
 
             if (data.actions && data.actions.length > 0) {
                 const parsedActions = data.actions.map(act => {
-                    if ((act.target_url || act.url) && !act.action) {
+                    if ((act.target_url || act.url || act.mod_id || act.id) && !act.action) {
                         return {
                             ...act,
-                            action: () => navigateOwnerUrl(act.target_url || act.url)
+                            action: () => navigateOwnerUrl(act.target_url || act.url, act.mod_id || act.id)
                         };
                     }
                     return act;
                 });
                 renderVoiceActions(parsedActions);
-                if (data.auto_navigate && (data.target_url || data.url)) {
+                if (data.auto_navigate && (data.target_url || data.url || data.mod_id)) {
                     startAutoCountdown(() => {
-                        navigateOwnerUrl(data.target_url || data.url);
+                        navigateOwnerUrl(data.target_url || data.url, data.mod_id);
                     });
                 }
             }
