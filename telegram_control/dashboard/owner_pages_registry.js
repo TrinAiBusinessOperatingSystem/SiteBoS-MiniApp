@@ -13,7 +13,7 @@
 
         function addPage(item, category = "generale") {
             if (!item || !item.url || item.url === "#") return;
-
+            
             const lowerUrl = item.url.toLowerCase();
             if (lowerUrl.includes("customer_bot") || lowerUrl.includes("operators") || lowerUrl.includes("softskill")) {
                 return;
@@ -36,11 +36,11 @@
             // =========================================================================
             // 1. GESTIONE CATALOGO, PRODOTTI & SERVIZI
             // =========================================================================
-            {
-                category: "gestione",
-                name: "Catalogo Master Prodotti & Servizi",
-                url: "gestione/catalog.html",
-                mod_id: "catalog",
+            { 
+                category: "gestione", 
+                name: "Catalogo Master Prodotti & Servizi", 
+                url: "gestione/catalog.html", 
+                mod_id: "catalog", 
                 user_utterances: [
                     // Frasi Complete
                     "apri il catalogo prodotti e servizi",
@@ -69,12 +69,13 @@
                     "servizi",
                     "catalogo",
                     "listino"
-                ]
+
+                ] 
             },
-            {
-                category: "gestione",
-                name: "Inserimento Nuovo Prodotto / Servizio",
-                url: "gestione/add-product.html",
+            { 
+                category: "gestione", 
+                name: "Inserimento Nuovo Prodotto / Servizio", 
+                url: "gestione/add-product.html", 
                 user_utterances: [
                     // Frasi Complete
                     "voglio inserire un nuovo servizio",
@@ -112,12 +113,13 @@
                     "prestazione",
                     "trattamento",
                     "articolo"
-                ]
+
+                ] 
             },
-            {
-                category: "gestione",
-                name: "Inserimento Nuova Categoria",
-                url: "gestione/add-category.html",
+            { 
+                category: "gestione", 
+                name: "Inserimento Nuova Categoria", 
+                url: "gestione/add-category.html", 
                 user_utterances: [
                     // Triple di Peso (Trigrammi)
                     "nuova categoria prodotti",
@@ -137,12 +139,13 @@
                     "categoria",
                     "categorie",
                     "gruppo"
-                ]
+
+                ] 
             },
-            {
-                category: "gestione",
-                name: "Product Blueprint Designer (Fasi del Servizio / Prodotto)",
-                url: "gestione/edit-blueprint-product.html",
+            { 
+                category: "gestione", 
+                name: "Product Blueprint Designer (Fasi del Servizio / Prodotto)", 
+                url: "gestione/edit-blueprint-product.html", 
                 user_utterances: [
                     // Triple di Peso (Trigrammi)
                     "fasi del servizio",
@@ -163,12 +166,13 @@
                     "blueprint",
                     "fasi",
                     "processo"
-                ]
+
+                ] 
             },
-            {
-                category: "gestione",
-                name: "Product Operations & Costi (Ricetta Servizio / Prodotto)",
-                url: "gestione/edit-advanced-product.html",
+            { 
+                category: "gestione", 
+                name: "Product Operations & Costi (Ricetta Servizio / Prodotto)", 
+                url: "gestione/edit-advanced-product.html", 
                 user_utterances: [
                     // Triple di Peso (Trigrammi)
                     "costi del servizio",
@@ -195,136 +199,141 @@
                     "margini",
                     "prezzi",
                     "bom"
-                ]
+
+                ] 
             },
-            {
-                category: "gestione",
-                name: "Knowledge Editor (AI Base Conoscenza Servizio)",
-                url: "gestione/edit-knowledge.html",
+            { 
+                category: "gestione", 
+                name: "Knowledge Editor (AI Base Conoscenza Servizio)", 
+                url: "gestione/edit-knowledge.html", 
                 user_utterances: [
                     "base conoscenza servizio", "base conoscenza prodotto", "addestra ai sul servizio", "faq del servizio", "faq del prodotto", "addestra bot servizio", "istruzioni ai servizio", "knowledge servizio", "faq servizio"
-                ]
+                ] 
             },
-            {
-                category: "gestione",
-                name: "Content & Blog Architect",
-                url: "gestione/edit-blog.html",
+            { 
+                category: "gestione", 
+                name: "Content & Blog Architect", 
+                url: "gestione/edit-blog.html", 
                 user_utterances: [
                     "articolo blog servizio", "articolo blog prodotto", "blog del servizio", "post del servizio", "blog servizio", "blog prodotto", "articolo"
-                ]
+                ] 
             },
-            {
-                category: "gestione",
-                name: "Social Hub Publisher",
-                url: "gestione/edit-post.html",
+            { 
+                category: "gestione", 
+                name: "Social Hub Publisher", 
+                url: "gestione/edit-post.html", 
                 user_utterances: [
                     "post social servizio", "post social prodotto", "pubblica post servizio", "marketing del servizio", "post servizio", "post prodotto", "social"
-                ]
+                ] 
             },
 
             // =========================================================================
             // 2. CONFIGURAZIONE IDENTITY & SETUP BOT TELEGRAM
             // =========================================================================
-            {
-                category: "identity",
-                name: "Configurazione Bot Telegram",
-                url: "identity/bot_config.html",
-                mod_id: "bot_config",
+
+            { 
+                category: "identity", 
+                name: "Configurazione Bot Telegram", 
+                url: "identity/bot_config.html", 
+                mod_id: "bot_config", 
                 user_utterances: [
                     "configura bot telegram", "impostazioni assistente bot", "risposte del bot", "bot telegram", "configura bot", "impostazioni bot", "bot clienti", "bot", "telegram"
-                ]
+                ] 
             },
-            {
-                category: "identity",
-                name: "Dati Titolare & Profilo Aziendale",
-                url: "identity/edit_owner.html",
-                mod_id: "edit_owner",
+            { 
+                category: "identity", 
+                name: "Dati Titolare & Profilo Aziendale", 
+                url: "identity/edit_owner.html", 
+                mod_id: "edit_owner", 
                 user_utterances: [
                     "dati del titolare", "ragione sociale partita iva", "dati legali studio", "dati titolare", "ragione sociale", "partita iva", "titolare", "azienda", "iva"
-                ]
+                ] 
             },
-            {
-                category: "identity",
-                name: "Parametri Avanzati & Setup Clinica",
-                url: "identity/advanced-setup.html",
-                mod_id: "advanced_setup",
+            { 
+                category: "identity", 
+                name: "Parametri Avanzati & Setup Clinica", 
+                url: "identity/advanced-setup.html", 
+                mod_id: "advanced_setup", 
                 user_utterances: [
                     "parametri avanzati studio", "setup della clinica", "unita operative reuniti", "parametri avanzati", "setup clinica", "reuniti", "poltrone", "cabine"
-                ]
+                ] 
             },
 
             // =========================================================================
             // 3. OPERATIVITÀ, ORDINI, PIANO LAVORI & AGENDA
             // =========================================================================
-            {
-                category: "operativita",
-                name: "Orders Manager (Ordini Live)",
-                url: "operativita/orders-manager.html",
-                mod_id: "orders",
+
+            { 
+                category: "operativita", 
+                name: "Orders Manager (Ordini Live)", 
+                url: "operativita/orders-manager.html", 
+                mod_id: "orders", 
                 user_utterances: [
                     "gestione ordini live", "ordini in arrivo", "stato ordini ecommerce", "ordini live", "ordini oggi", "spedizioni ordini", "ordini", "spedizioni"
-                ]
+                ] 
             },
-            {
-                category: "operativita",
-                name: "Piano Lavori & Commesse",
-                url: "operativita/job-create.html",
-                mod_id: "jobs",
+            { 
+                category: "operativita", 
+                name: "Piano Lavori & Commesse", 
+                url: "operativita/job-create.html", 
+                mod_id: "jobs", 
                 user_utterances: [
                     "commessa di lavoro", "piano lavori operativo", "piano lavori", "nuova commessa", "job operativo", "commessa", "job", "lavori"
-                ]
+                ] 
             },
-            {
-                category: "agents",
-                name: "Agenda Aziendale & Calendario",
-                url: "agents/agenda.html",
-                mod_id: "intel_agenda",
+            { 
+                category: "agents", 
+                name: "Agenda Aziendale & Calendario", 
+                url: "agents/agenda.html", 
+                mod_id: "intel_agenda", 
                 user_utterances: [
                     "agenda degli appuntamenti", "calendario di oggi", "prenotazioni dei clienti", "agenda studio", "appuntamenti oggi", "agenda", "calendario", "appuntamenti"
-                ]
+                ] 
             },
 
             // =========================================================================
             // 4. INTELLIGENCE, CFO, SICUREZZA DVR & MAGAZZINO
             // =========================================================================
-            {
-                category: "agents",
-                name: "Assistente Sicurezza & DVR",
-                url: "agents/assistente-sicurezza.html",
-                mod_id: "intel_safety",
+
+            { 
+                category: "agents", 
+                name: "Assistente Sicurezza & DVR", 
+                url: "agents/assistente-sicurezza.html", 
+                mod_id: "intel_safety", 
                 user_utterances: [
                     "documento valutazione rischi", "assistente sicurezza dvr", "conformita sicurezza lavoro", "sicurezza dvr", "valutazione rischi", "sicurezza lavoro", "dvr", "sicurezza", "rischi"
-                ]
+                ] 
             },
-            {
-                category: "agents",
-                name: "Controllo Gestione CFO & Margini",
-                url: "agents/controllo_gestione.html",
-                mod_id: "intel_mgmt",
+            { 
+                category: "agents", 
+                name: "Controllo Gestione CFO & Margini", 
+                url: "agents/controllo_gestione.html", 
+                mod_id: "intel_mgmt", 
                 user_utterances: [
                     "controllo di gestione", "flussi di cassa", "bilancio e margini", "fatturato dello studio", "controllo gestione", "cfo studio", "flussi cassa", "cfo", "bilancio", "fatturato"
-                ]
+                ] 
             },
-            {
-                category: "agents",
-                name: "Magazzino AI & Giacenze",
-                url: "agents/intelligent-warehouse.html",
-                mod_id: "intel_warehouse",
+            { 
+                category: "agents", 
+                name: "Magazzino AI & Giacenze", 
+                url: "agents/intelligent-warehouse.html", 
+                mod_id: "intel_warehouse", 
                 user_utterances: [
                     "gestione magazzino scorte", "inventario delle giacenze", "materiali in esaurimento", "magazzino", "scorte", "giacenze"
-                ]
+                ] 
             },
 
             // =========================================================================
             // 5. BILLING CREDITI
             // =========================================================================
-            {
-                category: "billing",
-                name: "Shop Ricarica Crediti",
-                url: "https://dashboard.trinai.it/shop/bundles",
+
+            { 
+                category: "billing", 
+                name: "Shop Ricarica Crediti", 
+                url: "https://dashboard.trinai.it/shop/bundles", 
                 user_utterances: [
                     "ricarica conto crediti", "shop dei crediti", "compra altri crediti", "ricarica crediti", "shop crediti", "saldo crediti", "crediti", "ricarica"
-                ]
+                ] 
             }
         ];
 
