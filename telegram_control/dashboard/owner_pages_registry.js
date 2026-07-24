@@ -1,18 +1,11 @@
 /**
  * Dynamic Owner Pages Registry — SiteBoS MiniApp
- * Mappatura 100% DINAMICA ad auto-scansione dell'albero moduli dell'Owner per l'Agente Conversazionale Vocale.
- * Traversa automaticamente l'albero mainModules ed identitySubMenu.
- * Esclude tassativamente: customer_bot/, operators/, softskill/
+ * FOCUS ESCLUSIVO: SERVIZIO & PRODOTTO (Triple, Doppie e Keyword Ancorate)
+ * OTTIMIZZATO PER: Sam VenomHearth Engine
  */
 
-(function(window) {
+(function (window) {
     'use strict';
-
-    const STOP_WORDS = new Set([
-        "della", "dello", "degli", "delle", "dall", "dallo", "dalla", "dagli", "dalle", 
-        "nella", "nello", "negli", "nelle", "sulla", "sullo", "sugli", "sulle", "tutti", 
-        "tutte", "anche", "come", "dove", "quando", "perche", "questo", "questa", "quelli"
-    ]);
 
     function getOwnerPagesRegistry() {
         const pages = [];
@@ -20,8 +13,7 @@
 
         function addPage(item, category = "generale") {
             if (!item || !item.url || item.url === "#") return;
-            
-            // Filtro di sicurezza tassativo: esclude customer_bot, operators, softskill
+
             const lowerUrl = item.url.toLowerCase();
             if (lowerUrl.includes("customer_bot") || lowerUrl.includes("operators") || lowerUrl.includes("softskill")) {
                 return;
@@ -29,75 +21,311 @@
             if (addedUrls.has(item.url)) return;
             addedUrls.add(item.url);
 
-            const explicitKw = Array.isArray(item.keywords) ? item.keywords : [];
-            const autoKw = extractKeywords(item.label || item.name, item.desc);
-            const combinedKw = Array.from(new Set([...explicitKw, ...autoKw]));
-
             pages.push({
                 category: category,
                 name: item.label || item.name || item.id,
                 desc: item.desc || "",
                 url: item.url,
                 mod_id: item.id || item.mod_id || "",
-                keywords: combinedKw
+                user_utterances: item.user_utterances || [item.label || item.name]
             });
         }
 
-        function extractKeywords(label = "", desc = "") {
-            const rawText = ((label || "") + " " + (desc || "")).toLowerCase();
-            // Pulisce la punteggiatura ed i caratteri speciali rimpiazzandoli con uno spazio
-            const cleanText = rawText.replace(/[^a-z0-9àèéìòù\s-]/gi, ' ');
-            return cleanText.split(/\s+/)
-                .map(w => w.trim())
-                .filter(w => w.length >= 2 && !STOP_WORDS.has(w));
-        }
-
-        // 1. Auto-scansione dinamica dal modulo identitySubMenu
-        if (window.identitySubMenu && Array.isArray(window.identitySubMenu)) {
-            window.identitySubMenu.forEach(sub => addPage(sub, "identity"));
-        }
-
-        // 2. Auto-scansione dinamica dal modulo principale mainModules (e relativi sottomenu)
-        if (window.mainModules && Array.isArray(window.mainModules)) {
-            window.mainModules.forEach(mod => {
-                addPage(mod, mod.id || "modulo");
-                if (mod.sub && Array.isArray(mod.sub)) {
-                    mod.sub.forEach(sub => addPage(sub, mod.id || "modulo"));
-                }
-            });
-        }
-
-        // 3. Pagine Owner aggiuntive/estese a supporto (Fallback di sicurezza)
         const EXTENDED_OWNER_PAGES = [
-            { category: "gestione", name: "Catalogo Master Prodotti & Servizi", url: "gestione/catalog.html", mod_id: "catalog", keywords: ["catalogo", "prodotti", "servizi", "sop", "procedure", "listino"] },
-            { category: "gestione", name: "Inserimento Nuovo Prodotto", url: "gestione/add-product.html", keywords: ["nuovo prodotto", "aggiungi prodotto", "crea articolo"] },
-            { category: "gestione", name: "Inserimento Nuova Categoria", url: "gestione/add-category.html", keywords: ["nuova categoria", "aggiungi categoria"] },
-            { category: "gestione", name: "Blueprint Editor (Procedure SOP)", url: "gestione/edit-blueprint.html", keywords: ["blueprint", "sop", "procedure", "editor"] },
-            { category: "gestione", name: "Product Blueprint Designer", url: "gestione/edit-blueprint-product.html", keywords: ["blueprint prodotto", "designer"] },
-            { category: "gestione", name: "Knowledge Editor (AI Base Conoscenza)", url: "gestione/edit-knowledge.html", keywords: ["knowledge", "base conoscenza", "ai knowledge", "istruzioni ai"] },
-            { category: "gestione", name: "Semilavorati Architect", url: "gestione/edit-semilavorati.html", keywords: ["semilavorati", "distinta base", "bom"] },
-            { category: "gestione", name: "Sourcing & Operations Controller", url: "gestione/edit-advanced.html", keywords: ["sourcing", "operations", "costi"] },
-            { category: "gestione", name: "Product Operations & BOM Controller", url: "gestione/edit-advanced-product.html", keywords: ["bom controller", "ricette costo"] },
-            { category: "gestione", name: "Content & Blog Architect", url: "gestione/edit-blog.html", keywords: ["blog", "articoli", "content"] },
-            { category: "gestione", name: "Social Hub Publisher", url: "gestione/edit-post.html", keywords: ["post", "social", "pubblica"] },
-            { category: "gestione", name: "Supervisor Hub", url: "gestione/supervisor_hub.html", keywords: ["supervisor", "hub", "supervisione"] },
-            { category: "identity", name: "Configurazione Bot Telegram Personalizzato", url: "identity/bot_config.html", mod_id: "bot_config", keywords: ["bot", "setup bot", "configura bot", "telegram bot", "titolare"] },
-            { category: "identity", name: "Profile Manager & Dati Titolare", url: "identity/edit_owner.html", mod_id: "edit_owner", keywords: ["dati titolare", "profilo owner", "ragione sociale", "partita iva"] },
-            { category: "identity", name: "Setup Avanzato Aziendale", url: "identity/advanced-setup.html", mod_id: "advanced_setup", keywords: ["setup avanzato", "fiscale", "impostazioni"] },
-            { category: "operativita", name: "Orders Manager (Ordini E-commerce Live)", url: "operativita/orders-manager.html", mod_id: "orders", keywords: ["ordini", "orders", "ecommerce", "consegne", "spedizioni"] },
-            { category: "operativita", name: "Nuovo Job / Commessa Lavorativa", url: "operativita/job-create.html", mod_id: "jobs", keywords: ["job", "commessa", "piano lavori", "nuovo lavoro"] },
-            { category: "operativita", name: "Percorsi Logistici & Delivery AI", url: "operativita/pianificazione_itinerari.html", mod_id: "solver", keywords: ["logistica", "percorsi", "itinerari", "delivery"] },
-            { category: "agents", name: "Intelligence Generale & Reportistica", url: "agents/agent_intelligence.html", mod_id: "intel_gen", keywords: ["intelligence", "report", "kpi", "statistiche"] },
-            { category: "agents", name: "Agenda Aziendale & Calendario", url: "agents/agenda.html", mod_id: "intel_agenda", keywords: ["agenda", "calendario", "appuntamenti", "orari", "prenotazioni"] },
-            { category: "agents", name: "Controllo Gestione CFO & Margini", url: "agents/controllo_gestione.html", mod_id: "intel_mgmt", keywords: ["cfo", "controllo gestione", "margini", "bilancio", "fatturato"] },
-            { category: "agents", name: "Analisi Concorrenza & Competitor", url: "agents/analisi-mercato.html", mod_id: "intel_market", keywords: ["concorrenza", "competitor", "mercato", "prezzi"] },
-            { category: "agents", name: "Assistente Sicurezza & DVR", url: "agents/assistente-sicurezza.html", mod_id: "intel_safety", keywords: ["sicurezza", "dvr", "conformita", "normativa"] },
-            { category: "agents", name: "Magazzino AI & Scorte", url: "agents/intelligent-warehouse.html", mod_id: "intel_warehouse", keywords: ["magazzino", "scorte", "inventario", "giacenze"] },
-            { category: "agents", name: "Gestione Risorse Umane & Staff", url: "agents/risorse_umane.html", keywords: ["risorse umane", "staff", "dipendenti", "personale"] },
-            { category: "fine-tuning", name: "Addestramento IA & Crew Builder", url: "fine-tuning/fine-tuning.html", mod_id: "fine_tuning", keywords: ["addestramento", "fine-tuning", "crew builder", "prompting"] },
-            { category: "supporto", name: "Support Hub & Ticket Tecnico", url: "supporto/support_hub.html", mod_id: "support_hub", keywords: ["supporto", "assistenza", "ticket", "help"] },
-            { category: "supporto", name: "Bot Telegram di Supporto Diretto (@TrinAi_Site_bot)", url: "https://t.me/TrinAi_Site_bot", isExternal: true, keywords: ["bot supporto", "contatta owner", "assistenza telegram", "chat supporto"] },
-            { category: "billing", name: "Shop Ricarica Crediti", url: "https://dashboard.trinai.it/shop/bundles", type: "shop", keywords: ["crediti", "ricarica", "saldo", "billing", "shop"] }
+
+            // =========================================================================
+            // 1. GESTIONE CATALOGO, PRODOTTI & SERVIZI
+            // =========================================================================
+            {
+                category: "gestione",
+                name: "Catalogo Master Prodotti & Servizi",
+                url: "gestione/catalog.html",
+                mod_id: "catalog",
+                user_utterances: [
+                    // Frasi Complete
+                    "apri il catalogo prodotti e servizi",
+                    "fammi vedere il listino dei servizi e prodotti",
+                    "voglio consultare la gestione prodotti e servizi",
+                    // Triple di Peso (Trigrammi)
+                    "catalogo prodotti servizi",
+                    "listino dei servizi",
+                    "listino dei prodotti",
+                    "catalogo del servizio",
+                    "catalogo dei prodotti",
+                    "gestione prodotti servizi",
+                    // Doppie di Peso (Bigrammi)
+                    "catalogo prodotti",
+                    "catalogo servizi",
+                    "listino prodotti",
+                    "listino servizi",
+                    "gestione prodotti",
+                    "gestione servizi",
+                    "prezzi servizi",
+                    "prezzi prodotti",
+                    // Keyword Ancora
+                    "prodotto",
+                    "prodotti",
+                    "servizio",
+                    "servizi",
+                    "catalogo",
+                    "listino"
+                ]
+            },
+            {
+                category: "gestione",
+                name: "Inserimento Nuovo Prodotto / Servizio",
+                url: "gestione/add-product.html",
+                user_utterances: [
+                    // Frasi Complete
+                    "voglio inserire un nuovo servizio",
+                    "voglio inserire un nuovo prodotto",
+                    "aggiungi un nuovo servizio al listino",
+                    "aggiungi un nuovo prodotto al listino",
+                    "crea un nuovo servizio o prestazione",
+                    // Triple di Peso (Trigrammi)
+                    "inserire nuovo prodotto",
+                    "inserire nuovo servizio",
+                    "crea nuovo servizio",
+                    "crea nuovo prodotto",
+                    "aggiungi nuovo servizio",
+                    "aggiungi nuovo prodotto",
+                    "nuova prestazione servizio",
+                    "nuovo trattamento servizio",
+                    "nuovo prodotto categoria",
+                    "prodotto guida pdf",
+                    // Doppie di Peso (Bigrammi)
+                    "nuovo prodotto",
+                    "nuovo servizio",
+                    "crea servizio",
+                    "crea prodotto",
+                    "aggiungi servizio",
+                    "aggiungi prodotto",
+                    "nuova prestazione",
+                    "nuovo trattamento",
+                    "nuovo articolo",
+                    "carica servizio",
+                    "carica prodotto",
+                    "guide pdf",
+                    // Keyword Ancora
+                    "prodotto",
+                    "servizio",
+                    "prestazione",
+                    "trattamento",
+                    "articolo"
+                ]
+            },
+            {
+                category: "gestione",
+                name: "Inserimento Nuova Categoria",
+                url: "gestione/add-category.html",
+                user_utterances: [
+                    // Triple di Peso (Trigrammi)
+                    "nuova categoria prodotti",
+                    "nuova categoria servizi",
+                    "creare nuova categoria",
+                    "categoria del prodotto",
+                    "categoria del servizio",
+                    // Doppie di Peso (Bigrammi)
+                    "nuova categoria",
+                    "categoria prodotti",
+                    "categoria servizi",
+                    "crea categoria",
+                    "aggiungi categoria",
+                    "gruppo prodotti",
+                    "gruppo servizi",
+                    // Keyword Ancora
+                    "categoria",
+                    "categorie",
+                    "gruppo"
+                ]
+            },
+            {
+                category: "gestione",
+                name: "Product Blueprint Designer (Fasi del Servizio / Prodotto)",
+                url: "gestione/edit-blueprint-product.html",
+                user_utterances: [
+                    // Triple di Peso (Trigrammi)
+                    "fasi del servizio",
+                    "processo del servizio",
+                    "fasi del prodotto",
+                    "gestione del servizio",
+                    "istruzioni del servizio",
+                    // Doppie di Peso (Bigrammi)
+                    "fasi servizio",
+                    "processo servizio",
+                    "fasi prodotto",
+                    "blueprint servizio",
+                    "blueprint prodotto",
+                    "procedura servizio",
+                    // Keyword Ancora
+                    "servizio",
+                    "prodotto",
+                    "blueprint",
+                    "fasi",
+                    "processo"
+                ]
+            },
+            {
+                category: "gestione",
+                name: "Product Operations & Costi (Ricetta Servizio / Prodotto)",
+                url: "gestione/edit-advanced-product.html",
+                user_utterances: [
+                    // Triple di Peso (Trigrammi)
+                    "costi del servizio",
+                    "costi del prodotto",
+                    "ricetta del servizio",
+                    "ricetta del prodotto",
+                    "margine del servizio",
+                    "margine del prodotto",
+                    "costo erogazione servizio",
+                    "distinta base servizio",
+                    // Doppie di Peso (Bigrammi)
+                    "costo servizio",
+                    "costo prodotto",
+                    "ricetta servizio",
+                    "ricetta prodotto",
+                    "margine servizio",
+                    "margine prodotto",
+                    "distinta base",
+                    "costi produzione",
+                    "materie prime",
+                    // Keyword Ancora
+                    "costi",
+                    "ricetta",
+                    "margini",
+                    "prezzi",
+                    "bom"
+                ]
+            },
+            {
+                category: "gestione",
+                name: "Knowledge Editor (AI Base Conoscenza Servizio)",
+                url: "gestione/edit-knowledge.html",
+                user_utterances: [
+                    "base conoscenza servizio", "base conoscenza prodotto", "addestra ai sul servizio", "faq del servizio", "faq del prodotto", "addestra bot servizio", "istruzioni ai servizio", "knowledge servizio", "faq servizio"
+                ]
+            },
+            {
+                category: "gestione",
+                name: "Content & Blog Architect",
+                url: "gestione/edit-blog.html",
+                user_utterances: [
+                    "articolo blog servizio", "articolo blog prodotto", "blog del servizio", "post del servizio", "blog servizio", "blog prodotto", "articolo"
+                ]
+            },
+            {
+                category: "gestione",
+                name: "Social Hub Publisher",
+                url: "gestione/edit-post.html",
+                user_utterances: [
+                    "post social servizio", "post social prodotto", "pubblica post servizio", "marketing del servizio", "post servizio", "post prodotto", "social"
+                ]
+            },
+
+            // =========================================================================
+            // 2. CONFIGURAZIONE IDENTITY & SETUP BOT TELEGRAM
+            // =========================================================================
+            {
+                category: "identity",
+                name: "Configurazione Bot Telegram",
+                url: "identity/bot_config.html",
+                mod_id: "bot_config",
+                user_utterances: [
+                    "configura bot telegram", "impostazioni assistente bot", "risposte del bot", "bot telegram", "configura bot", "impostazioni bot", "bot clienti", "bot", "telegram"
+                ]
+            },
+            {
+                category: "identity",
+                name: "Dati Titolare & Profilo Aziendale",
+                url: "identity/edit_owner.html",
+                mod_id: "edit_owner",
+                user_utterances: [
+                    "dati del titolare", "ragione sociale partita iva", "dati legali studio", "dati titolare", "ragione sociale", "partita iva", "titolare", "azienda", "iva"
+                ]
+            },
+            {
+                category: "identity",
+                name: "Parametri Avanzati & Setup Clinica",
+                url: "identity/advanced-setup.html",
+                mod_id: "advanced_setup",
+                user_utterances: [
+                    "parametri avanzati studio", "setup della clinica", "unita operative reuniti", "parametri avanzati", "setup clinica", "reuniti", "poltrone", "cabine"
+                ]
+            },
+
+            // =========================================================================
+            // 3. OPERATIVITÀ, ORDINI, PIANO LAVORI & AGENDA
+            // =========================================================================
+            {
+                category: "operativita",
+                name: "Orders Manager (Ordini Live)",
+                url: "operativita/orders-manager.html",
+                mod_id: "orders",
+                user_utterances: [
+                    "gestione ordini live", "ordini in arrivo", "stato ordini ecommerce", "ordini live", "ordini oggi", "spedizioni ordini", "ordini", "spedizioni"
+                ]
+            },
+            {
+                category: "operativita",
+                name: "Piano Lavori & Commesse",
+                url: "operativita/job-create.html",
+                mod_id: "jobs",
+                user_utterances: [
+                    "commessa di lavoro", "piano lavori operativo", "piano lavori", "nuova commessa", "job operativo", "commessa", "job", "lavori"
+                ]
+            },
+            {
+                category: "agents",
+                name: "Agenda Aziendale & Calendario",
+                url: "agents/agenda.html",
+                mod_id: "intel_agenda",
+                user_utterances: [
+                    "agenda degli appuntamenti", "calendario di oggi", "prenotazioni dei clienti", "agenda studio", "appuntamenti oggi", "agenda", "calendario", "appuntamenti"
+                ]
+            },
+
+            // =========================================================================
+            // 4. INTELLIGENCE, CFO, SICUREZZA DVR & MAGAZZINO
+            // =========================================================================
+            {
+                category: "agents",
+                name: "Assistente Sicurezza & DVR",
+                url: "agents/assistente-sicurezza.html",
+                mod_id: "intel_safety",
+                user_utterances: [
+                    "documento valutazione rischi", "assistente sicurezza dvr", "conformita sicurezza lavoro", "sicurezza dvr", "valutazione rischi", "sicurezza lavoro", "dvr", "sicurezza", "rischi"
+                ]
+            },
+            {
+                category: "agents",
+                name: "Controllo Gestione CFO & Margini",
+                url: "agents/controllo_gestione.html",
+                mod_id: "intel_mgmt",
+                user_utterances: [
+                    "controllo di gestione", "flussi di cassa", "bilancio e margini", "fatturato dello studio", "controllo gestione", "cfo studio", "flussi cassa", "cfo", "bilancio", "fatturato"
+                ]
+            },
+            {
+                category: "agents",
+                name: "Magazzino AI & Giacenze",
+                url: "agents/intelligent-warehouse.html",
+                mod_id: "intel_warehouse",
+                user_utterances: [
+                    "gestione magazzino scorte", "inventario delle giacenze", "materiali in esaurimento", "magazzino", "scorte", "giacenze"
+                ]
+            },
+
+            // =========================================================================
+            // 5. BILLING CREDITI
+            // =========================================================================
+            {
+                category: "billing",
+                name: "Shop Ricarica Crediti",
+                url: "https://dashboard.trinai.it/shop/bundles",
+                user_utterances: [
+                    "ricarica conto crediti", "shop dei crediti", "compra altri crediti", "ricarica crediti", "shop crediti", "saldo crediti", "crediti", "ricarica"
+                ]
+            }
         ];
 
         EXTENDED_OWNER_PAGES.forEach(ext => addPage(ext, ext.category));
