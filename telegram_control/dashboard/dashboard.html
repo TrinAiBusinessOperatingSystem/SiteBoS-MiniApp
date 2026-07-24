@@ -774,34 +774,40 @@
         }
 
         function handleVoiceAssistantResult(res) {
-            let data = res;
-            if (res && res.response_output) {
-                if (typeof res.response_output === 'string') {
+            let targetObj = Array.isArray(res) ? res[0] : res;
+            let data = targetObj;
+
+            if (targetObj && targetObj.response_output) {
+                if (typeof targetObj.response_output === 'string') {
                     try {
-                        let cleanJson = res.response_output.replace(/```json/g, '').replace(/```/g, '').trim();
+                        let cleanJson = targetObj.response_output.replace(/```json/g, '').replace(/```/g, '').trim();
                         data = JSON.parse(cleanJson);
                     } catch (e) {
                         console.warn("Parsing JSON response_output error:", e);
                     }
-                } else if (typeof res.response_output === 'object') {
-                    data = res.response_output;
+                } else if (typeof targetObj.response_output === 'object') {
+                    data = targetObj.response_output;
                 }
             }
 
             const statusText = document.getElementById('voice-status-text');
             const transcriptText = document.getElementById('voice-transcript-text');
-            if (statusText) statusText.innerText = data.status_title || "Intenzione Rilevata";
-            if (transcriptText) transcriptText.innerText = `"${data.transcript || data.message || ''}"`;
 
-            if (data.actions && data.actions.length > 0) {
+            if (statusText) statusText.innerText = data.status_title || "Comando Riconosciuto";
+            if (transcriptText) {
+                const txt = data.transcript || data.message || "";
+                transcriptText.innerText = txt ? `"${txt}"` : "";
+            }
+
+            if (data.actions && Array.isArray(data.actions) && data.actions.length > 0) {
                 const parsedActions = data.actions.map(act => {
-                    if ((act.target_url || act.url || act.mod_id || act.id) && !act.action) {
-                        return {
-                            ...act,
-                            action: () => navigateOwnerUrl(act.target_url || act.url, act.mod_id || act.id)
-                        };
-                    }
-                    return act;
+                    const targetUrl = act.target_url || act.url || "";
+                    const targetId = act.mod_id || act.id || "";
+                    return {
+                        label: act.label || "Azione",
+                        badge: act.badge || "Naviga",
+                        action: () => navigateOwnerUrl(targetUrl, targetId)
+                    };
                 });
                 renderVoiceActions(parsedActions);
             }
@@ -1682,7 +1688,7 @@
                 <!-- Status & Transcript Feedback -->
                 <div class="text-left">
                     <div id="voice-status-text" class="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-0.5">Come posso aiutarti?</div>
-                    <p id="voice-transcript-text" class="text-[11px] font-semibold text-slate-700 italic min-h-[22px] leading-snug">"Seleziona un'azione o digita un comando..."</p>
+                    <p id="voice-transcript-text" class="text-[11px] font-semibold text-slate-700 italic leading-snug min-h-[18px]"></p>
                 </div>
 
                 <!-- Textarea (3 spazi / 3 righe) -->
