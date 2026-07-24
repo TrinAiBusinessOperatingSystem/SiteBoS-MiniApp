@@ -42,18 +42,15 @@
                 url: "gestione/catalog.html", 
                 mod_id: "catalog", 
                 user_utterances: [
-                    // Frasi Complete
                     "apri il catalogo prodotti e servizi",
                     "fammi vedere il listino dei servizi e prodotti",
                     "voglio consultare la gestione prodotti e servizi",
-                    // Triple di Peso (Trigrammi)
                     "catalogo prodotti servizi",
                     "listino dei servizi",
                     "listino dei prodotti",
                     "catalogo del servizio",
                     "catalogo dei prodotti",
                     "gestione prodotti servizi",
-                    // Doppie di Peso (Bigrammi)
                     "catalogo prodotti",
                     "catalogo servizi",
                     "listino prodotti",
@@ -62,14 +59,34 @@
                     "gestione servizi",
                     "prezzi servizi",
                     "prezzi prodotti",
-                    // Keyword Ancora
-                    "prodotto",
-                    "prodotti",
-                    "servizio",
-                    "servizi",
-                    "catalogo",
-                    "listino"
-
+                    "prodotto", "prodotti", "servizio", "servizi", "catalogo", "listino"
+                ] 
+            },
+            { 
+                category: "gestione", 
+                name: "Macro Prodotti & Asset Digitali", 
+                url: "gestione/catalog.html?macro=PRO", 
+                mod_id: "catalog_pro", 
+                user_utterances: [
+                    "apri macro prodotti", "catalogo soli prodotti", "scheda prodotti digitali", "prodotti in vendita", "listino prodotti fisici", "sezione prodotti", "prodotti"
+                ] 
+            },
+            { 
+                category: "gestione", 
+                name: "Macro Servizi & Prestazioni", 
+                url: "gestione/catalog.html?macro=SER", 
+                mod_id: "catalog_ser", 
+                user_utterances: [
+                    "apri macro servizi", "catalogo soli servizi", "scheda prestazioni e trattamenti", "listino servizi offerti", "sezione servizi", "servizi"
+                ] 
+            },
+            { 
+                category: "gestione", 
+                name: "Macro Procedure SOP & Blueprint", 
+                url: "gestione/catalog.html?macro=SOP", 
+                mod_id: "catalog_sop", 
+                user_utterances: [
+                    "apri macro sop", "procedure operativi standard", "schede blueprint sop", "istruzioni operative", "sezione sop", "sop"
                 ] 
             },
             { 
