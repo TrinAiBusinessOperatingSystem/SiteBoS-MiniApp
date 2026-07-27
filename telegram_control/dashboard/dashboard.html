@@ -250,14 +250,14 @@
         class="relative flex-1 flex flex-col items-center justify-center select-none z-10 w-full max-w-sm mx-auto py-12"
         style="max-height: calc(100vh - 160px); max-height: calc(100dvh - 160px);">
 
-        <!-- Desktop/Mobile Nav Up (Pulsante centrato al 100% sul bordo superiore della card su Mobile e Desktop) -->
+        <!-- Desktop/Mobile Nav Up (Centrato al centro del bordo della card in alto) -->
         <button id="btn-nav-up" onclick="playMechanicalTick(); navigateStack(-1)"
             class="btn-glass-minimal absolute z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 shadow-sm"
             style="top: calc(50% - 145px); left: 50%; transform: translate(-50%, -50%);">
             <i class="fas fa-chevron-up text-[10px]"></i>
         </button>
         <span id="tooltip-wave-up" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50"
-            style="top: calc(50% - 145px); left: calc(50% + 24px); transform: translateY(-50%);">Precedente</span>
+            style="top: calc(50% - 159px); left: calc(50% + 22px);">Precedente</span>
 
         <!-- 3D Card Stack -->
         <div id="stack-container" class="stack-container relative">
@@ -277,14 +277,14 @@
         </button>
         <span id="tooltip-wave-back" class="tooltip-wave-badge absolute left-2 text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50" style="top: calc(50% + 22px);"><span id="tooltip-wave-back-text">Chiudi</span></span>
 
-        <!-- Desktop/Mobile Nav Down (Pulsante centrato al 100% sul bordo inferiore della card su Mobile e Desktop) -->
+        <!-- Desktop/Mobile Nav Down (Centrato al centro del bordo della card in basso) -->
         <button id="btn-nav-down" onclick="playMechanicalTick(); navigateStack(1)"
             class="btn-glass-minimal absolute z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900 shadow-sm"
             style="top: calc(50% + 145px); left: 50%; transform: translate(-50%, -50%);">
             <i class="fas fa-chevron-down text-[10px]"></i>
         </button>
         <span id="tooltip-wave-down" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50"
-            style="top: calc(50% + 145px); right: calc(50% + 24px); transform: translateY(-50%);">Successivo</span>
+            style="top: calc(50% + 159px); right: calc(50% + 22px);">Successivo</span>
 
         <!-- Dynamic Side Dot Indicators with Scrubbing Area (Pill layout) -->
         <div id="dot-indicators-wrapper"
@@ -1663,16 +1663,16 @@
         // Il ciclo gira su tutte e 4 le strisce in loop.
         // ────────────────────────────────────────────────────────────────
         const STRIP_DEFS = [
-            { id: 'swipe-strip-up',    text: '↑ SWIPE ↑ SU'           },
-            { id: 'swipe-strip-right', text: '→ SWIPE → APRI'         },
-            { id: 'swipe-strip-down',  text: '↓ SWIPE ↓ GIÙ'          },
-            { id: 'swipe-strip-left',  text: '← SWIPE ← TORNA'        },
+            { id: 'swipe-strip-up',    text: '↑ SWIPE SU ↑'          },
+            { id: 'swipe-strip-right', text: '→ SWIPE APRI →'        },
+            { id: 'swipe-strip-down',  text: '↓ SWIPE GIÙ ↓'         },
+            { id: 'swipe-strip-left',  text: '← SWIPE TORNA ←'       },
         ];
 
-        const STRIP_CHAR_MS   = 65;   // ms tra carattere e carattere (typewriter)
-        const STRIP_GLOW_MS   = 700;  // ms di glow pieno tenuto dopo sweep
-        const STRIP_SWEEP_MS  = 28;   // ms tra char durante la sweep glow
-        const STRIP_FADE_MS   = 350;  // ms di pausa dopo fade prima del prossimo strip
+        const STRIP_CHAR_MS   = 110;  // Tempo molto calmo tra carattere e carattere (typewriter)
+        const STRIP_GLOW_MS   = 1200; // Tempo di mantenimento glow pieno prima del fade
+        const STRIP_SWEEP_MS  = 45;   // Tempo di corsa sweep glow
+        const STRIP_FADE_MS   = 600;  // Pausa rilassata prima della striscia successiva
 
         let stripCycleTimer = null;
         let stripCycleIdx   = 0;
@@ -1692,7 +1692,10 @@
             const spans = chars.map(ch => {
                 const s = document.createElement('span');
                 s.textContent = ch;
-                s.style.cssText = 'opacity:0; color:#94a3b8; font-size:9px; font-weight:600; letter-spacing:0.03em; transition:opacity 0.18s, color 0.25s;';
+                const isArrow = ['↑', '↓', '←', '→'].includes(ch);
+                const fontSize = isArrow ? '13px' : '9px';
+                const fontWeight = isArrow ? 'bold' : '600';
+                s.style.cssText = `opacity:0; color:#94a3b8; font-size:${fontSize}; font-weight:${fontWeight}; letter-spacing:0.04em; transition:opacity 0.25s, color 0.35s;`;
                 container.appendChild(s);
                 return s;
             });
@@ -1702,7 +1705,7 @@
             function typeNext() {
                 if (!isStripActive) return;
                 if (ci < spans.length) {
-                    spans[ci].style.opacity = '0.38';
+                    spans[ci].style.opacity = '0.45';
                     ci++;
                     stripCycleTimer = setTimeout(typeNext, STRIP_CHAR_MS);
                 } else {
@@ -1713,7 +1716,7 @@
                             setTimeout(() => {
                                 if (!isStripActive) return;
                                 s.style.opacity = '1';
-                                s.style.color   = '#475569'; // slate-600
+                                s.style.color   = '#334155'; // slate-700
                             }, i * STRIP_SWEEP_MS);
                         });
                         // FASE 3 — Glow hold poi fade out
@@ -1724,9 +1727,9 @@
                             stripCycleTimer = setTimeout(() => {
                                 clearStripEl(def.id);
                                 onDone && onDone();
-                            }, 320);
+                            }, 450);
                         }, holdDelay);
-                    }, 180);
+                    }, 250);
                 }
             }
             typeNext();
@@ -1842,7 +1845,7 @@
                     }
 
                     waveScanIdx = (waveScanIdx + 1) % wavePairs.length;
-                }, 1400);
+                }, 2200);
 
             } else {
                 isTooltipWaveActive = false;
@@ -1891,7 +1894,7 @@
         let isAttractActive   = false;
 
         const ATTRACT_IDLE_MS  = 5000;   // 5s di inattività prima di avviarsi
-        const ATTRACT_STEP_MS  = 2500;   // una card ogni 2.5 secondi
+        const ATTRACT_STEP_MS  = 4200;   // una card ogni 4.2 secondi (ritmo calmo)
 
         function startAttractMode() {
             if (isAttractActive) return;
