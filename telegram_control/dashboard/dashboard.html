@@ -1061,6 +1061,7 @@
         function buildStack() {
             container.innerHTML = "";
             dotContainer.innerHTML = "";
+            prevDiffMap.clear();
 
             modules.forEach((mod, idx) => {
                 // Card Creation with Center Platform Theme Styling (White card + slate-900 icon box + centered text)
@@ -1137,6 +1138,9 @@
             }
         }
 
+        // Track previous positions for smooth cross-slot jumps in short submenus
+        const prevDiffMap = new Map();
+
         // Apply true 3D cylinder vertical transformations
         function updateStackLayout() {
             const N = modules ? modules.length : 0;
@@ -1151,6 +1155,15 @@
                     if (diff > N / 2) diff -= N;
                     else if (diff < -N / 2) diff += N;
                 }
+
+                // Rileva salti bruschi di ruolo (es. da +1 a -1 nei sottomenu a 3 o 4 elementi)
+                const prevDiff = prevDiffMap.get(idx);
+                const isCrossJump = prevDiff !== undefined && Math.abs(prevDiff - diff) > 1;
+                if (isCrossJump) {
+                    card.style.transition = 'none';
+                }
+
+                prevDiffMap.set(idx, diff);
 
                 let translateY = 0;
                 let translateZ = 0;
@@ -1213,6 +1226,12 @@
                 card.style.transform = `translate3d(0, ${translateY}px, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`;
                 card.style.opacity = opacity;
                 card.style.zIndex = zIndex;
+
+                if (isCrossJump) {
+                    requestAnimationFrame(() => {
+                        card.style.transition = '';
+                    });
+                }
 
                 // Update dots - Tutti punti circolari uniformi (singolo punto nero per l'attivo)
                 if (dot) {
