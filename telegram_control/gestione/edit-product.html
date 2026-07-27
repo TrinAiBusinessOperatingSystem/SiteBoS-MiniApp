@@ -416,6 +416,7 @@
 
         async function init() {
             applyTranslations();
+            setupTelegramBackButton();
             if (!sopId) { alert("SOP ID Missing"); return; }
             await loadProduct();
         }
@@ -522,6 +523,33 @@
 
         // --- IN-PAGE DB & WIDGET LOGIC ---
 
+        function setupTelegramBackButton() {
+            if (!tg.BackButton) return;
+            tg.BackButton.show();
+            tg.BackButton.offClick(handleTelegramBack);
+            tg.BackButton.onClick(handleTelegramBack);
+        }
+
+        function handleTelegramBack() {
+            const drawer = document.getElementById('advanced-drawer');
+            const isDrawerOpen = drawer && !drawer.classList.contains('translate-y-full');
+            const userguideOverlay = document.getElementById('userguide-drawer-overlay');
+            const isGuideOpen = userguideOverlay && !userguideOverlay.classList.contains('hidden') && !userguideOverlay.classList.contains('opacity-0');
+
+            if (isGuideOpen) {
+                window.closeUserGuide();
+                return;
+            }
+
+            if (isDrawerOpen) {
+                closeAdvancedDrawer();
+                return;
+            }
+
+            const targetUrl = `catalog.html?ash=${urlParams.get('ash') || ''}&msg=${urlParams.get('message_id') || ''}`;
+            checkUnsavedAndRedirect(targetUrl);
+        }
+
         async function openAdvancedDrawer() {
             const isAdvancedReady = currentData?.ui_node_draft?.advanced_ready === true;
 
@@ -532,6 +560,7 @@
                 document.body.style.overflow = 'hidden';
                 if (tg.BackButton) {
                     tg.BackButton.show();
+                    tg.BackButton.offClick(handleTelegramBack);
                     tg.BackButton.onClick(closeAdvancedDrawer);
                 }
             } else {
@@ -560,7 +589,7 @@
         function closeAdvancedDrawer() {
             document.getElementById('advanced-drawer').classList.add('translate-y-full');
             document.body.style.overflow = '';
-            if(tg.BackButton) tg.BackButton.hide();
+            setupTelegramBackButton();
         }
 
         // --- ASYNC AI DRAFTING ---
