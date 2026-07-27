@@ -1817,6 +1817,47 @@
         fetchDashboardData();
         buildStack();
         triggerTooltipWave();
+
+        // ───────────────────────────────────────────────────────
+        // ATTRACT MODE — Auto-scorrimento card dopo inattività
+        // Dopo 5 secondi senza interazione, le card scorrono da sole
+        // ogni 2.5 secondi. Qualsiasi tocco/click/swipe ferma tutto.
+        // ───────────────────────────────────────────────────────
+        let attractIdleTimer  = null;
+        let attractInterval   = null;
+        let isAttractActive   = false;
+
+        const ATTRACT_IDLE_MS  = 5000;   // 5s di inattività prima di avviarsi
+        const ATTRACT_STEP_MS  = 2500;   // una card ogni 2.5 secondi
+
+        function startAttractMode() {
+            if (isAttractActive) return;
+            isAttractActive = true;
+            attractInterval = setInterval(() => {
+                if (window.navigateStack) window.navigateStack(1);
+            }, ATTRACT_STEP_MS);
+        }
+
+        function stopAttractMode() {
+            if (!isAttractActive) return;
+            isAttractActive = false;
+            clearInterval(attractInterval);
+            attractInterval = null;
+        }
+
+        function resetAttractIdle() {
+            stopAttractMode();
+            clearTimeout(attractIdleTimer);
+            attractIdleTimer = setTimeout(startAttractMode, ATTRACT_IDLE_MS);
+        }
+
+        // Avvia il rilevamento inattività
+        ['touchstart', 'touchend', 'click', 'keydown', 'wheel', 'pointermove'].forEach(evt => {
+            window.addEventListener(evt, resetAttractIdle, { passive: true });
+        });
+
+        // Prima scadenza al caricamento
+        resetAttractIdle();
     </script>
     <!-- Help Gestures Modal Overlay -->
     <div id="help-overlay"
