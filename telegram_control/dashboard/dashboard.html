@@ -330,11 +330,11 @@
         </button>
         <span id="tooltip-wave-list" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50" style="right: 28px; top: calc(50% + 149px);"><span id="tooltip-wave-list-text">Cambia Vista</span></span>
 
-        <!-- Swipe Direction Labels (Centro Schermo) -->
-        <span id="tooltip-swipe-up" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-40" style="top: calc(50% - 155px); left: 50%; transform: translateX(-50%);">↑ Scorri su</span>
-        <span id="tooltip-swipe-down" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-40" style="top: calc(50% + 140px); left: 50%; transform: translateX(-50%);">↓ Scorri giù</span>
-        <span id="tooltip-swipe-left" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-40" style="top: calc(50% + 28px); left: 12px;">← Indietro</span>
-        <span id="tooltip-swipe-right" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-40" style="top: calc(50% - 42px); left: 12px;">→ Apri</span>
+        <!-- Swipe Direction Labels (Orbitano attorno alla card — gestiti da JS) -->
+        <span id="tooltip-swipe-up"    class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">↑ Su</span>
+        <span id="tooltip-swipe-down"  class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">↓ Giù</span>
+        <span id="tooltip-swipe-left"  class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">← Torna</span>
+        <span id="tooltip-swipe-right" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">→ Apri</span>
 
     </main>
 
@@ -1645,6 +1645,49 @@
         let waveScanInterval = null;
         let waveScanIdx = 0;
 
+        // Orbita Swipe Labels
+        let orbitRAF = null;
+        let orbitStartTime = null;
+        const ORBIT_RADIUS_PX = 118; // raggio orbita in px
+        const ORBIT_PERIOD_MS = 45000; // 45 secondi per giro completo
+
+        const ORBIT_LABELS = [
+            { id: 'tooltip-swipe-up',    offsetDeg: 0   },
+            { id: 'tooltip-swipe-right', offsetDeg: 90  },
+            { id: 'tooltip-swipe-down',  offsetDeg: 180 },
+            { id: 'tooltip-swipe-left',  offsetDeg: 270 },
+        ];
+
+        function runOrbit(timestamp) {
+            if (!isTooltipWaveActive) { orbitRAF = null; orbitStartTime = null; return; }
+            if (!orbitStartTime) orbitStartTime = timestamp;
+            const elapsed = timestamp - orbitStartTime;
+            const baseAngle = (elapsed / ORBIT_PERIOD_MS) * 360;
+
+            ORBIT_LABELS.forEach(({ id, offsetDeg }) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const rad = ((baseAngle + offsetDeg) * Math.PI) / 180;
+                const x = Math.sin(rad) * ORBIT_RADIUS_PX;
+                const y = -Math.cos(rad) * ORBIT_RADIUS_PX;
+                el.style.left = `calc(50% + ${x.toFixed(2)}px)`;
+                el.style.top  = `calc(50% + ${y.toFixed(2)}px)`;
+            });
+
+            orbitRAF = requestAnimationFrame(runOrbit);
+        }
+
+        function startOrbit() {
+            if (orbitRAF) cancelAnimationFrame(orbitRAF);
+            orbitStartTime = null;
+            orbitRAF = requestAnimationFrame(runOrbit);
+        }
+
+        function stopOrbit() {
+            if (orbitRAF) { cancelAnimationFrame(orbitRAF); orbitRAF = null; }
+            orbitStartTime = null;
+        }
+
         function setPairHighlight(pair, active) {
             if (!pair) return;
             if (pair.btn) {
@@ -1714,6 +1757,9 @@
                     }, idx * 50);
                 });
 
+                // Avvia orbita etichette swipe
+                startOrbit();
+
                 // Avvio dell'illuminazione a giro (Round-Robin soft cyan glow pulse ultra-calmo ogni 1400ms)
                 if (waveScanInterval) clearInterval(waveScanInterval);
                 waveScanIdx = 0;
@@ -1738,6 +1784,7 @@
             } else {
                 isTooltipWaveActive = false;
                 if (waveScanInterval) clearInterval(waveScanInterval);
+                stopOrbit();
 
                 // Reset all pairs & fade out labels
                 wavePairs.forEach(p => setPairHighlight(p, false));
