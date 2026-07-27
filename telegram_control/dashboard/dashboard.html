@@ -125,17 +125,30 @@
             transform: scale(0.98) !important;
         }
 
-        /* Non-active items (Previous / Next): Fade-Off con Alta Trasparenza mantenendo l'allineamento orizzontale perfetto */
+        /* Non-active items (Previous / Next): Fade-Off con Alta Trasparenza (Opacity: 0.45, Dissolvenza Rapida 0.25s) */
         .platform-card-3d:not(.active) {
             background: transparent !important;
             backdrop-filter: none !important;
             -webkit-backdrop-filter: none !important;
-            border: 1px solid transparent !important;
+            border: none !important;
             box-shadow: none !important;
+            left: 0 !important;
+            width: 100% !important;
+            justify-content: center !important;
+            text-align: center !important;
             padding: 0.2rem 1rem !important;
+            height: auto !important;
+            min-height: 28px !important;
             pointer-events: none !important;
             cursor: default !important;
             transition: transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out !important;
+        }
+
+        .platform-card-3d:not(.active) .my-auto {
+            justify-content: center !important;
+            width: 100% !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
         }
 
         .platform-card-3d:not(.active) .card-desc,
@@ -1127,8 +1140,6 @@
         // Apply true 3D cylinder vertical transformations
         function updateStackLayout() {
             const N = modules ? modules.length : 0;
-            const isSub = currentMenuLevel === 'sub';
-
             modules.forEach((_, idx) => {
                 const card = document.getElementById(`card-${idx}`);
                 const dot = document.getElementById(`dot-${idx}`);
@@ -1159,8 +1170,8 @@
                     card.style.pointerEvents = 'auto';
                     card.classList.add('active');
                 } else if (diff === -1) {
-                    // Previous Item (Sopra la card attiva): offset adattivo per bilanciare l'header sottomenu
-                    translateY = isSub ? -50 : -58;
+                    // Previous Item (Sopra la card attiva): offset -62px, alta trasparenza 0.45
+                    translateY = -62;
                     translateZ = 10;
                     rotateX = -5;
                     scale = 0.95;
@@ -1169,8 +1180,8 @@
                     card.classList.remove('active');
                     card.style.pointerEvents = 'none';
                 } else if (diff === 1) {
-                    // Next Item (Sotto la card attiva): offset adattivo per bilanciare l'header sottomenu
-                    translateY = isSub ? 165 : 178;
+                    // Next Item (Sotto la card attiva): offset 195px, alta trasparenza 0.45 per un fade-off leggero e trasparente
+                    translateY = 195;
                     translateZ = 10;
                     rotateX = 5;
                     scale = 0.95;
@@ -1179,8 +1190,8 @@
                     card.classList.remove('active');
                     card.style.pointerEvents = 'none';
                 } else if (diff < -1) {
-                    // Hidden Items Above
-                    translateY = isSub ? -110 : -120;
+                    // Hidden Items Above: posizionate a -127px per uno step identico di 65px e velocità simmetrica rispetto a +260px sotto
+                    translateY = -127;
                     translateZ = -50;
                     rotateX = -12;
                     opacity = 0;
@@ -1188,8 +1199,8 @@
                     card.classList.remove('active');
                     card.style.pointerEvents = 'none';
                 } else {
-                    // Hidden Items Below
-                    translateY = isSub ? 220 : 240;
+                    // Hidden Items Below: il fade-in parte da sopra il pulsante freccia giù (+260px)
+                    translateY = 260;
                     translateZ = -50;
                     rotateX = 10;
                     opacity = 0;
@@ -1653,11 +1664,11 @@
         </div>
     </div>
 
-    <!-- Bot Assistant Drawer Overlay (Layout VenomHearth Style: Pulsanti in alto Fino a 5, Card Testo & Input sotto a 3 righe, Bottoni Tondi Mic a SX e Invio a DX, Nessun elemento nero) -->
+    <!-- Bot Assistant Drawer Overlay -->
     <div id="voice-agent-overlay"
         class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[99999] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4"
         onclick="toggleVoiceAgentOverlay(false)">
-        <div class="voice-modal-content bg-white/95 border border-slate-200/90 p-5 rounded-3xl w-full max-w-xs shadow-2xl backdrop-blur-2xl scale-95 transition-transform duration-300 relative text-center text-slate-900 overflow-hidden flex flex-col items-center gap-3 max-h-[90vh] overflow-y-auto"
+        <div class="voice-modal-content bg-white/95 border border-slate-200/90 p-5 rounded-3xl w-full max-w-sm shadow-2xl backdrop-blur-2xl scale-95 transition-transform duration-300 relative text-center text-slate-900 overflow-hidden flex flex-col items-center gap-3.5 max-h-[92vh] overflow-y-auto"
             onclick="event.stopPropagation()">
 
             <!-- Close Button -->
@@ -1666,23 +1677,22 @@
                 <i class="fas fa-times text-xs"></i>
             </button>
 
-            <!-- Header Badge & Icona Bot -->
-            <div class="flex items-center gap-2 text-slate-900 mt-1">
-                <div class="w-7 h-7 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
-                    <i class="fas fa-robot text-xs"></i>
+            <!-- Header Icona Bot senza sottotitolo -->
+            <div class="flex items-center gap-2.5 text-slate-900 mt-1">
+                <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
+                    <i class="fas fa-robot text-sm"></i>
                 </div>
                 <div class="text-left">
-                    <h3 class="text-xs font-black uppercase tracking-tight leading-none text-slate-900">Assistente Bot</h3>
-                    <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-0.5">SiteBoS Intelligence</p>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-900">Assistente Bot</h3>
                 </div>
             </div>
 
-            <!-- 1. Smart Action Buttons Grid (I PULSANTI SOPRA - FINO A 5 PULSANTI) -->
-            <div id="voice-actions-grid" class="w-full flex flex-col gap-1.5 max-h-[165px] overflow-y-auto pr-0.5 transition-all">
-                <!-- Dynamically rendered up to 5 light glassmorphic buttons -->
+            <!-- 1. Smart Action Buttons Grid (Contenitore allungato fino a 5 tasti senza scroll forzato) -->
+            <div id="voice-actions-grid" class="w-full flex flex-col gap-2 max-h-[320px] overflow-y-auto pr-0.5 transition-all">
+                <!-- Renderizzato dinamicamente fino a 5 pulsanti -->
             </div>
 
-            <!-- 2. Card Testo & Input Sotto (3 Righe con Mic a SX e Invio a DX Tondi, Nessun Nero) -->
+            <!-- 2. Card Testo & Input Sotto -->
             <div class="w-full bg-slate-50/90 border border-slate-200/90 rounded-2xl p-3 shadow-inner relative flex flex-col gap-2">
                 
                 <!-- Status & Transcript Feedback -->
@@ -1691,14 +1701,14 @@
                     <p id="voice-transcript-text" class="text-[11px] font-semibold text-slate-700 italic leading-snug min-h-[18px]"></p>
                 </div>
 
-                <!-- Textarea (3 spazi / 3 righe) -->
+                <!-- Textarea (3 righe) -->
                 <textarea id="voice-input-fallback" rows="3" placeholder="Scrivi qui il tuo comando o ricerca..."
                     class="w-full bg-white/90 border border-slate-200/80 rounded-xl p-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-400 font-medium resize-none shadow-sm"
                     onkeydown="if(event.key==='Enter' && !event.shiftKey){ event.preventDefault(); submitVoiceTextFallback(); }"></textarea>
 
-                <!-- Actions inside Card: Mic bottom LEFT (Tondo), Send bottom RIGHT (Tondo) -->
+                <!-- Actions inside Card: Mic SX, Send DX -->
                 <div class="flex items-center justify-between pt-0.5">
-                    <!-- Mic Button (In Basso a SX, Tondo, Light Glass, Nessun Nero) -->
+                    <!-- Mic Button -->
                     <button id="voice-orb-btn" onclick="toggleVoiceRecording()"
                         class="w-8 h-8 rounded-full bg-white hover:bg-blue-50 border border-slate-200 text-blue-600 flex items-center justify-center shadow-sm active:scale-90 transition cursor-pointer relative group"
                         title="Comando Vocale">
@@ -1706,7 +1716,7 @@
                         <i id="voice-orb-icon" class="fas fa-microphone text-xs group-hover:scale-110 transition"></i>
                     </button>
 
-                    <!-- Send Button (In Basso a DX, Tondo, Blue Cobalt, Nessun Nero) -->
+                    <!-- Send Button -->
                     <button onclick="submitVoiceTextFallback()"
                         class="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md active:scale-90 transition cursor-pointer"
                         title="Invia Comando">
