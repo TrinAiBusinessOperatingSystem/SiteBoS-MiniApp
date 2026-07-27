@@ -548,11 +548,11 @@
                 }
 
                 if (quickBtn) {
-                    quickBtn.className = "absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer border-2 border-blue-400 shadow-blue-500/20";
+                    quickBtn.className = "absolute -right-2 z-50 w-9.5 h-9.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-lg shadow-blue-500/40 active:scale-95 transition-all cursor-pointer border-2 border-white ring-2 ring-blue-500/50";
                     quickBtn.title = "Passa a Vista 3D";
                 }
                 if (quickIcon) {
-                    quickIcon.className = "fas fa-cubes text-[11px] text-blue-400";
+                    quickIcon.className = "fas fa-cubes text-xs text-white";
                 }
             } else {
                 if (stackEl) stackEl.classList.remove('hidden');
@@ -583,20 +583,40 @@
 
             const currentList = modules || mainModules;
             currentList.forEach((mod, idx) => {
+                const isActive = (idx === activeIdx);
                 const btn = document.createElement('button');
-                btn.className = "w-full p-3 bg-white/90 hover:bg-slate-50 border border-slate-200/90 rounded-2xl shadow-sm text-left flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer group shrink-0";
-                btn.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="w-8.5 h-8.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center text-xs shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">
-                            <i class="fas ${mod.icon}"></i>
+                
+                if (isActive) {
+                    // Stato Attivo: Fondo Scuro Slate-900, Icona Blu Elettrico, Testo Bianco ad Alto Contrasto
+                    btn.className = "w-full p-3 bg-slate-900 border-2 border-slate-800 text-white rounded-2xl shadow-md ring-2 ring-blue-500/40 text-left flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer group shrink-0 relative overflow-hidden";
+                    btn.innerHTML = `
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-8.5 h-8.5 rounded-xl bg-blue-600 border border-blue-400 text-white flex items-center justify-center text-xs shrink-0 shadow-sm">
+                                <i class="fas ${mod.icon}"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <h4 class="text-xs font-black uppercase tracking-tight text-white truncate">${mod.label}</h4>
+                                <p class="text-[9px] font-semibold text-slate-300 truncate mt-0.5">${mod.desc || ''}</p>
+                            </div>
                         </div>
-                        <div class="overflow-hidden">
-                            <h4 class="text-xs font-black uppercase tracking-tight text-slate-900 truncate">${mod.label}</h4>
-                            <p class="text-[9px] font-semibold text-slate-500 truncate mt-0.5">${mod.desc || ''}</p>
+                        <i class="fas fa-chevron-right text-xs text-blue-400 shrink-0 ml-2"></i>
+                    `;
+                } else {
+                    // Stato Standard: Fondo Chiaro Glassmorphic, Testo Slate-900
+                    btn.className = "w-full p-3 bg-white/90 hover:bg-slate-50 border border-slate-200/90 rounded-2xl shadow-xs text-left flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer group shrink-0";
+                    btn.innerHTML = `
+                        <div class="flex items-center gap-3 overflow-hidden">
+                            <div class="w-8.5 h-8.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center text-xs shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                                <i class="fas ${mod.icon}"></i>
+                            </div>
+                            <div class="overflow-hidden">
+                                <h4 class="text-xs font-black uppercase tracking-tight text-slate-900 truncate">${mod.label}</h4>
+                                <p class="text-[9px] font-semibold text-slate-500 truncate mt-0.5">${mod.desc || ''}</p>
+                            </div>
                         </div>
-                    </div>
-                    <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:text-slate-900 shrink-0 ml-2"></i>
-                `;
+                        <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:text-slate-900 shrink-0 ml-2"></i>
+                    `;
+                }
 
                 btn.onclick = (e) => {
                     e.stopPropagation();
@@ -1190,7 +1210,6 @@
                             <p class="card-desc text-[9px] text-slate-500 font-bold leading-normal mt-0.5 normal-case">${mod.desc}</p>
                         </div>
                     </div>
-
                 `;
 
                 // Swipe gesture isolation parameters
@@ -1269,14 +1288,23 @@
                     else if (diff < -N / 2) diff += N;
                 }
 
-                // Rileva salti bruschi di ruolo (es. da +1 a -1 nei sottomenu a 3 o 4 elementi)
                 const prevDiff = prevDiffMap.get(idx);
-                const isCrossJump = prevDiff !== undefined && Math.abs(prevDiff - diff) > 1;
-                if (isCrossJump) {
-                    card.style.transition = 'none';
-                }
-
                 prevDiffMap.set(idx, diff);
+
+                // Se un elemento nei sottomenu corti cambia lato (da sopra a sotto o viceversa), 
+                // posizionalo all'esterno con opacità 0 prima di farlo sfumare verso il centro,
+                // così da imitare al 100% il movimento unidirezionale del menu principale.
+                if (prevDiff !== undefined && Math.abs(prevDiff - diff) > 1) {
+                    card.style.transition = 'none';
+                    if (diff === 1) {
+                        card.style.transform = `translate3d(0, 260px, -50px) rotateX(10deg) scale(0.95)`;
+                    } else if (diff === -1) {
+                        card.style.transform = `translate3d(0, -127px, -50px) rotateX(-12deg) scale(0.95)`;
+                    }
+                    card.style.opacity = 0;
+                    card.offsetHeight; // Force reflow
+                    card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
+                }
 
                 let translateY = 0;
                 let translateZ = 0;
@@ -1339,12 +1367,6 @@
                 card.style.transform = `translate3d(0, ${translateY}px, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`;
                 card.style.opacity = opacity;
                 card.style.zIndex = zIndex;
-
-                if (isCrossJump) {
-                    requestAnimationFrame(() => {
-                        card.style.transition = '';
-                    });
-                }
 
                 // Update dots - Tutti punti circolari uniformi (singolo punto nero per l'attivo)
                 if (dot) {
