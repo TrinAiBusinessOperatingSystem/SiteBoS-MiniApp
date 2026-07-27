@@ -712,6 +712,20 @@ function showGlobalLoader(show) {
             buttonContainer = header.querySelector('.flex.gap-2') || header.querySelector('.flex.items-center.gap-2') || header.querySelector('.flex.gap-3');
         }
 
+        window.handlePageClose = function() {
+            if (typeof playTick === 'function') playTick(600, 0.04, 0.06);
+            if (window.parent && window.parent !== window && typeof window.parent.closeSubEditor === 'function') {
+                window.parent.closeSubEditor();
+            } else if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                const params = new URLSearchParams(window.location.search);
+                const ash = params.get('ash') || '';
+                const msg = params.get('msg') || '';
+                window.location.href = `../dashboard/dashboard.html?ash=${ash}&msg=${msg}`;
+            }
+        };
+
         const btnHtml = `
         <!-- User Guide Button -->
         <button id="btn-nav-guide" onclick="openUserGuide('${finalGuideUrl}')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Manuale Utente">
@@ -720,6 +734,10 @@ function showGlobalLoader(show) {
         <!-- Speech Audio Button -->
         <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Guida Vocale">
             <i class="fas fa-volume-high text-xs"></i>
+        </button>
+        <!-- Close / Back Button -->
+        <button id="btn-nav-close" onclick="handlePageClose()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 hover:text-slate-900 shadow-sm active:scale-90 transition shrink-0" title="Chiudi / Indietro">
+            <i class="fas fa-times text-xs"></i>
         </button>`;
 
         if (buttonContainer) {
