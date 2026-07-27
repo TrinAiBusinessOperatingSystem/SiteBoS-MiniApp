@@ -255,7 +255,7 @@
             class="btn-glass-minimal absolute top-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
             <i class="fas fa-chevron-up text-[10px]"></i>
         </button>
-        <span id="tooltip-wave-up" class="tooltip-wave-badge absolute top-1 text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50" style="left: calc(50% + 24px);">Precedente</span>
+        <span id="tooltip-wave-up" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50" style="top: calc(50% - 130px); left: 50%; transform: translateX(-50%);">Precedente</span>
 
         <!-- 3D Card Stack -->
         <div id="stack-container" class="stack-container relative">
@@ -280,7 +280,7 @@
             class="btn-glass-minimal absolute bottom-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
             <i class="fas fa-chevron-down text-[10px]"></i>
         </button>
-        <span id="tooltip-wave-down" class="tooltip-wave-badge absolute bottom-2 text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50" style="left: calc(50% - 84px);">Successivo</span>
+        <span id="tooltip-wave-down" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50" style="top: calc(50% + 130px); left: 50%; transform: translateX(-50%);">Successivo</span>
 
         <!-- Dynamic Side Dot Indicators with Scrubbing Area (Pill layout) -->
         <div id="dot-indicators-wrapper"
@@ -330,11 +330,19 @@
         </button>
         <span id="tooltip-wave-list" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-all duration-300 whitespace-nowrap z-50" style="right: 28px; top: calc(50% + 149px);"><span id="tooltip-wave-list-text">Cambia Vista</span></span>
 
-        <!-- Swipe Direction Labels (Orbitano attorno alla card — gestiti da JS) -->
-        <span id="tooltip-swipe-up"    class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">↑ Su</span>
-        <span id="tooltip-swipe-down"  class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">↓ Giù</span>
-        <span id="tooltip-swipe-left"  class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">← Torna</span>
-        <span id="tooltip-swipe-right" class="tooltip-wave-badge absolute text-[9px] font-semibold tracking-wide text-slate-400 opacity-0 pointer-events-none transition-opacity duration-500 whitespace-nowrap z-40" style="transform: translate(-50%, -50%);">→ Apri</span>
+        <!-- LED Typewriter Strips (immobili, gestiti da JS) -->
+        <!-- Strip Top: Swipe Su — centrata sopra il bordo della card superiore -->
+        <div id="swipe-strip-up" class="absolute pointer-events-none z-40 flex items-center justify-center gap-0"
+             style="top: calc(50% - 152px); left: 50%; transform: translateX(-50%);"></div>
+        <!-- Strip Bottom: Swipe Giù — centrata sotto il bordo della card inferiore -->
+        <div id="swipe-strip-down" class="absolute pointer-events-none z-40 flex items-center justify-center gap-0"
+             style="top: calc(50% + 152px); left: 50%; transform: translateX(-50%);"></div>
+        <!-- Strip Right: Apri — lato destro centrale -->
+        <div id="swipe-strip-right" class="absolute pointer-events-none z-40 flex items-center justify-center gap-0"
+             style="top: calc(50% + 30px); right: 10px;"></div>
+        <!-- Strip Left: Torna — lato sinistro centrale -->
+        <div id="swipe-strip-left" class="absolute pointer-events-none z-40 flex items-center justify-center gap-0"
+             style="top: calc(50% - 52px); left: 10px;"></div>
 
     </main>
 
@@ -1645,47 +1653,102 @@
         let waveScanInterval = null;
         let waveScanIdx = 0;
 
-        // Orbita Swipe Labels
-        let orbitRAF = null;
-        let orbitStartTime = null;
-        const ORBIT_RADIUS_PX = 118; // raggio orbita in px
-        const ORBIT_PERIOD_MS = 45000; // 45 secondi per giro completo
-
-        const ORBIT_LABELS = [
-            { id: 'tooltip-swipe-up',    offsetDeg: 0   },
-            { id: 'tooltip-swipe-right', offsetDeg: 90  },
-            { id: 'tooltip-swipe-down',  offsetDeg: 180 },
-            { id: 'tooltip-swipe-left',  offsetDeg: 270 },
+        // ─── LED TYPEWRITER STRIPS ───────────────────────────────────────
+        // 4 strisce fisse: i caratteri appaiono uno alla volta (typewriter),
+        // poi una sweepglow illumina tutta la striscia, poi fade out.
+        // Il ciclo gira su tutte e 4 le strisce in loop.
+        // ────────────────────────────────────────────────────────────────
+        const STRIP_DEFS = [
+            { id: 'swipe-strip-up',    text: '· · · ↑  Su  ↑ · · ·'   },
+            { id: 'swipe-strip-right', text: '→ → → Apri → → →'        },
+            { id: 'swipe-strip-down',  text: '· · · ↓  Giù  ↓ · · ·'  },
+            { id: 'swipe-strip-left',  text: '← ← Torna ← ←'           },
         ];
 
-        function runOrbit(timestamp) {
-            if (!isTooltipWaveActive) { orbitRAF = null; orbitStartTime = null; return; }
-            if (!orbitStartTime) orbitStartTime = timestamp;
-            const elapsed = timestamp - orbitStartTime;
-            const baseAngle = (elapsed / ORBIT_PERIOD_MS) * 360;
+        const STRIP_CHAR_MS   = 65;   // ms tra carattere e carattere (typewriter)
+        const STRIP_GLOW_MS   = 700;  // ms di glow pieno tenuto dopo sweep
+        const STRIP_SWEEP_MS  = 28;   // ms tra char durante la sweep glow
+        const STRIP_FADE_MS   = 350;  // ms di pausa dopo fade prima del prossimo strip
 
-            ORBIT_LABELS.forEach(({ id, offsetDeg }) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                const rad = ((baseAngle + offsetDeg) * Math.PI) / 180;
-                const x = Math.sin(rad) * ORBIT_RADIUS_PX;
-                const y = -Math.cos(rad) * ORBIT_RADIUS_PX;
-                el.style.left = `calc(50% + ${x.toFixed(2)}px)`;
-                el.style.top  = `calc(50% + ${y.toFixed(2)}px)`;
+        let stripCycleTimer = null;
+        let stripCycleIdx   = 0;
+        let isStripActive   = false;
+
+        function clearStripEl(id) {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '';
+        }
+
+        function runStripAnim(def, onDone) {
+            const container = document.getElementById(def.id);
+            if (!container) { onDone && onDone(); return; }
+            container.innerHTML = '';
+
+            const chars = def.text.split('');
+            const spans = chars.map(ch => {
+                const s = document.createElement('span');
+                s.textContent = ch;
+                s.style.cssText = 'opacity:0; color:#94a3b8; font-size:9px; font-weight:600; letter-spacing:0.03em; transition:opacity 0.18s, color 0.25s;';
+                container.appendChild(s);
+                return s;
             });
 
-            orbitRAF = requestAnimationFrame(runOrbit);
+            // FASE 1 — Typewriter: chars appaiono uno alla volta
+            let ci = 0;
+            function typeNext() {
+                if (!isStripActive) return;
+                if (ci < spans.length) {
+                    spans[ci].style.opacity = '0.38';
+                    ci++;
+                    stripCycleTimer = setTimeout(typeNext, STRIP_CHAR_MS);
+                } else {
+                    // FASE 2 — Sweep glow da sinistra a destra
+                    stripCycleTimer = setTimeout(() => {
+                        if (!isStripActive) return;
+                        spans.forEach((s, i) => {
+                            setTimeout(() => {
+                                if (!isStripActive) return;
+                                s.style.opacity = '1';
+                                s.style.color   = '#475569'; // slate-600
+                            }, i * STRIP_SWEEP_MS);
+                        });
+                        // FASE 3 — Glow hold poi fade out
+                        const holdDelay = spans.length * STRIP_SWEEP_MS + STRIP_GLOW_MS;
+                        stripCycleTimer = setTimeout(() => {
+                            if (!isStripActive) return;
+                            spans.forEach(s => { s.style.opacity = '0'; });
+                            stripCycleTimer = setTimeout(() => {
+                                clearStripEl(def.id);
+                                onDone && onDone();
+                            }, 320);
+                        }, holdDelay);
+                    }, 180);
+                }
+            }
+            typeNext();
         }
 
-        function startOrbit() {
-            if (orbitRAF) cancelAnimationFrame(orbitRAF);
-            orbitStartTime = null;
-            orbitRAF = requestAnimationFrame(runOrbit);
+        function runNextStrip() {
+            if (!isStripActive) return;
+            const def = STRIP_DEFS[stripCycleIdx % STRIP_DEFS.length];
+            stripCycleIdx++;
+            runStripAnim(def, () => {
+                if (!isStripActive) return;
+                stripCycleTimer = setTimeout(runNextStrip, STRIP_FADE_MS);
+            });
         }
 
-        function stopOrbit() {
-            if (orbitRAF) { cancelAnimationFrame(orbitRAF); orbitRAF = null; }
-            orbitStartTime = null;
+        function startStripCycle() {
+            if (isStripActive) return;
+            isStripActive  = true;
+            stripCycleIdx  = 0;
+            runNextStrip();
+        }
+
+        function stopStripCycle() {
+            isStripActive = false;
+            clearTimeout(stripCycleTimer);
+            STRIP_DEFS.forEach(d => clearStripEl(d.id));
         }
 
         function setPairHighlight(pair, active) {
@@ -1725,16 +1788,12 @@
             const wavePairs = [
                 { btn: document.getElementById('btn-nav-back'), badge: document.getElementById('tooltip-wave-back') },
                 { btn: document.getElementById('btn-nav-up'), badge: document.getElementById('tooltip-wave-up') },
-                { btn: null, badge: document.getElementById('tooltip-swipe-up') },
                 { btn: document.getElementById('btn-nav-guide'), badge: document.getElementById('tooltip-wave-guide') },
                 { btn: document.getElementById('btn-nav-audio'), badge: document.getElementById('tooltip-wave-audio') },
                 { btn: document.getElementById('btn-help-gesture'), badge: document.getElementById('tooltip-wave-help') },
-                { btn: null, badge: document.getElementById('tooltip-swipe-left') },
-                { btn: null, badge: document.getElementById('tooltip-swipe-right') },
                 { btn: document.getElementById('btn-voice-agent'), badge: document.getElementById('tooltip-wave-bot') },
                 { btn: document.getElementById('btn-quick-list'), badge: document.getElementById('tooltip-wave-list') },
-                { btn: document.getElementById('btn-nav-down'), badge: document.getElementById('tooltip-wave-down') },
-                { btn: null, badge: document.getElementById('tooltip-swipe-down') }
+                { btn: document.getElementById('btn-nav-down'), badge: document.getElementById('tooltip-wave-down') }
             ];
 
             if (shouldShow) {
@@ -1757,8 +1816,8 @@
                     }, idx * 50);
                 });
 
-                // Avvia orbita etichette swipe
-                startOrbit();
+                // Avvia ciclo LED typewriter strips
+                startStripCycle();
 
                 // Avvio dell'illuminazione a giro (Round-Robin soft cyan glow pulse ultra-calmo ogni 1400ms)
                 if (waveScanInterval) clearInterval(waveScanInterval);
@@ -1784,7 +1843,7 @@
             } else {
                 isTooltipWaveActive = false;
                 if (waveScanInterval) clearInterval(waveScanInterval);
-                stopOrbit();
+                stopStripCycle();
 
                 // Reset all pairs & fade out labels
                 wavePairs.forEach(p => setPairHighlight(p, false));
