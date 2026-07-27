@@ -1285,35 +1285,10 @@
                 const dot = document.getElementById(`dot-${idx}`);
                 if (!card) return;
 
-                // Calcolo differenza circolare modulo N per loop continuo (wrap-around)
                 let diff = idx - activeIdx;
                 if (N > 1) {
                     if (diff > N / 2) diff -= N;
                     else if (diff < -N / 2) diff += N;
-                }
-
-                const prevDiff = prevDiffMap.get(idx);
-                prevDiffMap.set(idx, diff);
-
-                // Nei sottomenu corti (N < 5), l'elemento che deve fare il giro (da sopra a sotto o viceversa)
-                // viene riposizionato istantaneamente all'esterno col verso di entrata corretto,
-                // eliminando la traiettoria contraria e garantendo il movimento al 100% uniforme.
-                if (prevDiff !== undefined && prevDiff !== diff && N < 5) {
-                    if (direction > 0 && diff === 1 && prevDiff === -1) {
-                        // Comando GIÙ (direction > 0): l'etichetta in alto entra dal basso (260px) e sale a 195px
-                        card.style.transition = 'none';
-                        card.style.transform = `translate3d(0, 260px, -50px) rotateX(10deg) scale(0.95)`;
-                        card.style.opacity = 0;
-                        card.offsetHeight; // Force reflow
-                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
-                    } else if (direction < 0 && diff === -1 && prevDiff === 1) {
-                        // Comando SU (direction < 0): l'etichetta in basso entra dall'alto (-127px) e scende a -62px
-                        card.style.transition = 'none';
-                        card.style.transform = `translate3d(0, -127px, -50px) rotateX(-12deg) scale(0.95)`;
-                        card.style.opacity = 0;
-                        card.offsetHeight; // Force reflow
-                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
-                    }
                 }
 
                 let translateY = 0;
@@ -1321,59 +1296,81 @@
                 let rotateX = 0;
                 let scale = 1;
                 let opacity = 0;
-                let zIndex = 100;
+                let zIndex = 10; // BASE: Le etichette stanno SOTTO la card centrale
 
                 if (diff === 0) {
-                    // Active Card (Al centro)
+                    // CARD CENTRALE ATTIVA (Sempre in PRIMO PIANO sopra a tutto)
                     translateY = 0;
                     translateZ = 0;
                     rotateX = 0;
                     scale = 1;
                     opacity = 1;
-                    zIndex = 100;
+                    zIndex = 100; // Primo piano assoluto
                     card.style.pointerEvents = 'auto';
                     card.classList.add('active');
                 } else if (diff === -1) {
-                    // Previous Item (Sopra la card attiva): offset -62px, alta trasparenza 0.45
+                    // ETICHETTA SOPRA (Sotto la card come livello zIndex = 20)
                     translateY = -62;
-                    translateZ = 10;
+                    translateZ = -20;
                     rotateX = -5;
                     scale = 0.95;
                     opacity = 0.45;
-                    zIndex = 150;
+                    zIndex = 20; // Sta SOTTO la card centrale (100)
                     card.classList.remove('active');
                     card.style.pointerEvents = 'none';
                 } else if (diff === 1) {
-                    // Next Item (Sotto la card attiva): offset 195px, alta trasparenza 0.45 per un fade-off leggero e trasparente
+                    // ETICHETTA SOTTO (Sotto la card come livello zIndex = 20)
                     translateY = 195;
-                    translateZ = 10;
+                    translateZ = -20;
                     rotateX = 5;
                     scale = 0.95;
                     opacity = 0.45;
-                    zIndex = 150;
+                    zIndex = 20; // Sta SOTTO la card centrale (100)
                     card.classList.remove('active');
                     card.style.pointerEvents = 'none';
                 } else if (diff < -1) {
-                    // Hidden Items Above: posizionate a -127px per uno step identico di 65px e velocità simmetrica rispetto a +260px sotto
+                    // NASCOSTO IN ALTO (Uscita/Entrata in dissolvenza)
                     translateY = -127;
                     translateZ = -50;
                     rotateX = -12;
                     opacity = 0;
-                    zIndex = 10;
+                    zIndex = 5;
                     card.classList.remove('active');
                     card.style.pointerEvents = 'none';
                 } else {
-                    // Hidden Items Below: il fade-in parte da sopra il pulsante freccia giù (+260px)
+                    // NASCOSTO IN BASSO (Uscita/Entrata in dissolvenza)
                     translateY = 260;
                     translateZ = -50;
                     rotateX = 10;
                     opacity = 0;
-                    zIndex = 10;
+                    zIndex = 5;
                     card.classList.remove('active');
                     card.style.pointerEvents = 'none';
                 }
 
-                // Apply styles (GPU Accelerated)
+                // GESTIONE DISSOLVENZA E DIREZIONE SOTTO LA CARD
+                const prevDiff = prevDiffMap.get(idx);
+                prevDiffMap.set(idx, diff);
+
+                if (prevDiff !== undefined && prevDiff !== diff) {
+                    if (direction > 0 && diff === 1 && prevDiff === -1) {
+                        // VAI VERSO IL BASSO: l'etichetta sopra parte e si dissolve verso il basso sotto la card
+                        card.style.transition = 'none';
+                        card.style.transform = `translate3d(0, -127px, -50px) rotateX(-12deg) scale(0.95)`;
+                        card.style.opacity = 0;
+                        card.offsetHeight; // Reflow
+                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
+                    } else if (direction < 0 && diff === -1 && prevDiff === 1) {
+                        // VAI VERSO L'ALTO: l'etichetta sotto parte e si dissolve verso l'alto sotto la card
+                        card.style.transition = 'none';
+                        card.style.transform = `translate3d(0, 260px, -50px) rotateX(10deg) scale(0.95)`;
+                        card.style.opacity = 0;
+                        card.offsetHeight; // Reflow
+                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
+                    }
+                }
+
+                // Applicazione stili GPU
                 card.style.transform = `translate3d(0, ${translateY}px, ${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`;
                 card.style.opacity = opacity;
                 card.style.zIndex = zIndex;
