@@ -1292,6 +1292,30 @@
                     else if (diff < -N / 2) diff += N;
                 }
 
+                const prevDiff = prevDiffMap.get(idx);
+                prevDiffMap.set(idx, diff);
+
+                // Nei sottomenu corti (N < 5), l'elemento che deve fare il giro (da sopra a sotto o viceversa)
+                // viene riposizionato istantaneamente all'esterno col verso di entrata corretto,
+                // eliminando la traiettoria contraria e garantendo il movimento al 100% uniforme.
+                if (prevDiff !== undefined && prevDiff !== diff && N < 5) {
+                    if (direction > 0 && diff === 1 && prevDiff === -1) {
+                        // Comando GIÙ (direction > 0): l'etichetta in alto entra dal basso (260px) e sale a 195px
+                        card.style.transition = 'none';
+                        card.style.transform = `translate3d(0, 260px, -50px) rotateX(10deg) scale(0.95)`;
+                        card.style.opacity = 0;
+                        card.offsetHeight; // Force reflow
+                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
+                    } else if (direction < 0 && diff === -1 && prevDiff === 1) {
+                        // Comando SU (direction < 0): l'etichetta in basso entra dall'alto (-127px) e scende a -62px
+                        card.style.transition = 'none';
+                        card.style.transform = `translate3d(0, -127px, -50px) rotateX(-12deg) scale(0.95)`;
+                        card.style.opacity = 0;
+                        card.offsetHeight; // Force reflow
+                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
+                    }
+                }
+
                 let translateY = 0;
                 let translateZ = 0;
                 let rotateX = 0;
