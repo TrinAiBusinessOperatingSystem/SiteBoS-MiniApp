@@ -596,11 +596,9 @@
             if (statusText) statusText.innerText = "Analisi intenzione in corso...";
             if (transcriptText) transcriptText.innerText = `"${textFallback || 'Elaborazione traccia vocale...'}"`;
 
-            // Mappatura dinamica delle pagine Owner (esclusi customer_bot, operators, softskill)
             const dynamicOwnerPages = window.getOwnerPagesRegistry ? window.getOwnerPagesRegistry() : [];
-
-            // Webhook n8n assistant.json (81ab5292-43c3-4f93-afaf-7411b95fc010)
             const WH_URL = "https://prod.workflow.trinai.it/webhook/81ab5292-43c3-4f93-afaf-7411b95fc010";
+
             try {
                 const response = await fetch(WH_URL, {
                     method: 'POST',
@@ -616,15 +614,12 @@
                         action: "voice_command"
                     })
                 });
-                const result = await response.json();
-                const targetObj = Array.isArray(result) ? result[0] : result;
-                const outputData = (targetObj && targetObj.response_output) ? targetObj.response_output : targetObj;
 
-                if (targetObj && (targetObj.bypass_llm || outputData.status === 'success' || outputData.status === 'out_of_scope' || outputData.actions)) {
-                    handleVoiceAssistantResult(result);
-                } else {
-                    matchLocalSemanticIntent(textFallback || "catalogo");
-                }
+                const result = await response.json();
+                
+                // Passaggio diretto dell'oggetto/array senza blocchi condizionali che attivano il fallback locale
+                handleVoiceAssistantResult(result, textFallback);
+
             } catch (err) {
                 console.error("Errore Webhook Voice Assistant:", err);
                 matchLocalSemanticIntent(textFallback || "catalogo");
@@ -763,34 +758,43 @@
             }
         }
 
-        function handleVoiceAssistantResult(res) {
-            let targetObj = Array.isArray(res) ? res[0] : res;
-            let data = targetObj;
+        function handleVoiceAssistantResult(res, textFallback) {
+            // 1. Unificazione Array/Oggetto
+            let rootObj = Array.isArray(res) ? res[0] : res;
+            
+            // Se n8n restituisce un errore 500/501
+            if (!rootObj || rootObj.error) {
+                console.warn("Risposta Errore dal Backend n8n:", rootObj);
+                matchLocalSemanticIntent(textFallback || "catalogo");
+                return;
+            }
 
-            if (targetObj && targetObj.response_output) {
-                if (typeof targetObj.response_output === 'string') {
-                    try {
-                        let cleanJson = targetObj.response_output.replace(/```json/g, '').replace(/```/g, '').trim();
-                        data = JSON.parse(cleanJson);
-                    } catch (e) {
-                        console.warn("Parsing JSON response_output error:", e);
-                    }
-                } else if (typeof targetObj.response_output === 'object') {
-                    data = targetObj.response_output;
+            // 2. Estrazione sicura di response_output (Stringa o Oggetto)
+            let payloadData = rootObj.response_output || rootObj;
+            if (typeof payloadData === 'string') {
+                try {
+                    let cleanJson = payloadData.replace(/```json/g, '').replace(/```/g, '').trim();
+                    payloadData = JSON.parse(cleanJson);
+                } catch (e) {
+                    console.warn("Parsing JSON error su response_output:", e);
                 }
             }
 
+            // 3. Aggiornamento Testi di Stato
             const statusText = document.getElementById('voice-status-text');
             const transcriptText = document.getElementById('voice-transcript-text');
 
-            if (statusText) statusText.innerText = data.status_title || "Comando Riconosciuto";
-            if (transcriptText) {
-                const txt = data.transcript || data.message || "";
-                transcriptText.innerText = txt ? `"${txt}"` : "";
-            }
+            const title = payloadData.status_title || rootObj.status_title || "Comando Riconosciuto";
+            const textMsg = payloadData.transcript || payloadData.message || rootObj.transcript || rootObj.message || "";
 
-            if (data.actions && Array.isArray(data.actions) && data.actions.length > 0) {
-                const parsedActions = data.actions.map(act => {
+            if (statusText) statusText.innerText = title;
+            if (transcriptText) transcriptText.innerText = textMsg ? `"${textMsg}"` : "";
+
+            // 4. Estrazione dell'array azioni dal payload
+            const actionsList = payloadData.actions || rootObj.actions;
+
+            if (actionsList && Array.isArray(actionsList) && actionsList.length > 0) {
+                const parsedActions = actionsList.map(act => {
                     const targetUrl = act.target_url || act.url || "";
                     const targetId = act.mod_id || act.id || "";
                     return {
@@ -799,7 +803,11 @@
                         action: () => navigateOwnerUrl(targetUrl, targetId)
                     };
                 });
+
+                // Forzo il re-rendering immediato della griglia nel DOM
                 renderVoiceActions(parsedActions);
+            } else {
+                matchLocalSemanticIntent(textFallback || "catalogo");
             }
         }
 
