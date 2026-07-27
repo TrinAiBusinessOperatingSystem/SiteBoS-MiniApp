@@ -1250,7 +1250,6 @@
             });
 
             updateStackLayout();
-            if (typeof renderFlatList === 'function' && isFlatListView) renderFlatList();
             applyViewMode();
 
             // Toggle 3D Back / Close Button state
@@ -1438,12 +1437,6 @@
             const targetIdx = Math.floor(ratio * modules.length);
             if (targetIdx !== activeIdx) {
                 selectIdx(targetIdx);
-            }
-            if (isFlatListView) {
-                const flatEl = document.getElementById('flat-list-container');
-                if (flatEl) {
-                    flatEl.scrollTop = ratio * (flatEl.scrollHeight - flatEl.clientHeight);
-                }
             }
         }
 
@@ -1941,6 +1934,9 @@
             window.addEventListener(evt, resetAttractIdle, { passive: true });
         });
 
+        // Prima scadenza al caricamento
+        resetAttractIdle();
+
         // ─── FLOATING BUTTON HANDLERS (ASSISTENTE & CAMBIA VISTA) ──────
         function handleVoiceAgentClick() {
             playMechanicalTick();
@@ -1949,9 +1945,22 @@
         }
 
         let isFlatListView = false;
-        window.handleQuickListClick = function() {
-            playMechanicalTick();
-            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+        function applyViewMode() {
+            try {
+                const savedViewMode = localStorage.getItem('sitebos_view_mode');
+                if (savedViewMode === 'flat' && !isFlatListView && typeof handleQuickListClick === 'function') {
+                    handleQuickListClick(true);
+                }
+            } catch(e) {}
+        }
+
+        window.handleQuickListClick = function(isSilent) {
+            if (!modules || modules.length === 0) return;
+            if (!isSilent) {
+                playMechanicalTick();
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            }
 
             isFlatListView = !isFlatListView;
             try { localStorage.setItem('sitebos_view_mode', isFlatListView ? 'flat' : '3d'); } catch(e){}
@@ -1967,9 +1976,11 @@
             const tipDown = document.getElementById('tooltip-wave-down');
 
             if (isFlatListView) {
-                stackContainer.classList.add('hidden');
-                flatContainer.classList.remove('hidden');
-                flatContainer.classList.add('flex');
+                if (stackContainer) stackContainer.classList.add('hidden');
+                if (flatContainer) {
+                    flatContainer.classList.remove('hidden');
+                    flatContainer.classList.add('flex');
+                }
                 if (btnUp) btnUp.classList.add('hidden');
                 if (btnDown) btnDown.classList.add('hidden');
                 if (tipUp) tipUp.classList.add('hidden');
@@ -1979,9 +1990,11 @@
                 updateStackLayout();
                 renderFlatList();
             } else {
-                flatContainer.classList.add('hidden');
-                flatContainer.classList.remove('flex');
-                stackContainer.classList.remove('hidden');
+                if (flatContainer) {
+                    flatContainer.classList.add('hidden');
+                    flatContainer.classList.remove('flex');
+                }
+                if (stackContainer) stackContainer.classList.remove('hidden');
                 if (btnUp) btnUp.classList.remove('hidden');
                 if (btnDown) btnDown.classList.remove('hidden');
                 if (tipUp) tipUp.classList.remove('hidden');
@@ -1994,11 +2007,11 @@
 
         function renderFlatList() {
             const flatContainer = document.getElementById('flat-list-container');
-            if (!flatContainer) return;
+            if (!flatContainer || !modules) return;
             flatContainer.innerHTML = '';
             modules.forEach((mod, idx) => {
                 const item = document.createElement('div');
-                item.className = "bg-white border border-slate-200 rounded-xl py-2 px-3.5 flex items-center justify-between cursor-pointer hover:border-slate-400 transition shadow-xs select-none";
+                item.className = "bg-white border border-slate-200 rounded-xl py-2 px-3.5 flex items-center justify-between cursor-pointer hover:border-slate-400 transition shadow-xs select-none shrink-0";
                 const isSelected = idx === activeIdx;
                 if (isSelected) item.classList.add('ring-1', 'ring-slate-900');
                 item.innerHTML = `
@@ -2016,12 +2029,7 @@
             });
         }
 
-        // Prima scadenza al caricamento & Auto-attivazione Vista Flat se memorizzata
         document.addEventListener("DOMContentLoaded", () => {
-            const savedViewMode = localStorage.getItem('sitebos_view_mode');
-            if (savedViewMode === 'flat' && !isFlatListView) {
-                handleQuickListClick();
-            }
             const flatEl = document.getElementById('flat-list-container');
             if (flatEl) {
                 flatEl.addEventListener('scroll', () => {
@@ -2037,7 +2045,6 @@
                 }, { passive: true });
             }
         });
-        resetAttractIdle();
     </script>
     <!-- Help Gestures Modal Overlay -->
     <div id="help-overlay"
