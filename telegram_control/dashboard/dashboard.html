@@ -1197,6 +1197,7 @@
         function buildStack() {
             container.innerHTML = "";
             dotContainer.innerHTML = "";
+            prevDiffMap.clear();
 
             modules.forEach((mod, idx) => {
                 // Card Creation with Center Platform Theme Styling (White card + slate-900 icon box + centered text)
@@ -1273,6 +1274,9 @@
             }
         }
 
+        // Track previous positions for smooth cylinder entry
+        const prevDiffMap = new Map();
+
         // Apply true 3D cylinder vertical transformations
         function updateStackLayout() {
             const N = modules ? modules.length : 0;
@@ -1286,6 +1290,29 @@
                 if (N > 1) {
                     if (diff > N / 2) diff -= N;
                     else if (diff < -N / 2) diff += N;
+                }
+
+                const prevDiff = prevDiffMap.get(idx);
+                prevDiffMap.set(idx, diff);
+
+                // Se l'etichetta in basso (diff === 1) stava in alto (prevDiff === -1), 
+                // fa nascere la card a 260px (sotto lo schermo con opacità 0) senza animazione, 
+                // poi applica il reflow affinché SALGA DAL BASSO VERSO L'ALTO (260px -> 195px) 
+                // esattamente come avviene nel menu principale!
+                if (prevDiff !== undefined && prevDiff !== diff) {
+                    if (diff === 1 && prevDiff === -1) {
+                        card.style.transition = 'none';
+                        card.style.transform = `translate3d(0, 260px, -50px) rotateX(10deg) scale(0.95)`;
+                        card.style.opacity = 0;
+                        card.offsetHeight; // Force reflow
+                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
+                    } else if (diff === -1 && prevDiff === 1) {
+                        card.style.transition = 'none';
+                        card.style.transform = `translate3d(0, -127px, -50px) rotateX(-12deg) scale(0.95)`;
+                        card.style.opacity = 0;
+                        card.offsetHeight; // Force reflow
+                        card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
+                    }
                 }
 
                 let translateY = 0;
