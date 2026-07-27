@@ -286,13 +286,18 @@
         style="max-height: calc(100vh - 160px); max-height: calc(100dvh - 160px);">
 
         <!-- Desktop/Mobile Nav Up -->
-        <button onclick="playMechanicalTick(); navigateStack(-1)"
+        <button id="btn-nav-up" onclick="playMechanicalTick(); navigateStack(-1)"
             class="btn-glass-minimal absolute top-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
             <i class="fas fa-chevron-up text-[10px]"></i>
         </button>
 
         <!-- 3D Card Stack -->
         <div id="stack-container" class="stack-container">
+            <!-- Rendered dynamically -->
+        </div>
+
+        <!-- Flat List Container (Modalità Lista Flat "Vista Boomer") -->
+        <div id="flat-list-container" class="hidden w-full h-full flex-col gap-2 overflow-y-auto px-1 py-1 max-h-full scrollbar-none z-20">
             <!-- Rendered dynamically -->
         </div>
 
@@ -304,7 +309,7 @@
         </button>
 
         <!-- Desktop/Mobile Nav Down -->
-        <button onclick="playMechanicalTick(); navigateStack(1)"
+        <button id="btn-nav-down" onclick="playMechanicalTick(); navigateStack(1)"
             class="btn-glass-minimal absolute bottom-2 left-1/2 -translate-x-1/2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900">
             <i class="fas fa-chevron-down text-[10px]"></i>
         </button>
@@ -319,16 +324,16 @@
 
         <!-- Float Bot Assistant Button (Posizionato SOTTO la barra dei dot laterali con icona bot) -->
         <button id="btn-voice-agent" onclick="handleVoiceAgentClick()"
-            class="absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
+            class="absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer border border-transparent"
             style="top: calc(50% + 75px);" title="Assistente Bot SiteBoS">
             <i id="btn-voice-agent-icon" class="fas fa-robot text-[11px] text-white"></i>
         </button>
 
-        <!-- Float Quick List Button (Vista Elenco Rapido - Tondo Nero sotto Assistente Bot) -->
+        <!-- Float Quick List Toggle Button (Interruttore Modalità Vista 3D / Lista Flat - Tondo Nero) -->
         <button id="btn-quick-list" onclick="handleQuickListClick()"
-            class="absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
-            style="top: calc(50% + 120px);" title="Vista Elenco Rapido">
-            <i class="fas fa-layer-group text-[11px] text-white"></i>
+            class="absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer border border-transparent"
+            style="top: calc(50% + 120px);" title="Interruttore Vista 3D / Lista Flat">
+            <i id="btn-quick-list-icon" class="fas fa-layer-group text-[11px] text-white"></i>
         </button>
 
         <!-- Float User Guide Button -->
@@ -508,56 +513,81 @@
         let isRecording = false;
         let voiceCountdownTimer = null;
 
-        // Quick List Overlay ("Vista Boomer / Elenco Rapido")
+        // Persistent View Mode Toggle (3D Mode / Flat List Mode)
+        let dashboardViewMode = sessionStorage.getItem('dashboardViewMode') || '3d';
+
         window.handleQuickListClick = function () {
             playMechanicalTick();
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            toggleQuickListOverlay(true);
+            
+            // Alterna la modalità di vista
+            dashboardViewMode = (dashboardViewMode === '3d') ? 'flat' : '3d';
+            sessionStorage.setItem('dashboardViewMode', dashboardViewMode);
+            applyViewMode();
         };
 
-        window.toggleQuickListOverlay = function (show) {
-            const overlay = document.getElementById('quick-list-overlay');
-            if (!overlay) return;
-            if (show) {
-                renderQuickList();
-                overlay.classList.remove('hidden');
-                setTimeout(() => {
-                    overlay.classList.remove('opacity-0');
-                    const content = overlay.querySelector('.quick-modal-content');
-                    if (content) content.classList.remove('scale-95');
-                }, 10);
+        function applyViewMode() {
+            const stackEl = document.getElementById('stack-container');
+            const flatEl = document.getElementById('flat-list-container');
+            const navUp = document.getElementById('btn-nav-up');
+            const navDown = document.getElementById('btn-nav-down');
+            const dotWrapper = document.getElementById('dot-indicators-wrapper');
+            const quickBtn = document.getElementById('btn-quick-list');
+            const quickIcon = document.getElementById('btn-quick-list-icon');
+
+            if (dashboardViewMode === 'flat') {
+                if (stackEl) stackEl.classList.add('hidden');
+                if (navUp) navUp.classList.add('hidden');
+                if (navDown) navDown.classList.add('hidden');
+                if (dotWrapper) dotWrapper.classList.add('hidden');
+                
+                if (flatEl) {
+                    flatEl.classList.remove('hidden');
+                    flatEl.classList.add('flex');
+                    renderFlatList();
+                }
+
+                if (quickBtn) {
+                    quickBtn.className = "absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer border-2 border-blue-400 shadow-blue-500/20";
+                    quickBtn.title = "Passa a Vista 3D";
+                }
+                if (quickIcon) {
+                    quickIcon.className = "fas fa-cubes text-[11px] text-blue-400";
+                }
             } else {
-                overlay.classList.add('opacity-0');
-                const content = overlay.querySelector('.quick-modal-content');
-                if (content) content.classList.add('scale-95');
-                setTimeout(() => {
-                    overlay.classList.add('hidden');
-                }, 300);
+                if (stackEl) stackEl.classList.remove('hidden');
+                if (navUp) navUp.classList.remove('hidden');
+                if (navDown) navDown.classList.remove('hidden');
+                if (dotWrapper) dotWrapper.classList.remove('hidden');
+                
+                if (flatEl) {
+                    flatEl.classList.add('hidden');
+                    flatEl.classList.remove('flex');
+                }
+
+                if (quickBtn) {
+                    quickBtn.className = "absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer border border-transparent";
+                    quickBtn.title = "Passa a Vista Lista Flat";
+                }
+                if (quickIcon) {
+                    quickIcon.className = "fas fa-layer-group text-[11px] text-white";
+                }
             }
-        };
+        }
 
-        function renderQuickList() {
-            const titleEl = document.getElementById('quick-list-title');
-            const listEl = document.getElementById('quick-list-buttons');
-            if (!listEl) return;
+        function renderFlatList() {
+            const flatEl = document.getElementById('flat-list-container');
+            if (!flatEl) return;
 
-            listEl.innerHTML = "";
-
-            if (currentMenuLevel === 'sub') {
-                const parentMod = mainModules[parentActiveIdx];
-                const sectionName = parentMod ? parentMod.label.toUpperCase() : "SOTTOMENU";
-                if (titleEl) titleEl.innerText = `SOTTOMENU: ${sectionName}`;
-            } else {
-                if (titleEl) titleEl.innerText = "MENU PRINCIPALE";
-            }
+            flatEl.innerHTML = "";
 
             const currentList = modules || mainModules;
             currentList.forEach((mod, idx) => {
                 const btn = document.createElement('button');
-                btn.className = "w-full py-3 px-4 bg-white/90 hover:bg-slate-50 border border-slate-200/90 rounded-2xl shadow-sm text-left flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer group";
+                btn.className = "w-full p-3 bg-white/90 hover:bg-slate-50 border border-slate-200/90 rounded-2xl shadow-sm text-left flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer group shrink-0";
                 btn.innerHTML = `
                     <div class="flex items-center gap-3 overflow-hidden">
-                        <div class="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center text-sm shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                        <div class="w-8.5 h-8.5 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center text-xs shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">
                             <i class="fas ${mod.icon}"></i>
                         </div>
                         <div class="overflow-hidden">
@@ -571,7 +601,6 @@
                 btn.onclick = (e) => {
                     e.stopPropagation();
                     playMechanicalTick();
-                    toggleQuickListOverlay(false);
                     selectIdx(idx);
                     if (mod.sub) {
                         openModule(mod.id, mod.url);
@@ -580,7 +609,7 @@
                     }
                 };
 
-                listEl.appendChild(btn);
+                flatEl.appendChild(btn);
             });
         }
 
@@ -1208,6 +1237,7 @@
             });
 
             updateStackLayout();
+            applyViewMode();
 
             // Toggle 3D Back / Close Button state
             const backBtn3d = document.getElementById('btn-nav-back');
