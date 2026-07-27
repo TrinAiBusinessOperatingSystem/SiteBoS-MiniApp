@@ -216,10 +216,10 @@
     </div>
 
     <!-- MAIN INTERFACE -->
-    <div id="app-content" class="flex flex-col justify-between h-full w-full max-w-md mx-auto space-y-4 hidden">
+    <div id="app-content" class="flex flex-col justify-between h-full w-full max-w-md mx-auto space-y-2.5 hidden">
         
-        <!-- MACRO SELECTOR CAROUSEL (3D Cylindrical Horizontal - Più lungo e meno alto) -->
-        <div id="macro-carousel-wrapper" class="w-[92%] select-none z-50 py-1 bg-white/30 border border-slate-100/50 rounded-2xl shadow-xs backdrop-blur-sm shrink-0 flex items-center justify-between mx-auto relative mt-2">
+        <!-- MACRO SELECTOR CAROUSEL (3D Cylindrical Horizontal - Sempre Fisso in Testa e Rialzato) -->
+        <div id="macro-carousel-wrapper" class="w-[92%] select-none z-50 py-0.5 bg-white/40 border border-slate-100/60 rounded-2xl shadow-xs backdrop-blur-sm shrink-0 flex items-center justify-between mx-auto relative mt-0.5">
             <button onclick="playTick(750, 0.03, 0.05); navigateMacro(-1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-900 transition active:scale-75 shrink-0 z-50">
                 <i class="fas fa-chevron-left text-xs"></i>
             </button>
@@ -869,11 +869,12 @@
                 backBtn3d.classList.remove('hidden');
             }
 
+            document.getElementById('macro-carousel-wrapper').classList.remove('hidden');
+
             if (currentViewLevel === 'categories') {
-                document.getElementById('macro-carousel-wrapper').classList.remove('hidden');
                 document.getElementById('submenu-header').classList.add('hidden');
                 document.getElementById('main-action-btn-text').innerText = "Nuova Categoria";
-                document.getElementById('main-action-btn').classList.remove('hidden');
+                if (!isFlatListView) document.getElementById('main-action-btn').classList.remove('hidden');
                 
                 modules = fullCatalog.filter(c => c.macrocategories === currentMacro);
                 
@@ -886,7 +887,6 @@
                 document.getElementById('count-active').innerText = activeTotal;
                 document.getElementById('count-ghost').innerText = ghostTotal;
             } else if (currentViewLevel === 'items') {
-                document.getElementById('macro-carousel-wrapper').classList.add('hidden');
                 document.getElementById('submenu-header').classList.remove('hidden');
                 
                 const categoryShort = activeCategory.short_name || activeCategory.name;
@@ -914,7 +914,7 @@
 
                 document.getElementById('submenu-back-text').innerText = "Categorie";
                 document.getElementById('main-action-btn-text').innerText = "Aggiungi Voce";
-                document.getElementById('main-action-btn').classList.remove('hidden');
+                if (!isFlatListView) document.getElementById('main-action-btn').classList.remove('hidden');
                 
                 modules = activeCategory.subcategories || [];
                 
@@ -923,7 +923,6 @@
                 document.getElementById('count-active').innerText = activeTotal;
                 document.getElementById('count-ghost').innerText = ghostTotal;
             } else { // 'actions'
-                document.getElementById('macro-carousel-wrapper').classList.add('hidden');
                 document.getElementById('submenu-header').classList.remove('hidden');
                 
                 const { icon, text: prodShort } = splitShortName(activeProduct.short_name || activeProduct.name || '');
@@ -1601,6 +1600,12 @@
             if (targetIdx !== activeIdx) {
                 selectIdx(targetIdx);
             }
+            if (isFlatListView) {
+                const flatEl = document.getElementById('flat-list-container');
+                if (flatEl) {
+                    flatEl.scrollTop = ratio * (flatEl.scrollHeight - flatEl.clientHeight);
+                }
+            }
         }
         dotWrapper.addEventListener('touchstart', handleDotScrub, { passive: false });
         dotWrapper.addEventListener('touchmove', handleDotScrub, { passive: false });
@@ -1617,6 +1622,12 @@
             const targetIdx = Math.floor(ratio * modules.length);
             if (targetIdx !== activeIdx) {
                 selectIdx(targetIdx);
+            }
+            if (isFlatListView) {
+                const flatEl = document.getElementById('flat-list-container');
+                if (flatEl) {
+                    flatEl.scrollTop = ratio * (flatEl.scrollHeight - flatEl.clientHeight);
+                }
             }
         }
 
@@ -2064,6 +2075,7 @@
             const btnDown = document.getElementById('btn-nav-down');
             const tipUp = document.getElementById('tooltip-wave-up');
             const tipDown = document.getElementById('tooltip-wave-down');
+            const mainActionBtn = document.getElementById('main-action-btn');
 
             if (isFlatListView) {
                 stackContainer.classList.add('hidden');
@@ -2073,6 +2085,7 @@
                 if (btnDown) btnDown.classList.add('hidden');
                 if (tipUp) tipUp.classList.add('hidden');
                 if (tipDown) tipDown.classList.add('hidden');
+                if (mainActionBtn) mainActionBtn.classList.add('hidden');
                 if (icon) icon.className = "fas fa-cubes text-[11px]";
                 if (labelText) labelText.innerText = "Vista 3D";
                 updateStackLayout();
@@ -2085,6 +2098,7 @@
                 if (btnDown) btnDown.classList.remove('hidden');
                 if (tipUp) tipUp.classList.remove('hidden');
                 if (tipDown) tipDown.classList.remove('hidden');
+                if (mainActionBtn && currentViewLevel !== 'actions') mainActionBtn.classList.remove('hidden');
                 if (icon) icon.className = "fas fa-layer-group text-[11px]";
                 if (labelText) labelText.innerText = "Cambia Vista";
                 updateStackLayout();
@@ -2097,15 +2111,15 @@
             flatContainer.innerHTML = '';
             modules.forEach((mod, idx) => {
                 const item = document.createElement('div');
-                item.className = "bg-white border border-slate-200 rounded-xl p-3 flex items-center justify-between cursor-pointer hover:border-slate-400 transition shadow-xs";
+                item.className = "bg-white border border-slate-200 rounded-xl py-2 px-3.5 flex items-center justify-between cursor-pointer hover:border-slate-400 transition shadow-xs select-none";
                 const isSelected = idx === activeIdx;
                 if (isSelected) item.classList.add('ring-1', 'ring-slate-900');
                 item.innerHTML = `
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <span class="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-700 shrink-0">${idx + 1}</span>
-                        <span class="text-xs font-black uppercase text-slate-900 truncate">${cleanLabel(mod.short_name || mod.name || mod.label)}</span>
+                    <div class="flex items-center gap-2.5 overflow-hidden">
+                        <span class="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center text-[9px] font-black text-slate-700 shrink-0">${idx + 1}</span>
+                        <span class="text-[11px] font-black uppercase text-slate-900 truncate">${cleanLabel(mod.short_name || mod.name || mod.label)}</span>
                     </div>
-                    <i class="fas fa-chevron-right text-[10px] text-slate-400 shrink-0"></i>
+                    <i class="fas fa-chevron-right text-[9px] text-slate-400 shrink-0"></i>
                 `;
                 item.onclick = () => {
                     selectIdx(idx);
@@ -2334,7 +2348,23 @@
         if (!ash) {
             document.getElementById('loader').innerHTML = `<div class="font-black text-red-500">ASH MISSING</div>`;
         } else {
-            document.addEventListener("DOMContentLoaded", () => loadCatalog());
+            document.addEventListener("DOMContentLoaded", () => {
+                loadCatalog();
+                const flatEl = document.getElementById('flat-list-container');
+                if (flatEl) {
+                    flatEl.addEventListener('scroll', () => {
+                        if (!isFlatListView || !modules || modules.length === 0) return;
+                        const maxScroll = flatEl.scrollHeight - flatEl.clientHeight;
+                        if (maxScroll <= 0) return;
+                        const scrollRatio = flatEl.scrollTop / maxScroll;
+                        const targetIdx = Math.min(modules.length - 1, Math.floor(scrollRatio * modules.length));
+                        if (targetIdx !== activeIdx) {
+                            activeIdx = targetIdx;
+                            updateStackLayout();
+                        }
+                    }, { passive: true });
+                }
+            });
         }
     </script>
     <!-- Help Gestures Modal Overlay -->
