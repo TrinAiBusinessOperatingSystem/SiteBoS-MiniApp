@@ -1348,24 +1348,26 @@
                     card.style.pointerEvents = 'none';
                 }
 
-                // GESTIONE DISSOLVENZA E DIREZIONE SOTTO LA CARD
+                // GESTIONE DISSOLVENZA E DIREZIONE PERFETTA (Mappatura 100% Rispettata)
                 const prevDiff = prevDiffMap.get(idx);
                 prevDiffMap.set(idx, diff);
 
                 if (prevDiff !== undefined && prevDiff !== diff) {
-                    if (direction > 0 && diff === 1 && prevDiff === -1) {
-                        // VAI VERSO IL BASSO: l'etichetta sopra parte e si dissolve verso il basso sotto la card
+                    if (direction > 0 && diff > 0 && prevDiff < 0) {
+                        // COMANDO GIÙ: Qualsiasi elemento che stava sopra e deve andare sotto, 
+                        // viene spostato in alto (-127px) con opacity 0, così SALE IN ALTO senza mai scendere a vista!
                         card.style.transition = 'none';
                         card.style.transform = `translate3d(0, -127px, -50px) rotateX(-12deg) scale(0.95)`;
                         card.style.opacity = 0;
-                        card.offsetHeight; // Reflow
+                        card.offsetHeight; // Force Reflow
                         card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
-                    } else if (direction < 0 && diff === -1 && prevDiff === 1) {
-                        // VAI VERSO L'ALTO: l'etichetta sotto parte e si dissolve verso l'alto sotto la card
+                    } else if (direction < 0 && diff < 0 && prevDiff > 0) {
+                        // COMANDO SU: Qualsiasi elemento che stava sotto e deve andare sopra, 
+                        // viene spostato in basso (260px) con opacity 0, così SCENDE IN BASSO senza mai salire a vista!
                         card.style.transition = 'none';
                         card.style.transform = `translate3d(0, 260px, -50px) rotateX(10deg) scale(0.95)`;
                         card.style.opacity = 0;
-                        card.offsetHeight; // Reflow
+                        card.offsetHeight; // Force Reflow
                         card.style.transition = 'transform 0.38s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease-out';
                     }
                 }
