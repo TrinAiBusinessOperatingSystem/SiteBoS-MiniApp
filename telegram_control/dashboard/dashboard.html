@@ -324,6 +324,13 @@
             <i id="btn-voice-agent-icon" class="fas fa-robot text-[11px] text-white"></i>
         </button>
 
+        <!-- Float Quick List Button (Vista Elenco Rapido - Tondo Nero sotto Assistente Bot) -->
+        <button id="btn-quick-list" onclick="handleQuickListClick()"
+            class="absolute -right-2 z-50 w-9 h-9 rounded-full bg-slate-900 hover:bg-black text-white flex items-center justify-center shadow-md active:scale-95 transition-all cursor-pointer"
+            style="top: calc(50% + 120px);" title="Vista Elenco Rapido">
+            <i class="fas fa-layer-group text-[11px] text-white"></i>
+        </button>
+
         <!-- Float User Guide Button -->
         <button onclick="playMechanicalTick(); openUserGuide('../userguide/01_intro.html')"
             class="btn-glass-minimal absolute -right-2 z-50 w-9 h-9 rounded-full flex items-center justify-center text-slate-600 hover:text-slate-900"
@@ -500,6 +507,82 @@
         let audioChunks = [];
         let isRecording = false;
         let voiceCountdownTimer = null;
+
+        // Quick List Overlay ("Vista Boomer / Elenco Rapido")
+        window.handleQuickListClick = function () {
+            playMechanicalTick();
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            toggleQuickListOverlay(true);
+        };
+
+        window.toggleQuickListOverlay = function (show) {
+            const overlay = document.getElementById('quick-list-overlay');
+            if (!overlay) return;
+            if (show) {
+                renderQuickList();
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    const content = overlay.querySelector('.quick-modal-content');
+                    if (content) content.classList.remove('scale-95');
+                }, 10);
+            } else {
+                overlay.classList.add('opacity-0');
+                const content = overlay.querySelector('.quick-modal-content');
+                if (content) content.classList.add('scale-95');
+                setTimeout(() => {
+                    overlay.classList.add('hidden');
+                }, 300);
+            }
+        };
+
+        function renderQuickList() {
+            const titleEl = document.getElementById('quick-list-title');
+            const listEl = document.getElementById('quick-list-buttons');
+            if (!listEl) return;
+
+            listEl.innerHTML = "";
+
+            if (currentMenuLevel === 'sub') {
+                const parentMod = mainModules[parentActiveIdx];
+                const sectionName = parentMod ? parentMod.label.toUpperCase() : "SOTTOMENU";
+                if (titleEl) titleEl.innerText = `SOTTOMENU: ${sectionName}`;
+            } else {
+                if (titleEl) titleEl.innerText = "MENU PRINCIPALE";
+            }
+
+            const currentList = modules || mainModules;
+            currentList.forEach((mod, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-3 px-4 bg-white/90 hover:bg-slate-50 border border-slate-200/90 rounded-2xl shadow-sm text-left flex items-center justify-between transition-all active:scale-[0.98] cursor-pointer group";
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 rounded-xl bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center text-sm shrink-0 group-hover:bg-slate-900 group-hover:text-white transition-colors">
+                            <i class="fas ${mod.icon}"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <h4 class="text-xs font-black uppercase tracking-tight text-slate-900 truncate">${mod.label}</h4>
+                            <p class="text-[9px] font-semibold text-slate-500 truncate mt-0.5">${mod.desc || ''}</p>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:text-slate-900 shrink-0 ml-2"></i>
+                `;
+
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    playMechanicalTick();
+                    toggleQuickListOverlay(false);
+                    selectIdx(idx);
+                    if (mod.sub) {
+                        openModule(mod.id, mod.url);
+                    } else if (mod.url && mod.url !== '#') {
+                        openModule(mod.id, mod.url);
+                    }
+                };
+
+                listEl.appendChild(btn);
+            });
+        }
 
         window.handleVoiceAgentClick = function () {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
@@ -1743,6 +1826,37 @@
                     </button>
                 </div>
 
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Quick List Drawer Overlay ("Vista Boomer / Elenco Rapido") -->
+    <div id="quick-list-overlay"
+        class="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[99999] hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4"
+        onclick="toggleQuickListOverlay(false)">
+        <div class="quick-modal-content bg-white/95 border border-slate-200/90 p-5 rounded-3xl w-full max-w-sm shadow-2xl backdrop-blur-2xl scale-95 transition-transform duration-300 relative text-center text-slate-900 overflow-hidden flex flex-col items-center gap-3.5 max-h-[90vh]"
+            onclick="event.stopPropagation()">
+
+            <!-- Close Button -->
+            <button onclick="toggleQuickListOverlay(false)"
+                class="absolute top-4 right-4 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition flex items-center justify-center cursor-pointer">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+
+            <!-- Header Icon & Title -->
+            <div class="flex items-center gap-2.5 text-slate-900 mt-1">
+                <div class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
+                    <i class="fas fa-layer-group text-sm"></i>
+                </div>
+                <div class="text-left">
+                    <h3 id="quick-list-title" class="text-xs font-black uppercase tracking-wider text-slate-900">MENU PRINCIPALE</h3>
+                </div>
+            </div>
+
+            <!-- List Container -->
+            <div id="quick-list-buttons" class="w-full flex flex-col gap-2 max-h-[60vh] overflow-y-auto pr-0.5 transition-all">
+                <!-- Renderizzato dinamicamente in base a currentMenuLevel -->
             </div>
 
         </div>
