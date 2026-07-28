@@ -245,13 +245,13 @@
             </div>
         </div>
         <div class="flex gap-2">
-            <button onclick="goBackToMenu()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Torna al Menu">
+            <button id="btn-nav-back" onclick="goBackToMenu()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Torna al Menu">
                 <i class="fas fa-arrow-left text-xs"></i>
             </button>
-            <button onclick="toggleAudio()" id="btn-nav-audio" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Guida Vocale">
+            <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Guida Vocale">
                 <i class="fas fa-volume-high text-xs"></i>
             </button>
-            <button onclick="openUserGuide('../userguide/02_catalogo.html')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Manuale Utente">
+            <button id="btn-nav-guide" onclick="openUserGuide('../userguide/02_catalogo.html')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Manuale Utente">
                 <i class="fas fa-globe text-xs"></i>
             </button>
         </div>
@@ -575,36 +575,17 @@
         </div>`;
         document.body.insertAdjacentHTML('beforeend', drawerHtml);
 
-        // 5. Inject Globe and Volume Buttons
-        const header = document.querySelector('header');
-        let buttonContainer = null;
-        if (header) {
-            buttonContainer = header.querySelector('.flex.gap-2') || header.querySelector('.flex.items-center.gap-2') || header.querySelector('.flex.gap-3');
-        }
-
-        const btnHtml = `
-        <!-- User Guide Button -->
-        <button id="btn-nav-guide" onclick="openUserGuide('${finalGuideUrl}')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Manuale Utente">
-            <i class="fas fa-globe text-xs"></i>
-        </button>
-        <!-- Speech Audio Button -->
-        <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Guida Vocale">
-            <i class="fas fa-volume-high text-xs"></i>
-        </button>`;
-
-        if (buttonContainer) {
-            buttonContainer.insertAdjacentHTML('afterbegin', btnHtml);
-        } else if (header) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'flex gap-2 items-center';
-            wrapper.innerHTML = btnHtml;
-            header.appendChild(wrapper);
-        } else {
-            const floatingDiv = document.createElement('div');
-            floatingDiv.className = 'fixed top-4 right-4 flex gap-2 z-50';
-            floatingDiv.innerHTML = btnHtml;
-            document.body.appendChild(floatingDiv);
-        }
+        // 5. User Guide & Audio functions
+        window.goBackToMenu = function() {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+            if (window.parent && typeof window.parent.closeSubEditor === 'function') {
+                window.parent.closeSubEditor();
+            } else {
+                location.href = `catalog.html?ash=${ash}&msg=${msg || ''}`;
+            }
+        };
 
         // 6. Action Functions (Drawer & Audio)
         let voiceAudio = null;
