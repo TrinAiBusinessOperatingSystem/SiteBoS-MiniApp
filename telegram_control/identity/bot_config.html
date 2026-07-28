@@ -79,29 +79,37 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         .loader { border: 2px solid #f3f3f3; border-top: 2px solid #000; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
     </style>
 </head>
-<body class="p-5 pb-24">
+<body class="safe-area-inset h-screen flex flex-col overflow-hidden bg-[#fafafa]">
 
-    <div class="max-w-md mx-auto space-y-6">
-        <header class="mb-6 flex justify-between items-start">
+    <!-- HEADER (Speculare a edit_owner.html) -->
+    <header class="p-5 bg-white border-b border-gray-100 flex justify-between items-center z-50 shadow-sm shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-xs">
+                <i class="fas fa-robot text-sm"></i>
+            </div>
             <div>
-                <h1 class="text-xl font-black tracking-tighter uppercase leading-tight">Bot Configuration</h1>
-                <p class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mt-1 italic">Setup Personalità AI</p>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">Architect Desk</h1>
+                <p class="text-sm font-black tracking-tight">Telegram Bot Config</p>
             </div>
-            <div class="flex gap-2">
-                <!-- Back to Menu Button (Tutto a sinistra a fianco della Guida Vocale) -->
-                <button id="btn-nav-back" onclick="goBackToMenu()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Torna al Menu">
-                    <i class="fas fa-arrow-left text-xs"></i>
-                </button>
-                <!-- Speech Audio Button -->
-                <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Guida Vocale">
-                    <i class="fas fa-volume-high text-xs"></i>
-                </button>
-                <!-- User Guide Button -->
-                <button id="btn-nav-guide" onclick="openUserGuide('../userguide/02_onboarding.html')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Manuale Utente">
-                    <i class="fas fa-globe text-xs"></i>
-                </button>
-            </div>
-        </header>
+        </div>
+        <div class="flex gap-2">
+            <!-- Back to Menu Button -->
+            <button id="btn-nav-back" onclick="goBackToMenu()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Torna al Menu">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <!-- Speech Audio Button -->
+            <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Guida Vocale">
+                <i class="fas fa-volume-high text-xs"></i>
+            </button>
+            <!-- User Guide Button -->
+            <button id="btn-nav-guide" onclick="openUserGuide('../userguide/02_onboarding.html')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Manuale Utente">
+                <i class="fas fa-globe text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-5 space-y-6 pb-32">
+        <div class="max-w-md mx-auto space-y-6">
 
         <div id="main-loader" class="flex flex-col items-center py-20 space-y-4">
             <div class="loader"></div>
@@ -197,7 +205,12 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     </div>
                 </div>
             </section>
+        </div>
+    </main>
 
+    <!-- FOOTER STICKY (Appare solo se ci sono modifiche) -->
+    <div id="save-footer" class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-50 hidden transition-all duration-300">
+        <div class="max-w-md mx-auto">
             <button class="w-full h-12 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-95 transition-all flex items-center justify-center gap-2" onclick="saveData()">
                 <i class="fas fa-save text-[10px]"></i> <span id="btn-label">Salva Configurazione</span>
             </button>
@@ -266,8 +279,52 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
                 document.getElementById('main-loader').style.display = 'none';
                 document.getElementById('config-form').classList.remove('hidden');
+
+                // Attach Dirty Check listeners and capture initial state
+                setTimeout(() => {
+                    initialConfigState = getSerializedConfigState();
+                    const formEl = document.getElementById('config-form');
+                    formEl.removeEventListener('input', checkDirtyState);
+                    formEl.removeEventListener('change', checkDirtyState);
+                    formEl.addEventListener('input', checkDirtyState);
+                    formEl.addEventListener('change', checkDirtyState);
+                    checkDirtyState();
+                }, 100);
             } catch (err) { tg.showAlert("Errore caricamento."); }
         }
+
+        let initialConfigState = "";
+
+        function getSerializedConfigState() {
+            return JSON.stringify({
+                agent_name: document.getElementById('agent_name').value,
+                role_persona: document.getElementById('role_persona').value,
+                allow_images: document.getElementById('allow_images').checked,
+                allow_files: document.getElementById('allow_files').checked,
+                tone: document.getElementById('tone').value,
+                vibe: document.getElementById('vibe').value,
+                language_style: document.getElementById('language_style').value,
+                emoji_usage: document.getElementById('emoji_usage').value,
+                custom_instructions: document.getElementById('custom_instructions').value,
+                primary_goal: document.getElementById('primary_goal').value,
+                max_daily_messages: document.getElementById('max_daily_messages').value,
+                max_tokens: document.getElementById('max_tokens').value
+            });
+        }
+
+        window.checkDirtyState = function() {
+            if (!initialConfigState) return;
+            const currentState = getSerializedConfigState();
+            const isDirty = currentState !== initialConfigState;
+            const footer = document.getElementById('save-footer');
+            if (footer) {
+                if (isDirty) {
+                    footer.classList.remove('hidden');
+                } else {
+                    footer.classList.add('hidden');
+                }
+            }
+        };
 
         async function saveData() {
             const btnLabel = document.getElementById('btn-label');
@@ -298,7 +355,12 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 if (response.ok) {
                     btnLabel.innerText = "Configurazione Salvata!";
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    setTimeout(() => tg.close(), 1200);
+                    initialConfigState = getSerializedConfigState();
+                    setTimeout(() => {
+                        btnLabel.innerText = "Salva Configurazione";
+                        saveLoader.classList.add('hidden');
+                        checkDirtyState();
+                    }, 1500);
                 }
             } catch (err) { 
                 tg.showAlert("Errore."); 

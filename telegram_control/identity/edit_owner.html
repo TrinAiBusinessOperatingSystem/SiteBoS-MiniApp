@@ -78,7 +78,7 @@
             </div>
             <div>
                 <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">Architect Desk</h1>
-                <p class="text-sm font-black tracking-tight">Profilo Owner</p>
+                <p class="text-sm font-black tracking-tight">Profilo Titolare</p>
             </div>
         </div>
         <div class="flex gap-2">
@@ -98,7 +98,7 @@
     </header>
 
     <!-- CONTENT -->
-    <main class="flex-1 overflow-y-auto p-5 space-y-6 no-scrollbar pb-32">
+    <main class="flex-1 overflow-y-auto p-5 space-y-6 pb-32">
         
         <form id="owner-form" class="space-y-6">
             
@@ -342,9 +342,17 @@
                     <input type="text" name="rls" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-bold focus:border-black outline-none transition" placeholder="Nome RLS">
                 </div>
 
-                <div class="space-y-1">
-                    <label class="label-micro">Addetti Emergenze ed Evacuazione (separati da virgola)</label>
-                    <textarea name="addetti_emergenza" rows="2" class="w-full bg-white border border-gray-100 rounded-xl px-3 py-2.5 text-xs font-medium focus:border-black outline-none transition resize-none leading-relaxed" placeholder="Sig.ra Anna Neri (Antincendio), Sig. Paolo Blu (Primo Soccorso)"></textarea>
+                <div class="space-y-2">
+                    <label class="label-micro">Addetti Emergenze ed Evacuazione</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="addetto_nome" placeholder="Nome" class="w-1/2 bg-white border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                        <input type="text" id="addetto_cognome" placeholder="Cognome" class="w-1/2 bg-white border border-gray-100 rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition">
+                        <button type="button" onclick="addAddetto()" class="bg-black text-white px-3.5 py-2 rounded-xl text-xs font-bold active:scale-95 transition shrink-0 flex items-center gap-1">
+                            <i class="fas fa-plus text-[10px]"></i> Aggiungi
+                        </button>
+                    </div>
+                    <div id="addetti-list" class="space-y-1.5 mt-2"></div>
+                    <input type="hidden" name="addetti_emergenza" id="addetti_emergenza">
                 </div>
 
 
@@ -353,8 +361,8 @@
         </form>
     </main>
 
-    <!-- FOOTER -->
-    <div class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-50">
+    <!-- FOOTER STICKY (Appare solo se ci sono modifiche) -->
+    <div id="save-footer" class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-50 hidden transition-all duration-300">
         <div class="max-w-md mx-auto">
             <button onclick="saveData()" class="w-full h-12 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition shadow-sm flex items-center justify-center gap-2">
                 <span>Aggiorna Profilo</span><i class="fas fa-save text-[10px]"></i>
@@ -470,14 +478,87 @@
             form.elements['medico_competente'].value = secData.medico_competente || secData.medicoCompetente || data.medico_competente || '';
             form.elements['rls'].value = secData.rls || data.rls || '';
             
-            let addetti = secData.addetti_emergenza || secData.addettiEmergenza || data.addetti_emergenza || '';
-            if (Array.isArray(addetti)) {
-                addetti = addetti.join(', ');
+            let rawAddetti = secData.addetti_emergenza || secData.addettiEmergenza || data.addetti_emergenza || '';
+            if (Array.isArray(rawAddetti)) rawAddetti = rawAddetti.join(', ');
+            addettiArray = [];
+            if (rawAddetti && typeof rawAddetti === 'string') {
+                const parts = rawAddetti.split(',').map(s => s.trim()).filter(Boolean);
+                parts.forEach(p => {
+                    const tokens = p.split(' ');
+                    const cognome = tokens.length > 1 ? tokens.pop() : '';
+                    const nome = tokens.join(' ') || p;
+                    addettiArray.push({ nome: nome, cognome: cognome });
+                });
             }
-            form.elements['addetti_emergenza'].value = addetti;
-
-
+            renderAddetti();
+            
+            // Attach Dirty Check listeners and capture initial state
+            setTimeout(() => {
+                initialFormState = JSON.stringify(getFormData());
+                const ownerForm = document.getElementById('owner-form');
+                ownerForm.removeEventListener('input', checkDirtyState);
+                ownerForm.removeEventListener('change', checkDirtyState);
+                ownerForm.addEventListener('input', checkDirtyState);
+                ownerForm.addEventListener('change', checkDirtyState);
+                checkDirtyState();
+            }, 100);
         }
+
+        let addettiArray = [];
+        let initialFormState = "";
+
+        function renderAddetti() {
+            const container = document.getElementById('addetti-list');
+            if (!container) return;
+            container.innerHTML = '';
+            addettiArray.forEach((item, index) => {
+                const badge = document.createElement('div');
+                badge.className = 'flex items-center justify-between bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl text-xs font-bold shadow-2xs';
+                badge.innerHTML = `
+                    <span class="text-slate-800"><i class="fas fa-user-shield text-[10px] text-gray-400 mr-2"></i>${item.nome} ${item.cognome}</span>
+                    <button type="button" onclick="removeAddetto(${index})" class="text-gray-400 hover:text-red-500 transition px-1">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                `;
+                container.appendChild(badge);
+            });
+            const hiddenInput = document.getElementById('addetti_emergenza');
+            if (hiddenInput) {
+                hiddenInput.value = addettiArray.map(a => `${a.nome} ${a.cognome}`.trim()).join(', ');
+            }
+            checkDirtyState();
+        }
+
+        window.addAddetto = function() {
+            const nInput = document.getElementById('addetto_nome');
+            const cInput = document.getElementById('addetto_cognome');
+            const nome = nInput.value.trim();
+            const cognome = cInput.value.trim();
+            if (!nome && !cognome) return;
+            addettiArray.push({ nome: nome, cognome: cognome });
+            nInput.value = '';
+            cInput.value = '';
+            renderAddetti();
+        };
+
+        window.removeAddetto = function(index) {
+            addettiArray.splice(index, 1);
+            renderAddetti();
+        };
+
+        window.checkDirtyState = function() {
+            if (!initialFormState) return;
+            const currentState = JSON.stringify(getFormData());
+            const isDirty = currentState !== initialFormState;
+            const footer = document.getElementById('save-footer');
+            if (footer) {
+                if (isDirty) {
+                    footer.classList.remove('hidden');
+                } else {
+                    footer.classList.add('hidden');
+                }
+            }
+        };
 
         function getFormData() {
             const form = document.getElementById('owner-form');
@@ -579,10 +660,14 @@
                 });
                 if (response.ok) {
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                    const btnSpan = document.querySelector('button[onclick="saveData()"] span');
+                    const btnSpan = document.querySelector('#save-footer button span');
                     const originalText = btnSpan.innerText;
                     btnSpan.innerText = "PROFILO AGGIORNATO ✅";
-                    setTimeout(() => btnSpan.innerText = originalText, 3000);
+                    initialFormState = JSON.stringify(getFormData());
+                    setTimeout(() => {
+                        btnSpan.innerText = originalText;
+                        checkDirtyState();
+                    }, 1500);
                 }
             } catch (error) { tg.showAlert("Errore salvataggio."); }
             finally { hideLoader(); }
