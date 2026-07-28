@@ -240,7 +240,7 @@
                 <i class="fas fa-sitemap text-sm"></i>
             </div>
             <div>
-                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">BLUEPRINT ARCHITECT</h1>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">ARCHITECT</h1>
                 <p class="text-sm font-black tracking-tight">Blueprint Editor</p>
             </div>
         </div>
@@ -263,19 +263,19 @@
         <div>
             <span class="section-label"><i class="fas fa-sitemap text-slate-400"></i> Dettagli Blueprint</span>
             <div class="section-card">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 min-w-0">
-                        <span class="block text-[10px] font-700 uppercase tracking-widest text-slate-400 mb-0.5">Nome</span>
-                        <p id="blueprintNameDisplay" class="info-value truncate">Editor</p>
-                    </div>
-                    <div class="text-right ml-4 shrink-0">
-                        <span class="block text-[10px] font-700 uppercase tracking-widest text-slate-400 mb-0.5">Minuti Totali</span>
-                        <p class="text-2xl font-black text-slate-900 leading-none"><span id="totalTimeDisplay">0</span></p>
-                    </div>
+                <div class="mb-3">
+                    <span id="blueprintNameLabel" class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Nome</span>
+                    <p id="blueprintNameDisplay" class="info-value break-words leading-snug">Editor</p>
                 </div>
-                <div class="border-t border-slate-100 pt-3">
-                    <span class="block text-[10px] font-700 uppercase tracking-widest text-slate-400 mb-0.5">SKU</span>
-                    <p id="serviceSkuDisplay" class="info-sub">SKU: ...</p>
+                <div class="flex items-end justify-between border-t border-slate-100 pt-2">
+                    <div>
+                        <span class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">SKU</span>
+                        <p id="serviceSkuDisplay" class="info-sub">SKU: ...</p>
+                    </div>
+                    <div class="text-right">
+                        <span class="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Minuti</span>
+                        <p id="totalTimeDisplay" class="info-sub font-black text-slate-700">0</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -320,7 +320,7 @@
 
     <div class="fixed bottom-0 left-0 w-full p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-[100]">
         <div class="max-w-md mx-auto">
-            <button id="saveBtn" disabled
+        <button id="saveBtn" disabled
                 class="w-full h-10 bg-black text-white rounded-xl shadow-sm font-black uppercase tracking-widest text-[9px] active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center gap-2">
                 <i class="fas fa-rocket text-xs"></i> <span id="saveBtnText">Deploy Process</span>
             </button>
@@ -364,7 +364,20 @@
                 const rD = await res.json();
                 const bp = (Array.isArray(rD) ? rD[0] : rD).blueprint || (Array.isArray(rD) ? rD[0] : rD);
                 currentData = bp;
-                document.getElementById('blueprintNameDisplay').innerText = bp.blueprint_name || 'Process Editor';
+
+                // Sanificazione nome ed etichetta smart
+                const rawName = bp.blueprint_name || 'Process Editor';
+                let cleanName = rawName;
+                let nameLabel = 'Nome';
+                if (rawName.startsWith('[SER]')) {
+                    cleanName = rawName.replace(/^\[SER\]\s*-?\s*/i, '').trim();
+                    nameLabel = 'Nome Servizio';
+                } else if (rawName.startsWith('[SOP]')) {
+                    cleanName = rawName.replace(/^\[SOP\]\s*-?\s*/i, '').trim();
+                    nameLabel = 'Tipo Procedura';
+                }
+                document.getElementById('blueprintNameDisplay').innerText = cleanName;
+                document.getElementById('blueprintNameLabel').innerText = nameLabel;
                 document.getElementById('serviceSkuDisplay').innerText = `SKU: ${bp.service_sku}`;
                 document.getElementById('blueprintDesc').value = bp.blueprint_description || '';
                 document.getElementById('blueprintType').value = bp.blueprint_type || 'INTERNAL_PROTOCOL';
@@ -450,11 +463,6 @@
                     </div>`;
             }).join('');
         }
-
-        function updateGlobalData(k, v) { currentData[k] = v; checkDirty(); }
-        function toggleStage(i) { currentData.stages[i]._ui_open = !currentData.stages[i]._ui_open; renderStages(); }
-        function toggleStep(si, sti) { currentData.stages[si].steps[sti]._ui_open = !currentData.stages[si].steps[sti]._ui_open; renderStages(); }
-        function updateStage(i, k, v) { currentData.stages[i][k] = v; checkDirty(); }
         function updateStepData(si, sti, k, v) { if (k === 'estimated_time_minutes') { const mins = parseInt(v || 0); currentData.stages[si].steps[sti][k] = mins; if (currentData.stages[si].steps[sti].resources_needed?.labor) currentData.stages[si].steps[sti].resources_needed.labor.estimated_work_minutes = mins; updateLiveTime(); } else { currentData.stages[si].steps[sti][k] = v; } checkDirty(); }
         function updateStepQC(si, sti, k, v) { if (!currentData.stages[si].steps[sti].quality_check) currentData.stages[si].steps[sti].quality_check = { is_required: true }; currentData.stages[si].steps[sti].quality_check[k] = v; currentData.stages[si].steps[sti].quality_check.is_required = (v !== 'NONE'); if (k === 'evidence_type') renderStages(); checkDirty(); }
         function updateLiveTime() { let total = 0; currentData.stages.forEach(s => total += s.steps.reduce((acc, st) => acc + (parseInt(st.estimated_time_minutes) || 0), 0)); document.getElementById('totalTimeDisplay').innerText = total; }
