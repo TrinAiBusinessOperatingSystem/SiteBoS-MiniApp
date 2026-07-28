@@ -202,16 +202,8 @@
                     <span class="field-label">Meta Description</span>
                     <textarea id="seo_meta_description" rows="2" placeholder="Breve sommario per i motori di ricerca..."></textarea>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <span class="field-label">Keywords</span>
-                        <input type="text" id="seo_keywords" placeholder="Parola1, Parola2">
-                    </div>
-                    <div>
-                        <span class="field-label">Slug URL</span>
-                        <input type="text" id="seo_slug" placeholder="titolo-articolo">
-                    </div>
-                </div>
+                <input type="hidden" id="seo_keywords">
+                <input type="hidden" id="seo_slug">
             </section>
         </div>
 
@@ -454,15 +446,29 @@
         }
 
         function parseTable(html) {
-            if (!html) return '';
+            let out = `<div class="grid grid-cols-3 gap-2 mb-1 px-1">
+                <span class="text-[10px] font-black uppercase text-slate-400 text-center">Caratteristica</span>
+                <span class="text-[10px] font-black uppercase text-slate-900 text-center">Noi</span>
+                <span class="text-[10px] font-black uppercase text-slate-400 text-center">Concorrenti</span>
+            </div>`;
+            if (!html) {
+                for (let i = 0; i < 5; i++) {
+                    out += `<div class="grid grid-cols-3 gap-2 table-row">
+                        <textarea rows="1" class="text-xs text-center" placeholder="Caratteristica"></textarea>
+                        <textarea rows="1" class="text-xs font-bold text-center border-slate-900" placeholder="Noi"></textarea>
+                        <textarea rows="1" class="text-xs text-center" placeholder="Concorrenti"></textarea>
+                    </div>`;
+                }
+                return out;
+            }
             const div = document.createElement('div'); div.innerHTML = html;
-            const rows = div.querySelectorAll('tbody tr'); let out = '';
+            const rows = div.querySelectorAll('tbody tr');
             for (let i = 0; i < 5; i++) {
                 const tds = rows[i] ? rows[i].querySelectorAll('td') : [];
                 out += `<div class="grid grid-cols-3 gap-2 table-row">
                     <textarea rows="1" class="text-xs text-center" placeholder="Caratteristica">${tds[0]?.innerText || ''}</textarea>
-                    <textarea rows="1" class="text-xs text-center" placeholder="Tradizionale">${tds[1]?.innerText || ''}</textarea>
-                    <textarea rows="1" class="text-xs font-bold text-center border-slate-900" placeholder="SiteBoS">${tds[2]?.innerText || ''}</textarea>
+                    <textarea rows="1" class="text-xs font-bold text-center border-slate-900" placeholder="Noi">${tds[1]?.innerText || ''}</textarea>
+                    <textarea rows="1" class="text-xs text-center" placeholder="Concorrenti">${tds[2]?.innerText || ''}</textarea>
                 </div>`;
             }
             return out;
@@ -499,7 +505,7 @@
                 if (inputs[0] && inputs[0].value.trim()) tbody += `<tr><td>${inputs[0].value}</td><td>${inputs[1]?.value || ''}</td><td>${inputs[2]?.value || ''}</td></tr>`;
             });
             if (currentData.comparison) {
-                currentData.comparison.table_html = `<table><thead><tr><th>F</th><th>T</th><th>S</th></tr></thead><tbody>${tbody}</tbody></table>`;
+                currentData.comparison.table_html = `<table><thead><tr><th>Caratteristica</th><th>Noi</th><th>Concorrenti</th></tr></thead><tbody>${tbody}</tbody></table>`;
             }
             if (currentData.faq) {
                 currentData.faq = currentData.faq.map((f, i) => ({
