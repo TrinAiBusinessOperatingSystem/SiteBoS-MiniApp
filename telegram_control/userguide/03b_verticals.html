@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta name="color-scheme" content="light">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>03B. Catalogo per Settore — SiTeBoS Guide</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script>
+tailwind.config = { theme: { extend: { fontFamily: { sans: ['Plus Jakarta Sans','sans-serif'] }, borderRadius: { '3xl':'1.5rem','4xl':'2rem' } } } }
+</script>
+<style>
+body{background:#fff;color:#000;-webkit-tap-highlight-color:transparent;font-family:'Plus Jakarta Sans',sans-serif}
+.content-area{max-width:800px;margin:0 auto;padding:1.5rem 1.25rem}
+h1{font-size:2.2rem;font-weight:900;line-height:1.1;text-transform:uppercase;font-style:italic;margin-bottom:.35rem}
+.chapter-sub{font-size:.8rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.15em;margin-bottom:1.25rem}
+h2{font-size:1.1rem;font-weight:800;margin-top:3.2rem;margin-bottom:1.1rem;text-transform:uppercase;border-bottom:2px solid #000;padding-bottom:.4rem;display:inline-block}
+p{font-size:.92rem;line-height:1.7;color:#374151;margin-bottom:1rem}
+.rule-block{margin-bottom:1.4rem}
+.rule-block:last-child{margin-bottom:0}
+b,strong{font-weight:800;color:#000}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:fadeIn .35s ease forwards}
+
+.vert-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.65rem;margin-bottom:1.5rem}
+.vert-tile{border:1.5px solid #e5e7eb;border-radius:1rem;padding:.85rem .75rem;display:flex;flex-direction:column;gap:.3rem;transition:all .15s;cursor:pointer}
+.vert-tile:hover,.vert-tile.active{border-color:#000;background:#000}
+.vert-tile.active .vt-key,.vert-tile.active .vt-name,.vert-tile.active .vt-cat{color:#fff}
+.vt-icon{font-size:1.25rem;line-height:1}
+.vt-key{font-size:7.5px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af}
+.vt-name{font-size:11px;font-weight:800;color:#111;line-height:1.2}
+.vt-cat{font-size:9px;color:#6b7280;line-height:1.4;margin-top:.1rem}
+
+.cs-card{border:1.5px solid #e5e7eb;border-radius:1.5rem;overflow:hidden;margin-top:1.25rem}
+.cs-header{padding:1rem 1.25rem;display:flex;align-items:center;gap:.85rem;border-bottom:1px solid #f3f4f6}
+.cs-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.cs-body{padding:1.1rem 1.25rem}
+
+.opt-row{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin-bottom:.65rem}
+.opt-col{background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:.85rem;padding:.75rem}
+.opt-col.highlight{border-color:#000;background:#fff}
+.opt-label{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:.4rem}
+.opt-title{font-size:11px;font-weight:800;color:#111827;margin-bottom:.2rem}
+.opt-desc{font-size:10px;color:#6b7280;line-height:1.5}
+.sub-item{font-size:10px;color:#374151;padding:.2rem 0 .2rem .75rem;border-left:2px solid #e5e7eb;margin-top:.3rem}
+
+.dtable{width:100%;border-collapse:collapse;font-size:10.5px;margin:.75rem 0}
+.dtable th{background:#000;color:#fff;padding:.45rem .7rem;text-align:left;font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}
+.dtable td{padding:.45rem .7rem;border-bottom:1px solid #f3f4f6;color:#374151;vertical-align:top;line-height:1.5}
+.dtable tr:last-child td{border-bottom:none}
+.pro{color:#059669;font-weight:700}
+.con{color:#dc2626;font-weight:700}
+
+.vbadge{display:inline-flex;gap:.35rem;align-items:center;padding:.35rem .9rem;border-radius:999px;font-size:9.5px;font-weight:900;text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem}
+.vb-a{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}
+.vb-b{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
+.vb-ab{background:#dbeafe;color:#1d4ed8;border:1px solid #bfdbfe}
+.verdict-box{padding:.9rem 1rem;border-radius:1rem;margin-bottom:.65rem;background:#dbeafe;color:#1e40af}
+.verdict-box p{font-size:11px;color:inherit;line-height:1.6;margin:0}
+
+.fpill{display:inline-flex;align-items:center;gap:.35rem;padding:.25rem .65rem;border-radius:999px;font-size:9.5px;font-weight:800;text-transform:uppercase;border:1px solid}
+.fp-on{background:#d1fae5;color:#065f46;border-color:#a7f3d0}
+.fp-off{background:#fee2e2;color:#991b1b;border-color:#fca5a5}
+.fp-na{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+
+.cat-list{display:flex;flex-direction:column;gap:.5rem}
+.cat-item{display:flex;align-items:flex-start;gap:.65rem;padding:.65rem .85rem;background:#fff;border:1px solid #e5e7eb;border-radius:.85rem}
+.cat-badge{min-width:28px;height:28px;border-radius:.5rem;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0}
+.cb-ser{background:#000;color:#fff}
+.cb-prc{background:#f1f5f9;color:#475569}
+.cb-pro{background:#ede9fe;color:#6d28d9}
+.cb-cmp{background:#fef9c3;color:#92400e}
+.cb-sop{background:#dbeafe;color:#1d4ed8}
+.cat-name{font-size:11px;font-weight:800;color:#111;line-height:1.3}
+.cat-meta{font-size:9px;color:#9ca3af;margin-top:.15rem;line-height:1.4}
+
+.dilemma-box{background:#f8fafc;border:1px solid #e2e8f0;border-radius:1rem;padding:.85rem 1rem;margin-bottom:1rem;font-size:11px;color:#374151;line-height:1.6}
+.dilemma-box .dlabel{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#94a3b8;margin-bottom:.4rem}
+
+.sec-divider{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af;margin:.75rem 0 .4rem}
+
+.evidence-box{background:#dbeafe;border:1px solid #bfdbfe;border-radius:1rem;padding:.85rem 1rem;margin-bottom:1rem}
+.evidence-box .elabel{font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:#1d4ed8;margin-bottom:.4rem}
+.evidence-box p{font-size:11px;color:#1e3a8a;line-height:1.6;margin:0}
+
+.hidden{display:none!important}
+</style>
+</head>
+<body class="min-h-screen pb-32">
+<nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-3.5 flex items-center justify-between">
+  <button onclick="location.href='index.html'" class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors">
+    <i class="fas fa-arrow-left"></i> Index
+  </button>
+  <div class="text-[9px] font-black uppercase tracking-[0.2em] text-blue-600 italic">Capitolo 03B</div>
+</nav>
+
+<main class="content-area animate-in">
+<p class="chapter-sub">Capitolo 03B — Casi Pratici per Settore</p>
+<h1>Catalogo per Settore</h1>
+<p>Il motore del catalogo — Procedure, Servizi e Prodotti — <b>funziona in modo identico per tutti i settori</b>. Cio che cambia al variare della verticale e il <b>vocabolario</b> dell'interfaccia e la configurazione del <b>Controllo di Gestione</b> (piano dei conti specifico per settore). La struttura del catalogo e la logica dei flag restano uguali.</p>
+
+<div class="evidence-box">
+  <div class="elabel">Il principio da tenere sempre a mente</div>
+  <p>Non esiste una regola unica "servizio con addon" o "un prodotto per ogni addon": ogni verticale ha zone grigie dove la vendita puo avvenire subito a carrello (Prodotto) e zone dove serve prima passare dal Preventivatore (Servizio). In ogni caso studio qui sotto trovi la soglia che separa i due casi.</p>
+  <p style="margin-top:.6rem">Il sistema drafta gia in automatico sia i Servizi con i loro Addon sia i Prodotti collegati: il compito del titolare non e "creare tutto a mano", ma decidere dove passa il confine tra cio che e vendibile subito senza frizioni e cio che richiede prima una valutazione. Un Servizio, se definito correttamente dentro confini chiari, e vendibile a carrello esattamente come un oggetto fisico se convertito in Prodotto: la differenza non e nella natura del bene, ma nella precisione con cui e stato configurato.</p>
+</div>
+
+<h2>Le 8 Verticali Ufficiali</h2>
+<p>Seleziona una verticale per consultare lo schema organizzativo e il caso studio di setup del catalogo.</p>
+
+<div class="vert-grid" id="vert-grid">
+  <div class="vert-tile active" data-target="cs-health"><div class="vt-icon">🏥</div><div class="vt-key">health</div><div class="vt-name">Sanita e Salute</div><div class="vt-cat">Clinica, fisioterapia, diagnostica</div></div>
+  <div class="vert-tile" data-target="cs-dental"><div class="vt-icon">🦷</div><div class="vt-key">dental</div><div class="vt-name">Odontoiatria</div><div class="vt-cat">Dentista, implantologia, ortodonzia</div></div>
+  <div class="vert-tile" data-target="cs-beauty"><div class="vt-icon">💆</div><div class="vt-key">beauty</div><div class="vt-name">Estetica</div><div class="vt-cat">Estetica, laser, SPA, parrucchiere</div></div>
+  <div class="vert-tile" data-target="cs-food"><div class="vt-icon">🍕</div><div class="vt-key">food</div><div class="vt-name">Ristorazione</div><div class="vt-cat">Ristorante, catering, bar, delivery</div></div>
+  <div class="vert-tile" data-target="cs-hospitality"><div class="vt-icon">🏨</div><div class="vt-key">hospitality</div><div class="vt-name">Ospitalita</div><div class="vt-cat">Hotel, B&amp;B, agriturismo, glamping</div></div>
+  <div class="vert-tile" data-target="cs-professional"><div class="vt-icon">💼</div><div class="vt-key">professional</div><div class="vt-name">Servizi Professionali</div><div class="vt-cat">Commercialista, avvocato, consulente</div></div>
+  <div class="vert-tile" data-target="cs-workshop"><div class="vt-icon">🔧</div><div class="vt-key">workshop</div><div class="vt-name">Artigianato</div><div class="vt-cat">Officina, carrozzeria, idraulico</div></div>
+  <div class="vert-tile" data-target="cs-construction"><div class="vt-icon">🚧</div><div class="vt-key">construction</div><div class="vt-name">Edilizia e Impianti</div><div class="vt-cat">Costruzioni, FV, termoidraulica</div></div>
+  <div class="vert-tile" data-target="cs-generic"><div class="vt-icon">📋</div><div class="vt-key">generic</div><div class="vt-name">Generico</div><div class="vt-cat">Fallback automatico per settori non classificati</div></div>
+</div>
+
+<div id="cs-container">
+
+<!-- HEALTH -->
+<div id="cs-health" class="case-study">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#fee2e2">🏥</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">health — caso studio</div>
+<div class="text-sm font-black text-slate-900">Poliambulatorio e Fisioterapia</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Cicli Riabilitativi Multi-Seduta</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Un centro di fisioterapia eroga trattamenti riabilitativi. Un ciclo completo richiede 1 Visita Funzionale iniziale e poi 5 o 10 Sedute operative con Tecar, Onde d'Urto o Terapia Manuale.
+<strong>Come si imposta il catalogo? Si vendono le sedute singole, un pacchetto chiuso oppure si scinde la seduta dagli elettromedicali aggiuntivi?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — N Servizi Distinti</div>
+<div class="opt-desc">
+<div class="sub-item">Visita Fisioterapica Iniziale (80 EUR / 45min)</div>
+<div class="sub-item">Singola Seduta Terapia Manuale (50 EUR / 30min)</div>
+<div class="sub-item">Singola Seduta Tecarterapia (50 EUR / 30min)</div>
+<div class="sub-item">Pacchetto 10 Sedute Riabilitative (450 EUR / Prepagato)</div>
+</div></div>
+<div class="opt-col"><div class="opt-label">Opzione B — Servizio Base + Addon Elettromedicali</div>
+<div class="opt-desc"><strong>Seduta Fisioterapia Base</strong> (40 EUR / 30min)
+<div class="sub-item">+ Addon Tecarterapia (+15 EUR / +10min)</div>
+<div class="sub-item">+ Addon Onde d'Urto (+25 EUR / +10min)</div>
+<div class="sub-item">+ Addon Kinesi Taping (+10 EUR / +5min)</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A</th><th>Opzione B</th></tr></thead>
+<tbody>
+<tr><td><strong>Prenotazione via Bot</strong></td><td><span class="pro">Facile</span> — il paziente sceglie la voce indicata dal medico</td><td><span class="con">Media</span> — il paziente deve sapere quali addon spuntare</td></tr>
+<tr><td><strong>Flessibilita Terapeutica</strong></td><td><span class="con">Bassa</span> — se il fisioterapista cambia terapia deve stornare la voce</td><td><span class="pro">Alta</span> — il terapista aggiunge o toglie addon durante la seduta</td></tr>
+<tr><td><strong>Gestione Incassi</strong></td><td><span class="pro">Ottima</span> — il pacchetto da 10 azzera la cassa a ogni seduta</td><td><span class="con">Frazionata</span> — si incassa a ogni seduta con varianti</td></tr>
+<tr><td><strong>Occupazione Agenda</strong></td><td><span class="pro">Precisa</span> — ogni servizio ha durata fissa</td><td><span class="con">Variabile</span> — la durata cambia con il numero di addon</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-a"><i class="fas fa-list"></i> Scegli N Servizi distinti</span>
+<p>Se la maggior parte dei pazienti acquista cicli prescritti da medici esterni e vuoi incassare in anticipo azzerando i tempi di cassa a ogni seduta.</p></div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-puzzle-piece"></i> Scegli Servizio Base + Addon</span>
+<p>Se la valutazione terapeutica viene fatta internamente e ogni seduta viene personalizzata sul momento dal fisioterapista.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Prima Visita Fisioterapica e Valutazione Funzionale</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — 80 EUR — Blueprint Anamnesi, test ROM, diagnosi funzionale; qui si compongono eventuali Addon prima del pagamento</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Seduta Fisioterapica Riabilitativa</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 50 EUR — Prezzo fisso, nessun preventivo necessario</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Pacchetto 10 Sedute Riabilitative</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 450 EUR — Prepagato, acquistabile subito a carrello</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Protocollo Sanificazione e Igienizzazione Lettino</div><div class="cat-meta">Procedura — Prenotazione OFF — Eseguita dall'operatore a ogni cambio paziente</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Fascia Lombare Ergonomica Professionale</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Visibile e acquistabile nel Minisito</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Gel Conduttore Tecar 500ml</div><div class="cat-meta">Consumabile — Inventario ON — Scarico automatico da BOM per ogni seduta Tecar</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Compressa Termica Gel per Crioterapia</div><div class="cat-meta">Semilavorato — Non vendibile — Preparato internamente, entra nella distinta base delle sedute con crioterapia</div></div></div>
+</div>
+</div></div></div>
+
+<!-- DENTAL -->
+<div id="cs-dental" class="case-study hidden">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#e0f2fe">🦷</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">dental — caso studio</div>
+<div class="text-sm font-black text-slate-900">Studio Odontoiatrico</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Trattamento di Implantologia Singola</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Un intervento implantare richiede 4 fasi distinte a settimane di distanza: Chirurgia inserimento vite, Rimozione punti e controllo, Scansione 3D protesica, Cementazione corona definitiva.
+<strong>Si creano 4 Servizi separati nel catalogo oppure un unico Servizio globale con Blueprint a fasi?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — 4 Servizi Separati</div>
+<div class="opt-desc">
+<div class="sub-item">Inserimento Impianto Titanio (600 EUR / 60min)</div>
+<div class="sub-item">Rimozione Punti e Controllo (0 EUR / 15min)</div>
+<div class="sub-item">Scansione Intraorale Protesica (150 EUR / 30min)</div>
+<div class="sub-item">Cementazione Corona Ceramica (450 EUR / 45min)</div>
+</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Servizio Unico con Blueprint 4 Fasi</div>
+<div class="opt-desc"><strong>Riabilitazione Implantare Singola</strong> — 1.200 EUR Prezzo unico
+<div class="sub-item">Fase 1: Chirurgia (60min)</div>
+<div class="sub-item">Fase 2: Controllo (15min)</div>
+<div class="sub-item">Fase 3: Impronta (30min)</div>
+<div class="sub-item">Fase 4: Corona (45min)</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — 4 Servizi</th><th>Opzione B — Blueprint Fasi</th></tr></thead>
+<tbody>
+<tr><td><strong>Percezione Prezzo Cliente</strong></td><td><span class="con">Frammentata</span> — prezzi spezzettati, il paziente teme costi nascosti</td><td><span class="pro">Trasparente</span> — unico preventivo firmato da 1.200 EUR</td></tr>
+<tr><td><strong>Gestione Appuntamenti</strong></td><td><span class="con">Complessa</span> — lo staff cerca 4 servizi diversi nel tempo</td><td><span class="pro">Automatizzata</span> — il sistema sa che il servizio ha 4 fasi sequenziali</td></tr>
+<tr><td><strong>Scarico Magazzino BOM</strong></td><td><span class="con">Frammentato</span> — vite al Servizio 1, corona al Servizio 4</td><td><span class="pro">Centralizzato</span> — la BOM scarica i componenti alle rispettive fasi</td></tr>
+<tr><td><strong>Contabilita e Fatturazione</strong></td><td><span class="pro">Utile a SAL</span> — fatturazione a stato avanzamento lavori</td><td><span class="pro">Acconto/Saldo</span> — acconto iniziale e saldo alla consegna</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-sitemap"></i> Scegli il Blueprint a Fasi per la complessita</span>
+<p>Per tutta l'odontoiatria complessa (Impianti, Ortodonzia Invisibile, Protesi) usa sempre un unico Servizio con Blueprint a fasi. Evita di spaventare il paziente con micro-voci e permette all'AI di calcolare il margine reale dell'intero intervento.</p></div>
+<div class="verdict-box"><span class="vbadge vb-a"><i class="fas fa-bolt"></i> Scegli N Servizi per le prestazioni spot</span>
+<p>Solo per prestazioni mono-seduta (Igiene dentale, Otturazione semplice, Sbiancamento): voci chiare, prezzo immediato, nessun Blueprint necessario.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Visita Odontoiatrica e Scansione 3D</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 60 EUR — Primo contatto a prezzo fisso, valuta poi se serve un Servizio a preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Riabilitazione Implantare Singola</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — 1.200 EUR — Blueprint 4 Fasi, richiede preventivo perche il caso va valutato prima di fissare il prezzo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Igiene Professionale e Sbiancamento</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 120 EUR — Prezzo fisso, seduta singola senza preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Protocollo Tracciabilita Sterilizzazione Autoclave</div><div class="cat-meta">Procedura — Prenotazione OFF — Registro obbligatorio conforme normativa</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Spazzolino Sonico Smart Professional</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Vendita retail post-seduta</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Vite Impianto Titanio Grade 4</div><div class="cat-meta">Consumabile — Inventario ON — Scaricato automaticamente alla Fase 1 del Blueprint</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Cappetta in Zirconia Fresata</div><div class="cat-meta">Semilavorato — Non vendibile — Lavorata internamente al CAD/CAM, entra nella corona finale della Fase 4</div></div></div>
+</div>
+</div></div></div>
+
+<!-- BEAUTY -->
+<div id="cs-beauty" class="case-study hidden">
+<div class="cs-card" style="border-color:#e9d5ff">
+<div class="cs-header" style="background:#fdf4ff"><div class="cs-icon" style="background:#ede9fe">💆</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-purple-400 mb-0.5">beauty — caso studio</div>
+<div class="text-sm font-black text-slate-900">Centro Laser Epilazione</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Vendita a Carrello vs Piano Personalizzato</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Hai un laser a diodi professionale. Ogni cliente ha un fototipo diverso e vuole zone diverse: inguine, ascelle, gambe, baffo, corpo intero.
+<strong>Si vendono i trattamenti tramite checkout diretto a carrello, oppure si indirizza sempre il cliente su un preventivatore che genera un piano personalizzato?</strong></div>
+
+<div class="evidence-box"><div class="elabel">Non e una scelta binaria</div>
+<p>La risposta non e "tutto a carrello" o "tutto a preventivo": dipende dal rischio clinico e dalla complessita del singolo caso, non dalla categoria "epilazione laser" nel suo insieme. Una zona singola su fototipo compatibile va configurata come <strong>Prodotto</strong>, vendibile subito a carrello. Un percorso multi-zona, un fototipo scuro o una controindicazione vanno invece configurati come <strong>Servizio</strong>: passano dal Preventivatore, dove si possono comporre piu voci e Addon prima di generare il pagamento.</p></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — Vendita Diretta per Zona</div>
+<div class="opt-desc">
+<div class="sub-item">Epilazione Corpo Intero (90 EUR / 90min)</div>
+<div class="sub-item">Epilazione Gambe Complete (45 EUR / 45min)</div>
+<div class="sub-item">Epilazione Zona Bikini (25 EUR / 20min)</div>
+<div class="sub-item">Epilazione Ascelle (20 EUR / 15min)</div>
+<div class="sub-item">Epilazione Labbro e Mento (25 EUR / 20min)</div>
+</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Consulenza + Piano Personalizzato</div>
+<div class="opt-desc"><strong>Consulenza Laser e Valutazione Cute</strong> — fototipo, zone, controindicazioni
+<div class="sub-item">Se compatibile → proposta piano con prezzo definito</div>
+<div class="sub-item">Se multi-zona → piano generato dal preventivatore</div>
+<div class="sub-item">Se controindicazioni → nessun prezzo esposto online</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — Carrello Diretto</th><th>Opzione B — Preventivatore</th></tr></thead>
+<tbody>
+<tr><td><strong>Semplicita prenotazione</strong></td><td><span class="pro">Alta</span> — scelta diretta dal menu Bot</td><td><span class="con">Media</span> — richiede prima la valutazione fototipo</td></tr>
+<tr><td><strong>Sicurezza clinica</strong></td><td><span class="con">Bassa</span> — nessun controllo su controindicazioni prima del pagamento</td><td><span class="pro">Alta</span> — il piano nasce solo dopo la verifica</td></tr>
+<tr><td><strong>Gestione Blueprint</strong></td><td><span class="con">Pesante</span> — un Blueprint per ogni zona da mantenere</td><td><span class="pro">Leggera</span> — un unico Blueprint con fasi modulari</td></tr>
+<tr><td><strong>Upsell naturale</strong></td><td><span class="con">Difficile</span> — il cliente sceglie e non aggiunge</td><td><span class="pro">Naturale</span> — il piano propone zone aggiuntive in automatico</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-a"><i class="fas fa-bolt"></i> Configura come Prodotto (PRO)</span>
+<p>Per zona singola o pacchetto a prezzo fisso, con fototipo dichiarato compatibile e nessuna controindicazione nota: il Prodotto compare nel Minisito e-commerce e si acquista subito a carrello, senza passare dal Preventivatore.</p></div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-puzzle-piece"></i> Configura come Servizio (SER)</span>
+<p>Per corpo intero non standard, pelle scura o mista, trattamenti combinati: il Servizio non compare nel Minisito, vive solo nel Preventivatore dove si possono aggiungere piu zone e Addon prima di generare il pagamento.</p></div>
+<div class="verdict-box" style="background:#f0fdf4;color:#166534"><span class="vbadge vb-b"><i class="fas fa-code-branch"></i> Soluzione a soglia (consigliata)</span>
+<p>Usa la Consulenza Laser (SER, sempre a Preventivatore) come filtro: e lei a decidere, caso per caso, se il cliente puo poi acquistare un Prodotto gia pronto a carrello o deve restare dentro un Servizio Piano Multi-Zona a preventivo. Il sistema drafta gia entrambe le voci: il compito del titolare e assegnare correttamente il flag PRO o SER a ciascuna.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Consulenza Laser e Valutazione Cute</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — Blueprint Anamnesi, test fototipo, consenso informato — decide se il cliente prosegue su un Prodotto a carrello o su un Piano Multi-Zona a preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Epilazione Laser Corpo Intero</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 90 EUR — Vendibile subito dopo validazione fototipo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Epilazione Laser Zona Singola (Gambe, Ascelle, Bikini, Viso)</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — da 20 a 45 EUR — Prezzo fisso, nessun preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Pacchetto 6 Sedute Corpo Intero</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 480 EUR — Prepagato, acquistabile subito a carrello</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Piano Personalizzato Multi-Zona</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — Nessun prezzo fisso: qui si combinano piu zone e Addon prima di generare il pagamento</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Protocollo Sicurezza Cabina e Manutenzione Laser</div><div class="cat-meta">Procedura — Prenotazione OFF — Taratura manipolo e sanificazione tra clienti</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Gel Post-Trattamento Lenitivo 100ml</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Acquistabile liberamente online, indipendente dal percorso clinico</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Gel Conduttore Laser 500ml</div><div class="cat-meta">Consumabile — Inventario ON — Scalato automaticamente dalla BOM per ogni seduta</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Composto Fango Alchemico</div><div class="cat-meta">Semilavorato — Non vendibile — Preparato internamente da argilla verde, oli essenziali e idrolato; entra nella distinta base dei trattamenti maschera</div></div></div>
+</div>
+</div></div></div>
+
+<!-- FOOD -->
+<div id="cs-food" class="case-study hidden">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#fef9c3">🍕</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">food — caso studio</div>
+<div class="text-sm font-black text-slate-900">Ristorante e Pizzeria</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Menu alla Carta vs Menu Degustazione vs Delivery</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Un ristorante vuole usare il Bot Telegram e il Minisito.
+<strong>Si inserisce ogni singolo piatto del menu (50 pizze, 20 primi) come prodotto e-commerce, oppure il catalogo serve solo per Prenotazione Tavoli e Menu Evento/Degustazione?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — E-Commerce Integrale</div>
+<div class="opt-desc">Inserire 70+ prodotti (Pizza Margherita, Pizza Diavola, Spaghetti Carbonara, Tiramisu, ecc.). Gestione ordini al tavolo e delivery piatto per piatto via Bot.</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Esperienziale e Prenotazione</div>
+<div class="opt-desc">
+<div class="sub-item">Prenotazione Tavolo alla Carta (0 EUR con caparra opzionale)</div>
+<div class="sub-item">Menu Degustazione Chef 4 Portate (55 EUR/pers. prepagato)</div>
+<div class="sub-item">Box Prodotti Tipici e Vini (Prodotti Retail online)</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — E-Commerce Integrale</th><th>Opzione B — Esperienziale</th></tr></thead>
+<tbody>
+<tr><td><strong>Manutenzione Catalogo</strong></td><td><span class="con">Pesantissima</span> — aggiornare un ingrediente richiede 70 voci</td><td><span class="pro">Minima</span> — si aggiornano solo i menu stagionali</td></tr>
+<tr><td><strong>Usabilita Bot</strong></td><td><span class="con">Lenta</span> — il cliente scorre decine di categorie</td><td><span class="pro">Velocissima</span> — 2 click per prenotare il tavolo</td></tr>
+<tr><td><strong>Delivery e Asporto</strong></td><td><span class="pro">Indispensabile</span> se fai asporto spinto</td><td><span class="con">Non adatta</span> se non fai delivery</td></tr>
+<tr><td><strong>Controllo Margini HACCP</strong></td><td><span class="pro">Dettagliato</span> — BOM per ogni singola pizza</td><td><span class="pro">Sintetico</span> — BOM applicata ai soli Menu Fissi</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-a"><i class="fas fa-truck"></i> Scegli E-Commerce Integrale</span>
+<p>Se la tua attivita si basa fortemente sul Delivery o Asporto (Pizzeria da asporto, Dark Kitchen, Sushi Takeaway). Ogni piatto e un prodotto prenotabile.</p></div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-concierge-bell"></i> Scegli il modello Esperienziale</span>
+<p>Se sei un Ristorante servito o Gourmet dove il Bot serve per acquisire prenotazioni tavolo, evitare no-show con caparre e vendere degustazioni o catering.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata (Ristorante Servito)</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Prenotazione Tavolo alla Carta</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — 0 EUR con caparra opzionale — la caparra e un Addon componibile sulla prenotazione</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Menu Degustazione Chef 4 Portate</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 55 EUR a persona — Prezzo fisso prepagato, nessun preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Checklist Registro HACCP e Monitoraggio Temperature</div><div class="cat-meta">Procedura — Prenotazione OFF — Compilata dal personale ad ogni apertura</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Bottiglia Olio EVO Biologico Selezionato 75cl</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Acquistabile online come prodotto tipico</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Farina Tipo 1 Sacco 25kg</div><div class="cat-meta">Consumabile — Inventario ON — Scarico magazzino per ciclo di produzione</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Impasto Lievitato 24h</div><div class="cat-meta">Semilavorato — Non vendibile — Lotto giornaliero con Blueprint di lievitazione, entra nella distinta base di tutte le pizze</div></div></div>
+</div>
+</div></div></div>
+
+<!-- HOSPITALITY -->
+<div id="cs-hospitality" class="case-study hidden">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#f0fdf4">🏨</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">hospitality — caso studio</div>
+<div class="text-sm font-black text-slate-900">Hotel e B&amp;B</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Prenotazione Camera vs Pacchetti Esperienza e Extra</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Una struttura ricettiva vuole gestire prenotazioni e vendere extra tramite Bot.
+<strong>Si pubblicano solo le tipologie di camera come Servizi prenotabili, oppure si costruisce un sistema di upsell con addon esperienziali (transfer, SPA, cena gourmet, escursioni)?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — Solo Tipologie Camera</div>
+<div class="opt-desc">
+<div class="sub-item">Camera Singola Standard (70 EUR/notte)</div>
+<div class="sub-item">Camera Doppia con Colazione (120 EUR/notte)</div>
+<div class="sub-item">Suite Junior Vista Mare (200 EUR/notte)</div>
+</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Camera + Addon Esperienziali</div>
+<div class="opt-desc">Stesse tipologie camera come Servizi prenotabili, piu Extra come Prodotti acquistabili separatamente:
+<div class="sub-item">Cesto Benvenuto con Prosecco e Dolci</div>
+<div class="sub-item">Transfer Aeroporto Privato</div>
+<div class="sub-item">Ingresso Spa e Massaggio (50min)</div>
+<div class="sub-item">Escursione Guidata in E-Bike</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — Solo Camera</th><th>Opzione B — Camera + Extra</th></tr></thead>
+<tbody>
+<tr><td><strong>Semplicita gestione</strong></td><td><span class="pro">Massima</span> — catalogo di 3 voci, zero complessita</td><td><span class="con">Media</span> — catalogo piu ricco da mantenere</td></tr>
+<tr><td><strong>Revenue per Prenotazione</strong></td><td><span class="con">Basso</span> — solo la camera, nessun upsell automatico</td><td><span class="pro">Alto</span> — ogni extra aggiunge margine alla prenotazione</td></tr>
+<tr><td><strong>Esperienza Cliente Bot</strong></td><td><span class="con">Basica</span> — prenota e basta</td><td><span class="pro">Premium</span> — il cliente personalizza il soggiorno</td></tr>
+<tr><td><strong>Gestione Operativita</strong></td><td><span class="pro">Semplice</span> — solo check-in e check-out</td><td><span class="con">Coordinata</span> — serve allineare transfer, SPA, guide</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box" style="background:#fef9c3;color:#854d0e"><span class="vbadge vb-ab"><i class="fas fa-code-branch"></i> Soluzione Ibrida Consigliata</span>
+<p>Inizia con le sole tipologie camera come Servizi prenotabili (Opzione A). Aggiungi progressivamente gli extra come Prodotti Retail (Inventario OFF) nel Minisito. Il cliente acquista la camera via Bot e gli extra online o in struttura. Semplice, scalabile.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Pernottamento Camera Doppia con Colazione</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 120 EUR/notte — Slot data arrivo/partenza selezionabile subito</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Suite Junior Vista Mare</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 200 EUR/notte — Disponibilita limitata, prezzo fisso</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Checklist Check-In e Pulizia Camera Turn-Over</div><div class="cat-meta">Procedura — Prenotazione OFF — Eseguita dal personale ad ogni partenza</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Cesto Benvenuto con Prosecco e Dolci Locali</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Acquistabile online prima dell'arrivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Transfer Privato Aeroporto</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Acquistabile online con prenotazione oraria</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Kit Cortesia Camera (Shampoo, Sapone, Cuffia)</div><div class="cat-meta">Consumabile — Inventario ON — Scalato automaticamente da BOM per ogni check-in</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Confezione Regalo Prosecco e Dolci Assemblata</div><div class="cat-meta">Semilavorato — Non vendibile — Assemblato internamente in economato, entra nella distinta base del Cesto Benvenuto</div></div></div>
+</div>
+</div></div></div>
+
+<!-- PROFESSIONAL -->
+<div id="cs-professional" class="case-study hidden">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#dbeafe">💼</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">professional — caso studio</div>
+<div class="text-sm font-black text-slate-900">Studio Commercialista</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Parcella Spot vs Canone Mensile Ricorrente</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Uno studio professionale vuole automatizzare la vendita dei propri servizi ed evitare richieste di supporto non retribuite via chat.
+<strong>Si vendono le singole prestazioni (Dichiarazione dei Redditi a parcella) oppure pacchetti a canone mensile ricorrente che includono anche l'accesso all'AI?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — Parcella a Prestazione Singola</div>
+<div class="opt-desc">
+<div class="sub-item">Apertura Partita IVA (150 EUR)</div>
+<div class="sub-item">Dichiarazione Redditi Modello RPF (250 EUR)</div>
+<div class="sub-item">Consulenza Oraria Strategica (120 EUR/ora)</div>
+</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Canone Continuativo + Extra Straordinari</div>
+<div class="opt-desc">
+<div class="sub-item">Canone Gestione Contabile Forfettari (50 EUR/mese)</div>
+<div class="sub-item">Canone Gestione Contabile Semplificata (150 EUR/mese)</div>
+<div class="sub-item">Pratica Straordinaria Extra a parcella separata</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — Parcella Spot</th><th>Opzione B — Canone Ricorrente</th></tr></thead>
+<tbody>
+<tr><td><strong>Stabilita Incassi (MRR)</strong></td><td><span class="con">Bassa</span> — incassi concentrati nei mesi di scadenza fiscale</td><td><span class="pro">Alta</span> — flusso di cassa mensile costante e prevedibile</td></tr>
+<tr><td><strong>Filtro Bot AI</strong></td><td><span class="con">Debole</span> — i clienti continuano a fare domande gratis</td><td><span class="pro">Forte</span> — l'accesso all'AI e incluso nel canone attivo</td></tr>
+<tr><td><strong>Carico Lavoro Studio</strong></td><td><span class="con">A picco</span> — sovraccarico nei mesi di dichiarazioni</td><td><span class="pro">Distribuito</span> — il lavoro viene diluito durante l'anno</td></tr>
+<tr><td><strong>Acquisizione Nuovi Clienti</strong></td><td><span class="pro">Facile</span> — bassa barriera d'ingresso con singola pratica</td><td><span class="con">Media</span> — il cliente deve impegnarsi su base mensile</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-repeat"></i> Scegli il Canone Ricorrente per i clienti continuativi</span>
+<p>Per i clienti con posizione fiscale attiva e continuativa. Il canone include la gestione ordinaria e l'accesso al Bot AI. Genera MRR prevedibile e filtra le domande non retribuite.</p></div>
+<div class="verdict-box"><span class="vbadge vb-a"><i class="fas fa-bolt"></i> Scegli la Parcella Spot per pratiche una-tantum</span>
+<p>Solo per clienti occasionali o pratiche straordinarie (Costituzione SRL, Perizia, Consulenza una-tantum). Alta marginalita, bassa manutenzione.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Canone Gestione Contabile e Assistenza AI Partita IVA</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 50 EUR/mese — Abbonamento a prezzo fisso, attivabile subito</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Consulenza Strategica Pianificazione Fiscale (60 Minuti)</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 150 EUR — Prezzo fisso, prenotazione slot senza preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Pratica Straordinaria su Misura (Costituzione SRL, Perizie)</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — Prezzo variabile in base al caso, componibile con piu Addon documentali</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Checklist Onboarding Nuovo Cliente e Antiriciclaggio</div><div class="cat-meta">Procedura — Prenotazione OFF — Blueprint raccolta documenti, KYC, fascicolo cliente</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Template Contratto NDA e Accordo Commerciale</div><div class="cat-meta">Prodotto Digitale — Inventario OFF — Download immediato, visibile nel Minisito</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Marca da Bollo Digitale Pratica</div><div class="cat-meta">Consumabile — Inventario ON — Costo vivo tracciato internamente per pratica</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Fascicolo Pratica Precompilato</div><div class="cat-meta">Semilavorato — Non vendibile — Documentazione preassemblata internamente, riutilizzata per piu pratiche dello stesso tipo</div></div></div>
+</div>
+</div></div></div>
+
+<!-- WORKSHOP -->
+<div id="cs-workshop" class="case-study hidden">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#d1fae5">🔧</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">workshop — caso studio</div>
+<div class="text-sm font-black text-slate-900">Officina Meccanica</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Prezzi Fissi per Categoria Auto vs Manodopera + BOM Ricambi</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Un'officina offre il Tagliando Auto. I costi del materiale variano in base alla cilindrata e al modello (Fiat Panda vs BMW Serie 5).
+<strong>Si crea un prezzo unico di tagliando, N tagliandi per categoria auto, oppure si scinde la Manodopera fissa dai Ricambi variabili nella distinta BOM?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — N Tagliandi per Categoria Auto</div>
+<div class="opt-desc">
+<div class="sub-item">Tagliando Utilitaria (80 EUR)</div>
+<div class="sub-item">Tagliando Berlina Media (120 EUR)</div>
+<div class="sub-item">Tagliando Auto Premium (200 EUR)</div>
+</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Manodopera Fissa + BOM Ricambi Variabile</div>
+<div class="opt-desc"><strong>Tagliando Base — Manodopera</strong> (60 EUR / 60min)
+<div class="sub-item">+ Ricambi da BOM in base al modello inserito in scheda veicolo</div>
+<div class="sub-item">Il preventivo finale si compone al volo</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — N Tagliandi</th><th>Opzione B — Manodopera + BOM</th></tr></thead>
+<tbody>
+<tr><td><strong>Precisione preventivo</strong></td><td><span class="con">Approssimativa</span> — categorie larghe, margine impreciso</td><td><span class="pro">Esatta</span> — costo ricambi reale per ogni intervento</td></tr>
+<tr><td><strong>Semplicita prenotazione</strong></td><td><span class="pro">Alta</span> — il cliente sceglie subito il prezzo</td><td><span class="con">Media</span> — serve il modello auto per generare il preventivo</td></tr>
+<tr><td><strong>Gestione magazzino ricambi</strong></td><td><span class="con">Debole</span> — non traccia quale ricambio e stato usato</td><td><span class="pro">Puntuale</span> — la BOM scarica il ricambio esatto usato</td></tr>
+<tr><td><strong>Scalabilita a nuovi modelli</strong></td><td><span class="con">Rigida</span> — ogni nuova categoria richiede un nuovo servizio</td><td><span class="pro">Flessibile</span> — basta aggiungere il ricambio in BOM</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-a"><i class="fas fa-bolt"></i> Scegli N Tagliandi per Categoria</span>
+<p>Se l'officina lavora con un parco auto omogeneo (poche marche, poche cilindrate) e vuole un preventivo immediato senza configurazioni.</p></div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-puzzle-piece"></i> Scegli Manodopera + BOM Ricambi</span>
+<p>Se l'officina lavora su un parco auto eterogeneo e vuole margini reali su ogni intervento, con scarico automatico dei ricambi usati.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Tagliando Auto — Manodopera Base</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 60 EUR — Ricambi aggiunti come Addon in base al modello dichiarato</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Diagnosi Elettronica e Check-Up Pre-Intervento</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 30 EUR — Prezzo fisso, nessun preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Checklist Sicurezza Ponte Elevatore</div><div class="cat-meta">Procedura — Prenotazione OFF — Verifica prima di ogni intervento in sospensione</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Tappetini Auto Universali Antiscivolo</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Vendita accessori al banco o online</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Olio Motore Sintetico 5W-30 (per litro)</div><div class="cat-meta">Consumabile — Inventario ON — Scaricato in quantita variabile in base alla cilindrata</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Kit Filtri Pre-Assemblato per Modello</div><div class="cat-meta">Semilavorato — Non vendibile — Preparato internamente in anticipo per i modelli piu frequenti, riduce i tempi di intervento</div></div></div>
+</div>
+</div></div></div>
+
+<!-- CONSTRUCTION -->
+<div id="cs-construction" class="case-study hidden">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#ffedd5">🚧</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">construction — caso studio</div>
+<div class="text-sm font-black text-slate-900">Impresa di Impianti Fotovoltaici</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Preventivo a Corpo vs Preventivo Analitico a Voci</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Un installatore FV deve quotare un impianto residenziale. Ogni tetto e diverso: kW installati, tipo di struttura, distanza del quadro elettrico.
+<strong>Si vende un prezzo a corpo forfettario oppure si costruisce un preventivo analitico con ogni componente (moduli, inverter, quadro, manodopera) come voce separata?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — Prezzo a Corpo Forfettario</div>
+<div class="opt-desc">
+<div class="sub-item">Impianto FV 3kW Chiavi in Mano (5.500 EUR)</div>
+<div class="sub-item">Impianto FV 6kW Chiavi in Mano (9.800 EUR)</div>
+</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Preventivo Analitico via Blueprint</div>
+<div class="opt-desc"><strong>Sopralluogo e Progettazione Impianto</strong> (150 EUR)
+<div class="sub-item">Fase 1: Moduli e struttura (da BOM secondo kW)</div>
+<div class="sub-item">Fase 2: Inverter e quadro di campo</div>
+<div class="sub-item">Fase 3: Cablaggio e collaudo</div>
+<div class="sub-item">Fase 4: Pratiche GSE e connessione</div>
+</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — Prezzo a Corpo</th><th>Opzione B — Preventivo Analitico</th></tr></thead>
+<tbody>
+<tr><td><strong>Velocita di vendita</strong></td><td><span class="pro">Alta</span> — il cliente vede subito un prezzo chiuso</td><td><span class="con">Media</span> — richiede sopralluogo prima del prezzo finale</td></tr>
+<tr><td><strong>Rischio margine</strong></td><td><span class="con">Alto</span> — variazioni impreviste erodono il margine fisso</td><td><span class="pro">Basso</span> — ogni componente e tracciato e fatturato</td></tr>
+<tr><td><strong>Gestione SAL e acconti</strong></td><td><span class="con">Rigida</span> — un unico pagamento o due tranche fisse</td><td><span class="pro">Flessibile</span> — fatturazione per fase del Blueprint</td></tr>
+<tr><td><strong>Tracciabilita componenti</strong></td><td><span class="con">Assente</span> — nessun legame con la BOM reale installata</td><td><span class="pro">Completa</span> — ogni pannello e inverter e scaricato da magazzino</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-sitemap"></i> Scegli il Blueprint Analitico</span>
+<p>Per impianti superiori a 3kW o con condizioni di cantiere non standard: la sicurezza sul margine reale vale piu della velocita di chiusura commerciale.</p></div>
+<div class="verdict-box"><span class="vbadge vb-a"><i class="fas fa-bolt"></i> Scegli il Prezzo a Corpo</span>
+<p>Solo per impianti standard di piccola taglia su tetti gia rilevati in passato, dove la variabilita di cantiere e minima e nota.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Sopralluogo e Progettazione Impianto FV</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — 150 EUR — Prezzo fisso, apre la strada al Servizio di installazione a preventivo</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Installazione Impianto Fotovoltaico Residenziale</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — Prezzo variabile — Blueprint 4 Fasi con SAL, componibile con Addon (monitoraggio, batteria)</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Protocollo Sicurezza Cantiere e DPI Obbligatori</div><div class="cat-meta">Procedura — Prenotazione OFF — Checklist prima dell'accesso al tetto</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Sistema di Monitoraggio Produzione via App</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Vendibile come upgrade opzionale nel Minisito</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Modulo Fotovoltaico 450W Monocristallino</div><div class="cat-meta">Consumabile — Inventario ON — Scaricato per numero esatto di moduli installati</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Quadro di Campo Pre-Cablato</div><div class="cat-meta">Semilavorato — Non vendibile — Assemblato in officina prima del cantiere (sezionatore DC, scaricatore SPD, fusibili), entra nella distinta base dell'impianto</div></div></div>
+</div>
+</div></div></div>
+
+<!-- GENERIC -->
+<div id="cs-generic" class="case-study hidden">
+<div class="cs-card">
+<div class="cs-header"><div class="cs-icon" style="background:#f3f4f6">📋</div>
+<div><div class="text-[9px] font-black uppercase tracking-widest text-gray-400 mb-0.5">generic — caso studio</div>
+<div class="text-sm font-black text-slate-900">Attivita Non Classificata</div>
+<div class="text-[10px] text-gray-500 mt-0.5">Vocabolario Neutro e Struttura di Fallback</div></div></div>
+<div class="cs-body space-y-4">
+<div class="dilemma-box"><div class="dlabel">Il Dilemma del Catalogo</div>
+Un'attivita non rientra in nessuna delle 8 verticali classificate (es. un servizio ibrido tra due settori, o un business emergente non ancora mappato).
+<strong>Si forza l'attivita dentro la verticale piu simile, oppure si usa un vocabolario neutro che si adatta a qualsiasi tipo di vendita?</strong></div>
+
+<div class="sec-divider">Opzioni di setup a confronto</div>
+<div class="opt-row">
+<div class="opt-col"><div class="opt-label">Opzione A — Forzatura su Verticale Simile</div>
+<div class="opt-desc">Si adatta il vocabolario di una verticale esistente (es. "professional" per un'attivita creativa), rischiando termini che non calzano.</div></div>
+<div class="opt-col highlight"><div class="opt-label">Opzione B — Vocabolario Generico</div>
+<div class="opt-desc">Si usano le etichette neutre di base: Servizio, Prodotto, Procedura, Consumabile, Semilavorato — senza terminologia settoriale.</div></div>
+</div>
+
+<div class="sec-divider">Confronto strategico</div>
+<table class="dtable"><thead><tr><th>Criterio</th><th>Opzione A — Verticale Forzata</th><th>Opzione B — Generico</th></tr></thead>
+<tbody>
+<tr><td><strong>Coerenza terminologica</strong></td><td><span class="con">Bassa</span> — termini di settore che non calzano al business reale</td><td><span class="pro">Alta</span> — etichette neutre sempre corrette</td></tr>
+<tr><td><strong>Tempo di attivazione</strong></td><td><span class="con">Lento</span> — serve rimappare manualmente il vocabolario</td><td><span class="pro">Immediato</span> — attivo di default senza configurazione</td></tr>
+<tr><td><strong>Flessibilita futura</strong></td><td><span class="con">Rigida</span> — vincola l'attivita a scelte terminologiche errate</td><td><span class="pro">Alta</span> — si passa a una verticale specifica in ogni momento</td></tr>
+</tbody></table>
+
+<div class="sec-divider">Verdetti</div>
+<div class="verdict-box"><span class="vbadge vb-b"><i class="fas fa-check"></i> Scegli sempre il Generico come partenza</span>
+<p>La struttura del catalogo (Procedure, Servizi, Prodotti, Consumabili, Semilavorati) resta identica: cambia solo l'etichetta visibile. Il Generico e il fallback sicuro, non una scelta di ripiego.</p></div>
+
+<div class="sec-divider">Struttura catalogo consigliata</div>
+<div class="cat-list">
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Prestazione Principale a Prezzo Fisso</div><div class="cat-meta">Prodotto — Minisito e-commerce, checkout diretto — Da usare quando la prestazione e vendibile subito senza valutazione preliminare</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-ser">SER</div><div><div class="cat-name">Prestazione Principale su Preventivo</div><div class="cat-meta">Servizio — Preventivatore, non e-commerce — Da usare quando il prezzo dipende dal caso specifico e serve comporre piu voci o Addon</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-prc">PRC</div><div><div class="cat-name">Checklist Operativa Standard</div><div class="cat-meta">Procedura — Prenotazione OFF — Base di partenza per addestrare l'AI</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-pro">PRO</div><div><div class="cat-name">Prodotto o Bene Accessorio</div><div class="cat-meta">Prodotto Retail — Inventario OFF — Visibile nel Minisito se presente</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-cmp">BOM</div><div><div class="cat-name">Componente o Materiale di Consumo</div><div class="cat-meta">Consumabile — Inventario ON — Scalato automaticamente se il business ha una produzione interna</div></div></div>
+<div class="cat-item"><div class="cat-badge cb-sop">SOP</div><div><div class="cat-name">Semilavorato Generico</div><div class="cat-meta">Semilavorato — Non vendibile — Da attivare solo se l'attivita produce internamente un componente intermedio riutilizzato in piu offerte</div></div></div>
+</div>
+</div></div></div>
+
+</div>
+
+<h2>La Regola Aurea del Catalogo SiTeBoS</h2>
+
+<div class="rule-block"><p><strong>Procedure</strong> — Checklist operative. Sempre nascoste al cliente, sempre visibili all'operatore. Addestrano l'AI dell'assistente virtuale.</p></div>
+
+<div class="rule-block"><p><strong>Servizi (SER)</strong> — Non compaiono direttamente nel Minisito e-commerce. Passano sempre dal Preventivatore: il cliente (o l'operatore) puo combinare piu Servizi e Addon nella stessa richiesta, il sistema calcola il piano finale e solo a quel punto genera il link di pagamento.</p></div>
+
+<div class="rule-block"><p><strong>Prodotti (PRO)</strong> — Sono le uniche voci visibili e acquistabili direttamente nel Minisito e-commerce, con scheda, prezzo fisso e checkout immediato a carrello. Un Prodotto puo rappresentare sia un bene fisico sia una prestazione gia definita nei suoi confini (es. una seduta a prezzo fisso, un pacchetto prepagato): se e vendibile subito senza bisogno di un preventivo, e un Prodotto.</p></div>
+
+<div class="rule-block"><p><strong>Addon</strong> — Componibili sia dentro un Servizio a Preventivatore sia dentro un Prodotto a carrello: la differenza non e "dove si trova l'addon" ma se la voce principale a cui si aggancia richiede o no un passaggio di preventivo prima del pagamento.</p></div>
+
+<div class="rule-block"><p><strong>Semilavorati</strong> — Non vendibili al cliente finale. Beni intermedi prodotti internamente, con un proprio Blueprint di lavorazione, che entrano nella Distinta Base di un Prodotto o Servizio finito. Ogni verticale ha il suo: dall'impasto lievitato alla cappetta in zirconia, dal quadro pre-cablato al composto per maschere estetiche.</p></div>
+
+</main>
+
+<script>
+document.querySelectorAll('.vert-tile').forEach(function(tile){
+  tile.addEventListener('click', function(){
+    document.querySelectorAll('.vert-tile').forEach(function(t){ t.classList.remove('active'); });
+    tile.classList.add('active');
+    document.querySelectorAll('.case-study').forEach(function(cs){ cs.classList.add('hidden'); });
+    var target = document.getElementById(tile.getAttribute('data-target'));
+    if(target){ target.classList.remove('hidden'); }
+  });
+});
+</script>
+</body>
+</html>
