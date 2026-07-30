@@ -1506,7 +1506,7 @@
             document.head.appendChild(link);
         }
 
-        // 4. Inject Drawer HTML structure into Body
+        // 4. Inject Drawer HTML structure into Body safely
         const drawerHtml = `
         <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
             <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
@@ -1524,7 +1524,18 @@
                 </div>
             </div>
         </div>`;
-        document.body.insertAdjacentHTML('beforeend', drawerHtml);
+
+        const initDrawer = () => {
+            if (!document.getElementById('userguide-drawer-overlay') && document.body) {
+                document.body.insertAdjacentHTML('beforeend', drawerHtml);
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDrawer);
+        } else {
+            initDrawer();
+        }
 
         // 5. Inject Globe and Volume Buttons (Only if not static in HTML)
         if (!document.getElementById('btn-nav-guide')) {
@@ -1566,10 +1577,13 @@
             }
             if (window.parent && window.parent !== window && typeof window.parent.closeSubEditor === 'function') {
                 window.parent.closeSubEditor();
-            } else if (document.referrer && document.referrer.includes('catalog.html')) {
+                return;
+            }
+            const currentAsh = (typeof ash !== 'undefined' && ash) ? ash : (new URLSearchParams(window.location.search).get('ash') || '');
+            if (document.referrer && document.referrer.length > 0 && !document.referrer.includes('supervisor_hub')) {
                 window.location.href = document.referrer;
             } else {
-                window.location.href = `catalog.html?ash=${ash || ''}`;
+                window.location.href = `catalog.html${currentAsh ? '?ash=' + encodeURIComponent(currentAsh) : ''}`;
             }
         };
 
@@ -1577,19 +1591,23 @@
         let isAudioPlaying = false;
 
         window.openUserGuide = function(url) {
+            const targetUrl = url || '../userguide/08_supervisor_hub.html';
             const overlay = document.getElementById('userguide-drawer-overlay');
             const drawer = document.getElementById('userguide-drawer');
             const iframe = document.getElementById('userguide-iframe');
-            if (!overlay || !drawer || !iframe) return;
-
-            window.stopAudio();
             
-            iframe.src = url;
-            overlay.classList.remove('hidden');
-            setTimeout(() => {
-                overlay.classList.remove('opacity-0');
-                drawer.classList.remove('translate-y-full');
-            }, 10);
+            if (typeof window.stopAudio === 'function') window.stopAudio();
+            
+            if (overlay && drawer && iframe) {
+                iframe.src = targetUrl;
+                overlay.classList.remove('hidden');
+                setTimeout(() => {
+                    overlay.classList.remove('opacity-0');
+                    drawer.classList.remove('translate-y-full');
+                }, 10);
+            } else {
+                window.location.href = targetUrl;
+            }
         };
 
         window.closeUserGuide = function() {
@@ -1601,11 +1619,15 @@
             drawer.classList.add('translate-y-full');
             setTimeout(() => {
                 overlay.classList.add('hidden');
-                document.getElementById('userguide-iframe').src = "";
+                const iframe = document.getElementById('userguide-iframe');
+                if (iframe) iframe.src = "";
             }, 300);
         };
 
         window.stopAudio = function() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
             if (isAudioPlaying && voiceAudio) {
                 voiceAudio.pause();
                 voiceAudio.currentTime = 0;
@@ -1619,7 +1641,7 @@
             }
             if (btn) {
                 btn.classList.remove('bg-black', 'text-white', 'border-black');
-                btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+                btn.classList.add('bg-white', 'text-slate-600', 'border-gray-200');
             }
         };
 
@@ -1627,33 +1649,41 @@
             const btn = document.getElementById('btn-nav-audio');
             const icon = btn ? btn.querySelector('i') : null;
 
+            if (isAudioPlaying) {
+                window.stopAudio();
+                return;
+            }
+
+            // Prova riproduzione audio WAV o fallback su Web Speech API
+            isAudioPlaying = true;
+            if (icon) icon.className = 'fas fa-stop text-xs';
+            if (btn) {
+                btn.classList.remove('bg-white', 'text-slate-600', 'border-gray-200');
+                btn.classList.add('bg-black', 'text-white', 'border-black');
+            }
+
             if (!voiceAudio) {
                 voiceAudio = new Audio(finalAudioUrl);
                 voiceAudio.addEventListener('ended', () => {
-                    isAudioPlaying = false;
-                    voiceAudio.currentTime = 0;
-                    if (icon) {
-                        icon.className = 'fas fa-volume-high text-xs';
-                        btn.classList.remove('bg-black', 'text-white', 'border-black');
-                        btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
-                    }
+                    window.stopAudio();
                 });
             }
 
-            if (isAudioPlaying) {
-                window.stopAudio();
-            } else {
-                voiceAudio.play().then(() => {
-                    isAudioPlaying = true;
-                    if (icon) {
-                        icon.className = 'fas fa-stop text-xs';
-                        btn.classList.remove('bg-white', 'text-slate-500', 'border-gray-200');
-                        btn.classList.add('bg-black', 'text-white', 'border-black');
-                    }
-                }).catch(err => {
-                    console.error("Errore riproduzione audio:", err);
-                });
-            }
+            voiceAudio.play().catch(err => {
+                console.warn("[Audio] WAV file not found or blocked. Fallback to Web Speech API:", err);
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const textToSpeak = "Benvenuto nel Supervisor Hub. Qui puoi monitorare la conformità delle procedure operative standard, verificare le evidenze ed esportare i certificati di audit.";
+                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                    utterance.lang = 'it-IT';
+                    utterance.onend = () => window.stopAudio();
+                    utterance.onerror = () => window.stopAudio();
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    window.stopAudio();
+                }
+            });
+        };
         // 7. PRINT ENGINE BRIDGE FUNCTIONS
         window.triggerPrintGlobalReport = async function() {
             if (!window.supervisorPrintEngine) {
