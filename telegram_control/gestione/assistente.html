@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Assistente Catalogo | SiteBoS Gestione</title>
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+(function() {
+    // Riferimento locale e temporaneo all'SDK per il controllo iniziale della sessione Telegram
+    const tempTg = window.Telegram?.WebApp;
+    const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+
+    if (!isTelegramSession) {
+        const currentPath = window.location.pathname;
+        let redirectPath = "index.html";
+
+        if (currentPath.includes('/telegram_control/')) {
+            const parts = currentPath.split('/telegram_control/');
+            const subPath = parts[1] || '';
+            if (subPath.includes('/')) {
+                redirectPath = "../../index.html";
+            } else {
+                redirectPath = "../index.html";
+            }
+        }
+
+        window.location.replace(redirectPath);
+    }
+})();
+
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html, body {
+            overscroll-behavior: none !important;
+            overscroll-behavior-y: none !important;
+            touch-action: manipulation;
+            background-color: #fafafa !important;
+            color: #0f172a !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #0f172a;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dropzone-border {
+            border: 2px dashed #cbd5e1;
+            transition: all 0.25s ease;
+        }
+
+        .dropzone-border.drag-over {
+            border-color: #0f172a;
+            background-color: #f1f5f9;
+        }
+
+        .chat-bubble-assistant {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        .chat-bubble-user {
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+            box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.2);
+        }
+
+        .pulse-mic {
+            animation: pulseGlow 1.5s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+    </style>
+</head>
+
+<body class="safe-area-inset min-h-screen flex flex-col justify-between bg-[#fafafa]">
+
+    <!-- LOADER OVERLAY -->
+    <div id="loader" class="fixed inset-0 bg-white/95 backdrop-blur-md z-[9999] flex flex-col items-center justify-center space-y-4 p-6">
+        <div class="spinner"></div>
+        <p id="loader-text" class="text-[10px] font-black uppercase tracking-widest text-slate-700 text-center">Inizializzazione Assistente Catalogo...</p>
+        <span id="loader-subtext" class="text-[8px] font-bold text-slate-400 uppercase tracking-wider text-center"></span>
+        
+        <!-- PAUSE / PAUSE STOP BUTTON (Shown in State 4) -->
+        <button id="btn-pause-deploy" onclick="pauseAndExitDeployment()" class="hidden mt-4 px-4 py-2 bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-800 text-[9px] font-black uppercase tracking-widest rounded-xl transition active:scale-95 flex items-center gap-1.5">
+            <i class="fas fa-pause text-xs text-amber-600"></i> Ferma ed Esci
+        </button>
+    </div>
+
+    <!-- STICKY HEADER STANDARD SITEBOS (3 PULSANTI) -->
+    <header class="p-4 bg-white/90 backdrop-blur-md border-b border-slate-100 flex justify-between items-center z-50 shadow-xs shrink-0 sticky top-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-robot text-base"></i>
+            </div>
+            <div>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">INTELLIGENCE GENERALE</h1>
+                <p class="text-xs font-black tracking-tight text-slate-900" id="headerTitle">Assistente Catalogo SiteBoS</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <!-- 1. Back to Catalog Button -->
+            <button id="btn-nav-back" onclick="goBackToMenu()" class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition hover:bg-slate-50" title="Torna al Catalogo">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <!-- 2. Speech Audio Button -->
+            <button id="btn-nav-audio" onclick="toggleAudio()" class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition hover:bg-slate-50" title="Guida Vocale">
+                <i id="audio-icon" class="fas fa-volume-high text-xs"></i>
+            </button>
+            <!-- 3. User Guide Button -->
+            <button id="btn-nav-guide" onclick="openUserGuide('../userguide/03_catalog.html')" class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition hover:bg-slate-50" title="Manuale Utente">
+                <i class="fas fa-globe text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTENT -->
+    <main id="app-content" class="flex-1 max-w-md w-full mx-auto p-4 space-y-4 pb-28 hidden flex flex-col justify-between">
+
+        <!-- ================================================================= -->
+        <!-- STATO 1: OVERLAY DISCLAIMER & SICUREZZA -->
+        <!-- ================================================================= -->
+        <section id="state-1-disclaimer" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-[9px] font-black uppercase tracking-wider text-slate-800">Controllo Crittografico Sessione</span>
+                </div>
+                <span id="ashDisplay" class="text-[8px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">ASH: ---</span>
+            </div>
+
+            <div class="space-y-2">
+                <h2 class="text-sm font-black tracking-tight text-slate-900 uppercase">Assistente Ingestione & Ingegnerizzazione Asset</h2>
+                <p class="text-xs font-medium text-slate-600 leading-relaxed">
+                    Questa MiniApp ti permette di ingegnerizzare automaticamente nuovi Prodotti, Servizi o Procedure SOP partendo da foto fisiche e documenti PDF.
+                </p>
+            </div>
+
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-2">
+                <div class="flex items-center gap-2 text-slate-800 text-[10px] font-black uppercase tracking-wider">
+                    <i class="fas fa-coins text-amber-500"></i> Soglia Crediti Consigliata
+                </div>
+                <p class="text-[11px] text-slate-600 font-medium leading-normal">
+                    Si raccomanda una disponibilità minima di <strong>10.000 Crediti Intelligence</strong> per completare le analisi multimodali ed i moduli aggiuntivi.
+                </p>
+            </div>
+
+            <div class="bg-blue-50/60 border border-blue-100 rounded-2xl p-3.5 flex items-start gap-2.5">
+                <i class="fas fa-desktop text-blue-600 text-sm mt-0.5"></i>
+                <p class="text-[10.5px] text-blue-900 font-medium leading-relaxed">
+                    Per la consultazione ed il caricamento di documenti complessi a più pagine, è raccomandato l'utilizzo da <strong>PC Desktop</strong>.
+                </p>
+            </div>
+
+            <button onclick="transitionToState(2)" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                <span>Accedi all'Area Ingestione</span> <i class="fas fa-arrow-right text-xs"></i>
+            </button>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- STATO 2: AREA INGESTIONE MULTIMODALE (DRAG & DROP <= 14MB / MAX 6 FILE) -->
+        <!-- ================================================================= -->
+        <section id="state-2-upload" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4 hidden">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Stato 2 • Ingestione Multimodale</span>
+                <span class="text-[9px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md" id="fileCountBadge">0 / 6 File</span>
+            </div>
+
+            <!-- UNIFIED DRAG & DROP ZONE -->
+            <div id="dropzone" class="dropzone-border rounded-2xl p-6 text-center bg-slate-50/50 cursor-pointer select-none relative" onclick="document.getElementById('file-input-multi').click()">
+                <input type="file" id="file-input-multi" class="hidden" multiple accept="image/jpeg,image/png,image/webp,application/pdf,text/plain,text/csv,text/markdown,application/json,.csv,.txt,.md,.json" onchange="handleFileSelect(event)">
+                
+                <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center mx-auto mb-3 shadow-2xs">
+                    <i class="fas fa-cloud-arrow-up text-lg"></i>
+                </div>
+                <h3 class="text-xs font-black uppercase tracking-wider text-slate-800 mb-1">Trascina qui i tuoi File (Foto, PDF, CSV, TXT)</h3>
+                <p class="text-[9.5px] font-medium text-slate-400">oppure Tocca / Clicca per Sfogliare i file</p>
+                <span class="inline-block mt-2 text-[8px] font-bold uppercase tracking-widest text-slate-500 bg-slate-200/60 px-2.5 py-0.5 rounded-full">Max 6 File • Tetto Massimo 14.00 MB</span>
+            </div>
+
+            <!-- CUMULATIVE SIZE PROGRESS BAR -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center text-[9px] font-black uppercase tracking-wider">
+                    <span class="text-slate-500">Peso Cumulativo Totale</span>
+                    <span id="totalSizeLabel" class="text-slate-900">0.00 MB / 14.00 MB</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div id="sizeProgressBar" class="bg-slate-900 h-full w-0 transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- UPLOADED FILES LIST -->
+            <div id="file-list-container" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- SUBMIT BUTTON -->
+            <button id="btn-submit-ingestion" disabled onclick="submitMultimodalIngestion()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-md transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2">
+                <i class="fas fa-wand-magic-sparkles text-xs"></i> <span>Ingegnerizza Asset con AI</span>
+            </button>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- STATO 3A: QUESTIONARIO Q&A LOOP (HITL) -->
+        <!-- ================================================================= -->
+        <section id="state-3a-qa" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4 hidden">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span class="text-[9px] font-black uppercase tracking-widest text-amber-600 flex items-center gap-1.5">
+                    <i class="fas fa-triangle-exclamation"></i> Stato 3A • Dati Insufficienti
+                </span>
+                <span class="text-[8px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md">Q&A Loop HITL</span>
+            </div>
+
+            <p class="text-xs font-medium text-slate-600 leading-relaxed">
+                Il modello AI richiede i seguenti chiarimenti operativi per completare l'ingegnerizzazione dell'asset:
+            </p>
+
+            <!-- FILE EVALUATIONS BADGES -->
+            <div id="file-evaluations-container" class="space-y-1.5">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- DYNAMIC QUESTIONS CONTAINER -->
+            <div id="questions-container" class="space-y-3 pt-2">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- ACTION BUTTONS -->
+            <div class="space-y-2 pt-2">
+                <button onclick="submitQaAnswers()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fas fa-paper-plane text-xs"></i> <span>Conferma Risposte e Avanza</span>
+                </button>
+                <button onclick="forceSkipQaToPlan()" class="w-full py-3 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 font-black rounded-2xl text-[9px] uppercase tracking-widest transition active:scale-95 flex items-center justify-center gap-1.5">
+                    <i class="fas fa-bolt text-xs text-amber-600"></i> <span>⚡ Forza e Salta Q&A (Vai al Piano)</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- STATO 3B: IMPLEMENTATION PLAN & MODULI (HITL) -->
+        <!-- ================================================================= -->
+        <section id="state-3b-plan" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4 hidden">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <span class="text-[9px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1.5">
+                    <i class="fas fa-circle-check"></i> Stato 3B • Piano Ingegnerizzazione
+                </span>
+                <span class="text-[8px] font-black uppercase px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md">HITL Review</span>
+            </div>
+
+            <!-- ASSET DRAFT CARD SUMMARY -->
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span id="planItemType" class="text-[8px] font-black uppercase tracking-widest text-slate-400">SERVICE</span>
+                    <span id="planItemSku" class="text-[8px] font-mono font-bold text-slate-600 bg-slate-200/60 px-2 py-0.5 rounded-md">SKU: ---</span>
+                </div>
+                <h3 id="planItemName" class="text-sm font-black text-slate-900 uppercase tracking-tight">---</h3>
+                <p id="planItemShortDesc" class="text-[11px] text-slate-600 font-medium leading-relaxed">---</p>
+            </div>
+
+            <!-- CATEGORY SELECTOR & ON-THE-FLY CREATION -->
+            <div class="space-y-1.5">
+                <label class="text-[8.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Categoria Destinazione Catalogo</label>
+                <select id="categorySelect" onchange="handleCategorySelectChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold p-3 rounded-xl outline-none focus:border-slate-400">
+                    <!-- Populated dynamically -->
+                </select>
+                <input type="text" id="newCategoryInput" placeholder="Inserisci nome nuova Categoria..." class="hidden w-full bg-slate-50 border border-slate-300 text-slate-900 text-xs font-bold p-3 rounded-xl outline-none mt-2">
+            </div>
+
+            <!-- HUMAN PRICE OVERRIDE -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center ml-1">
+                    <label class="text-[8.5px] font-black uppercase tracking-wider text-slate-500">Prezzo Base Prestazione (€)</label>
+                    <span class="text-[8px] font-bold text-slate-400 uppercase">Ai Calculated Override</span>
+                </div>
+                <div class="relative">
+                    <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-black text-xs">€</span>
+                    <input type="number" step="0.01" id="override-price-input" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-sm font-black pl-8 pr-4 py-2.5 rounded-xl outline-none focus:border-slate-900">
+                </div>
+            </div>
+
+            <!-- MODULE SELECTOR WITH TIME ESTIMATES -->
+            <div class="space-y-2 pt-1">
+                <div class="flex justify-between items-center ml-1">
+                    <span class="text-[8.5px] font-black uppercase tracking-wider text-slate-500">Moduli da Ingegnerizzare</span>
+                    <span id="estimatedTimeBadge" class="text-[8.5px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">Tempo: ~4-5 min</span>
+                </div>
+
+                <div class="space-y-1.5">
+                    <!-- BASE MODULE (REQUIRED) -->
+                    <label class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+                        <div class="flex items-center gap-2.5">
+                            <input type="checkbox" checked disabled class="w-4 h-4 accent-slate-900">
+                            <div>
+                                <div class="text-[10px] font-black uppercase text-slate-900 tracking-wide">📋 Modulo BASE (Catalogo & KB)</div>
+                                <div class="text-[8px] text-slate-400 font-semibold">Salvataggio base, blueprint e base conoscenza</div>
+                            </div>
+                        </div>
+                        <span class="text-[8px] font-black text-slate-500">~4-5 min</span>
+                    </label>
+
+                    <!-- BLOG MODULE -->
+                    <label class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-slate-400 transition">
+                        <div class="flex items-center gap-2.5">
+                            <input type="checkbox" id="chk-module-blog" onchange="updateEstimatedTimeDisplay()" class="w-4 h-4 accent-slate-900">
+                            <div>
+                                <div class="text-[10px] font-black uppercase text-slate-900 tracking-wide">✍️ Modulo BLOG</div>
+                                <div class="text-[8px] text-slate-400 font-semibold">Articolo SEO di approfondimento vetrina</div>
+                            </div>
+                        </div>
+                        <span class="text-[8px] font-black text-slate-500">~3-4 min</span>
+                    </label>
+
+                    <!-- SOCIAL MODULE -->
+                    <label class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-slate-400 transition">
+                        <div class="flex items-center gap-2.5">
+                            <input type="checkbox" id="chk-module-social" onchange="updateEstimatedTimeDisplay()" class="w-4 h-4 accent-slate-900">
+                            <div>
+                                <div class="text-[10px] font-black uppercase text-slate-900 tracking-wide">📱 Modulo SOCIAL</div>
+                                <div class="text-[8px] text-slate-400 font-semibold">Campagna promozionale post social</div>
+                            </div>
+                        </div>
+                        <span class="text-[8px] font-black text-slate-500">~3-4 min</span>
+                    </label>
+
+                    <!-- ADVANCED MODULE -->
+                    <label class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl cursor-pointer hover:border-slate-400 transition">
+                        <div class="flex items-center gap-2.5">
+                            <input type="checkbox" id="chk-module-advanced" onchange="updateEstimatedTimeDisplay()" class="w-4 h-4 accent-slate-900">
+                            <div>
+                                <div class="text-[10px] font-black uppercase text-slate-900 tracking-wide">🔬 Modulo ADVANCED</div>
+                                <div class="text-[8px] text-slate-400 font-semibold">Decomposizione Blueprint avanzata, ricetta & SOP</div>
+                            </div>
+                        </div>
+                        <span class="text-[8px] font-black text-slate-500">~13-14 min</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- APPROVE AND ACTIVATE BUTTON -->
+            <button onclick="approveAndStartDeployment()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fas fa-rocket text-xs"></i> <span>Approva e Attiva Tutto</span>
+            </button>
+        </section>
+
+    </main>
+
+    <!-- RECOVERY DIALOG MODAL (State Persistence) -->
+    <div id="recovery-modal-overlay" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[99999] hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto text-xl">
+                <i class="fas fa-clock-rotate-left"></i>
+            </div>
+            <div class="text-center space-y-1">
+                <h3 class="text-sm font-black uppercase text-slate-900">Ingegnerizzazione in Sospeso</h3>
+                <p class="text-xs text-slate-600 font-medium leading-relaxed">
+                    È stata rilevata un'operazione di ingegnerizzazione interrotta o in pausa. Vuoi riprendere l'avanzamento?
+                </p>
+            </div>
+            <div class="space-y-2">
+                <button onclick="resumeSavedDeployment()" class="w-full py-3 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[9.5px] uppercase tracking-widest shadow-md transition active:scale-95 flex items-center justify-center gap-1.5">
+                    <i class="fas fa-play text-xs"></i> Continua Ingegnerizzazione
+                </button>
+                <button onclick="clearSavedDeploymentAndStartClean()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-2xl text-[9px] uppercase tracking-widest transition active:scale-95 flex items-center justify-center gap-1.5">
+                    <i class="fas fa-trash text-xs"></i> Elimina e Ricomincia
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER GUIDE DRAWER OVERLAY -->
+    <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
+        <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
+            <div class="w-full flex items-center justify-between p-4 border-b border-slate-100 shrink-0 select-none">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
+                    <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente</span>
+                </div>
+                <button onclick="closeUserGuide()" class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-90 transition">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="flex-1 w-full overflow-hidden bg-slate-50 relative">
+                <iframe id="userguide-iframe" class="w-full h-full border-none" src=""></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT ENGINE -->
+    <script>
+        'use strict';
+
+        // Webhook Constants
+        const WEBHOOK_STATE3_PREANALYSIS  = "https://prod.workflow.trinai.it/webhook/e79a004d-2438-411c-8b47-7d01fb341742";
+        const WEBHOOK_ENRICHMENT_DRAFT   = "https://prod.workflow.trinai.it/webhook/31f89350-4d7f-44b7-9aaf-e7d9e3655b6c";
+        const WEBHOOK_DEPLOY_BASE        = "https://prod.workflow.trinai.it/webhook/20fd95c0-4218-400e-ae2a-cd881a757b80";
+        const WEBHOOK_DEPLOY_BLOG        = "https://prod.workflow.trinai.it/webhook/914bd78e-8a41-46d7-8935-7eb73cbbae66";
+        const WEBHOOK_DEPLOY_SOCIAL      = "https://prod.workflow.trinai.it/webhook/8fc050ca-41cd-4469-989c-269a113a00f9";
+        const WEBHOOK_DEPLOY_ADVANCED    = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
+        const WEBHOOK_TELEGRAM_RELAY     = "https://prod.workflow.trinai.it/webhook/17a1bf79-43cd-428b-a497-33745ca44857";
+        const WEBHOOK_GET_CATALOG        = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
+
+        const MAX_CUMULATIVE_BYTES = 14 * 1024 * 1024; // 14 MB
+        const MAX_FILES_COUNT      = 6;
+
+        const tg = window.Telegram.WebApp;
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa');
+        tg.ready(); tg.expand();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let ash = urlParams.get('ash') || '';
+        let msg = urlParams.get('msg') || urlParams.get('message_id') || '';
+
+        // Global State
+        let currentState = 1;
+        let selectedFiles = [];
+        let existingCategories = [];
+        let activeDraftAsset = null;
+        let activeFileEvaluations = [];
+        let activeQuestions = [];
+        let isAudioEnabled = true;
+
+        // Init
+        document.addEventListener('DOMContentLoaded', async () => {
+            const loader = document.getElementById('loader');
+            const content = document.getElementById('app-content');
+            const ashDisplay = document.getElementById('ashDisplay');
+
+            if (ashDisplay) {
+                ashDisplay.innerText = ash ? `ASH: ${ash.substring(0, 10)}...` : 'ASH: Guest';
+            }
+
+            setupDropzoneEvents();
+            await fetchExistingCategories();
+
+            // Check State Recovery Persistence
+            const savedStateStr = localStorage.getItem('sitebos_deploy_state');
+            if (savedStateStr) {
+                try {
+                    const savedState = JSON.parse(savedStateStr);
+                    if (savedState && savedState.queue && savedState.queue.length > 0) {
+                        const recOverlay = document.getElementById('recovery-modal-overlay');
+                        if (recOverlay) recOverlay.classList.remove('hidden');
+                    }
+                } catch(e) { localStorage.removeItem('sitebos_deploy_state'); }
+            }
+
+            setTimeout(() => {
+                if (loader) loader.classList.add('hidden');
+                if (content) content.classList.remove('hidden');
+            }, 300);
+        });
+
+        // Navigation Back Button
+        function goBackToMenu() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = `catalog.html?ash=${ash}&msg=${msg}`;
+            }
+        }
+
+        // State Machine Transitions
+        function transitionToState(stateNum) {
+            currentState = stateNum;
+            document.getElementById('state-1-disclaimer').classList.add('hidden');
+            document.getElementById('state-2-upload').classList.add('hidden');
+            document.getElementById('state-3a-qa').classList.add('hidden');
+            document.getElementById('state-3b-plan').classList.add('hidden');
+
+            if (stateNum === 1) document.getElementById('state-1-disclaimer').classList.remove('hidden');
+            if (stateNum === 2) document.getElementById('state-2-upload').classList.remove('hidden');
+            if (stateNum === 3) document.getElementById('state-3a-qa').classList.remove('hidden');
+            if (stateNum === 4) document.getElementById('state-3b-plan').classList.remove('hidden');
+
+            window.scrollTo(0, 0);
+        }
+
+        // Fetch Existing Catalog Categories
+        async function fetchExistingCategories() {
+            try {
+                const res = await fetch(WEBHOOK_GET_CATALOG, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_catalog', _auth: tg.initData, ash: ash, msg: msg })
+                });
+                const raw = await res.json();
+                const data = Array.isArray(raw) ? raw[0] : (raw.catalog || raw);
+                existingCategories = data.categories || [];
+                populateCategorySelect();
+            } catch(e) { console.warn("Errore caricamento categorie:", e); }
+        }
+
+        function populateCategorySelect(selectedCatId) {
+            const select = document.getElementById('categorySelect');
+            if (!select) return;
+            select.innerHTML = '';
+
+            existingCategories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.callback_data || cat.id || cat.name;
+                opt.innerText = `${cat.name} (${cat.macrocategories || 'GENERAL'})`;
+                if (selectedCatId && opt.value === selectedCatId) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            const newOpt = document.createElement('option');
+            newOpt.value = 'NEW_CATEGORY_ON_THE_FLY';
+            newOpt.innerText = '➕ + Nuova Categoria (Crea al volo)';
+            select.appendChild(newOpt);
+        }
+
+        function handleCategorySelectChange() {
+            const select = document.getElementById('categorySelect');
+            const input = document.getElementById('newCategoryInput');
+            if (select.value === 'NEW_CATEGORY_ON_THE_FLY') {
+                input.classList.remove('hidden');
+                input.focus();
+            } else {
+                input.classList.add('hidden');
+            }
+        }
+
+        // Dropzone & File Handle Logic
+        function setupDropzoneEvents() {
+            const dropzone = document.getElementById('dropzone');
+            if (!dropzone) return;
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    dropzone.classList.add('drag-over');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, (e) => {
+                    e.preventDefault(); e.stopPropagation();
+                    dropzone.classList.remove('drag-over');
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                processAddedFiles(files);
+            }, false);
+        }
+
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            processAddedFiles(files);
+        }
+
+        function detectMimeType(file) {
+            if (file.type && file.type !== "") return file.type;
+            const name = (file.name || "").toLowerCase();
+            if (name.endsWith('.csv')) return 'text/csv';
+            if (name.endsWith('.txt')) return 'text/plain';
+            if (name.endsWith('.md')) return 'text/markdown';
+            if (name.endsWith('.json')) return 'application/json';
+            if (name.endsWith('.pdf')) return 'application/pdf';
+            if (name.endsWith('.png')) return 'image/png';
+            if (name.endsWith('.webp')) return 'image/webp';
+            if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'image/jpeg';
+            return 'application/octet-stream';
+        }
+
+        function processAddedFiles(files) {
+            if (!files || files.length === 0) return;
+
+            for (let i = 0; i < files.length; i++) {
+                const f = files[i];
+                if (selectedFiles.length >= MAX_FILES_COUNT) {
+                    tg.showAlert(`⚠️ LIMITE FILE RAGGIUNTO\n\nPuoi caricare al massimo ${MAX_FILES_COUNT} file.`);
+                    break;
+                }
+
+                const currentTotalSize = selectedFiles.reduce((acc, curr) => acc + curr.file.size, 0) + f.size;
+                if (currentTotalSize > MAX_CUMULATIVE_BYTES) {
+                    tg.showAlert(`⚠️ LIMITE 14 MB SUPERATO\n\nIl peso cumulativo totale dei file supera il limite massimo di 14.00 MB.`);
+                    break;
+                }
+
+                const exactMime = detectMimeType(f);
+
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    selectedFiles.push({
+                        id: 'file-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+                        file: f,
+                        filename: f.name,
+                        mime_type: exactMime,
+                        size_bytes: f.size,
+                        base64: ev.target.result.split(',')[1]
+                    });
+                    renderFileList();
+                };
+                reader.readAsDataURL(f);
+            }
+        }
+
+        function removeFile(fileId) {
+            selectedFiles = selectedFiles.filter(f => f.id !== fileId);
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const container = document.getElementById('file-list-container');
+            const submitBtn = document.getElementById('btn-submit-ingestion');
+            const badge = document.getElementById('fileCountBadge');
+            const sizeLabel = document.getElementById('totalSizeLabel');
+            const progressBar = document.getElementById('sizeProgressBar');
+
+            if (!container) return;
+            container.innerHTML = '';
+
+            const totalBytes = selectedFiles.reduce((acc, curr) => acc + curr.size_bytes, 0);
+            const totalMb = (totalBytes / (1024 * 1024)).toFixed(2);
+            const pct = Math.min(100, (totalBytes / MAX_CUMULATIVE_BYTES) * 100);
+
+            if (badge) badge.innerText = `${selectedFiles.length} / ${MAX_FILES_COUNT} File`;
+            if (sizeLabel) sizeLabel.innerText = `${totalMb} MB / 14.00 MB`;
+            if (progressBar) progressBar.style.width = pct + '%';
+
+            if (submitBtn) submitBtn.disabled = selectedFiles.length === 0;
+
+            selectedFiles.forEach(item => {
+                const isPdf = item.mime_type.includes('pdf');
+                const isImg = item.mime_type.includes('image');
+                const isText = item.mime_type.includes('text') || item.mime_type.includes('csv') || item.mime_type.includes('json') || item.filename.endsWith('.csv') || item.filename.endsWith('.txt') || item.filename.endsWith('.md');
+                
+                let iconClass = 'fa-file-lines text-emerald-500';
+                if (isPdf) iconClass = 'fa-file-pdf text-red-500';
+                else if (isImg) iconClass = 'fa-file-image text-blue-500';
+
+                const row = document.createElement('div');
+                row.className = "bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between select-none";
+                row.innerHTML = `
+                    <div class="flex items-center gap-2.5 overflow-hidden">
+                        <div class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-xs shrink-0 text-slate-700">
+                            <i class="fas ${iconClass}"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="text-[10px] font-black uppercase tracking-tight text-slate-900 truncate">${item.filename}</div>
+                            <div class="text-[8px] font-bold text-slate-400 uppercase">${(item.size_bytes / (1024*1024)).toFixed(2)} MB</div>
+                        </div>
+                    </div>
+                    <button onclick="removeFile('${item.id}')" class="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-red-600 transition active:scale-90 shrink-0">
+                        <i class="fas fa-xmark text-xs"></i>
+                    </button>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        // Webhook Telegram Relay Lock/Unlock
+        async function toggleTelegramButtons(actionType, customMessage) {
+            try {
+                await fetch(WEBHOOK_TELEGRAM_RELAY, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: actionType,
+                        ash: ash,
+                        _auth: tg.initData,
+                        msg: customMessage || (actionType === 'lock_buttons' ? 'Operazione in corso...' : 'Operazione completata'),
+                        add_home_btn: true
+                    })
+                });
+            } catch(e) { console.warn("Telegram Relay error:", e); }
+        }
+
+        // Submit Multimodal Ingestion (Stato 2 -> Stato 3)
+        async function submitMultimodalIngestion() {
+            if (selectedFiles.length === 0) return;
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            showLoader("Analisi Multimodale AI in corso...", "Scomposizione file ed estrazione requisiti...");
+            await toggleTelegramButtons('lock_buttons', '🔍 Inizio analisi multimodale file...');
+
+            const payloadFiles = selectedFiles.map(f => ({
+                filename: f.filename,
+                mime_type: f.mime_type,
+                size_bytes: f.size_bytes,
+                base64: f.base64
+            }));
+
+            const select = document.getElementById('categorySelect');
+            const catId = select ? select.value : '';
+
+            try {
+                const res = await fetch(WEBHOOK_STATE3_PREANALYSIS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        category_id: catId,
+                        files_count: payloadFiles.length,
+                        files: payloadFiles
+                    })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                handleState3Response(data);
+
+            } catch(err) {
+                console.error(err);
+                await toggleTelegramButtons('unlock_buttons', '❌ Errore durante l\'analisi multimodale.');
+                hideLoader();
+                tg.showAlert("Errore durante l'analisi: " + err.message);
+            }
+        }
+
+        function handleState3Response(data) {
+            hideLoader();
+            activeFileEvaluations = data.file_evaluations || [];
+            activeQuestions = data.questions || [];
+            activeDraftAsset = data.draft_asset || data.draft || null;
+
+            if (activeQuestions && activeQuestions.length > 0) {
+                renderState3aQaUI();
+                transitionToState(3);
+            } else {
+                renderState3bPlanUI();
+                transitionToState(4);
+            }
+        }
+
+        // Render State 3A (Q&A Loop HITL)
+        function renderState3aQaUI() {
+            const evalContainer = document.getElementById('file-evaluations-container');
+            const qContainer = document.getElementById('questions-container');
+
+            if (evalContainer) {
+                evalContainer.innerHTML = '';
+                activeFileEvaluations.forEach(ev => {
+                    const badge = document.createElement('div');
+                    badge.className = `p-2.5 rounded-xl border text-[9px] font-medium leading-tight ${ev.retain_for_next_iteration === false ? 'bg-emerald-50 border-emerald-200 text-emerald-900' : 'bg-slate-50 border-slate-200 text-slate-800'}`;
+                    badge.innerHTML = `
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="font-black uppercase truncate">${ev.filename}</span>
+                            <span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white text-[8px]">${Math.round((ev.quality_score||1)*100)}% Qualità</span>
+                        </div>
+                        <div>${ev.quality_judgment || 'File analizzato.'}</div>
+                    `;
+                    evalContainer.appendChild(badge);
+                });
+            }
+
+            if (qContainer) {
+                qContainer.innerHTML = '';
+                activeQuestions.forEach(q => {
+                    const box = document.createElement('div');
+                    box.className = "bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 select-none";
+                    box.innerHTML = `
+                        <label class="text-[10px] font-black uppercase text-slate-900 tracking-wide block">${q.text}</label>
+                        <div class="grid grid-cols-1 gap-1.5 pt-1">
+                            ${(q.options || []).map(opt => `
+                                <button type="button" onclick="selectQuestionOption('${q.id}', '${opt.value}', this)" class="qa-opt-btn w-full p-3 rounded-xl border border-slate-200 bg-white text-left text-xs font-bold text-slate-800 hover:border-slate-400 transition active:scale-95">
+                                    ${opt.label}
+                                </button>
+                            `).join('')}
+                        </div>
+                    `;
+                    qContainer.appendChild(box);
+                });
+            }
+        }
+
+        const selectedQaAnswers = {};
+        function selectQuestionOption(qId, val, btnEl) {
+            selectedQaAnswers[qId] = val;
+            const parent = btnEl.parentElement;
+            parent.querySelectorAll('.qa-opt-btn').forEach(b => {
+                b.classList.remove('border-slate-900', 'bg-slate-900', 'text-white');
+                b.classList.add('bg-white', 'text-slate-800');
+            });
+            btnEl.classList.remove('bg-white', 'text-slate-800');
+            btnEl.classList.add('border-slate-900', 'bg-slate-900', 'text-white');
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        async function submitQaAnswers() {
+            const answersArray = Object.keys(selectedQaAnswers).map(k => ({ question_id: k, value: selectedQaAnswers[k] }));
+            if (answersArray.length === 0) {
+                tg.showAlert("Seleziona almeno una risposta per avanzare.");
+                return;
+            }
+
+            showLoader("Invio risposte ed aggiornamento bozza...", "Elaborazione contesto in corso...");
+
+            // Pruning Intelligent File List (Scarta i file assimilati)
+            const prunedFiles = selectedFiles.filter(f => {
+                const evalItem = activeFileEvaluations.find(e => e.filename === f.filename);
+                return !evalItem || evalItem.retain_for_next_iteration !== false;
+            }).map(f => ({ filename: f.filename, mime_type: f.mime_type, size_bytes: f.size_bytes, base64: f.base64 }));
+
+            const select = document.getElementById('categorySelect');
+            const catId = select ? select.value : '';
+
+            try {
+                const res = await fetch(WEBHOOK_STATE3_PREANALYSIS, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg.initData,
+                        ash: ash,
+                        category_id: catId,
+                        qa_answers: answersArray,
+                        draft_asset: activeDraftAsset,
+                        files_count: prunedFiles.length,
+                        files: prunedFiles
+                    })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                handleState3Response(data);
+
+            } catch(err) {
+                console.error(err);
+                hideLoader();
+                tg.showAlert("Errore durante l'invio risposte: " + err.message);
+            }
+        }
+
+        function forceSkipQaToPlan() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            if (!activeDraftAsset) {
+                activeDraftAsset = {
+                    identity: { item_name: "Nuovo Asset Generato", item_type: "SERVICE", item_sku: "SOP_AI_" + Date.now().toString().slice(-4) },
+                    pricing: { base_price: 100.00 }
+                };
+            }
+            renderState3bPlanUI();
+            transitionToState(4);
+        }
+
+        // Render State 3B (Draft Plan HITL)
+        function renderState3bPlanUI() {
+            const draft = activeDraftAsset || {};
+            const identity = draft.identity || {};
+            const pricing = draft.pricing || {};
+
+            document.getElementById('planItemType').innerText = identity.item_type || 'SERVICE';
+            document.getElementById('planItemSku').innerText = `SKU: ${identity.item_sku || 'SOP_AUTO'}`;
+            document.getElementById('planItemName').innerText = identity.item_name || 'Nuova Prestazione / Asset';
+            document.getElementById('planItemShortDesc').innerText = identity.description?.short || 'Scheda descrittiva generata dall\'Intelligenza Artificiale SiteBoS.';
+
+            const priceInput = document.getElementById('override-price-input');
+            if (priceInput) priceInput.value = pricing.base_price || 0.00;
+
+            // Handle Category Setup
+            const catSetup = draft.category_setup || {};
+            if (catSetup.category_id) {
+                populateCategorySelect(catSetup.category_id);
+            }
+
+            updateEstimatedTimeDisplay();
+        }
+
+        function updateEstimatedTimeDisplay() {
+            const selected = getSelectedModules();
+            let min = 4, max = 5;
+            if (selected.includes('BLOG')) { min += 3; max += 4; }
+            if (selected.includes('SOCIAL')) { min += 3; max += 4; }
+            if (selected.includes('ADVANCED')) { min += 13; max += 14; }
+
+            const badge = document.getElementById('estimatedTimeBadge');
+            if (badge) badge.innerText = `Tempo: ~${min}-${max} min`;
+        }
+
+        function getSelectedModules() {
+            const mods = ['BASE'];
+            if (document.getElementById('chk-module-blog')?.checked) mods.push('BLOG');
+            if (document.getElementById('chk-module-social')?.checked) mods.push('SOCIAL');
+            if (document.getElementById('chk-module-advanced')?.checked) mods.push('ADVANCED');
+            return mods;
+        }
+
+        // Approve and Start Deployment (Stato 4)
+        async function approveAndStartDeployment() {
+            const priceInput = document.getElementById('override-price-input');
+            const userPrice = parseFloat(priceInput ? priceInput.value : 0);
+            const selectedMods = getSelectedModules();
+
+            const catSelect = document.getElementById('categorySelect');
+            let targetCatId = catSelect ? catSelect.value : '';
+            if (targetCatId === 'NEW_CATEGORY_ON_THE_FLY') {
+                const newCatName = document.getElementById('newCategoryInput')?.value.trim();
+                if (!newCatName) {
+                    tg.showAlert("Inserisci il nome della nuova categoria.");
+                    return;
+                }
+                targetCatId = 'NEW_' + newCatName.replace(/[^a-zA-Z0-9]/g, '_').toUpperCase();
+            }
+
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            // Build Deployment Queue
+            const queue = [
+                { type: 'BASE', name: 'Modulo BASE (Catalogo & KB)', estMin: 4 }
+            ];
+            if (selectedMods.includes('BLOG')) queue.push({ type: 'BLOG', name: 'Modulo BLOG Page', estMin: 3 });
+            if (selectedMods.includes('SOCIAL')) queue.push({ type: 'SOCIAL', name: 'Modulo SOCIAL Post', estMin: 3 });
+            if (selectedMods.includes('ADVANCED')) queue.push({ type: 'ADVANCED', name: 'Modulo ADVANCED Blueprint', estMin: 14 });
+
+            const deployState = {
+                queue: queue,
+                currentIndex: 0,
+                userPrice: userPrice,
+                targetCatId: targetCatId,
+                draftAsset: activeDraftAsset
+            };
+
+            localStorage.setItem('sitebos_deploy_state', JSON.stringify(deployState));
+            await executeDeploymentQueue(deployState);
+        }
+
+        async function executeDeploymentQueue(deployState) {
+            const showPauseBtn = () => {
+                const btn = document.getElementById('btn-pause-deploy');
+                if (btn) btn.classList.remove('hidden');
+            };
+
+            showLoader("Avvio Ingegnerizzazione...", "Configurazione server e tastiere Telegram...");
+            showPauseBtn();
+
+            const totalEstMin = deployState.queue.reduce((acc, curr) => acc + curr.estMin, 0);
+            await toggleTelegramButtons('lock_buttons', `⏳ Ingegnerizzazione in corso. Moduli: ${deployState.queue.map(q=>q.type).join(', ')}. Tempo stimato: ~${totalEstMin} min...`);
+
+            // Step 0: Enrichment Draft & Patching Prezzo
+            let draftData = deployState.draftAsset;
+            if (!draftData) {
+                try {
+                    const enrichRes = await fetch(WEBHOOK_ENRICHMENT_DRAFT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ _auth: tg.initData, ash: ash, category_id: deployState.targetCatId, language: 'it' })
+                    });
+                    const json = await enrichRes.json();
+                    draftData = Array.isArray(json) ? json[0] : json;
+                } catch(e) { console.warn("Fallback draft:", e); }
+            }
+
+            if (!draftData) draftData = { identity: { item_name: "Nuovo Servizio" }, pricing: {} };
+            if (!draftData.pricing) draftData.pricing = {};
+            if (deployState.userPrice && deployState.userPrice > 0) {
+                draftData.pricing.base_price = deployState.userPrice;
+            }
+
+            // Loop Execution
+            for (let i = deployState.currentIndex; i < deployState.queue.length; i++) {
+                const item = deployState.queue[i];
+                deployState.currentIndex = i;
+                localStorage.setItem('sitebos_deploy_state', JSON.stringify(deployState));
+
+                showLoader(`Ingegnerizzazione: ${item.name} (${i+1}/${deployState.queue.length}) in corso... ⏳`, `Non chiudere la MiniApp.`);
+
+                try {
+                    if (item.type === 'BASE') {
+                        await fetch(WEBHOOK_DEPLOY_BASE, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                _auth: tg.initData,
+                                ash: ash,
+                                msg: msg,
+                                msg_id: msg,
+                                category_id: deployState.targetCatId,
+                                new_product_block: draftData
+                            })
+                        });
+                    } else if (item.type === 'BLOG') {
+                        await fetch(WEBHOOK_DEPLOY_BLOG, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'create', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg })
+                        });
+                    } else if (item.type === 'SOCIAL') {
+                        await fetch(WEBHOOK_DEPLOY_SOCIAL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'activate_social', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg })
+                        });
+                    } else if (item.type === 'ADVANCED') {
+                        await fetch(WEBHOOK_DEPLOY_ADVANCED, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'SAVE', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg })
+                        });
+                    }
+                } catch(err) {
+                    console.warn(`Errore non bloccante sul modulo ${item.type}:`, err);
+                }
+            }
+
+            // Unlock Telegram & Redirect
+            await toggleTelegramButtons('unlock_buttons', '✅ Complimenti! Il servizio è stato interamente ingegnerizzato e pubblicato con successo!');
+            localStorage.removeItem('sitebos_deploy_state');
+
+            hideLoader();
+            tg.showAlert("✅ Pubblicazione completata con successo!");
+            window.location.href = `catalog.html?ash=${ash}&msg=${msg}`;
+        }
+
+        function pauseAndExitDeployment() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            toggleTelegramButtons('unlock_buttons', '⏸️ Ingegnerizzazione in pausa dall\'operatore.');
+            hideLoader();
+            tg.showAlert("Ingegnerizzazione salvata in pausa. Potrai riprenderla al prossimo accesso.");
+            window.location.href = `catalog.html?ash=${ash}&msg=${msg}`;
+        }
+
+        function resumeSavedDeployment() {
+            document.getElementById('recovery-modal-overlay')?.classList.add('hidden');
+            const savedStateStr = localStorage.getItem('sitebos_deploy_state');
+            if (savedStateStr) {
+                try {
+                    const savedState = JSON.parse(savedStateStr);
+                    executeDeploymentQueue(savedState);
+                } catch(e) { clearSavedDeploymentAndStartClean(); }
+            }
+        }
+
+        function clearSavedDeploymentAndStartClean() {
+            localStorage.removeItem('sitebos_deploy_state');
+            document.getElementById('recovery-modal-overlay')?.classList.add('hidden');
+            transitionToState(1);
+        }
+
+        // Global UI Helpers
+        function showLoader(text, subtext) {
+            const loader = document.getElementById('loader');
+            const mainEl = document.getElementById('loader-text');
+            const subEl = document.getElementById('loader-subtext');
+            if (mainEl) mainEl.innerText = text || 'Caricamento...';
+            if (subEl) subEl.innerText = subtext || '';
+            if (loader) loader.classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('loader');
+            const pauseBtn = document.getElementById('btn-pause-deploy');
+            if (pauseBtn) pauseBtn.classList.add('hidden');
+            if (loader) loader.classList.add('hidden');
+        }
+
+        function toggleAudio() {
+            isAudioEnabled = !isAudioEnabled;
+            const icon = document.getElementById('audio-icon');
+            if (icon) {
+                icon.className = isAudioEnabled ? "fas fa-volume-high text-xs text-slate-700" : "fas fa-volume-xmark text-xs text-slate-400";
+            }
+        }
+
+        function openUserGuide(url) {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            const iframe = document.getElementById('userguide-iframe');
+            if (iframe) iframe.src = url;
+            if (overlay) overlay.classList.remove('hidden');
+            setTimeout(() => {
+                if (overlay) overlay.classList.remove('opacity-0');
+                if (drawer) drawer.classList.remove('translate-y-full');
+            }, 10);
+        }
+
+        function closeUserGuide() {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            const iframe = document.getElementById('userguide-iframe');
+            if (drawer) drawer.classList.add('translate-y-full');
+            if (overlay) overlay.classList.add('opacity-0');
+            setTimeout(() => {
+                if (overlay) overlay.classList.add('hidden');
+                if (iframe) iframe.src = '';
+            }, 300);
+        }
+    </script>
+</body>
+</html>
