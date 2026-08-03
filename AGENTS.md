@@ -16,13 +16,17 @@ Run workspace commands from this context root. Do not `cd` into the n8n-as-code 
 
 ---
 
-## Required Local Agent & Skill
+## Required Local Agent
 
-In questo workspace la configurazione dell'agente n8n è gestita nativamente tramite la Skill portabile in:
+A VS Code and GitHub Copilot-compatible agent is generated here:
+
+- `.github/agents/n8n-architect.agent.md`
+
+A portable skill fallback is also generated for runtimes that do not read `.github/agents`:
 
 - `.agents/skills/n8n-architect/SKILL.md`
 
-(Nota: `.github/agents/` è un fallback generato per integratori VS Code/Copilot ed è escluso da git tramite `.gitignore`).
+If your agent runtime supports workspace agents, use the `.github/agents/*.agent.md` file. If it supports skills instead, load the skill file. Otherwise, treat these files as mandatory instructions.
 
 ---
 
