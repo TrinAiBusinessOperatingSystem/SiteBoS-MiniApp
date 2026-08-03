@@ -164,18 +164,10 @@
         <!-- STATO 1: OVERLAY DISCLAIMER & SICUREZZA -->
         <!-- ================================================================= -->
         <section id="state-1-disclaimer" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span class="text-[9px] font-black uppercase tracking-wider text-slate-800">Controllo Crittografico Sessione</span>
-                </div>
-                <span id="ashDisplay" class="text-[8px] font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">ASH: ---</span>
-            </div>
-
             <div class="space-y-2">
                 <h2 class="text-sm font-black tracking-tight text-slate-900 uppercase">Assistente Ingestione & Ingegnerizzazione Asset</h2>
                 <p class="text-xs font-medium text-slate-600 leading-relaxed">
-                    Questa MiniApp ti permette di ingegnerizzare automaticamente nuovi Prodotti, Servizi o Procedure SOP partendo da foto fisiche e documenti PDF.
+                    Questa MiniApp ti permette di ingegnerizzare automaticamente nuovi Prodotti, Servizi o Procedure Operative partendo da foto fisiche e documenti PDF.
                 </p>
             </div>
 
@@ -205,7 +197,9 @@
         <!-- ================================================================= -->
         <section id="state-2-upload" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4 hidden">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Stato 2 • Ingestione Multimodale</span>
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-700 flex items-center gap-1.5">
+                    <i class="fas fa-cloud-arrow-up text-slate-900"></i> Ingestione Multimodale
+                </span>
                 <span class="text-[9px] font-mono font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md" id="fileCountBadge">0 / 6 File</span>
             </div>
 
@@ -237,6 +231,14 @@
                 <!-- Rendered dynamically -->
             </div>
 
+            <!-- GLOBAL FREE-TEXT USER NOTES (STATE 2) -->
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5">
+                <label class="text-[9px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <i class="fas fa-pen-to-square text-slate-500"></i> Note / Specifiche Libere Aggiuntive (Opzionale)
+                </label>
+                <textarea id="upload-global-notes" rows="2" placeholder="Scrivi qui eventuali istruzioni o indicazioni per l'Intelligenza Artificiale..." class="w-full bg-white border border-slate-200 text-slate-900 text-xs font-medium p-2.5 rounded-xl outline-none focus:border-slate-900 transition resize-none"></textarea>
+            </div>
+
             <!-- SUBMIT BUTTON -->
             <button id="btn-submit-ingestion" disabled onclick="submitMultimodalIngestion()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-md transition active:scale-95 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-2">
                 <i class="fas fa-wand-magic-sparkles text-xs"></i> <span>Ingegnerizza Asset con AI</span>
@@ -249,9 +251,9 @@
         <section id="state-3a-qa" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4 hidden">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <span class="text-[9px] font-black uppercase tracking-widest text-amber-600 flex items-center gap-1.5">
-                    <i class="fas fa-triangle-exclamation"></i> Stato 3A • Dati Insufficienti
+                    <i class="fas fa-circle-info text-amber-600"></i> Ingegnerizzazione Asset & Chiarimenti
                 </span>
-                <span class="text-[8px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md">Q&A Loop HITL</span>
+                <span class="text-[8px] font-black uppercase px-2 py-0.5 bg-amber-50 text-amber-700 rounded-md">Approfondimento</span>
             </div>
 
             <p class="text-xs font-medium text-slate-600 leading-relaxed">
@@ -293,9 +295,9 @@
         <section id="state-3b-plan" class="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-sm space-y-4 hidden">
             <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                 <span class="text-[9px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1.5">
-                    <i class="fas fa-circle-check"></i> Stato 3B • Piano Ingegnerizzazione
+                    <i class="fas fa-circle-check"></i> Piano Ingegnerizzazione
                 </span>
-                <span class="text-[8px] font-black uppercase px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md">HITL Review</span>
+                <span class="text-[8px] font-black uppercase px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md">Bozza Generata</span>
             </div>
 
             <!-- ASSET DRAFT CARD SUMMARY -->
@@ -747,6 +749,9 @@
             const select = document.getElementById('categorySelect');
             const catId = select ? select.value : '';
 
+            const uploadNotesEl = document.getElementById('upload-global-notes');
+            const userNotes = uploadNotesEl ? uploadNotesEl.value.trim() : '';
+
             try {
                 const res = await fetch(WEBHOOK_STATE3_PREANALYSIS, {
                     method: 'POST',
@@ -755,6 +760,7 @@
                         _auth: tg.initData,
                         ash: ash,
                         category_id: catId,
+                        user_notes: userNotes,
                         files_count: payloadFiles.length,
                         files: payloadFiles
                     })
