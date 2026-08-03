@@ -426,6 +426,29 @@
         </div>
     </div>
 
+    <!-- RETRY DIALOG MODAL (LLM Error Resilience) -->
+    <div id="retry-modal-overlay" class="fixed inset-0 bg-slate-950/50 backdrop-blur-sm z-[99999] hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl">
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto text-xl">
+                <i class="fas fa-rotate"></i>
+            </div>
+            <div class="text-center space-y-1">
+                <h3 class="text-sm font-black uppercase text-slate-900">Elaborazione Non Riuscita</h3>
+                <p id="retry-modal-message" class="text-xs text-slate-600 font-medium leading-relaxed">
+                    Si è verificata un'interruzione temporanea nell'elaborazione dell'Intelligenza Artificiale. Puoi ripetere l'operazione immediatamente.
+                </p>
+            </div>
+            <div class="space-y-2">
+                <button onclick="retryCurrentIngestion()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[9.5px] uppercase tracking-widest shadow-md transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fas fa-rotate text-xs"></i> Ripeti Elaborazione
+                </button>
+                <button onclick="closeRetryModal()" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-2xl text-[9px] uppercase tracking-widest transition active:scale-95 flex items-center justify-center">
+                    Annulla
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- USER GUIDE DRAWER OVERLAY -->
     <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
         <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
@@ -733,6 +756,7 @@
 
         // Submit Multimodal Ingestion (Stato 2 -> Stato 3)
         async function submitMultimodalIngestion() {
+            lastSubmissionType = 'INGESTION';
             if (selectedFiles.length === 0) return;
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
@@ -778,8 +802,41 @@
             }
         }
 
+        let lastSubmissionType = 'INGESTION';
+
+        function showRetryModal(msg) {
+            const msgEl = document.getElementById('retry-modal-message');
+            if (msgEl) msgEl.innerText = msg;
+            const modal = document.getElementById('retry-modal-overlay');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeRetryModal() {
+            const modal = document.getElementById('retry-modal-overlay');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function retryCurrentIngestion() {
+            closeRetryModal();
+            if (lastSubmissionType === 'QA_SUBMIT') {
+                submitQaAnswers();
+            } else {
+                submitMultimodalIngestion();
+            }
+        }
+
         function handleState3Response(data) {
             hideLoader();
+
+            if (data.success === false) {
+                if (data.can_retry) {
+                    showRetryModal(data.error || "Si è verificata un'interruzione temporanea. Puoi ripetere l'operazione immediatamente.");
+                } else {
+                    tg.showAlert("⚠️ " + (data.error || "Errore durante l'elaborazione."));
+                }
+                return;
+            }
+
             activeFileEvaluations = data.file_evaluations || [];
             activeQuestions = data.questions || [];
             activeDraftAsset = data.draft_asset || data.draft || null;
@@ -872,6 +929,7 @@
         }
 
         async function submitQaAnswers() {
+            lastSubmissionType = 'QA_SUBMIT';
             const globalNotesEl = document.getElementById('qa-global-notes');
             const globalNotes = globalNotesEl ? globalNotesEl.value.trim() : '';
 
