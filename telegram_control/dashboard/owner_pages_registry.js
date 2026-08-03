@@ -339,6 +339,15 @@
                     "gestione magazzino scorte", "inventario delle giacenze", "materiali in esaurimento", "magazzino", "scorte", "giacenze"
                 ] 
             },
+            { 
+                category: "agents", 
+                name: "Agente Marketing & Campagne", 
+                url: "agents/agent_marketing.html", 
+                mod_id: "intel_marketing", 
+                user_utterances: [
+                    "apri agente marketing", "campagne pubblicitarie", "promozione prodotti servizi", "marketing studio", "agente marketing", "campagne marketing", "promozione", "marketing"
+                ] 
+            },
 
             // =========================================================================
             // 5. BILLING CREDITI
