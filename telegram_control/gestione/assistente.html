@@ -268,6 +268,14 @@
                 <!-- Rendered dynamically -->
             </div>
 
+            <!-- GLOBAL FREE-TEXT USER NOTES -->
+            <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-3.5 space-y-1.5">
+                <label class="text-[9px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <i class="fas fa-pen-to-square text-slate-500"></i> Note / Specifiche Libere Aggiuntive (Opzionale)
+                </label>
+                <textarea id="qa-global-notes" rows="2" placeholder="Scrivi qui eventuali altre istruzioni o chiarimenti per l'AI..." class="w-full bg-white border border-slate-200 text-slate-900 text-xs font-medium p-2.5 rounded-xl outline-none focus:border-slate-900 transition resize-none"></textarea>
+            </div>
+
             <!-- ACTION BUTTONS -->
             <div class="space-y-2 pt-2">
                 <button onclick="submitQaAnswers()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black rounded-2xl text-[10px] uppercase tracking-widest shadow-md transition active:scale-95 flex items-center justify-center gap-2">
@@ -377,6 +385,12 @@
                         <span class="text-[8px] font-black text-slate-500">~13-14 min</span>
                     </label>
                 </div>
+            </div>
+
+            <!-- FREE TEXT DRAFT NOTES OVERRIDE (STATE 3B) -->
+            <div class="space-y-1.5 pt-1">
+                <label class="text-[8.5px] font-black uppercase tracking-wider text-slate-500 ml-1">Note Libere Finale per la Pubblicazione (Opzionale)</label>
+                <textarea id="draft-custom-notes" rows="2" placeholder="Inserisci note o dettagli integrativi per la bozza..." class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-medium p-3 rounded-xl outline-none focus:border-slate-400 transition resize-none"></textarea>
             </div>
 
             <!-- APPROVE AND ACTIVATE BUTTON -->
@@ -801,12 +815,15 @@
                     box.className = "bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2 select-none";
                     box.innerHTML = `
                         <label class="text-[10px] font-black uppercase text-slate-900 tracking-wide block">${q.text}</label>
-                        <div class="grid grid-cols-1 gap-1.5 pt-1">
+                        <div class="grid grid-cols-1 gap-1.5 pt-1" id="opts-group-${q.id}">
                             ${(q.options || []).map(opt => `
-                                <button type="button" onclick="selectQuestionOption('${q.id}', '${opt.value}', this)" class="qa-opt-btn w-full p-3 rounded-xl border border-slate-200 bg-white text-left text-xs font-bold text-slate-800 hover:border-slate-400 transition active:scale-95">
+                                <button type="button" onclick="selectQuestionOption('${q.id}', '${(opt.value || '').replace(/'/g, "\\'")}', this)" class="qa-opt-btn w-full p-3 rounded-xl border border-slate-200 bg-white text-left text-xs font-bold text-slate-800 hover:border-slate-400 transition active:scale-95">
                                     ${opt.label}
                                 </button>
                             `).join('')}
+                        </div>
+                        <div class="pt-1">
+                            <input type="text" id="qa-custom-${q.id}" placeholder="✏️ Oppure scrivi qui la tua risposta personalizzata..." oninput="handleQaCustomInput('${q.id}', this)" class="w-full bg-white border border-slate-200 text-slate-900 text-xs font-medium p-2.5 rounded-xl outline-none focus:border-slate-900 transition">
                         </div>
                     `;
                     qContainer.appendChild(box);
@@ -815,6 +832,7 @@
         }
 
         const selectedQaAnswers = {};
+
         function selectQuestionOption(qId, val, btnEl) {
             selectedQaAnswers[qId] = val;
             const parent = btnEl.parentElement;
@@ -824,13 +842,37 @@
             });
             btnEl.classList.remove('bg-white', 'text-slate-800');
             btnEl.classList.add('border-slate-900', 'bg-slate-900', 'text-white');
+
+            const customInput = document.getElementById(`qa-custom-${qId}`);
+            if (customInput) customInput.value = '';
+
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         }
 
+        function handleQaCustomInput(qId, inputEl) {
+            const val = inputEl.value.trim();
+            if (val.length > 0) {
+                selectedQaAnswers[qId] = val;
+                const group = document.getElementById(`opts-group-${qId}`);
+                if (group) {
+                    group.querySelectorAll('.qa-opt-btn').forEach(b => {
+                        b.classList.remove('border-slate-900', 'bg-slate-900', 'text-white');
+                        b.classList.add('bg-white', 'text-slate-800');
+                    });
+                }
+            } else {
+                delete selectedQaAnswers[qId];
+            }
+        }
+
         async function submitQaAnswers() {
+            const globalNotesEl = document.getElementById('qa-global-notes');
+            const globalNotes = globalNotesEl ? globalNotesEl.value.trim() : '';
+
             const answersArray = Object.keys(selectedQaAnswers).map(k => ({ question_id: k, value: selectedQaAnswers[k] }));
-            if (answersArray.length === 0) {
-                tg.showAlert("Seleziona almeno una risposta per avanzare.");
+
+            if (answersArray.length === 0 && !globalNotes) {
+                tg.showAlert("Fornisci almeno una risposta o inserisci una nota libera per avanzare.");
                 return;
             }
 
@@ -854,6 +896,7 @@
                         ash: ash,
                         category_id: catId,
                         qa_answers: answersArray,
+                        user_notes: globalNotes,
                         draft_asset: activeDraftAsset,
                         files_count: prunedFiles.length,
                         files: prunedFiles
@@ -951,6 +994,13 @@
             if (selectedMods.includes('BLOG')) queue.push({ type: 'BLOG', name: 'Modulo BLOG Page', estMin: 3 });
             if (selectedMods.includes('SOCIAL')) queue.push({ type: 'SOCIAL', name: 'Modulo SOCIAL Post', estMin: 3 });
             if (selectedMods.includes('ADVANCED')) queue.push({ type: 'ADVANCED', name: 'Modulo ADVANCED Blueprint', estMin: 14 });
+
+            const customNotesEl = document.getElementById('draft-custom-notes');
+            const customNotes = customNotesEl ? customNotesEl.value.trim() : '';
+
+            if (activeDraftAsset && customNotes) {
+                activeDraftAsset.user_notes = customNotes;
+            }
 
             const deployState = {
                 queue: queue,
