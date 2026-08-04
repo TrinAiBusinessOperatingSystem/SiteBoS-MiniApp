@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Lavagna Turni & Scaffale Jobs | SiteBoS</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+    (function() {
+        const tempTg = window.Telegram?.WebApp;
+        const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+        if (!isTelegramSession) {
+            window.location.replace("../index.html");
+        }
+    })();
+    </script>
+    
+    <!-- Tailwind CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Plus Jakarta Sans', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        html, body {
+            background-color: #ffffff !important;
+            background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f4f5f8 100%) !important;
+            color: #0f172a !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 100vh;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="safe-area-inset flex flex-col min-h-screen pb-12">
+
+    <!-- HEADER FISSO -->
+    <header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 p-4 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-3">
+            <button onclick="history.back()" class="w-9 h-9 border border-slate-200 flex items-center justify-center rounded-xl bg-white text-slate-700 active:scale-95 transition shadow-sm">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <div>
+                <h1 class="text-xs font-black uppercase tracking-tight leading-none text-slate-900">LAVAGNA TURNI & JOBS</h1>
+                <p class="text-[8px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">Gestione Scaffale Lavori</p>
+            </div>
+        </div>
+
+        <!-- SELETTORE MODALITÀ (DO-IT VS EDIT) -->
+        <div class="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <button id="btn-mode-doit" onclick="setMode('doit')" class="px-2.5 py-1 text-[8px] font-black uppercase rounded-lg bg-emerald-500 text-slate-950 shadow-sm transition">
+                👷 DO-IT
+            </button>
+            <button id="btn-mode-edit" onclick="setMode('edit')" class="px-2.5 py-1 text-[8px] font-bold uppercase rounded-lg text-slate-400 hover:text-white transition">
+                👑 EDIT
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTAINER PRINCIPALE -->
+    <main class="flex-1 p-4 max-w-lg mx-auto w-full space-y-4">
+
+        <!-- BARRA AZIONI RAPIDE -->
+        <div class="p-3 bg-slate-900 text-white rounded-2xl shadow-md space-y-2 border border-slate-800">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-300">📦 CONTROLLO SCAFFALE</span>
+                </div>
+                <span id="shelf-count-badge" class="px-2 py-0.5 text-[8px] font-extrabold bg-slate-800 text-cyan-400 rounded-md border border-slate-700">
+                    2 JOBS ATTIVI
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <a href="job-create.html" class="py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-plus-circle"></i> <span>➕ NUOVO JOB</span>
+                </a>
+                <button onclick="refreshShelf()" class="py-2.5 px-3 bg-slate-800 text-slate-200 font-bold text-[9px] uppercase tracking-wider rounded-xl border border-slate-700 active:scale-95 transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-sync-alt"></i> <span>🔄 SYNC LIVE</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- LISTA CARDS JOBS SULLO SCAFFALE -->
+        <div class="space-y-3">
+            <h3 class="text-[9px] font-black uppercase tracking-widest text-slate-400 px-1">Lavori sullo Scaffale (ON_SHELF)</h3>
+            <div id="lavagna-jobs-container" class="space-y-3">
+                <!-- Iniettato da JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALE OWNER EDIT JOB -->
+    <div id="edit-job-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[3000] hidden flex flex-col justify-end transition-opacity duration-300">
+        <div class="bg-white rounded-t-3xl p-5 border-t border-slate-200 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs">✏️</span>
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-tight text-slate-900">MODIFICA SCHEDA JOB</h3>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">Gestione Parametri & Priorità</p>
+                    </div>
+                </div>
+                <button onclick="closeEditModal()" class="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 bg-slate-50">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-[9px] font-black uppercase text-slate-500 mb-1">Titolo Job</label>
+                    <input type="text" id="modal-job-title" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[9px] font-black uppercase text-slate-500 mb-1">Stazione / Poltrona</label>
+                        <input type="text" id="modal-job-station" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black uppercase text-slate-500 mb-1">ETA Minuti</label>
+                        <input type="number" id="modal-job-eta" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <span class="text-[10px] font-black uppercase text-slate-700">🦺 Flag Sicurezza HSE</span>
+                    <input type="checkbox" id="modal-job-safety" class="w-4 h-4 rounded border-slate-300">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button onclick="saveJobEdits()" class="py-3 bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition">
+                        💾 SALVA MODIFICHE
+                    </button>
+                    <button onclick="deleteJob()" class="py-3 bg-rose-500 text-white font-black text-[10px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition">
+                        🗑️ ELIMINA JOB
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT DI LOGICA PER LA LAVAGNA -->
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready(); tg.expand();
+
+        let currentMode = 'doit'; // 'doit' | 'edit'
+        let editingJobId = null;
+
+        let shelfJobs = [
+            {
+                _id: 'job_safety_101',
+                title: 'VERIFICA SANIFICAZIONE E DPI POLTRONA 2',
+                customer_name: 'Clinica Buscemi',
+                station_id: 'SALA 2 / POLTRONA B',
+                blueprint_eta_minutes: 8,
+                is_safety_job: true,
+                is_onsite: true
+            },
+            {
+                _id: 'job_onthefly_202',
+                title: 'SOSTITUZIONE VALVOLA MISCELATORE',
+                customer_name: 'Cantiere Via Roma 12',
+                station_id: 'OFF-SITE / CANTIERE',
+                blueprint_eta_minutes: 15,
+                is_safety_job: false,
+                is_onsite: false
+            }
+        ];
+
+        function setMode(mode) {
+            currentMode = mode;
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            const doitBtn = document.getElementById('btn-mode-doit');
+            const editBtn = document.getElementById('btn-mode-edit');
+
+            if (mode === 'edit') {
+                doitBtn.className = "px-2.5 py-1 text-[8px] font-bold uppercase rounded-lg text-slate-400 hover:text-white transition";
+                editBtn.className = "px-2.5 py-1 text-[8px] font-black uppercase rounded-lg bg-indigo-600 text-white shadow-sm transition";
+            } else {
+                doitBtn.className = "px-2.5 py-1 text-[8px] font-black uppercase rounded-lg bg-emerald-500 text-slate-950 shadow-sm transition";
+                editBtn.className = "px-2.5 py-1 text-[8px] font-bold uppercase rounded-lg text-slate-400 hover:text-white transition";
+            }
+
+            renderShelf();
+        }
+
+        function renderShelf() {
+            const container = document.getElementById('lavagna-jobs-container');
+            const badge = document.getElementById('shelf-count-badge');
+            if (badge) badge.innerText = `${shelfJobs.length} JOBS ATTIVI`;
+
+            if (!container) return;
+            if (shelfJobs.length === 0) {
+                container.innerHTML = `
+                    <div class="p-6 bg-white border border-slate-200 rounded-2xl text-center space-y-2">
+                        <i class="fas fa-folder-open text-2xl text-slate-300"></i>
+                        <p class="text-xs font-bold text-slate-500">Nessun Job presente sullo scaffale</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = shelfJobs.map(job => `
+                <div class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm space-y-2">
+                    <div class="flex justify-between items-start">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-1.5">
+                                ${job.is_safety_job ? `<span class="px-2 py-0.5 bg-rose-100 text-rose-700 text-[8px] font-black uppercase rounded-md">🦺 HSE SICUREZZA</span>` : ''}
+                                <span class="px-2 py-0.5 ${job.is_onsite ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'} text-[8px] font-black uppercase rounded-md">
+                                    ${job.is_onsite ? '🏛️ ON-SITE' : '🚚 OFF-SITE'}
+                                </span>
+                                <span class="text-[9px] font-bold text-slate-400">~${job.blueprint_eta_minutes} MIN</span>
+                            </div>
+                            <h4 class="text-xs font-black text-slate-900 uppercase leading-snug">${job.title}</h4>
+                            <p class="text-[9px] font-bold text-slate-500">${job.station_id} — ${job.customer_name}</p>
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex justify-end gap-2">
+                        ${currentMode === 'edit' ? `
+                            <button onclick="openEditModal('${job._id}')" class="w-full py-2.5 bg-indigo-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center justify-center gap-1">
+                                <i class="fas fa-edit"></i> <span>EDIT SCHEDA JOB</span>
+                            </button>
+                        ` : `
+                            <button onclick="launchJob('${job._id}')" class="w-full py-2.5 bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center justify-center gap-1">
+                                <i class="fas fa-play"></i> <span>AVVIA DO-IT</span>
+                            </button>
+                        `}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function refreshShelf() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            renderShelf();
+        }
+
+        function openEditModal(jobId) {
+            const job = shelfJobs.find(j => j._id === jobId);
+            if (!job) return;
+
+            editingJobId = jobId;
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+            document.getElementById('modal-job-title').value = job.title;
+            document.getElementById('modal-job-station').value = job.station_id;
+            document.getElementById('modal-job-eta').value = job.blueprint_eta_minutes;
+            document.getElementById('modal-job-safety').checked = !!job.is_safety_job;
+
+            document.getElementById('edit-job-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-job-modal').classList.add('hidden');
+        }
+
+        function saveJobEdits() {
+            const job = shelfJobs.find(j => j._id === editingJobId);
+            if (job) {
+                job.title = document.getElementById('modal-job-title').value;
+                job.station_id = document.getElementById('modal-job-station').value;
+                job.blueprint_eta_minutes = parseInt(document.getElementById('modal-job-eta').value) || 10;
+                job.is_safety_job = document.getElementById('modal-job-safety').checked;
+
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+                alert("✅ SCHEDA JOB MODIFICATA CON SUCCESSO!");
+            }
+            closeEditModal();
+            renderShelf();
+        }
+
+        function deleteJob() {
+            shelfJobs = shelfJobs.filter(j => j._id !== editingJobId);
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+            alert("🗑️ JOB ELIMINATO DALLO SCAFFALE!");
+            closeEditModal();
+            renderShelf();
+        }
+
+        function launchJob(jobId) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+            const job = shelfJobs.find(j => j._id === jobId);
+            const targetPage = job && job.is_onsite ? '../operators/operator_task_create.html' : 'pianificazione_itinerari.html';
+            window.location.href = `${targetPage}?job_id=${encodeURIComponent(jobId)}`;
+        }
+
+        renderShelf();
+    </script>
+</body>
+</html>

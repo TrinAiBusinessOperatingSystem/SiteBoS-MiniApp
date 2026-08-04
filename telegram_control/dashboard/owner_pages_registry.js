@@ -282,6 +282,15 @@
 
             { 
                 category: "operativita", 
+                name: "Lavagna Turni & Scaffale Jobs", 
+                url: "operativita/lavagna.html", 
+                mod_id: "lavagna_jobs", 
+                user_utterances: [
+                    "apri la lavagna dei turni", "gestione scaffale jobs", "lavagna dei lavori", "scaffale turni", "lavagna turni", "lavagna jobs", "lavagna", "scaffale"
+                ] 
+            },
+            { 
+                category: "operativita", 
                 name: "Orders Manager (Ordini Live)", 
                 url: "operativita/orders-manager.html", 
                 mod_id: "orders", 

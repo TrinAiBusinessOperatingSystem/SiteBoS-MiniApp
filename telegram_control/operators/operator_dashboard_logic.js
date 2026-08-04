@@ -611,9 +611,15 @@ async function refreshOperatorShelf() {
           <p class="text-[9px] font-bold text-slate-500">${job.station_id || 'STAZIONE'} — ${job.customer_name || 'CLIENTE'}</p>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
-          <button onclick="claimSpecificJob('${job._id}')" class="px-3 py-2 bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center gap-1">
-            <i class="fas fa-play text-[9px]"></i> DO-IT
-          </button>
+          ${currentDashboardMode === 'edit' ? `
+            <button onclick="openOwnerJobEditModal('${job._id}')" class="px-3 py-2 bg-indigo-600 text-white font-black text-[10px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center gap-1 border border-indigo-400">
+              <i class="fas fa-edit text-[9px]"></i> EDIT
+            </button>
+          ` : `
+            <button onclick="claimSpecificJob('${job._id}')" class="px-3 py-2 bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center gap-1">
+              <i class="fas fa-play text-[9px]"></i> DO-IT
+            </button>
+          `}
         </div>
       </div>
     `).join('');
@@ -677,6 +683,90 @@ function launchJobExecution() {
   const isOnsite = activeClaimedJob?.is_onsite !== false;
   const targetPage = isOnsite ? 'operator_task_create.html' : '../operativita/pianificazione_itinerari.html';
   window.location.href = `${targetPage}?job_id=${encodeURIComponent(activeClaimedJob?._id || '')}&ash=${encodeURIComponent(ash)}`;
+}
+
+// ============================================
+// OWNER EDIT MODE ENGINE
+// ============================================
+let currentDashboardMode = 'doit'; // 'doit' | 'edit'
+let editingOwnerJobId = null;
+
+function setDashboardMode(mode) {
+  currentDashboardMode = mode;
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+  const doitBtn = document.getElementById('btn-mode-doit');
+  const editBtn = document.getElementById('btn-mode-edit');
+  const doitBar = document.getElementById('owner-doit-bar');
+  const editControlsBar = document.getElementById('owner-edit-controls-bar');
+
+  if (mode === 'edit') {
+    if (doitBtn) doitBtn.className = "px-2.5 py-1 text-[8px] font-bold uppercase rounded-lg text-slate-400 hover:text-white transition";
+    if (editBtn) editBtn.className = "px-2.5 py-1 text-[8px] font-black uppercase rounded-lg bg-indigo-600 text-white shadow-sm transition";
+    if (doitBar) doitBar.classList.add('hidden');
+    if (editControlsBar) editControlsBar.classList.remove('hidden');
+  } else {
+    if (doitBtn) doitBtn.className = "px-2.5 py-1 text-[8px] font-black uppercase rounded-lg bg-emerald-500 text-slate-950 shadow-sm transition";
+    if (editBtn) editBtn.className = "px-2.5 py-1 text-[8px] font-bold uppercase rounded-lg text-slate-400 hover:text-white transition";
+    if (doitBar) doitBar.classList.remove('hidden');
+    if (editControlsBar) editControlsBar.classList.add('hidden');
+  }
+
+  refreshOperatorShelf();
+}
+
+function openOwnerJobEditModal(jobId) {
+  const job = currentShelfJobs.find(j => j._id === jobId);
+  if (!job) return;
+
+  editingOwnerJobId = jobId;
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+  const titleInput = document.getElementById('edit-job-title');
+  const stationInput = document.getElementById('edit-job-station');
+  const etaInput = document.getElementById('edit-job-eta');
+  const safetyInput = document.getElementById('edit-job-safety');
+
+  if (titleInput) titleInput.value = job.title || '';
+  if (stationInput) stationInput.value = job.station_id || '';
+  if (etaInput) etaInput.value = job.blueprint_eta_minutes || 10;
+  if (safetyInput) safetyInput.checked = !!job.is_safety_job;
+
+  const modal = document.getElementById('owner-job-edit-modal');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeOwnerJobEditModal() {
+  const modal = document.getElementById('owner-job-edit-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function saveOwnerJobEdits() {
+  const job = currentShelfJobs.find(j => j._id === editingOwnerJobId);
+  if (job) {
+    const titleInput = document.getElementById('edit-job-title');
+    const stationInput = document.getElementById('edit-job-station');
+    const etaInput = document.getElementById('edit-job-eta');
+    const safetyInput = document.getElementById('edit-job-safety');
+
+    if (titleInput) job.title = titleInput.value;
+    if (stationInput) job.station_id = stationInput.value;
+    if (etaInput) job.blueprint_eta_minutes = parseInt(etaInput.value) || 10;
+    if (safetyInput) job.is_safety_job = safetyInput.checked;
+
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+    alert("✅ MODIFICHE OWNER SALVATE!\n\nIl Job è stato aggiornato ed allineato allo scaffale.");
+  }
+  closeOwnerJobEditModal();
+  refreshOperatorShelf();
+}
+
+function deleteOwnerJob() {
+  currentShelfJobs = currentShelfJobs.filter(j => j._id !== editingOwnerJobId);
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+  alert("🗑️ JOB RIMOSSO DALLO SCAFFALE!");
+  closeOwnerJobEditModal();
+  refreshOperatorShelf();
 }
 
 // 3 REACTIVE SYNC TRIGGERS

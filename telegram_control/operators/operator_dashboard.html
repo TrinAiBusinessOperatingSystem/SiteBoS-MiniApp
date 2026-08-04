@@ -151,26 +151,45 @@
         </div>
     </header>
 
-    <!-- HERO CTA & LAVAGNA JOB ON_SHELF (Atterraggio Diretto) -->
-    <section class="p-3 bg-slate-900 text-white shrink-0 border-b border-slate-800 shadow-md">
-        <div class="flex justify-between items-center mb-2">
+    <!-- HERO CTA & LAVAGNA JOB ON_SHELF (Atterraggio Diretto con ZONA OWNER / EDIT MODE) -->
+    <section class="p-3 bg-slate-900 text-white shrink-0 border-b border-slate-800 shadow-md space-y-2.5">
+        <div class="flex justify-between items-center">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                 <h2 class="text-[10px] font-black uppercase tracking-widest text-slate-300">📦 SCAFFALE TURNI (LAVAGNA)</h2>
             </div>
-            <button onclick="refreshOperatorShelf()" class="px-2.5 py-1 text-[9px] font-bold bg-slate-800 text-slate-300 rounded-lg hover:bg-slate-700 active:scale-95 transition flex items-center gap-1 border border-slate-700">
-                <i class="fas fa-sync-alt text-[9px]"></i> Sync
+            
+            <!-- TOGGLE MODALITÀ: OPERATORE (DO-IT) VS OWNER (EDIT) -->
+            <div class="flex items-center bg-slate-950 p-0.5 rounded-xl border border-slate-800">
+                <button id="btn-mode-doit" onclick="setDashboardMode('doit')" class="px-2.5 py-1 text-[8px] font-black uppercase rounded-lg bg-emerald-500 text-slate-950 shadow-sm transition">
+                    👷 DO-IT
+                </button>
+                <button id="btn-mode-edit" onclick="setDashboardMode('edit')" class="px-2.5 py-1 text-[8px] font-bold uppercase rounded-lg text-slate-400 hover:text-white transition">
+                    👑 EDIT
+                </button>
+            </div>
+        </div>
+
+        <!-- HERO CTA PRIMARIO: PRENDI IL PROSSIMO JOB (MODALITÀ DO-IT) -->
+        <div id="owner-doit-bar">
+            <button id="hero-claim-btn" onclick="claimNextJobOnShelf()" class="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 active:scale-98 transition flex items-center justify-between group">
+                <span class="flex items-center gap-2">
+                    <i class="fas fa-bolt text-sm animate-bounce"></i>
+                    <span>⚡ PRENDI IL PROSSIMO JOB</span>
+                </span>
+                <span id="shelf-count-badge" class="bg-slate-950/30 text-slate-950 px-2 py-0.5 rounded-md text-[10px] font-extrabold">0 IN ATTESA</span>
             </button>
         </div>
 
-        <!-- HERO CTA PRIMARIO: PRENDI IL PROSSIMO JOB -->
-        <button id="hero-claim-btn" onclick="claimNextJobOnShelf()" class="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 active:scale-98 transition flex items-center justify-between group">
-            <span class="flex items-center gap-2">
-                <i class="fas fa-bolt text-sm animate-bounce"></i>
-                <span>⚡ PRENDI IL PROSSIMO JOB</span>
-            </span>
-            <span id="shelf-count-badge" class="bg-slate-950/30 text-slate-950 px-2 py-0.5 rounded-md text-[10px] font-extrabold">0 IN ATTESA</span>
-        </button>
+        <!-- BARRA CONTROLLI AZIONI OWNER / EDIT MODE (VISIBILE SOLO IN EDIT MODE) -->
+        <div id="owner-edit-controls-bar" class="hidden grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
+            <button onclick="location.href='../operativita/job-create.html'" class="py-2 px-3 bg-indigo-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center justify-center gap-1.5 border border-indigo-500">
+                <i class="fas fa-plus-circle text-xs"></i> <span>➕ JOB ON-THE-FLY</span>
+            </button>
+            <button onclick="refreshOperatorShelf()" class="py-2 px-3 bg-slate-800 text-slate-200 font-bold text-[9px] uppercase tracking-wider rounded-xl border border-slate-700 active:scale-95 transition flex items-center justify-center gap-1.5">
+                <i class="fas fa-sync-alt text-xs"></i> <span>🔄 REFRESH EDIT</span>
+            </button>
+        </div>
     </section>
 
     <!-- LISTA LAVAGNA JOB ATTIVI (ON_SHELF) -->
@@ -268,6 +287,56 @@
                 <i class="fas fa-play text-xs text-emerald-400"></i>
                 <span>AVVIA ESECUZIONE JOB (MODALITÀ DO-IT)</span>
             </button>
+        </div>
+    </div>
+
+    <!-- MODALE OWNER / TITOLARE (EDIT JOB MODAL) -->
+    <div id="owner-job-edit-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[3500] hidden flex flex-col justify-end transition-opacity duration-300">
+        <div class="bg-white rounded-t-3xl p-5 border-t border-slate-200 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-black text-xs">👑</span>
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-tight text-slate-900">MODIFICA JOB SCAFFALE (OWNER EDIT)</h3>
+                        <p class="text-[9px] font-bold text-slate-400 uppercase">Gestione Avanzata & Riassegnazione</p>
+                    </div>
+                </div>
+                <button onclick="closeOwnerJobEditModal()" class="w-8 h-8 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 bg-slate-50">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-[9px] font-black uppercase text-slate-500 mb-1">Titolo Job</label>
+                    <input type="text" id="edit-job-title" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:border-slate-900">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-[9px] font-black uppercase text-slate-500 mb-1">Stazione / Poltrona</label>
+                        <input type="text" id="edit-job-station" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-[9px] font-black uppercase text-slate-500 mb-1">ETA Minuti</label>
+                        <input type="number" id="edit-job-eta" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <span class="text-[10px] font-black uppercase text-slate-700">🦺 Job di Sicurezza HSE</span>
+                    <input type="checkbox" id="edit-job-safety" class="w-4 h-4 rounded border-slate-300">
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                    <button onclick="saveOwnerJobEdits()" class="py-3 bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition">
+                        💾 SALVA MODIFICHE
+                    </button>
+                    <button onclick="deleteOwnerJob()" class="py-3 bg-rose-500 text-white font-black text-[10px] uppercase tracking-wider rounded-xl shadow-md active:scale-95 transition">
+                        🗑️ ELIMINA JOB
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
