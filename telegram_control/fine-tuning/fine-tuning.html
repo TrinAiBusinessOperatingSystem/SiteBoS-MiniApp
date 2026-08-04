@@ -235,6 +235,7 @@
                             <option value="jsonl_unsloth" selected>Standard JSONL (per Unsloth / Hugging Face)</option>
                             <option value="gemini_format">Gemini Format (Google AI Studio / Vertex AI)</option>
                             <option value="zip_claude">Pacchetto Claude Skill (.ZIP)</option>
+                            <option value="zip_antigravity">Pacchetto Antigravity Skill (.ZIP per .agents/skills)</option>
                             <option value="zip_rag">Pacchetto Markdown .ZIP (per RAG Voiceflow / Botpress)</option>
                             <option value="pls_eleven">Dizionario di Pronuncia .PLS (per ElevenLabs)</option>
                         </select>
@@ -403,7 +404,7 @@
         function updateFileExtension() {
             const format = document.getElementById('export-format').value;
             let ext = '.jsonl';
-            if (format === 'zip_claude' || format === 'zip_rag') ext = '.zip';
+            if (format === 'zip_claude' || format === 'zip_antigravity' || format === 'zip_rag') ext = '.zip';
             if (format === 'pls_eleven') ext = '.pls';
             document.getElementById('file-ext').innerText = ext;
         }
@@ -650,7 +651,7 @@ ${JSON.stringify(tools, null, 2)}
 
             const dataset = buildDatasetSample(currentRole);
 
-            if (format === 'zip_claude') {
+            if (format === 'zip_claude' || format === 'zip_antigravity') {
                 if (typeof JSZip === 'undefined') {
                     alert('Libreria JSZip in caricamento... Riprova tra un secondo.');
                     return;
@@ -659,33 +660,75 @@ ${JSON.stringify(tools, null, 2)}
                 const sysPrompt = getRoleSystemPrompt(currentRole);
                 const tools = TOOL_SCHEMAS[currentRole] || [];
 
-                const skillMd = `---
-name: ${currentRole.toUpperCase()}_Agent_Skill
-description: Skill generata per l'Agente ${roleLabel} su SiteBoS.
+                // JSON-to-Markdown Pair Converter per le Collezioni NoSQL
+                const markdownHoneypot = `# 🏢 Identità Aziendale & Brand Voice\n\n## Contesto del Tenant\n- **Ruolo Agente:** ${roleLabel}\n- **Tone of Voice:** Formale, professionale, orientato all'efficienza operativa.\n- **Dominio:** SiteBoS Business Operating System.\n`;
+                const markdownProducts = `# 📦 Catalogo Prodotti & Prezzi (Collection References)\n\n## 🛠️ Servizi Disponibili\n- **Setup Completo MiniApp:** €299,00 EUR (Una tantum)\n- **Opzione Extra Sedazione:** €49,00 EUR\n- **Supporto Dedicato:** Incluso nel piano enterprise.\n`;
+                const markdownSOP = `# ⚙️ Procedure Operative SOP (Blueprint Collection)\n\n## Passo 1: Inizio Interazione\n1. Verifica identità utente via Telegram WebApp initData.\n2. Invocazione tool per verifica slot o preventivo.\n3. Rilascio payload finale sanificato.\n`;
+
+                if (format === 'zip_antigravity') {
+                    const skillFolder = `.agents/skills/${currentRole}_agent/`;
+                    const skillMd = `---
+name: ${currentRole}_agent
+description: Skill Antigravity per l'Agente ${roleLabel} su SiteBoS con referenze Markdown e Tool Calling integrati.
 ---
 
 # SYSTEM INSTRUCTIONS & DIRECTIVES
 ${sysPrompt}
 
 # INSTRUCTIONS & BEST PRACTICES
-1. Mantieni costante l'allineamento con le regole del tenant.
-2. Rispetta la riservatezza dei dati aziendali.
+1. Mantieni costante l'allineamento con le regole del tenant in AGENTS.md.
+2. Consulta i file markdown nella cartella references/ per la conoscenza completa delle collezioni NoSQL.
 3. Invoca i tool integrati quando sono richiesti parametri operativi.
 `;
+                    zip.file(skillFolder + "SKILL.md", skillMd);
+                    zip.file(skillFolder + "references/01_azienda_honeypot.md", markdownHoneypot);
+                    zip.file(skillFolder + "references/02_catalogo_prodotti.md", markdownProducts);
+                    zip.file(skillFolder + "references/03_procedure_sop.md", markdownSOP);
+                    zip.file(skillFolder + "references/tool_schemas.json", JSON.stringify(tools, null, 2));
+                    zip.file(skillFolder + "examples/conversations.jsonl", dataset.map(d => JSON.stringify(d)).join('\n'));
 
-                zip.file("SKILL.md", skillMd);
-                zip.file("references/tool_schemas.json", JSON.stringify(tools, null, 2));
-                zip.file("examples/conversations.jsonl", dataset.map(d => JSON.stringify(d)).join('\n'));
+                    const zipBlob = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(zipBlob, `antigravity_skill_${currentRole}.zip`);
 
-                const zipBlob = await zip.generateAsync({ type: "blob" });
-                downloadBlob(zipBlob, `claude_skill_${currentRole}.zip`);
+                    if (tg) {
+                        tg.showPopup({
+                            title: 'Antigravity Skill Generata',
+                            message: `Il pacchetto ZIP per l'agente Antigravity ${roleLabel} è stato generato con referenze Markdown complete!`,
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
+                } else {
+                    // Standard Claude Skill ZIP
+                    const skillMd = `---
+name: ${currentRole.toUpperCase()}_Agent_Skill
+description: Skill generata per l'Agente ${roleLabel} su SiteBoS con referenze Markdown complete.
+---
 
-                if (tg) {
-                    tg.showPopup({
-                        title: 'Claude Skill Generata',
-                        message: `Il pacchetto ZIP per l'agente ${roleLabel} è stato generato e scaricato correttamente!`,
-                        buttons: [{ type: 'ok' }]
-                    });
+# SYSTEM INSTRUCTIONS & DIRECTIVES
+${sysPrompt}
+
+# INSTRUCTIONS & BEST PRACTICES
+1. Rispetta la riservatezza dei dati aziendali.
+2. Consulta i file markdown nella cartella references/ per la Conoscenza Integrale delle collezioni NoSQL.
+3. Invoca i tool integrati quando sono richiesti parametri operativi.
+`;
+                    zip.file("SKILL.md", skillMd);
+                    zip.file("references/01_azienda_honeypot.md", markdownHoneypot);
+                    zip.file("references/02_catalogo_prodotti.md", markdownProducts);
+                    zip.file("references/03_procedure_sop.md", markdownSOP);
+                    zip.file("references/tool_schemas.json", JSON.stringify(tools, null, 2));
+                    zip.file("examples/conversations.jsonl", dataset.map(d => JSON.stringify(d)).join('\n'));
+
+                    const zipBlob = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(zipBlob, `claude_skill_${currentRole}.zip`);
+
+                    if (tg) {
+                        tg.showPopup({
+                            title: 'Claude Skill Generata',
+                            message: `Il pacchetto ZIP per l'agente ${roleLabel} è stato generato e scaricato correttamente!`,
+                            buttons: [{ type: 'ok' }]
+                        });
+                    }
                 }
             } else if (format === 'gemini_format') {
                 const geminiFormatted = dataset.map(item => ({
