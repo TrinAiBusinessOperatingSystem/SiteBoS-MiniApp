@@ -454,12 +454,24 @@ function selectClient(id, name) {
 // ============================================
 
 function scanAssetQR() {
-    showAlert('Scansione QR non disponibile', 'info');
-    setTimeout(() => {
-        selectedTarget = { id: 'asset_123', name: 'Caldaia ABC', type: 'asset' };
-        selectedTargetType = 'asset';
-        showStep('photo');
-    }, 1000);
+    if (tg.showScanQrPopup) {
+        tg.showScanQrPopup({ text: "Inquadra il QR Code dell'Asset o del Pass Cliente" }, (text) => {
+            if (text) {
+                showAlert('✅ QR Scansionato: ' + text, 'success');
+                selectedTarget = { id: 'asset_qr', name: 'Asset QR: ' + text, type: 'asset' };
+                selectedTargetType = 'asset';
+                showStep('photo');
+                return true;
+            }
+        });
+    } else {
+        showAlert('Scansione QR attiva (Simulazione sul dispositivo)', 'info');
+        setTimeout(() => {
+            selectedTarget = { id: 'asset_123', name: 'Asset Scansionato (#QR-901)', type: 'asset' };
+            selectedTargetType = 'asset';
+            showStep('photo');
+        }, 800);
+    }
 }
 
 function setInternalTarget() {

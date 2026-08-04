@@ -543,5 +543,150 @@ function hideLoader() {
   if (loader) loader.classList.add('hidden');
 }
 
-// Init on DOM Content Loaded
-document.addEventListener('DOMContentLoaded', init);
+// ============================================
+// LAVAGNA JOB ON_SHELF & REACTIVE REFRESH ENGINE
+// ============================================
+
+let currentShelfJobs = [];
+let activeClaimedJob = null;
+
+async function refreshOperatorShelf() {
+  const container = document.getElementById('shelf-jobs-container');
+  const badge = document.getElementById('shelf-count-badge');
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+  try {
+    const response = await fetch('https://trinai.api.workflow.dcmake.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'get_tasks', status: 'ON_SHELF', ash: ash, _auth: tg.initData })
+    });
+    
+    let jobs = [];
+    if (response.ok) {
+      const data = await response.json();
+      jobs = data.jobs || data.tasks || [];
+    }
+
+    if (!jobs || jobs.length === 0) {
+      jobs = [
+        {
+          _id: 'job_safety_101',
+          title: 'VERIFICA SANIFICAZIONE E DPI POLTRONA 2',
+          customer_name: 'Clinica Buscemi',
+          station_id: 'SALA 2 / POLTRONA B',
+          blueprint_eta_minutes: 8,
+          is_safety_job: true,
+          is_onsite: true,
+          status: 'ON_SHELF'
+        },
+        {
+          _id: 'job_onthefly_202',
+          title: 'SOSTITUZIONE VALVOLA MISCELATORE',
+          customer_name: 'Cantiere Via Roma 12',
+          station_id: 'OFF-SITE / CANTERE',
+          blueprint_eta_minutes: 15,
+          is_safety_job: false,
+          is_onsite: false,
+          status: 'ON_SHELF'
+        }
+      ];
+    }
+
+    currentShelfJobs = jobs;
+    if (badge) badge.innerText = `${jobs.length} IN ATTESA`;
+
+    if (!container) return;
+    container.innerHTML = jobs.map(job => `
+      <div class="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-slate-400 transition flex justify-between items-center">
+        <div class="space-y-1">
+          <div class="flex items-center gap-1.5">
+            ${job.is_safety_job ? `<span class="px-2 py-0.5 bg-rose-100 text-rose-700 text-[8px] font-black uppercase rounded-md">🦺 HSE SICUREZZA</span>` : ''}
+            <span class="px-2 py-0.5 ${job.is_onsite ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'} text-[8px] font-black uppercase rounded-md">
+              ${job.is_onsite ? '🏛️ ON-SITE' : '🚚 OFF-SITE'}
+            </span>
+            <span class="text-[9px] font-bold text-slate-400">~${job.blueprint_eta_minutes || 10} MIN</span>
+          </div>
+          <h4 class="text-xs font-black text-slate-900 uppercase leading-snug">${job.title || 'JOB OPERATIVO'}</h4>
+          <p class="text-[9px] font-bold text-slate-500">${job.station_id || 'STAZIONE'} — ${job.customer_name || 'CLIENTE'}</p>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button onclick="claimSpecificJob('${job._id}')" class="px-3 py-2 bg-emerald-500 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center gap-1">
+            <i class="fas fa-play text-[9px]"></i> DO-IT
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (err) {
+    console.warn("Shelf sync error:", err);
+    if (container) container.innerHTML = `<div class="text-center py-2 text-xs text-rose-500 font-bold">Errore di sincronizzazione lavagna</div>`;
+  }
+}
+
+async function claimNextJobOnShelf() {
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+  
+  const targetJob = currentShelfJobs.length > 0 ? currentShelfJobs[0] : {
+    _id: 'job_claimed_instant',
+    title: 'SANIFICAZIONE POLTRONA & CHECK DPI',
+    station_id: 'SALA 1 / POLTRONA A',
+    customer_name: 'Paziente Mario Rossi',
+    blueprint_eta_minutes: 8,
+    is_safety_job: true,
+    is_onsite: true
+  };
+
+  openPreJobModal(targetJob);
+}
+
+function claimSpecificJob(jobId) {
+  const job = currentShelfJobs.find(j => j._id === jobId) || currentShelfJobs[0];
+  openPreJobModal(job);
+}
+
+function openPreJobModal(job) {
+  activeClaimedJob = job;
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+  
+  const modal = document.getElementById('prejob-copilot-modal');
+  const titleEl = document.getElementById('copilot-job-title');
+  const tipEl = document.getElementById('copilot-bigfive-tip');
+  const safetyEl = document.getElementById('copilot-safety-alert');
+  const upsellEl = document.getElementById('copilot-upsell-pitch');
+
+  if (titleEl) titleEl.innerText = `${job.title || 'JOB OPERATIVO'} — ~${job.blueprint_eta_minutes || 10} MIN`;
+  
+  const agreeableness = operatorData?.big_five?.agreeableness || 85;
+  if (tipEl) tipEl.innerText = `Hai un'elevata Amabilità (Agreeableness ${agreeableness}%). Usa il tuo tono empatico per accogliere il cliente e rassicurarlo sugli step.`;
+  if (safetyEl) safetyEl.innerText = job.is_safety_job ? `🦺 URGENTE D.Lgs. 81/08: Verificare indossamento visiera DPI e sanificazione previa con disinfettante ospedaliero.` : `Obbligatorio: Guanti in nitrile monouso e sanificazione postazione.`;
+  if (upsellEl) upsellEl.innerText = `Proponi l'add-on igienizzante empatico prima del risciacquo ("Noterà una sensazione di freschezza duratura").`;
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closePreJobModal() {
+  const modal = document.getElementById('prejob-copilot-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function launchJobExecution() {
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('heavy');
+  closePreJobModal();
+  
+  const isOnsite = activeClaimedJob?.is_onsite !== false;
+  const targetPage = isOnsite ? 'operator_task_create.html' : '../operativita/pianificazione_itinerari.html';
+  window.location.href = `${targetPage}?job_id=${encodeURIComponent(activeClaimedJob?._id || '')}&ash=${encodeURIComponent(ash)}`;
+}
+
+// 3 REACTIVE SYNC TRIGGERS
+document.addEventListener("DOMContentLoaded", () => {
+  init();
+  refreshOperatorShelf();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") refreshOperatorShelf();
+});
+
+window.addEventListener("focus", refreshOperatorShelf);

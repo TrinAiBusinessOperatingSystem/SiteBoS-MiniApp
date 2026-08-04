@@ -23,7 +23,7 @@
     `;
   }
 
-  function requireTelegramWebApp({ autoExpand = true, enableFullscreen = true } = {}) {
+  function requireTelegramWebApp({ autoExpand = true } = {}) {
     const tg = getTg();
     if (!tg || !tg.initData) {
       renderDenied('Apri questa pagina solo dentro Telegram.');
@@ -31,15 +31,7 @@
       return null;
     }
     try { tg.ready(); } catch (_) {}
-    try {
-      if (enableFullscreen && typeof tg.requestFullscreen === 'function') {
-        tg.requestFullscreen();
-      } else if (autoExpand && typeof tg.expand === 'function') {
-        tg.expand();
-      }
-    } catch (_) {
-      try { if (autoExpand && typeof tg.expand === 'function') tg.expand(); } catch (_) {}
-    }
+    try { if (autoExpand && typeof tg.expand === 'function') tg.expand(); } catch (_) {}
     try { if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch (_) {}
     try { if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#090d16'); } catch (_) {}
     try { if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#090d16'); } catch (_) {}

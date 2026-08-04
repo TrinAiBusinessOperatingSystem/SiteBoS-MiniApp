@@ -201,7 +201,7 @@
       headerColor: '#090d16',
       backgroundColor: '#090d16',
       disableVerticalSwipes: true,
-      enableFullscreen: true
+      enableFullscreen: false
     };
     const opts = Object.assign({}, defaultOptions, options);
 
@@ -226,18 +226,9 @@
         tg.ready();
       }
 
-      // 3. Fullscreen Launch Mode con Fallback morbido a expand()
-      if (opts.enableFullscreen) {
-        if (typeof tg.requestFullscreen === 'function') {
-          try {
-            tg.requestFullscreen();
-          } catch (err) {
-            console.warn('[TWA Launch] requestFullscreen failed, fallbacking to expand():', err);
-            if (typeof tg.expand === 'function') tg.expand();
-          }
-        } else if (typeof tg.expand === 'function') {
-          tg.expand();
-        }
+      // 3. Launch Expansion Mode (Standard Telegram expand)
+      if (typeof tg.expand === 'function') {
+        tg.expand();
       }
 
       // 4. Blocco Swipe Verticale per proteggere Caroselli 3D e gesture
