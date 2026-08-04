@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Creatore Guide & Dispense | SiteBoS Gestione</title>
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- PDF Generation & Print Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="catalog-print-engine.js"></script>
+
+    <script>
+(function() {
+    const tempTg = window.Telegram?.WebApp;
+    const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+
+    if (!isTelegramSession) {
+        const currentPath = window.location.pathname;
+        let redirectPath = "index.html";
+
+        if (currentPath.includes('/telegram_control/')) {
+            const parts = currentPath.split('/telegram_control/');
+            const subPath = parts[1] || '';
+            if (subPath.includes('/')) {
+                redirectPath = "../../index.html";
+            } else {
+                redirectPath = "../index.html";
+            }
+        }
+
+        window.location.replace(redirectPath);
+    }
+})();
+
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html, body {
+            overscroll-behavior: none !important;
+            overscroll-behavior-y: none !important;
+            touch-action: manipulation;
+            background-color: #fafafa !important;
+            color: #0f172a !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-top-color: #0f172a;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chat-bubble-assistant {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem 1.25rem 1.25rem 0.25rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+        }
+
+        .chat-bubble-user {
+            background: #0f172a;
+            color: #ffffff;
+            border-radius: 1.25rem 1.25rem 0.25rem 1.25rem;
+            box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.2);
+        }
+
+        .page-preview-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 1.25rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            min-height: 520px;
+            padding: 1.5rem;
+        }
+    </style>
+</head>
+
+<body class="safe-area-inset min-h-screen flex flex-col justify-between bg-[#fafafa]">
+
+    <!-- LOADER OVERLAY -->
+    <div id="loader" class="fixed inset-0 bg-white/95 backdrop-blur-md z-[9999] flex flex-col items-center justify-center space-y-4 p-6">
+        <div class="spinner"></div>
+        <p id="loader-text" class="text-[10px] font-black uppercase tracking-widest text-slate-700 text-center">Inizializzazione Agente Creazione Guide...</p>
+        <span id="loader-subtext" class="text-[8px] font-bold text-slate-400 uppercase tracking-wider text-center">Caricamento scheda prodotto e blueprint NoSQL...</span>
+    </div>
+
+    <!-- STICKY HEADER STANDARD SITEBOS ARCHITECT (3 PULSANTI) -->
+    <header class="p-4 bg-white/90 backdrop-blur-md border-b border-slate-100 flex justify-between items-center z-50 shadow-xs shrink-0 sticky top-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-book-open text-base"></i>
+            </div>
+            <div>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-slate-400 leading-none mb-1">ASSET DIGITALI</h1>
+                <p class="text-xs font-black tracking-tight text-slate-900" id="headerTitle">Creatore Guide & Dispense PDF</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <!-- 1. Back Button -->
+            <button id="btn-nav-back" onclick="goBackToCatalog()" class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition hover:bg-slate-50" title="Torna al Catalogo">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <!-- 2. Speech Audio Button -->
+            <button id="btn-nav-audio" onclick="toggleAudio()" class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition hover:bg-slate-50" title="Guida Vocale">
+                <i class="fas fa-volume-high text-xs"></i>
+            </button>
+            <!-- 3. User Guide Button (Capitolo 13) -->
+            <button id="btn-nav-guide" onclick="openUserGuide('../userguide/13_creatore_guide.html')" class="w-9 h-9 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition hover:bg-slate-50" title="Manuale Utente Cap. 13">
+                <i class="fas fa-globe text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTAINER PRINCIPALE VISTE -->
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 space-y-4 overflow-y-auto no-scrollbar pb-28">
+
+        <!-- CONTEXT SUMMARY BAR -->
+        <div id="context-bar" class="bg-white border border-slate-200/80 rounded-2xl p-3.5 shadow-xs flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-center text-blue-600 font-black text-xs shrink-0">
+                    PDF
+                </div>
+                <div class="min-w-0">
+                    <span id="targetCatLabel" class="block text-[8px] font-black uppercase tracking-widest text-blue-600">Asset Digitale</span>
+                    <h2 id="targetProductTitle" class="text-xs font-black text-slate-900 truncate">Guida Pratica / Dispensa</h2>
+                </div>
+            </div>
+            <div class="text-right shrink-0">
+                <span class="block text-[8px] font-black uppercase tracking-widest text-slate-400">Prezzo Listino</span>
+                <span id="targetProductPrice" class="text-xs font-black text-emerald-600">6,99 €</span>
+            </div>
+        </div>
+
+        <!-- STAGE 1: CHAT INTERVISTA & INGESTIONE Q/A -->
+        <div id="stage-ingestion" class="space-y-4">
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3.5 text-xs text-blue-900 leading-relaxed font-medium">
+                <i class="fas fa-sparkles text-blue-600 mr-1.5"></i>
+                <strong>Intervista Ingestione AI:</strong> Rispondi alle domande dell'assistente per definire l'indice e la struttura della tua guida da 10-15 pagine.
+            </div>
+
+            <!-- CHAT STREAM CONTAINER -->
+            <div id="chat-messages" class="space-y-3 min-h-[280px]">
+                <!-- Messaggio di Benvenuto -->
+                <div class="chat-bubble-assistant p-4 text-xs space-y-2">
+                    <div class="flex items-center gap-2 text-slate-500 font-bold text-[9px] uppercase tracking-wider">
+                        <i class="fas fa-robot text-blue-600"></i> Assistente Creazione Guide
+                    </div>
+                    <p class="text-slate-800 leading-relaxed font-semibold">
+                        Ciao! Sto per redigere la tua guida/dispensa PDF da 10-15 pagine basata sul tuo Blueprint. Per prima cosa, qual è il tema principale o il risultato chiave che l'utente otterrà leggendo questo documento?
+                    </p>
+                </div>
+            </div>
+
+            <!-- INPUT BAR & ATTACHMENT HUB -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm space-y-2">
+                <div class="flex items-center gap-2">
+                    <input type="text" id="userInputText" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-900 outline-none focus:border-slate-900 transition" placeholder="Scrivi la tua risposta o dettagli...">
+                    <button onclick="sendUserMessage()" class="w-10 h-10 bg-slate-900 hover:bg-black text-white rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition">
+                        <i class="fas fa-paper-plane text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                    <label class="cursor-pointer flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider text-slate-500 hover:text-slate-900 transition">
+                        <i class="fas fa-paperclip text-xs text-blue-600"></i> Allega Note/PDF
+                        <input type="file" id="attachmentInput" class="hidden" accept=".pdf,.txt,.jpg,.png" onchange="handleFileSelected(this)">
+                    </label>
+                    <span id="attachmentStatus" class="text-[8px] font-bold text-slate-400">Nessun file allegato</span>
+                </div>
+            </div>
+
+            <button id="btn-generate-index" onclick="startGenerateIndex()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-md active:scale-98 transition flex items-center justify-center gap-2">
+                <i class="fas fa-list-ol"></i> Genera Indice & Piano di Lavoro (10-15 Pagine)
+            </button>
+        </div>
+
+        <!-- STAGE 2: APPROVAZIONE PIANO & INDICE 10-15 PAGINE -->
+        <div id="stage-index-plan" class="space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <h3 class="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-list-check text-blue-600"></i> Piano di Lavoro & Indice Guida
+                </h3>
+                <span id="pageCountBadge" class="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-[9px] font-black uppercase tracking-wider">12 Pagine</span>
+            </div>
+
+            <p class="text-xs text-slate-600 font-medium">
+                Ecco la struttura dei capitoli elaborata dall'AI. Puoi rivedere i titoli prima di avviare la stesura grafica sequenziale.
+            </p>
+
+            <div id="index-cards-container" class="space-y-2.5">
+                <!-- Skeletons dell'Indice iniezione dinamica -->
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button onclick="backToIngestion()" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-widest rounded-xl transition">
+                    <i class="fas fa-arrow-left mr-1"></i> Modifica Q/A
+                </button>
+                <button onclick="startPageByPageGeneration()" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-wand-magic-sparkles"></i> Avvia Sviluppo HTML
+                </button>
+            </div>
+        </div>
+
+        <!-- STAGE 3: PROGRESSO SVILUPPO HTML PAGINA PER PAGINA -->
+        <div id="stage-building-progress" class="space-y-4 hidden text-center py-8">
+            <div class="w-16 h-16 bg-blue-50 border border-blue-100 text-blue-600 rounded-3xl mx-auto flex items-center justify-center text-2xl shadow-sm">
+                <i class="fas fa-palette animate-bounce"></i>
+            </div>
+            <div>
+                <h3 id="progressTitle" class="text-sm font-black text-slate-900 uppercase tracking-tight">Sviluppo Grafico Pagina 1 di 12...</h3>
+                <p id="progressSubtitle" class="text-xs font-bold text-slate-400 mt-1">Generazione layout HTML5 + CSS in corso...</p>
+            </div>
+
+            <!-- BARRA DI PROGRESSO -->
+            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
+                <div id="progressBarInner" class="bg-slate-900 h-full rounded-full transition-all duration-300" style="width: 8%;"></div>
+            </div>
+
+            <span id="progressPercent" class="text-xs font-black text-slate-700">8% Completato</span>
+        </div>
+
+        <!-- STAGE 4: VIEWER GUIDA HTML & ESPORTAZIONE PDF / STORE DEPLOY -->
+        <div id="stage-viewer-export" class="space-y-4 hidden">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-slate-900">Guida HTML5 Pronta</h3>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="prevGuidePage()" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center hover:bg-slate-50"><i class="fas fa-chevron-left"></i></button>
+                    <span id="viewerPageTracker" class="text-xs font-black text-slate-800 self-center">Pagina 1 / 12</span>
+                    <button onclick="nextGuidePage()" class="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center hover:bg-slate-50"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+
+            <!-- CARDS CONTAINER ANTEPRIMA PAGINA -->
+            <div id="guide-render-container" class="page-preview-card prose text-xs text-slate-800 leading-relaxed overflow-y-auto max-h-[550px] no-scrollbar">
+                <!-- Render HTML dinamico della pagina corrente -->
+            </div>
+
+            <!-- PULSANTI DI AZIONE FINALI (EXPORT PDF & DEPLOY STORE) -->
+            <div class="space-y-2 pt-2">
+                <button id="btn-export-pdf" onclick="exportCompletePDF()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-md active:scale-98 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-file-pdf text-red-400"></i> Esporta Guida Completa in PDF
+                </button>
+                
+                <button id="btn-deploy-trinai" onclick="deployToTrinAiStore()" class="w-full py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-lg active:scale-98 transition flex items-center justify-center gap-2">
+                    <i class="fas fa-rocket"></i> 🚀 Pubblica sullo Store TrinAi (Vendita per Crediti)
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JAVASCRIPT LOGIC AGENTE GUIDE -->
+    <script>
+        const tg = window.Telegram ? window.Telegram.WebApp : null;
+        let queryParams = new URLSearchParams(window.location.search);
+        let ashToken = queryParams.get('ash') || '';
+        let vatNumber = queryParams.get('vat') || '';
+
+        // STATO GUIDA
+        let currentQAHistory = [];
+        let generatedIndexPlan = [];
+        let generatedPagesHTML = [];
+        let currentViewerIndex = 0;
+        let attachedFileData = null;
+
+        // DATI TARGET
+        let targetProduct = {
+            name: queryParams.get('name') || "Guida Pratica & Dispensa PDF",
+            category: "Asset Digitali",
+            price: "6.99 €",
+            sku: queryParams.get('sku') || "PRD_DIGITAL_01"
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (tg) {
+                tg.ready();
+                tg.expand();
+            }
+            initContextDisplay();
+            setTimeout(() => {
+                document.getElementById('loader').classList.add('hidden');
+            }, 600);
+        });
+
+        function initContextDisplay() {
+            document.getElementById('targetProductTitle').textContent = targetProduct.name;
+            document.getElementById('targetProductPrice').textContent = targetProduct.price;
+        }
+
+        function goBackToCatalog() {
+            window.location.href = `catalog.html?ash=${encodeURIComponent(ashToken)}`;
+        }
+
+        function toggleAudio() {
+            alert("Guida vocale attivata per l'Agente Creazione Guide.");
+        }
+
+        function openUserGuide(url) {
+            window.location.href = url;
+        }
+
+        function handleFileSelected(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                document.getElementById('attachmentStatus').textContent = `Allegato: ${file.name}`;
+                attachedFileData = file.name;
+            }
+        }
+
+        function sendUserMessage() {
+            const inputEl = document.getElementById('userInputText');
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            const chatContainer = document.getElementById('chat-messages');
+
+            // User Bubble
+            const userBubble = document.createElement('div');
+            userBubble.className = 'chat-bubble-user p-4 text-xs ml-8';
+            userBubble.textContent = text;
+            chatContainer.appendChild(userBubble);
+
+            currentQAHistory.push({ role: 'user', content: text });
+            inputEl.value = '';
+
+            // Assistant Reply Simulata
+            setTimeout(() => {
+                const botBubble = document.createElement('div');
+                botBubble.className = 'chat-bubble-assistant p-4 text-xs space-y-1.5';
+                botBubble.innerHTML = `
+                    <div class="flex items-center gap-2 text-slate-500 font-bold text-[9px] uppercase tracking-wider">
+                        <i class="fas fa-robot text-blue-600"></i> Assistente Creazione Guide
+                    </div>
+                    <p class="text-slate-800 font-semibold leading-relaxed">
+                        Ottimo chiarimento! Ho annotato la tua preferenza. Ci sono ricette, esercizi specifici o formule pratiche da includere nelle pagine operative?
+                    </p>`;
+                chatContainer.appendChild(botBubble);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 700);
+        }
+
+        function startGenerateIndex() {
+            document.getElementById('stage-ingestion').classList.add('hidden');
+            document.getElementById('stage-index-plan').classList.remove('hidden');
+
+            // Generazione Indice Fittizio da 12 pagine basato su Business Rules
+            generatedIndexPlan = [
+                { page: 1, title: "Copertina Esecutiva e Presentazione dell'Asset" },
+                { page: 2, title: "Indice dei Contenuti e Guida alla Lettura" },
+                { page: 3, title: "Introduzione Pratica ed Obiettivi Operativi" },
+                { page: 4, title: "Modulo 1: Fondamenti Teorici e Preparazione" },
+                { page: 5, title: "Modulo 2: Schede Pratiche ed Esercizi Domiciliari (Parte A)" },
+                { page: 6, title: "Modulo 2: Schede Pratiche ed Esercizi Domiciliari (Parte B)" },
+                { page: 7, title: "Modulo 3: Ricettario Guidato e Formulazioni di Base" },
+                { page: 8, title: "Modulo 4: Tabella Dosaggi, Frequenze e Tempistiche" },
+                { page: 9, title: "Modulo 5: Risoluzione dei Problemi e Domande Frequenti" },
+                { page: 10, title: "Modulo 6: Checklist di Verifica Finale e Monitoraggio" },
+                { page: 11, title: "Note della Direzione e Raccomandazioni di Sicurezza" },
+                { page: 12, title: "Contatti, Assistenza e Codice QR Risorse Extra" }
+            ];
+
+            renderIndexCards();
+        }
+
+        function renderIndexCards() {
+            const container = document.getElementById('index-cards-container');
+            container.innerHTML = '';
+
+            generatedIndexPlan.forEach((item) => {
+                const card = document.createElement('div');
+                card.className = 'bg-white border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-3 shadow-2xs';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="w-7 h-7 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">${item.page}</span>
+                        <span class="text-xs font-bold text-slate-800 leading-snug">${item.title}</span>
+                    </div>
+                    <i class="fas fa-bars text-slate-300 text-xs shrink-0 cursor-move"></i>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function backToIngestion() {
+            document.getElementById('stage-index-plan').classList.add('hidden');
+            document.getElementById('stage-ingestion').classList.remove('hidden');
+        }
+
+        function startPageByPageGeneration() {
+            document.getElementById('stage-index-plan').classList.add('hidden');
+            document.getElementById('stage-building-progress').classList.remove('hidden');
+
+            generatedPagesHTML = [];
+            let currentBuildPage = 1;
+            const totalPages = generatedIndexPlan.length;
+
+            const interval = setInterval(() => {
+                if (currentBuildPage <= totalPages) {
+                    const pct = Math.round((currentBuildPage / totalPages) * 100);
+                    document.getElementById('progressBarInner').style.width = `${pct}%`;
+                    document.getElementById('progressPercent').textContent = `${pct}% Completato`;
+                    document.getElementById('progressTitle').textContent = `Sviluppo Grafico Pagina ${currentBuildPage} di ${totalPages}...`;
+                    document.getElementById('progressSubtitle').textContent = `Impaginazione HTML5: "${generatedIndexPlan[currentBuildPage - 1].title}"`;
+
+                    // Simulazione generazione HTML pagina
+                    const pageTitle = generatedIndexPlan[currentBuildPage - 1].title;
+                    const htmlSnippet = `
+                        <div class="space-y-4">
+                            <div class="border-b-2 border-slate-900 pb-2 flex justify-between items-center">
+                                <span class="text-[9px] font-black uppercase tracking-widest text-blue-600">PAGINA ${currentBuildPage} DI ${totalPages}</span>
+                                <span class="text-[8px] font-bold text-slate-400">SITEBOS DIGITAL ASSET</span>
+                            </div>
+                            <h2 class="text-base font-black text-slate-900 leading-tight uppercase italic">${pageTitle}</h2>
+                            <p class="text-xs text-slate-700 leading-relaxed font-medium">
+                                Questa sezione illustra in dettaglio le indicazioni operative, le raccomandazioni pratiche ed il protocollo da seguire passo-passo a casa.
+                            </p>
+                            <div class="my-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                                <span class="text-[10px] font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                                    <i class="fas fa-check-circle text-emerald-600"></i> Punti Chiave da Ricordare
+                                </span>
+                                <ul class="list-disc ml-4 text-xs text-slate-700 space-y-1">
+                                    <li>Seguire la frequenza giornaliera o settimanale prescritta.</li>
+                                    <li>Mantenere la costanza nell'esecuzione delle schede.</li>
+                                    <li>Consultare il professionista per eventuali chiarimenti.</li>
+                                </ul>
+                            </div>
+                            <div class="pt-6 border-t border-slate-100 text-[8px] text-slate-400 font-bold flex justify-between">
+                                <span>© ${new Date().getFullYear()} ${targetProduct.name}</span>
+                                <span>Documento Ufficiale Riservato</span>
+                            </div>
+                        </div>
+                    `;
+                    generatedPagesHTML.push(htmlSnippet);
+
+                    currentBuildPage++;
+                } else {
+                    clearInterval(interval);
+                    document.getElementById('stage-building-progress').classList.add('hidden');
+                    document.getElementById('stage-viewer-export').classList.remove('hidden');
+                    renderViewerPage(0);
+                }
+            }, 400);
+        }
+
+        function renderViewerPage(index) {
+            if (index < 0 || index >= generatedPagesHTML.length) return;
+            currentViewerIndex = index;
+            document.getElementById('guide-render-container').innerHTML = generatedPagesHTML[index];
+            document.getElementById('viewerPageTracker').textContent = `Pagina ${index + 1} / ${generatedPagesHTML.length}`;
+        }
+
+        function prevGuidePage() {
+            if (currentViewerIndex > 0) renderViewerPage(currentViewerIndex - 1);
+        }
+
+        function nextGuidePage() {
+            if (currentViewerIndex < generatedPagesHTML.length - 1) renderViewerPage(currentViewerIndex + 1);
+        }
+
+        function exportCompletePDF() {
+            alert(`Avvio esportazione PDF ad alta definizione per la guida "${targetProduct.name}" (${generatedPagesHTML.length} Pagine)...`);
+        }
+
+        function deployToTrinAiStore() {
+            alert(`🚀 PUBBLICAZIONE MARKETPLACE TRINAI:\nLa guida "${targetProduct.name}" è stata pubblicata sullo Store E-Commerce TrinAi al prezzo di ${targetProduct.price}.\n\nI ricavi generati da ciascuna vendita verranno automaticamente convertiti in Crediti SiteBoS!`);
+        }
+    </script>
+</body>
+</html>
