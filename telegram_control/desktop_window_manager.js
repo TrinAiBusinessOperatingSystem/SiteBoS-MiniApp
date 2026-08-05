@@ -356,16 +356,17 @@
 
     document.body.appendChild(winElem);
 
-    // Inietta automaticamente il CSS per nascondere l'header interno TWA della pagina dentro l'iframe
+    // ── DECAPITAZIONE HEADER INTERNO TWA ──────────────────────────────────────
+    // Inietta immediatamente e tramite polling aggressivo a 50ms il CSS per nascondere
+    // l'header interno (<header>) delle sotto-pagine aperte nella finestra.
     const iframeElem = winElem.querySelector('iframe');
     if (iframeElem) {
-      iframeElem.onload = function () {
+      const applyHeaderHider = function () {
         try {
           const doc = iframeElem.contentDocument || iframeElem.contentWindow?.document;
-          if (doc) {
-            let style = doc.getElementById('sitebos-desktop-iframe-hider');
-            if (!style) {
-              style = doc.createElement('style');
+          if (doc && (doc.head || doc.documentElement)) {
+            if (!doc.getElementById('sitebos-desktop-iframe-hider')) {
+              const style = doc.createElement('style');
               style.id = 'sitebos-desktop-iframe-hider';
               style.innerHTML = `
                 header, 
@@ -373,6 +374,14 @@
                 .mobile-header, 
                 .page-top-header { 
                   display: none !important; 
+                  height: 0 !important;
+                  max-height: 0 !important;
+                  overflow: hidden !important;
+                  visibility: hidden !important;
+                  opacity: 0 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
+                  pointer-events: none !important;
                 }
                 body { 
                   padding-top: 0 !important; 
@@ -391,6 +400,18 @@
           }
         } catch (_) {}
       };
+
+      // 1. Esegui subito
+      applyHeaderHider();
+      // 2. Aggancia all'onload
+      iframeElem.onload = applyHeaderHider;
+      // 3. Polling aggressivo ogni 50ms per 2 secondi (cattura qualsiasi caricamento rapido/cache)
+      let pollCount = 0;
+      const hiderInterval = setInterval(function () {
+        pollCount++;
+        applyHeaderHider();
+        if (pollCount > 40) clearInterval(hiderInterval);
+      }, 50);
     }
 
     const headerElem = winElem.querySelector('.sitebos-win-header');
