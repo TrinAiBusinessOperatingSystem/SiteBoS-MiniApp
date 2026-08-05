@@ -44,12 +44,17 @@
         }
 
         if (winManager) {
+            const lowerUrl = (cleanPath || '').toLowerCase();
+            const isWideTool = lowerUrl.includes('trinai');
+            const winWidth = isWideTool ? 960 : 460;
+            const winHeight = isWideTool ? 720 : 780;
+
             winManager.openWindow({
                 title: title || 'Modulo Catalogo',
                 url: cleanPath,
                 icon: icon || 'fa-box-open',
-                width: 880,
-                height: 640
+                width: winWidth,
+                height: winHeight
             });
         } else {
             window.location.href = cleanPath;

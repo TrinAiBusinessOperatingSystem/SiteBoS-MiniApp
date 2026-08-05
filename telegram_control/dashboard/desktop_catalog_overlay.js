@@ -257,6 +257,8 @@
             if (e.target.closest('button') || e.target.closest('input')) return;
             isDragging = true;
             headerElem.style.cursor = 'grabbing';
+            overlayElem.style.transition = 'none';
+            overlayElem.style.willChange = 'transform';
             // Disabilita pointer-events su tutti gli iframe per evitare che catturino il cursore durante il drag
             document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
 
@@ -287,6 +289,7 @@
         function onMouseUp() {
             isDragging = false;
             headerElem.style.cursor = 'grab';
+            overlayElem.style.willChange = 'auto';
             // Ripristina pointer-events sugli iframe
             document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'auto');
             document.onmousemove = null;
@@ -349,7 +352,7 @@
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'desktop-catalog-overlay';
-            overlay.className = 'fixed top-12 left-1/2 -translate-x-1/2 w-[92vw] max-w-6xl bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-slate-900 select-none flex flex-col space-y-5 transition-all duration-300';
+            overlay.className = 'fixed top-12 left-1/2 -translate-x-1/2 w-[92vw] max-w-6xl bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-slate-900 select-none flex flex-col space-y-5';
             overlay.onmousedown = function () {
                 bringOverlayToFront();
             };
@@ -414,9 +417,9 @@
         if (activeCategory?.callback_data) url += `&catId=${encodeURIComponent(activeCategory.callback_data)}`;
         url += `&from_hub=true`;
 
-        // Se è un modulo di analisi a tabella o audit -> larghezza estesa (880), altrimenti dimensione Cellulare Mobile (460x780)
-        const isWideTool = page.includes('supervisor_hub') || page.includes('edit-advanced');
-        const winWidth = isWideTool ? 880 : 460;
+        // Solo la piattaforma TrinAi Cloud apre a 960x720, tutti gli altri moduli TWA in Smartphone Frame (460x780)
+        const isWideTool = (page || '').toLowerCase().includes('trinai');
+        const winWidth = isWideTool ? 960 : 460;
         const winHeight = isWideTool ? 720 : 780;
 
         if (window.DesktopWindowManager) {

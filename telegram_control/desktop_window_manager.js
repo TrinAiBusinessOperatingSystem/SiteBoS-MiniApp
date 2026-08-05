@@ -353,6 +353,36 @@
 
     document.body.appendChild(winElem);
 
+    // Inietta automaticamente il CSS per nascondere l'header interno TWA della pagina dentro l'iframe
+    const iframeElem = winElem.querySelector('iframe');
+    if (iframeElem) {
+      iframeElem.onload = function () {
+        try {
+          const doc = iframeElem.contentDocument || iframeElem.contentWindow?.document;
+          if (doc) {
+            let style = doc.getElementById('sitebos-desktop-iframe-hider');
+            if (!style) {
+              style = doc.createElement('style');
+              style.id = 'sitebos-desktop-iframe-hider';
+              style.innerHTML = `
+                header, 
+                .twa-header, 
+                .mobile-header, 
+                .page-top-header { 
+                  display: none !important; 
+                }
+                body { 
+                  padding-top: 0 !important; 
+                  margin-top: 0 !important; 
+                }
+              `;
+              (doc.head || doc.documentElement).appendChild(style);
+            }
+          }
+        } catch (_) {}
+      };
+    }
+
     const headerElem = winElem.querySelector('.sitebos-win-header');
     makeDraggable(winElem, headerElem);
 

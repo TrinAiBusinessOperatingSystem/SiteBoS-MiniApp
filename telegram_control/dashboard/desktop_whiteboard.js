@@ -474,9 +474,9 @@
         }
       }
 
-      // Tutte le altre pagine -> iframe flottante diretto
+      // Tutte le altre pagine -> iframe flottante diretto a dimensione Smartphone Frame (460x780)
       const targetUrl = buildFinalUrl(url);
-      const isWideTool = lowerUrl.includes('supervisor') || lowerUrl.includes('controllo_gestione') || lowerUrl.includes('intelligent-warehouse') || lowerUrl.includes('trinai');
+      const isWideTool = lowerUrl.includes('trinai');
       const winWidth = isWideTool ? 960 : 460;
       const winHeight = isWideTool ? 720 : 780;
 
