@@ -213,6 +213,16 @@
 
 <body class="flex flex-col justify-between p-6 safe-area-inset pb-10">
 
+    <!-- BLOCKING LOADING SCREEN (Verifica Identità Owner PRIMA di sbloccare l'app) -->
+    <div id="app-loading-screen"
+        class="fixed inset-0 bg-white/95 backdrop-blur-2xl z-[99999] flex flex-col items-center justify-center space-y-4 text-center px-6 transition-opacity duration-300">
+        <div class="w-12 h-12 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+        <div>
+            <h3 class="text-xs font-black uppercase tracking-widest text-slate-900 mb-1">Verifica Identità & Dati Aziendali</h3>
+            <p class="text-[10px] font-semibold text-slate-500">Connessione al database del tenant in corso...</p>
+        </div>
+    </div>
+
     <!-- HEADER / TENANT BRANDING 100% TRASPARENTE E CENTRATO CON CREDITI INLINE -->
     <header onclick="openBundlesShop()"
         class="flex flex-col items-center justify-center gap-1.5 bg-transparent p-2 shrink-0 select-none z-50 cursor-pointer transition active:scale-98 w-full text-center"
@@ -1678,19 +1688,22 @@
         }
 
         async function fetchDashboardData() {
-            if (!ash) return;
+            if (!ash) return null;
             const WH_URL = "https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4";
             try {
                 const response = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        _auth: tg.initData,
+                        _auth: tg.initData || "",
                         ash: ash,
-                        msg: msgId,
+                        msg: msgId || "",
                         action: 'get_owner_data'
                     })
                 });
+                if (!response.ok) {
+                    throw new Error(`Risposta server non valida: ${response.status}`);
+                }
                 const result = await response.json();
                 if (result.status === 'success' && result.owner_data) {
                     const data = result.owner_data;
@@ -1733,9 +1746,32 @@
                             };
                         }
                     }
+
+                    return data;
+                } else {
+                    return null;
                 }
             } catch (error) {
                 console.error("Errore recupero dati dashboard:", error);
+                throw error;
+            }
+        }
+
+        function showFatalAuthError(message) {
+            const loadingScreen = document.getElementById('app-loading-screen');
+            if (loadingScreen) {
+                loadingScreen.innerHTML = `
+                    <div class="w-14 h-14 rounded-2xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center text-xl mb-2 shadow-xs">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-red-600 mb-1">ERRORE GRAVE DI AUTENTICAZIONE</h3>
+                    <p class="text-[10px] font-semibold text-slate-600 max-w-xs leading-relaxed mb-4">${message}</p>
+                    <button onclick="window.location.reload()" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-xs transition cursor-pointer">
+                        <i class="fas fa-rotate-right mr-1.5"></i> Riprova
+                    </button>
+                `;
+                loadingScreen.classList.remove('opacity-0');
+                loadingScreen.style.display = 'flex';
             }
         }
 
@@ -1974,9 +2010,42 @@
             }, 350);
         }
 
-        fetchDashboardData();
-        buildStack();
-        triggerTooltipWave();
+        async function initDashboard() {
+            const loadingScreen = document.getElementById('app-loading-screen');
+
+            // 1. Verificare la presenza di 'ash'
+            if (!ash) {
+                showFatalAuthError("Parametro di autenticazione 'ash' mancante. Impossibile verificare l'identità del tenant.");
+                return;
+            }
+
+            // 2. Chiamata sincrona con await al Webhook get_owner_data
+            try {
+                const ownerData = await fetchDashboardData();
+                if (!ownerData) {
+                    showFatalAuthError("Nessun profilo Titolare / Owner registrato nel database per questa sessione. Accesso negato.");
+                    return;
+                }
+
+                // 3. Owner valido e recuperato con successo -> Costruisci l'interfaccia e sblocca l'app
+                buildStack();
+                triggerTooltipWave();
+                resetAttractIdle();
+
+                if (loadingScreen) {
+                    loadingScreen.classList.add('opacity-0');
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 300);
+                }
+            } catch (err) {
+                console.error("[InitError] Impossibile recuperare i dati dell'owner:", err);
+                showFatalAuthError("Errore grave di rete o risposta non valida dal server durante il recupero del profilo Owner.");
+            }
+        }
+
+        // Avvio bloccante con verifica identità Titolare / Owner
+        initDashboard();
 
         // ───────────────────────────────────────────────────────
         // ATTRACT MODE — Auto-scorrimento card dopo inattività
