@@ -177,50 +177,85 @@
 
   /**
    * Rende l'elemento finestra trascinabile tramite l'header
+   * Drag Engine: requestAnimationFrame + translate3d — zero reflow, 60 FPS smooth.
+   * Stesso pattern del Catalog Overlay (desktop_catalog_overlay.js).
    */
   function makeDraggable(winElem, headerElem) {
     let isDragging = false;
-    let startX = 0, startY = 0;
-    let initialLeft = 0, initialTop = 0;
+    let currentX = 0, currentY = 0;
+    let initialX = 0, initialY = 0;
+    let xOffset = 0, yOffset = 0;
+    let rafId = null;
+
+    // Resetta l'offset basandosi sulla posizione corrente dell'elemento
+    // (importante quando la finestra è stata già spostata via left/top)
+    function syncOffsetFromCurrentPos() {
+      xOffset = winElem.offsetLeft;
+      yOffset = winElem.offsetTop;
+      // Azzera left/top e passa tutto a transform per evitare conflitti
+      winElem.style.left = '0px';
+      winElem.style.top = '0px';
+      winElem.style.transform = `translate3d(${xOffset}px, ${yOffset}px, 0)`;
+    }
 
     headerElem.style.cursor = 'grab';
 
     headerElem.onmousedown = function (e) {
-      if (e.target.closest('button')) return; // Non trascinare se clicca sui pulsanti della barra
+      if (e.target.closest('button')) return;
       isDragging = true;
       headerElem.style.cursor = 'grabbing';
 
-      startX = e.clientX;
-      startY = e.clientY;
-      initialLeft = winElem.offsetLeft;
-      initialTop = winElem.offsetTop;
+      // Sincronizza xOffset/yOffset dalla posizione reale all'inizio del drag
+      const transform = new DOMMatrix(getComputedStyle(winElem).transform);
+      xOffset = transform.m41 || winElem.offsetLeft;
+      yOffset = transform.m42 || winElem.offsetTop;
+      if (!winElem.style.transform || winElem.style.transform === 'none') {
+        syncOffsetFromCurrentPos();
+        xOffset = winElem.offsetLeft === 0 ? xOffset : 0;
+        yOffset = winElem.offsetTop  === 0 ? yOffset : 0;
+      }
 
-      document.onmousemove = function (ev) {
-        if (!isDragging) return;
-        const dx = ev.clientX - startX;
-        const dy = ev.clientY - startY;
+      initialX = e.clientX - xOffset;
+      initialY = e.clientY - yOffset;
 
-        let newLeft = initialLeft + dx;
-        let newTop = initialTop + dy;
-
-        // Limiti schermo
-        const screenW = window.innerWidth;
-        const screenH = window.innerHeight;
-
-        newTop = Math.max(10, Math.min(screenH - 60, newTop));
-        newLeft = Math.max(10 - winElem.offsetWidth + 100, Math.min(screenW - 100, newLeft));
-
-        winElem.style.left = newLeft + 'px';
-        winElem.style.top = newTop + 'px';
-      };
-
-      document.onmouseup = function () {
-        isDragging = false;
-        headerElem.style.cursor = 'grab';
-        document.onmousemove = null;
-        document.onmouseup = null;
-      };
+      document.onmousemove = onMouseMove;
+      document.onmouseup   = onMouseUp;
     };
+
+    function onMouseMove(e) {
+      if (!isDragging) return;
+
+      currentX = e.clientX - initialX;
+      currentY = e.clientY - initialY;
+
+      // Limiti schermo
+      const screenW = window.innerWidth;
+      const screenH = window.innerHeight;
+      const w = winElem.offsetWidth  || 800;
+      const h = winElem.offsetHeight || 600;
+
+      currentX = Math.max(10 - w + 100, Math.min(screenW - 100, currentX));
+      currentY = Math.max(10, Math.min(screenH - 60, currentY));
+
+      xOffset = currentX;
+      yOffset = currentY;
+
+      if (!rafId) {
+        rafId = requestAnimationFrame(applyTransform);
+      }
+    }
+
+    function applyTransform() {
+      winElem.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
+      rafId = null;
+    }
+
+    function onMouseUp() {
+      isDragging = false;
+      headerElem.style.cursor = 'grab';
+      document.onmousemove = null;
+      document.onmouseup   = null;
+    }
   }
 
   /**
@@ -336,7 +371,7 @@
     openWindow,
     bringToFront,
     minimizeWindow,
-    maximizeWindow,
+    maximizeWindow: toggleMaximize,  // alias corretto: toggleMaximize gestisce entrambe le direzioni
     closeWindow,
     getOpenWindows: () => openWindows
   };

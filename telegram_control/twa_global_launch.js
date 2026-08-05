@@ -207,6 +207,26 @@
 
     const tg = window.Telegram?.WebApp;
 
+    // ── IFRAME DETECTION ────────────────────────────────────────────────────────
+    // Se questa pagina è caricata dentro un iframe (DesktopWindowManager openWindow),
+    // non deve competere per lock cross-tab, non deve richiedere fullscreen e non
+    // deve bloccare le swipe. La finestra è già gestita dal workspace parent.
+    const isEmbeddedInIframe = (function () {
+      try { return window !== window.top; } catch (_) { return true; }
+    })();
+
+    if (isEmbeddedInIframe) {
+      // Espone DesktopWindowManager del parent per poter aprire sub-finestre da dentro l'iframe
+      try {
+        if (window.parent && window.parent.DesktopWindowManager) {
+          window.DesktopWindowManager = window.parent.DesktopWindowManager;
+        }
+      } catch (_) {}
+      // Nessun lock, nessun fullscreen, nessun blocco swipe — tutto gestito dal parent
+      return tg || null;
+    }
+    // ────────────────────────────────────────────────────────────────────────────
+
     // 1. Analisi Pagina & Inizializzazione Lock First-Come First-Served
     const pageAnalysis = analyzePageScope();
     const isAllowed = setupFirstComeLock(pageAnalysis);
@@ -215,6 +235,7 @@
       // Se bloccato, ferma l'esecuzione di script secondari
       return null;
     }
+
 
     if (!tg) {
       return null;

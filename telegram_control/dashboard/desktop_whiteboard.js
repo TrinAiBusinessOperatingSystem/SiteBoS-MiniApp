@@ -404,8 +404,16 @@
 
   /**
    * Gestione del click su una Macro-Categoria
+   * Eccezione catalog: apre DIRETTAMENTE l'overlay senza passare per il sottomenu.
    */
   function handleMacroClick(id, categoryKey, directUrl, label, icon) {
+    // Catalogo -> apre DIRETTAMENTE l'Overlay Catalogo Desktop (nessun sottomenu intermedio)
+    if (categoryKey === 'gestione' || id === 'catalog') {
+      if (window.DesktopCatalogOverlay) {
+        window.DesktopCatalogOverlay.open('SOP');
+        return;
+      }
+    }
     if (directUrl) {
       handleTileClick(directUrl, label, icon);
     } else {
