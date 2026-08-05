@@ -819,6 +819,17 @@
             navigateOwnerUrl(targetUrl, modId);
         };
 
+        window.isMobileDevice = function() {
+            const tg = window.Telegram?.WebApp || window.parent?.Telegram?.WebApp;
+            const platform = (tg?.platform || '').toLowerCase();
+            if (['android', 'ios', 'mobile'].includes(platform)) return true;
+            if (['tdesktop', 'desktop', 'macos', 'weba', 'webk'].includes(platform)) return false;
+
+            const ua = (navigator.userAgent || '').toLowerCase();
+            if (/android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(ua)) return true;
+            return (window.innerWidth < 768) || (window.screen.width < 768);
+        };
+
         window.navigateOwnerUrl = function (targetUrl, modId) {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
@@ -866,7 +877,7 @@
                 return;
             }
 
-            // 3. Reindirizzamento diretto verso pagina HTML con token ash e msg
+            // 3. Reindirizzamento o Apertura Finestra con token ash e msg
             const cleanPath = targetUrl.replace(/^\.\.\//, '');
             const hasQuery = cleanPath.includes('?');
             const p = hasQuery ? '&' : '?';
@@ -879,6 +890,20 @@
                 const p2 = finalUrl.includes('?') ? '&' : '?';
                 finalUrl += `${p2}msg=${encodeURIComponent(msgId)}`;
             }
+
+            // Se siamo su PC Desktop ed il Window Manager è attivo, apri SEMPRE in Finestra Flottante!
+            if (!window.isMobileDevice() && window.DesktopWindowManager) {
+                window.DesktopWindowManager.openWindow({
+                    title: modId || 'Modulo SiteBoS',
+                    url: finalUrl,
+                    icon: 'fa-window-maximize',
+                    width: 880,
+                    height: 640
+                });
+                return;
+            }
+
+            // Fallback per Smartphone Mobile
             window.location.href = finalUrl;
         };
 

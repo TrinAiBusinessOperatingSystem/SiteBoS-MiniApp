@@ -92,8 +92,11 @@
             return;
         }
 
-        // Su Desktop -> Nasconde il carosello 3D mobile e mostra la Scrivania Flat Desktop
-        if (appContent) appContent.classList.add('hidden');
+        // Su Desktop -> Nasconde COMPLETAMENTE il carosello 3D mobile e mostra la Scrivania Flat Desktop
+        if (appContent) {
+            appContent.classList.add('hidden');
+            appContent.style.display = 'none';
+        }
 
         if (!desktopContainer) {
             desktopContainer = document.createElement('div');
