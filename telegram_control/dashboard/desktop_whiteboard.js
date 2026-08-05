@@ -75,17 +75,31 @@
   }
 
   /**
-   * Identifica se l'applicazione è eseguita in ambiente Desktop
-   * (Telegram Desktop client "tdesktop", "weba", "webk", "desktop", "macos", oppure schermo >= 768px, oppure UA non-mobile)
+   * Determina in modo inequivocabile se l'utente si trova su uno Smartphone / Tablet Mobile
+   * oppure su PC Desktop (Telegram Desktop, Web Browser PC).
    */
-  function isDesktopEnvironment() {
+  function isMobileDevice() {
     const tg = window.Telegram?.WebApp;
     const platform = (tg?.platform || '').toLowerCase();
-    const isTgDesktop = ['tdesktop', 'weba', 'webk', 'desktop', 'macos'].includes(platform);
-    const isWideScreen = window.innerWidth >= 768;
-    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
-    return isTgDesktop || isWideScreen || (!isMobileUA && window.innerWidth >= 500);
+    // 1. Se Telegram SDK segnala esplicitamente piattaforma mobile (android / ios / mobile)
+    if (['android', 'ios', 'mobile'].includes(platform)) {
+      return true;
+    }
+
+    // 2. Se Telegram SDK segnala esplicitamente piattaforma desktop/web PC (tdesktop / weba / webk / desktop / macos)
+    if (['tdesktop', 'weba', 'webk', 'desktop', 'macos'].includes(platform)) {
+      return false;
+    }
+
+    // 3. Check UserAgent per identificare smartphone iOS / Android
+    const isMobileUA = /Android|iPhone|iPad|iPod|Windows Phone|IEMobile|Mobile/i.test(navigator.userAgent);
+    if (isMobileUA) {
+      return true;
+    }
+
+    // 4. Default per qualsiasi ambiente PC Desktop / Telegram Desktop
+    return false;
   }
 
   /**
@@ -96,18 +110,26 @@
     const mainCarousel = document.querySelector('main');
     if (!whiteboardContainer) return;
 
-    const isDesktop = isDesktopEnvironment();
+    const isMobile = isMobileDevice();
 
-    // Se siamo su schermi mobile, nasconde la lavagna e mostra il carosello
-    if (!isDesktop) {
+    // Se l'utente è su SMARTPHONE -> Mostra solo il Carosello 3D TWA e nasconde la lavagna desktop
+    if (isMobile) {
       whiteboardContainer.classList.add('hidden');
-      if (mainCarousel) mainCarousel.classList.remove('hidden');
+      whiteboardContainer.classList.remove('flex');
+      if (mainCarousel) {
+        mainCarousel.classList.remove('hidden');
+        mainCarousel.classList.add('flex');
+      }
       return;
     }
 
-    // Su Desktop -> Mostra la lavagna e nasconde il carosello mobile
+    // Se l'utente è su PC DESKTOP (Telegram Desktop / Browser PC) -> Mostra la Lavagna e nasconde il carosello
     whiteboardContainer.classList.remove('hidden');
-    if (mainCarousel) mainCarousel.classList.add('hidden');
+    whiteboardContainer.classList.add('flex');
+    if (mainCarousel) {
+      mainCarousel.classList.add('hidden');
+      mainCarousel.classList.remove('flex');
+    }
 
     const registry = window.getOwnerPagesRegistry ? window.getOwnerPagesRegistry() : [];
     const shortcuts = getPinnedShortcuts();
@@ -222,7 +244,7 @@
    * Su Mobile (< 768px) -> Navigazione standard
    */
   function handleTileClick(url, name, icon) {
-    if (isDesktopEnvironment() && window.DesktopWindowManager) {
+    if (!isMobileDevice() && window.DesktopWindowManager) {
       window.DesktopWindowManager.openWindow({
         title: name,
         url: url,
