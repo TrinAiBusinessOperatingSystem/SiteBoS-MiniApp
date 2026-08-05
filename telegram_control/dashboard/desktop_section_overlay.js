@@ -67,10 +67,10 @@
      * Motore di Trascendimento Smooth 60FPS ad Accelerazione Hardware
      */
     function makeSmoothDraggable(overlayElem, headerElem) {
+        if (!overlayElem || !headerElem) return;
         let isDragging = false;
-        let currentX = 0, currentY = 0;
-        let initialX = 0, initialY = 0;
-        let xOffset = 0, yOffset = 0;
+        let startX = 0, startY = 0;
+        let origX = 0, origY = 0;
         let rafId = null;
 
         headerElem.style.cursor = 'grab';
@@ -79,9 +79,23 @@
             if (e.target.closest('button') || e.target.closest('input')) return;
             isDragging = true;
             headerElem.style.cursor = 'grabbing';
+            overlayElem.style.transition = 'none';
+            overlayElem.style.willChange = 'transform';
+            
+            document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
 
-            initialX = e.clientX - xOffset;
-            initialY = e.clientY - yOffset;
+            startX = e.clientX;
+            startY = e.clientY;
+
+            const transformStr = getComputedStyle(overlayElem).transform;
+            if (transformStr && transformStr !== 'none') {
+                const matrix = new DOMMatrix(transformStr);
+                origX = matrix.m41 || 0;
+                origY = matrix.m42 || 0;
+            } else {
+                origX = 0;
+                origY = 0;
+            }
 
             document.onmousemove = onMouseMove;
             document.onmouseup = onMouseUp;
@@ -89,24 +103,25 @@
 
         function onMouseMove(e) {
             if (!isDragging) return;
-            currentX = e.clientX - initialX;
-            currentY = e.clientY - initialY;
-            xOffset = currentX;
-            yOffset = currentY;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+
+            const nextX = origX + deltaX;
+            const nextY = origY + deltaY;
 
             if (!rafId) {
-                rafId = requestAnimationFrame(updatePosition);
+                rafId = requestAnimationFrame(function () {
+                    overlayElem.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
+                    rafId = null;
+                });
             }
-        }
-
-        function updatePosition() {
-            overlayElem.style.transform = `translate3d(${currentX}px, ${currentY}px, 0)`;
-            rafId = null;
         }
 
         function onMouseUp() {
             isDragging = false;
             headerElem.style.cursor = 'grab';
+            overlayElem.style.willChange = 'auto';
+            document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'auto');
             document.onmousemove = null;
             document.onmouseup = null;
         }
@@ -124,7 +139,8 @@
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'desktop-section-overlay';
-            overlay.className = 'fixed top-12 left-1/2 -translate-x-1/2 w-[92vw] max-w-6xl z-[999000] bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-slate-900 select-none flex flex-col space-y-5 transition-all duration-300';
+            overlay.className = 'fixed top-12 left-1/2 w-[92vw] max-w-6xl z-[999000] bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-slate-900 select-none flex flex-col space-y-5';
+            overlay.style.transform = 'translate3d(-50%, 0, 0)';
             document.body.appendChild(overlay);
         }
         overlay.classList.remove('hidden');
