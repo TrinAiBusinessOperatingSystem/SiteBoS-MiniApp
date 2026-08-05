@@ -445,14 +445,48 @@
    */
   function handleTileClick(url, name, icon) {
     if (!isMobileDevice()) {
-      // Se si tratta del Catalogo Master o delle sue declinazioni, apri l'Overlay Scrivania Flottante in continuità con la Dashboard!
-      if (url.includes('catalog.html')) {
-        let macro = 'ALL';
-        if (url.includes('macro=SOP')) macro = 'SOP';
-        if (url.includes('macro=SER')) macro = 'SER';
-        if (url.includes('macro=PRO')) macro = 'PRO';
+      const lowerUrl = (url || '').toLowerCase();
+      const lowerName = (name || '').toLowerCase();
+
+      // 1. Catalogo Master -> Apri Overlay Flottante Catalogo
+      if (lowerUrl.includes('gestione') || lowerUrl.includes('catalog') || lowerName.includes('gestione') || lowerName.includes('catalogo')) {
+        let macro = 'SOP';
+        if (lowerUrl.includes('macro=SER')) macro = 'SER';
+        if (lowerUrl.includes('macro=PRO')) macro = 'PRO';
         if (window.DesktopCatalogOverlay) {
           window.DesktopCatalogOverlay.open(macro);
+          return;
+        }
+      }
+
+      // 2. Identity & Setup -> Apri Overlay Sezione Identity
+      if (lowerUrl.includes('identity') || lowerName.includes('identity') || lowerName.includes('setup')) {
+        if (window.DesktopSectionOverlay) {
+          window.DesktopSectionOverlay.open('identity');
+          return;
+        }
+      }
+
+      // 3. Operatività & Ordini -> Apri Overlay Sezione Operatività
+      if (lowerUrl.includes('operativita') || lowerName.includes('operatività') || lowerName.includes('ordini')) {
+        if (window.DesktopSectionOverlay) {
+          window.DesktopSectionOverlay.open('operativita');
+          return;
+        }
+      }
+
+      // 4. Sicurezza & Agenda -> Apri Overlay Sezione Agenti/Sicurezza
+      if (lowerUrl.includes('agents') || lowerUrl.includes('sicurezza') || lowerName.includes('sicurezza') || lowerName.includes('agenda')) {
+        if (window.DesktopSectionOverlay) {
+          window.DesktopSectionOverlay.open('agents');
+          return;
+        }
+      }
+
+      // 5. Supporto -> Apri Overlay Sezione Supporto
+      if (lowerUrl.includes('supporto') || lowerName.includes('supporto') || lowerName.includes('assistenza')) {
+        if (window.DesktopSectionOverlay) {
+          window.DesktopSectionOverlay.open('supporto');
           return;
         }
       }
