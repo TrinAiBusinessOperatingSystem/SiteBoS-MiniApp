@@ -23,6 +23,39 @@
         return (window.innerWidth < 768) || (window.screen.width < 768);
     }
 
+    /**
+     * Risolutore ed apripista unificato per finestre flottanti multi-tasking dal Catalogo
+     */
+    window.openDesktopSubWindow = function (url, title, icon) {
+        const winManager = window.DesktopWindowManager || (window.parent && window.parent.DesktopWindowManager) || (window.top && window.top.DesktopWindowManager);
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash');
+        const msgId = urlParams.get('msg');
+
+        let cleanPath = url.startsWith('http') ? url : (url.startsWith('../') ? url : '../gestione/' + url.replace(/^gestione\//, ''));
+        if (ash && !cleanPath.includes('ash=')) {
+            const p = cleanPath.includes('?') ? '&' : '?';
+            cleanPath += `${p}ash=${encodeURIComponent(ash)}`;
+        }
+        if (msgId && !cleanPath.includes('msg=')) {
+            const p = cleanPath.includes('?') ? '&' : '?';
+            cleanPath += `${p}msg=${encodeURIComponent(msgId)}`;
+        }
+
+        if (winManager) {
+            winManager.openWindow({
+                title: title || 'Modulo Catalogo',
+                url: cleanPath,
+                icon: icon || 'fa-box-open',
+                width: 880,
+                height: 640
+            });
+        } else {
+            window.location.href = cleanPath;
+        }
+    };
+
     window.setDesktopCatalogFilter = function (filter) {
         desktopFilter = filter;
         renderDesktopCatalogWorkspace();
@@ -90,11 +123,11 @@
 
                 <!-- PULSANTI AZIONE DESKTOP -->
                 <div class="flex items-center gap-3 shrink-0">
-                    <button onclick="window.handleNewAction ? window.handleNewAction() : null" class="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md flex items-center gap-2 transition cursor-pointer active:scale-95">
+                    <button onclick="window.openDesktopSubWindow('add-product.html', 'Nuovo Prodotto / Servizio', 'fa-plus-circle')" class="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-md flex items-center gap-2 transition cursor-pointer active:scale-95">
                         <i class="fas fa-plus"></i>
                         <span>Nuova Categoria / Voce</span>
                     </button>
-                    <button onclick="window.openUserGuide ? window.openUserGuide('../userguide/03_catalog.html') : null" class="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 font-black text-xs shadow-xs flex items-center gap-2 transition cursor-pointer active:scale-95">
+                    <button onclick="window.openDesktopSubWindow('../userguide/03_catalog.html', 'Manuale Utente Catalogo', 'fa-globe')" class="px-4 py-2.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 font-black text-xs shadow-xs flex items-center gap-2 transition cursor-pointer active:scale-95">
                         <i class="fas fa-globe text-slate-500"></i>
                         <span>Manuale Utente</span>
                     </button>

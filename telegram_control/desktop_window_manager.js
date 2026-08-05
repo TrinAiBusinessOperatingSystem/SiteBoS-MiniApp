@@ -331,8 +331,8 @@
     return winData;
   }
 
-  // Esporta nel namespace globale
-  window.DesktopWindowManager = {
+  // Esporta nel namespace globale ed al contenitore genitore (per supporto iframe multi-tasking)
+  const manager = {
     openWindow,
     bringToFront,
     minimizeWindow,
@@ -340,5 +340,15 @@
     closeWindow,
     getOpenWindows: () => openWindows
   };
+
+  window.DesktopWindowManager = manager;
+  try {
+    if (window.parent && window.parent !== window) {
+      window.parent.DesktopWindowManager = manager;
+    }
+    if (window.top && window.top !== window) {
+      window.top.DesktopWindowManager = manager;
+    }
+  } catch (_) {}
 
 })(window);
