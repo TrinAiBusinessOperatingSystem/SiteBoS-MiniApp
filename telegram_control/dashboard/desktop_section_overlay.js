@@ -24,7 +24,7 @@
                 { id: "bot_config", name: "Setup Bot Telegram", desc: "Definisci nome, ruolo, tono di voce, istruzioni e capacità AI dell'assistente.", icon: "🤖", url: "../identity/bot_config.html", badge: "AI BOT" },
                 { id: "edit_owner", name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica aziendale, contatti, indirizzi e dati fiscali master.", icon: "👤", url: "../identity/edit_owner.html", badge: "ANAGRAFICA" },
                 { id: "advanced_setup", name: "Setup Avanzato & Compliance", desc: "Configura parametri fiscali avanzati, moduli IVA e contratti aziendali.", icon: "🏛️", url: "../identity/advanced-setup.html", badge: "FISCAL" },
-                { id: "trinai_platform", name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite di intelligenza direzionale ed ecosistema cloud TrinAi.", icon: "☁️", url: "https://dashboard.trinai.it", badge: "TRINAI CLOUD" }
+                { id: "trinai_platform", name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite di intelligenza direzionale ed ecosistema cloud TrinAi.", icon: "TrinAi_Logo.jpg", url: "../identity/trinai-cloud.html", badge: "TRINAI CLOUD" }
             ]
         },
         operativita: {
