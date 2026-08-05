@@ -835,38 +835,46 @@
         window.navigateOwnerUrl = function (targetUrl, modId) {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
-            // 1. Su PC Desktop, l'apertura dal Main Menu invoca DIRETTA gli Overlay Flottanti senza sottomenu intermedi!
+            // ── DESKTOP: Apertura Diretta ──────────────────────────────────────────
+            // Su PC Desktop ogni tasto apre DIRETTAMENTE la pagina specifica.
+            // NESSUN menu intermedio. Il bottoncione IS il launcher, non un router.
             if (!window.isMobileDevice()) {
-                const searchId = (modId || targetUrl || '').toLowerCase();
-                if (searchId.includes('gestione') || searchId.includes('catalog')) {
+                // Caso speciale: Catalogo → overlay dati (non iframe)
+                const lowerTarget = (targetUrl || '').toLowerCase();
+                if (lowerTarget.includes('catalog')) {
+                    let macro = 'SOP';
+                    if (lowerTarget.includes('macro=ser')) macro = 'SER';
+                    if (lowerTarget.includes('macro=pro')) macro = 'PRO';
                     if (window.DesktopCatalogOverlay) {
-                        window.DesktopCatalogOverlay.open('SOP');
-                        return;
-                    }
-                } else if (searchId.includes('identity')) {
-                    if (window.DesktopSectionOverlay) {
-                        window.DesktopSectionOverlay.open('identity');
-                        return;
-                    }
-                } else if (searchId.includes('operativita')) {
-                    if (window.DesktopSectionOverlay) {
-                        window.DesktopSectionOverlay.open('operativita');
-                        return;
-                    }
-                } else if (searchId.includes('agents') || searchId.includes('sicurezza') || searchId.includes('agenda')) {
-                    if (window.DesktopSectionOverlay) {
-                        window.DesktopSectionOverlay.open('agents');
-                        return;
-                    }
-                } else if (searchId.includes('supporto') || searchId.includes('support')) {
-                    if (window.DesktopSectionOverlay) {
-                        window.DesktopSectionOverlay.open('supporto');
+                        window.DesktopCatalogOverlay.open(macro);
                         return;
                     }
                 }
+
+                // Tutte le altre pagine → iframe flottante diretto
+                const cleanPath = (targetUrl || '').replace(/^\.\.\//, '');
+                const hasQuery = cleanPath.includes('?');
+                const pChar = hasQuery ? '&' : '?';
+                let finalUrl = `../${cleanPath}`;
+                if (ash && !finalUrl.includes('ash=')) finalUrl += `${pChar}ash=${encodeURIComponent(ash)}`;
+                if (msgId && !finalUrl.includes('msg=')) {
+                    const p2 = finalUrl.includes('?') ? '&' : '?';
+                    finalUrl += `${p2}msg=${encodeURIComponent(msgId)}`;
+                }
+
+                if (window.DesktopWindowManager && targetUrl && targetUrl !== '#') {
+                    window.DesktopWindowManager.openWindow({
+                        title: modId || 'Modulo SiteBoS',
+                        url: finalUrl,
+                        icon: 'fas fa-window-maximize',
+                        width: 920,
+                        height: 660
+                    });
+                    return;
+                }
             }
 
-            // 2. Rilevamento sottomenu 3D nativo nella Dashboard Mobile (es. operativita, intelligence_hub, identity_hub)
+            // ── MOBILE: sottomenu 3D nativo (es. operativita, identity_hub) ─────────
             const searchId = modId || targetUrl;
             const targetModIdx = mainModules.findIndex(m => m.id === searchId || m.url === targetUrl);
 
@@ -878,7 +886,6 @@
                 currentMenuLevel = 'sub';
                 activeIdx = 0;
 
-                // Update Submenu Header
                 const submenuHeader = document.getElementById('submenu-header');
                 const submenuTitle = document.getElementById('submenu-title');
                 const submenuIcon = document.getElementById('submenu-icon');
@@ -888,7 +895,6 @@
                     submenuHeader.classList.remove('hidden');
                 }
 
-                // Show Telegram Native Back Button
                 if (tg && tg.BackButton) {
                     tg.BackButton.show();
                     tg.BackButton.onClick(handleTelegramBack);
@@ -899,7 +905,7 @@
                 return;
             }
 
-            // 2. Gestione link esterni
+            // ── Link Esterni ────────────────────────────────────────────────────────
             if (!targetUrl || targetUrl === '#') return;
             if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
                 if (tg && tg.openLink) {
@@ -910,45 +916,16 @@
                 return;
             }
 
-            // 3. Reindirizzamento o Apertura Finestra con token ash e msg
+            // ── Fallback Mobile: Navigazione Normale ────────────────────────────────
             const cleanPath = targetUrl.replace(/^\.\.\//, '');
             const hasQuery = cleanPath.includes('?');
-            const p = hasQuery ? '&' : '?';
+            const pChar = hasQuery ? '&' : '?';
             let finalUrl = `../${cleanPath}`;
-
-            if (ash && !finalUrl.includes('ash=')) {
-                finalUrl += `${p}ash=${encodeURIComponent(ash)}`;
-            }
+            if (ash && !finalUrl.includes('ash=')) finalUrl += `${pChar}ash=${encodeURIComponent(ash)}`;
             if (msgId && !finalUrl.includes('msg=')) {
                 const p2 = finalUrl.includes('?') ? '&' : '?';
                 finalUrl += `${p2}msg=${encodeURIComponent(msgId)}`;
             }
-
-            // Se siamo su PC Desktop ed il bersaglio è il Catalogo Master, apri l'Overlay Flottante Scrivania!
-            if (!window.isMobileDevice() && targetUrl.includes('catalog.html')) {
-                let macro = 'ALL';
-                if (targetUrl.includes('macro=SOP')) macro = 'SOP';
-                if (targetUrl.includes('macro=SER')) macro = 'SER';
-                if (targetUrl.includes('macro=PRO')) macro = 'PRO';
-                if (window.DesktopCatalogOverlay) {
-                    window.DesktopCatalogOverlay.open(macro);
-                    return;
-                }
-            }
-
-            // Se siamo su PC Desktop ed il Window Manager è attivo, apri in Finestra Flottante Multi-Tasking!
-            if (!window.isMobileDevice() && window.DesktopWindowManager) {
-                window.DesktopWindowManager.openWindow({
-                    title: modId || 'Modulo SiteBoS',
-                    url: finalUrl,
-                    icon: 'fa-window-maximize',
-                    width: 880,
-                    height: 640
-                });
-                return;
-            }
-
-            // Fallback per Smartphone Mobile
             window.location.href = finalUrl;
         };
 

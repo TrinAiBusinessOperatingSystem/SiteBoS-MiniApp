@@ -441,64 +441,35 @@
   }
 
   /**
-   * Gestione del click su una card modulo: Apre in finestra mobile su Desktop o naviga su Mobile
+   * Gestione del click su una card modulo:
+   * - Desktop: apre DIRETTAMENTE la pagina specifica in finestra iframe flottante (DesktopWindowManager).
+   *   Eccezione: il Catalogo Master apre DesktopCatalogOverlay (overlay dati, non pagina HTML separata).
+   * - Mobile: naviga normalmente via window.location.href.
    */
   function handleTileClick(url, name, icon) {
     if (!isMobileDevice()) {
       const lowerUrl = (url || '').toLowerCase();
-      const lowerName = (name || '').toLowerCase();
 
-      // 1. Catalogo Master -> Apri Overlay Flottante Catalogo
-      if (lowerUrl.includes('gestione') || lowerUrl.includes('catalog') || lowerName.includes('gestione') || lowerName.includes('catalogo')) {
+      // Catalogo Master -> unica eccezione: overlay dati flottante (non iframe)
+      if (lowerUrl.includes('catalog') || lowerUrl.includes('gestione/catalog')) {
         let macro = 'SOP';
-        if (lowerUrl.includes('macro=SER')) macro = 'SER';
-        if (lowerUrl.includes('macro=PRO')) macro = 'PRO';
+        if (lowerUrl.includes('macro=ser')) macro = 'SER';
+        if (lowerUrl.includes('macro=pro')) macro = 'PRO';
         if (window.DesktopCatalogOverlay) {
           window.DesktopCatalogOverlay.open(macro);
           return;
         }
       }
 
-      // 2. Identity & Setup -> Apri Overlay Sezione Identity
-      if (lowerUrl.includes('identity') || lowerName.includes('identity') || lowerName.includes('setup')) {
-        if (window.DesktopSectionOverlay) {
-          window.DesktopSectionOverlay.open('identity');
-          return;
-        }
-      }
-
-      // 3. Operatività & Ordini -> Apri Overlay Sezione Operatività
-      if (lowerUrl.includes('operativita') || lowerName.includes('operatività') || lowerName.includes('ordini')) {
-        if (window.DesktopSectionOverlay) {
-          window.DesktopSectionOverlay.open('operativita');
-          return;
-        }
-      }
-
-      // 4. Sicurezza & Agenda -> Apri Overlay Sezione Agenti/Sicurezza
-      if (lowerUrl.includes('agents') || lowerUrl.includes('sicurezza') || lowerName.includes('sicurezza') || lowerName.includes('agenda')) {
-        if (window.DesktopSectionOverlay) {
-          window.DesktopSectionOverlay.open('agents');
-          return;
-        }
-      }
-
-      // 5. Supporto -> Apri Overlay Sezione Supporto
-      if (lowerUrl.includes('supporto') || lowerName.includes('supporto') || lowerName.includes('assistenza')) {
-        if (window.DesktopSectionOverlay) {
-          window.DesktopSectionOverlay.open('supporto');
-          return;
-        }
-      }
-
+      // Tutte le altre pagine -> iframe flottante diretto, nessun menu intermedio
       const targetUrl = buildFinalUrl(url);
       if (window.DesktopWindowManager) {
         window.DesktopWindowManager.openWindow({
           title: name,
           url: targetUrl,
-          icon: icon,
-          width: 880,
-          height: 640
+          icon: icon || 'fas fa-window-maximize',
+          width: 920,
+          height: 660
         });
       } else {
         window.location.href = targetUrl;
