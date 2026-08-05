@@ -414,24 +414,37 @@
   }
 
   /**
-   * Risolutore automatico di URL relativi per la navigazione dalla directory dashboard/
+   * Replicazione 1-a-1 della logica di routing navigateOwnerUrl di dashboard.html (righe 870-882)
+   * Costruisce il percorso relativo corretto ../ ed allega i token di sessione ash e msg
    */
-  function fixRelativeUrl(url) {
-    if (!url) return '';
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) {
-      return url;
+  function buildFinalUrl(targetUrl) {
+    if (!targetUrl || targetUrl === '#') return '#';
+    if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) return targetUrl;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const ash = urlParams.get('ash');
+    const msgId = urlParams.get('msg');
+
+    const cleanPath = targetUrl.replace(/^\.\.\//, '');
+    const hasQuery = cleanPath.includes('?');
+    const p = hasQuery ? '&' : '?';
+    let finalUrl = `../${cleanPath}`;
+
+    if (ash && !finalUrl.includes('ash=')) {
+      finalUrl += `${p}ash=${encodeURIComponent(ash)}`;
     }
-    if (!url.startsWith('../')) {
-      return '../' + url;
+    if (msgId && !finalUrl.includes('msg=')) {
+      const p2 = finalUrl.includes('?') ? '&' : '?';
+      finalUrl += `${p2}msg=${encodeURIComponent(msgId)}`;
     }
-    return url;
+    return finalUrl;
   }
 
   /**
-   * Gestione del click su una card modulo: Apre in finestra mobile su Desktop
+   * Gestione del click su una card modulo: Apre in finestra mobile su Desktop o naviga su Mobile
    */
   function handleTileClick(url, name, icon) {
-    const targetUrl = fixRelativeUrl(url);
+    const targetUrl = buildFinalUrl(url);
     if (!isMobileDevice() && window.DesktopWindowManager) {
       window.DesktopWindowManager.openWindow({
         title: name,
