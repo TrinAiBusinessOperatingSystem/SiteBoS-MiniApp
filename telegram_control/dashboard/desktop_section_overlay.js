@@ -24,7 +24,7 @@
                 { id: "bot_config", name: "Setup Bot Telegram", desc: "Definisci nome, ruolo, tono di voce, istruzioni e capacità AI dell'assistente.", icon: "🤖", url: "../identity/bot_config.html", badge: "AI BOT" },
                 { id: "edit_owner", name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica aziendale, contatti, indirizzi e dati fiscali master.", icon: "👤", url: "../identity/edit_owner.html", badge: "ANAGRAFICA" },
                 { id: "advanced_setup", name: "Setup Avanzato & Compliance", desc: "Configura parametri fiscali avanzati, moduli IVA e contratti aziendali.", icon: "🏛️", url: "../identity/advanced-setup.html", badge: "FISCAL" },
-                { id: "trinai_platform", name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite di intelligenza direzionale ed ecosistema cloud TrinAi.", icon: "TrinAi_Logo.jpg", url: "../identity/trinai-cloud.html", badge: "TRINAI CLOUD" }
+                { id: "trinai_platform", name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite di intelligenza direzionale ed ecosistema cloud TrinAi.", icon: "TrinAi_Logo.jpg", url: "https://dashboard.trinai.it", badge: "TRINAI CLOUD" }
             ]
         },
         operativita: {
@@ -318,8 +318,18 @@
      * Lancia uno strumento aprendolo in una Finestra Flottante Multi-Tasking
      */
     function launchTool(url, name, icon) {
+        const lowerUrl = (url || '').toLowerCase();
+        if (lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://')) {
+            const tg = window.Telegram?.WebApp;
+            if (tg && typeof tg.openLink === 'function') {
+                tg.openLink(url);
+            } else {
+                window.open(url, '_blank');
+            }
+            return;
+        }
+
         if (window.DesktopWindowManager) {
-            const lowerUrl = (url || '').toLowerCase();
             const isWideTool = lowerUrl.includes('trinai');
             const winWidth = isWideTool ? 960 : 460;
             const winHeight = isWideTool ? 720 : 780;
