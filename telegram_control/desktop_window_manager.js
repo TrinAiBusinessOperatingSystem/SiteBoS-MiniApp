@@ -312,7 +312,7 @@
 
     const winElem = document.createElement('div');
     winElem.id = winId;
-    winElem.className = 'fixed z-[990000] bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-2xl transition-all duration-150';
+    winElem.className = 'fixed z-[990000] bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-2xl';
     winElem.style.left = pos.left + 'px';
     winElem.style.top = pos.top + 'px';
     winElem.style.width = pos.width + 'px';

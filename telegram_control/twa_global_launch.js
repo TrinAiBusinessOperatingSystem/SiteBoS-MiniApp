@@ -222,6 +222,43 @@
           window.DesktopWindowManager = window.parent.DesktopWindowManager;
         }
       } catch (_) {}
+
+      // ── INTERCETTA NAVIGAZIONE A DASHBOARD / BACK DENTRO L'IFRAME ─────────────
+      // Evita l'effetto Inception (dashboard dentro la mini-finestra).
+      // Se una pagina dentro l'iframe naviga a dashboard.html o preme un tasto indietro
+      // che porta alla dashboard, chiude la finestra dell'iframe anziché ricaricare la dashboard!
+      function closeParentWindowIfEmbedded() {
+        try {
+          if (window.parent && window.parent.DesktopWindowManager) {
+            const parentIframes = Array.from(window.parent.document.querySelectorAll('iframe'));
+            const myIframe = parentIframes.find(f => f.contentWindow === window);
+            if (myIframe) {
+              const winElem = myIframe.closest('[id^="win_"]');
+              if (winElem) {
+                window.parent.DesktopWindowManager.closeWindow(winElem.id);
+                return true;
+              }
+            }
+          }
+        } catch (_) {}
+        return false;
+      }
+
+      // Intercetta click su pulsanti o link indietro diretti a dashboard.html
+      document.addEventListener('click', function (e) {
+        const targetEl = e.target.closest('a, button, [onclick], div');
+        if (!targetEl) return;
+
+        const onclickAttr = (targetEl.getAttribute('onclick') || '').toLowerCase();
+        const hrefAttr = (targetEl.getAttribute('href') || '').toLowerCase();
+
+        if (onclickAttr.includes('dashboard.html') || hrefAttr.includes('dashboard.html')) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeParentWindowIfEmbedded();
+        }
+      }, true);
+
       // Nessun lock, nessun fullscreen, nessun blocco swipe — tutto gestito dal parent
       return tg || null;
     }
