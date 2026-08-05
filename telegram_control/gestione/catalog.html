@@ -23,11 +23,12 @@
 
     <script>
 (function() {
-    // Riferimento locale e temporaneo all'SDK per il controllo iniziale
-    const tempTg = window.Telegram?.WebApp;
-    const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+    const tempTg = window.Telegram?.WebApp || window.parent?.Telegram?.WebApp;
+    const isIframe = window.self !== window.top;
+    const hasParams = window.location.search.includes('ash=') || window.location.search.includes('msg=') || window.location.search.includes('macro=');
+    const isTelegramSession = isIframe || hasParams || (tempTg && (tempTg.initData || tempTg.platform !== "unknown"));
 
-    if (!isTelegramSession) {
+    if (!isTelegramSession && window.location.protocol !== 'file:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
         const currentPath = window.location.pathname;
         let redirectPath = "index.html";
 
@@ -54,7 +55,26 @@
                     }
                 }
             }
-        }
+        };
+
+        // Adattatore layout responsivo per PC Desktop & Multi-Window OS
+        (function() {
+            function adaptCatalogForDesktop() {
+                const isMobile = (window.innerWidth < 768) || /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+                const appContent = document.getElementById('app-content');
+                if (appContent) {
+                    if (!isMobile) {
+                        appContent.classList.remove('max-w-md');
+                        appContent.classList.add('max-w-5xl', 'w-full', 'px-6');
+                    } else {
+                        appContent.classList.add('max-w-md');
+                        appContent.classList.remove('max-w-5xl', 'px-6');
+                    }
+                }
+            }
+            document.addEventListener('DOMContentLoaded', adaptCatalogForDesktop);
+            window.addEventListener('resize', adaptCatalogForDesktop);
+        })();
     </script>
 
     <style>

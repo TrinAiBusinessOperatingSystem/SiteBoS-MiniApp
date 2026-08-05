@@ -134,7 +134,7 @@
       desc: "Ticket di supporto tecnico e deviazione della chat ad operatori umani.",
       icon: "fa-headset",
       badge: "TICKET & HELP",
-      directUrl: "supporto/support_hub.html"
+      directUrl: "../supporto/support_hub.html"
     },
     {
       id: "fine_tuning",
@@ -143,7 +143,7 @@
       desc: "Esporta i dati di SiteBoS in formato JSONL per addestrare modelli LLM personalizzati.",
       icon: "fa-brain",
       badge: "JSONL EXPORT",
-      directUrl: "fine-tuning/fine-tuning.html"
+      directUrl: "../fine-tuning/fine-tuning.html"
     }
   ];
 
@@ -152,38 +152,38 @@
    */
   const SUBMENU_MAP = {
     identity: [
-      { name: "Setup Configurazione Bot", desc: "Personalizza le impostazioni ed il comportamento del bot.", url: "identity/bot_config.html", icon: "fa-robot", category: "identity" },
-      { name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica, la firma ed i recapiti aziendali.", url: "identity/edit_owner.html", icon: "fa-user-gear", category: "identity" },
-      { name: "Setup Avanzato & Fiscale", desc: "Verticalizzazione del settore ed impostazioni dei conti finanziari.", url: "identity/advanced-setup.html", icon: "fa-sliders", category: "identity" }
+      { name: "Setup Configurazione Bot", desc: "Personalizza le impostazioni ed il comportamento del bot.", url: "../identity/bot_config.html", icon: "fa-robot", category: "identity" },
+      { name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica, la firma ed i recapiti aziendali.", url: "../identity/edit_owner.html", icon: "fa-user-gear", category: "identity" },
+      { name: "Setup Avanzato & Fiscale", desc: "Verticalizzazione del settore ed impostazioni dei conti finanziari.", url: "../identity/advanced-setup.html", icon: "fa-sliders", category: "identity" }
     ],
     gestione: [
-      { name: "Catalogo Master Prodotti & Servizi", desc: "Listino unico di consultazione ed editing rapido.", url: "gestione/catalog.html", icon: "fa-store", category: "gestione" },
-      { name: "Macro Prodotti & Asset Digitali", desc: "Schede dei soli prodotti fisici e digitali.", url: "gestione/catalog.html?macro=PRO", icon: "fa-box-open", category: "gestione" },
-      { name: "Macro Servizi & Prestazioni", desc: "Schede dei soli servizi e trattamenti professionali.", url: "gestione/catalog.html?macro=SER", icon: "fa-concierge-bell", category: "gestione" },
-      { name: "Macro Procedure SOP & Blueprint", desc: "Istruzioni operative standard e ricette lavorative.", url: "gestione/catalog.html?macro=SOP", icon: "fa-clipboard-list", category: "gestione" },
-      { name: "Inserisci Nuovo Prodotto / Servizio", desc: "Form di creazione guidata per nuovi prodotti e servizi.", url: "gestione/add-product.html", icon: "fa-plus-circle", category: "gestione" },
-      { name: "Inserisci Nuova Categoria", desc: "Crea una nuova categoria merceologica nel listino.", url: "gestione/add-category.html", icon: "fa-folder-plus", category: "gestione" },
-      { name: "Gestione Blog & News", desc: "Pubblica articoli ed aggiornamenti sul canale aziendale.", url: "gestione/edit-blog.html", icon: "fa-newspaper", category: "gestione" }
+      { name: "Catalogo Master Prodotti & Servizi", desc: "Listino unico di consultazione ed editing rapido.", url: "../gestione/catalog.html", icon: "fa-store", category: "gestione" },
+      { name: "Macro Prodotti & Asset Digitali", desc: "Schede dei soli prodotti fisici e digitali.", url: "../gestione/catalog.html?macro=PRO", icon: "fa-box-open", category: "gestione" },
+      { name: "Macro Servizi & Prestazioni", desc: "Schede dei soli servizi e trattamenti professionali.", url: "../gestione/catalog.html?macro=SER", icon: "fa-concierge-bell", category: "gestione" },
+      { name: "Macro Procedure SOP & Blueprint", desc: "Istruzioni operative standard e ricette lavorative.", url: "../gestione/catalog.html?macro=SOP", icon: "fa-clipboard-list", category: "gestione" },
+      { name: "Inserisci Nuovo Prodotto / Servizio", desc: "Form di creazione guidata per nuovi prodotti e servizi.", url: "../gestione/add-product.html", icon: "fa-plus-circle", category: "gestione" },
+      { name: "Inserisci Nuova Categoria", desc: "Crea una nuova categoria merceologica nel listino.", url: "../gestione/add-category.html", icon: "fa-folder-plus", category: "gestione" },
+      { name: "Gestione Blog & News", desc: "Pubblica articoli ed aggiornamenti sul canale aziendale.", url: "../gestione/edit-blog.html", icon: "fa-newspaper", category: "gestione" }
     ],
     operativita: [
-      { name: "Ordini Live & Spedizioni", desc: "Monitoraggio in tempo reale degli ordini in entrata.", url: "operativita/orders-manager.html", icon: "fa-truck-ramp-box", category: "operativita" },
-      { name: "Piano Lavori & Priorità", desc: "Organizza le code di lavoro e pianifica l'evasione commesse.", url: "operativita/job-create.html", icon: "fa-tasks", category: "operativita" },
-      { name: "Percorsi AI Logistica", desc: "Algoritmi predittivi per l'ottimizzazione percorsi consegne.", url: "operativita/pianificazione_itinerari.html", icon: "fa-route", category: "operativita" }
+      { name: "Ordini Live & Spedizioni", desc: "Monitoraggio in tempo reale degli ordini in entrata.", url: "../operativita/orders-manager.html", icon: "fa-truck-ramp-box", category: "operativita" },
+      { name: "Piano Lavori & Priorità", desc: "Organizza le code di lavoro e pianifica l'evasione commesse.", url: "../operativita/job-create.html", icon: "fa-tasks", category: "operativita" },
+      { name: "Percorsi AI Logistica", desc: "Algoritmi predittivi per l'ottimizzazione percorsi consegne.", url: "../operativita/pianificazione_itinerari.html", icon: "fa-route", category: "operativita" }
     ],
     intelligence: [
-      { name: "Intelligence Generale Direzionale", desc: "Modulo di controllo direzionale e reportistica sintetica.", url: "agents/agent_intelligence.html", icon: "fa-brain", category: "intelligence" },
-      { name: "Analisi Concorrenza Territoriale", desc: "Benchmarking automatizzato dei competitor di settore.", url: "agents/analisi-mercato.html", icon: "fa-search-dollar", category: "intelligence" },
-      { name: "Sicurezza HSE & Conformità Normativa", desc: "Verifica DVR, sicurezza sul lavoro e adempimenti antinfortunistici.", url: "agents/assistente-sicurezza.html", icon: "fa-shield-halved", category: "intelligence" },
-      { name: "Controllo Gestione CFO & Marginalità", desc: "Monitoraggio flussi di cassa, bilancio e marginalità.", url: "agents/controllo_gestione.html", icon: "fa-coins", category: "intelligence" },
-      { name: "Magazzino AI & Ottimizzazione Scorte", desc: "Gestione ed ottimizzazione automatizzata delle scorte.", url: "agents/intelligent-warehouse.html", icon: "fa-warehouse", category: "intelligence" },
-      { name: "Analisi Agenda & Tempi Staff", desc: "Pianificazione agenda ed ottimizzazione tempi del personale.", url: "agents/agenda.html", icon: "fa-calendar-days", category: "intelligence" },
-      { name: "Supervisor Hub Auditing", desc: "Pannello supervisor per l'ispezione ed auditing delle SOP.", url: "gestione/supervisor_hub.html", icon: "fa-user-check", category: "intelligence" }
+      { name: "Intelligence Generale Direzionale", desc: "Modulo di controllo direzionale e reportistica sintetica.", url: "../agents/agent_intelligence.html", icon: "fa-brain", category: "intelligence" },
+      { name: "Analisi Concorrenza Territoriale", desc: "Benchmarking automatizzato dei competitor di settore.", url: "../agents/analisi-mercato.html", icon: "fa-search-dollar", category: "intelligence" },
+      { name: "Sicurezza HSE & Conformità Normativa", desc: "Verifica DVR, sicurezza sul lavoro e adempimenti antinfortunistici.", url: "../agents/assistente-sicurezza.html", icon: "fa-shield-halved", category: "intelligence" },
+      { name: "Controllo Gestione CFO & Marginalità", desc: "Monitoraggio flussi di cassa, bilancio e marginalità.", url: "../agents/controllo_gestione.html", icon: "fa-coins", category: "intelligence" },
+      { name: "Magazzino AI & Ottimizzazione Scorte", desc: "Gestione ed ottimizzazione automatizzata delle scorte.", url: "../agents/intelligent-warehouse.html", icon: "fa-warehouse", category: "intelligence" },
+      { name: "Analisi Agenda & Tempi Staff", desc: "Pianificazione agenda ed ottimizzazione tempi del personale.", url: "../agents/agenda.html", icon: "fa-calendar-days", category: "intelligence" },
+      { name: "Supervisor Hub Auditing", desc: "Pannello supervisor per l'ispezione ed auditing delle SOP.", url: "../gestione/supervisor_hub.html", icon: "fa-user-check", category: "intelligence" }
     ],
     supporto: [
-      { name: "Support Hub & Ticket", desc: "Centro di assistenza tecnica e gestione ticket.", url: "supporto/support_hub.html", icon: "fa-headset", category: "supporto" }
+      { name: "Support Hub & Ticket", desc: "Centro di assistenza tecnica e gestione ticket.", url: "../supporto/support_hub.html", icon: "fa-headset", category: "supporto" }
     ],
     addestramento: [
-      { name: "Fine-Tuning Export Dataset JSONL", desc: "Esporta le conversazioni ed i dati per l'addestramento LLM.", url: "fine-tuning/fine-tuning.html", icon: "fa-brain", category: "addestramento" }
+      { name: "Fine-Tuning Export Dataset JSONL", desc: "Esporta le conversazioni ed i dati per l'addestramento LLM.", url: "../fine-tuning/fine-tuning.html", icon: "fa-brain", category: "addestramento" }
     ]
   };
 
@@ -414,19 +414,34 @@
   }
 
   /**
+   * Risolutore automatico di URL relativi per la navigazione dalla directory dashboard/
+   */
+  function fixRelativeUrl(url) {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) {
+      return url;
+    }
+    if (!url.startsWith('../')) {
+      return '../' + url;
+    }
+    return url;
+  }
+
+  /**
    * Gestione del click su una card modulo: Apre in finestra mobile su Desktop
    */
   function handleTileClick(url, name, icon) {
+    const targetUrl = fixRelativeUrl(url);
     if (!isMobileDevice() && window.DesktopWindowManager) {
       window.DesktopWindowManager.openWindow({
         title: name,
-        url: url,
+        url: targetUrl,
         icon: icon,
         width: 880,
         height: 640
       });
     } else {
-      window.location.href = url;
+      window.location.href = targetUrl;
     }
   }
 
