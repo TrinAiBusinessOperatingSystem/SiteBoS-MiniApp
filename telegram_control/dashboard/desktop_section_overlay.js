@@ -17,13 +17,14 @@
     const SECTIONS_DATA = {
         identity: {
             title: "IDENTITY & SETUP AZIENDALE",
-            subtitle: "Configura la personalità del Bot Telegram, i dati del titolare e la conformità fiscale.",
+            subtitle: "Configura la personalità del Bot Telegram, i dati del titolare, la conformità fiscale e la piattaforma cloud.",
             badge: "CONFIGURAZIONE",
             color: "blue",
             items: [
                 { id: "bot_config", name: "Setup Bot Telegram", desc: "Definisci nome, ruolo, tono di voce, istruzioni e capacità AI dell'assistente.", icon: "🤖", url: "../identity/bot_config.html", badge: "AI BOT" },
                 { id: "edit_owner", name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica aziendale, contatti, indirizzi e dati fiscali master.", icon: "👤", url: "../identity/edit_owner.html", badge: "ANAGRAFICA" },
-                { id: "advanced_setup", name: "Setup Avanzato & Compliance", desc: "Configura parametri fiscali avanzati, moduli IVA e contratti aziendali.", icon: "🏛️", url: "../identity/advanced-setup.html", badge: "FISCAL" }
+                { id: "advanced_setup", name: "Setup Avanzato & Compliance", desc: "Configura parametri fiscali avanzati, moduli IVA e contratti aziendali.", icon: "🏛️", url: "../identity/advanced-setup.html", badge: "FISCAL" },
+                { id: "trinai_platform", name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite di intelligenza direzionale ed ecosistema cloud TrinAi.", icon: "☁️", url: "https://dashboard.trinai.it", badge: "TRINAI CLOUD" }
             ]
         },
         operativita: {
@@ -257,8 +258,12 @@
                     <div onclick="window.DesktopSectionOverlay.launchTool('${item.url}', '${item.name}', '${item.icon}')" class="group relative bg-slate-50/90 hover:bg-white border border-slate-200/90 hover:border-blue-500/60 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 backdrop-blur-xl cursor-pointer">
                         <div>
                             <div class="flex items-center justify-between mb-3">
-                                <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-2xl flex items-center justify-center shadow-2xs group-hover:scale-105 transition duration-200">
-                                    ${item.icon}
+                                <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 text-2xl flex items-center justify-center shadow-2xs group-hover:scale-105 transition duration-200 p-1 overflow-hidden">
+                                    ${item.icon && item.icon.includes('.') ? `
+                                        <img src="${item.icon}" alt="${item.name}" class="w-full h-full object-contain rounded-lg">
+                                    ` : `
+                                        ${item.icon}
+                                    `}
                                 </div>
                                 <span class="px-2.5 py-0.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-[8.5px] font-black uppercase tracking-widest">
                                     ${item.badge}
@@ -297,20 +302,16 @@
      * Lancia uno strumento aprendolo in una Finestra Flottante Multi-Tasking
      */
     function launchTool(url, name, icon) {
-        if (url.startsWith('http')) {
-            window.open(url, '_blank');
-            return;
-        }
         if (window.DesktopWindowManager) {
             const lowerUrl = (url || '').toLowerCase();
-            const isWideTool = lowerUrl.includes('supervisor') || lowerUrl.includes('controllo_gestione') || lowerUrl.includes('intelligent-warehouse');
-            const winWidth = isWideTool ? 880 : 460;
+            const isWideTool = lowerUrl.includes('supervisor') || lowerUrl.includes('controllo_gestione') || lowerUrl.includes('intelligent-warehouse') || lowerUrl.includes('trinai');
+            const winWidth = isWideTool ? 960 : 460;
             const winHeight = isWideTool ? 720 : 780;
 
             window.DesktopWindowManager.openWindow({
                 title: name,
                 url: url,
-                icon: icon || 'fa-mobile-screen-button',
+                icon: icon || 'fa-cloud',
                 width: winWidth,
                 height: winHeight
             });

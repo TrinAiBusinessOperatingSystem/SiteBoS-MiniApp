@@ -154,7 +154,8 @@
     identity: [
       { name: "Setup Configurazione Bot", desc: "Personalizza le impostazioni ed il comportamento del bot.", url: "../identity/bot_config.html", icon: "fa-robot", category: "identity" },
       { name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica, la firma ed i recapiti aziendali.", url: "../identity/edit_owner.html", icon: "fa-user-gear", category: "identity" },
-      { name: "Setup Avanzato & Fiscale", desc: "Verticalizzazione del settore ed impostazioni dei conti finanziari.", url: "../identity/advanced-setup.html", icon: "fa-sliders", category: "identity" }
+      { name: "Setup Avanzato & Fiscale", desc: "Verticalizzazione del settore ed impostazioni dei conti finanziari.", url: "../identity/advanced-setup.html", icon: "fa-sliders", category: "identity" },
+      { name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite cloud direzionale ed all'ecosistema di intelligenza aziendale TrinAi.", url: "https://dashboard.trinai.it", icon: "TrinAi_Logo.jpg", category: "identity" }
     ],
     gestione: [
       { name: "Catalogo Master Prodotti & Servizi", desc: "Listino unico di consultazione ed editing rapido.", url: "../gestione/catalog.html", icon: "fa-store", category: "gestione" },
@@ -374,8 +375,12 @@
             </button>
 
             <div class="mb-4">
-              <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200/80 text-blue-600 flex items-center justify-center text-xl mb-3 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition duration-300 shadow-sm">
-                <i class="fas ${page.icon}"></i>
+              <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200/90 text-blue-600 flex items-center justify-center text-xl mb-3 group-hover:scale-110 transition duration-300 shadow-sm p-1.5 overflow-hidden">
+                ${page.icon && page.icon.includes('.') ? `
+                  <img src="${page.icon}" alt="Logo" class="w-full h-full object-contain rounded-xl">
+                ` : `
+                  <i class="fas ${page.icon}"></i>
+                `}
               </div>
               <span class="inline-block px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 font-black text-[9px] uppercase tracking-widest mb-1.5">
                 ${page.category ? page.category.toUpperCase() : 'MODULO'}
@@ -469,10 +474,10 @@
         }
       }
 
-      // Tutte le altre pagine -> iframe flottante diretto a dimensione Smartphone Frame
+      // Tutte le altre pagine -> iframe flottante diretto
       const targetUrl = buildFinalUrl(url);
-      const isWideTool = lowerUrl.includes('supervisor') || lowerUrl.includes('controllo_gestione') || lowerUrl.includes('intelligent-warehouse');
-      const winWidth = isWideTool ? 880 : 460;
+      const isWideTool = lowerUrl.includes('supervisor') || lowerUrl.includes('controllo_gestione') || lowerUrl.includes('intelligent-warehouse') || lowerUrl.includes('trinai');
+      const winWidth = isWideTool ? 960 : 460;
       const winHeight = isWideTool ? 720 : 780;
 
       if (window.DesktopWindowManager) {
