@@ -444,17 +444,33 @@
    * Gestione del click su una card modulo: Apre in finestra mobile su Desktop o naviga su Mobile
    */
   function handleTileClick(url, name, icon) {
-    const targetUrl = buildFinalUrl(url);
-    if (!isMobileDevice() && window.DesktopWindowManager) {
-      window.DesktopWindowManager.openWindow({
-        title: name,
-        url: targetUrl,
-        icon: icon,
-        width: 880,
-        height: 640
-      });
+    if (!isMobileDevice()) {
+      // Se si tratta del Catalogo Master o delle sue declinazioni, apri l'Overlay Scrivania Flottante in continuità con la Dashboard!
+      if (url.includes('catalog.html')) {
+        let macro = 'ALL';
+        if (url.includes('macro=SOP')) macro = 'SOP';
+        if (url.includes('macro=SER')) macro = 'SER';
+        if (url.includes('macro=PRO')) macro = 'PRO';
+        if (window.DesktopCatalogOverlay) {
+          window.DesktopCatalogOverlay.open(macro);
+          return;
+        }
+      }
+
+      const targetUrl = buildFinalUrl(url);
+      if (window.DesktopWindowManager) {
+        window.DesktopWindowManager.openWindow({
+          title: name,
+          url: targetUrl,
+          icon: icon,
+          width: 880,
+          height: 640
+        });
+      } else {
+        window.location.href = targetUrl;
+      }
     } else {
-      window.location.href = targetUrl;
+      window.location.href = buildFinalUrl(url);
     }
   }
 
