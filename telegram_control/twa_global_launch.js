@@ -223,6 +223,29 @@
         }
       } catch (_) {}
 
+      // ── TAGLIA LA TESTA AL TORO: NASCONDE L'HEADER INTERNO IN MODALITÀ DESKTOP IFRAME ──
+      // La finestra DesktopWindowManager ha già la sua barra del titolo con pulsante Chiudi (X).
+      // Nascondere l'header della pagina elimina la doppia barra, il tasto indietro e risparmia spazio.
+      (function injectDesktopHeaderHider() {
+        const styleEl = document.createElement('style');
+        styleEl.id = 'sitebos-desktop-header-hider';
+        styleEl.innerHTML = `
+          header, 
+          .twa-header, 
+          .mobile-header, 
+          .page-top-header { 
+            display: none !important; 
+          }
+          body { 
+            padding-top: 0 !important; 
+            margin-top: 0 !important; 
+          }
+        `;
+        const target = document.head || document.documentElement;
+        if (target) target.appendChild(styleEl);
+        else document.addEventListener('DOMContentLoaded', () => document.head.appendChild(styleEl));
+      })();
+
       // ── INTERCETTA NAVIGAZIONE A DASHBOARD / BACK DENTRO L'IFRAME ─────────────
       // Evita l'effetto Inception (dashboard dentro la mini-finestra).
       // Se una pagina dentro l'iframe naviga a dashboard.html o preme un tasto indietro
