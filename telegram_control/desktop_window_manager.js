@@ -53,14 +53,21 @@
   }
 
   /**
+   * Restituisce ed incrementa lo Z-Index globale per la sincronizzazione delle finestre e degli overlay
+   */
+  function getNextZIndex() {
+    zIndexCounter += 2;
+    return zIndexCounter;
+  }
+
+  /**
    * Porta la finestra specificata in primo piano ed accende il relit visivo
    */
   function bringToFront(winId) {
     const winData = openWindows.get(winId);
     if (!winData) return;
 
-    zIndexCounter += 2;
-    winData.element.style.zIndex = zIndexCounter;
+    winData.element.style.zIndex = getNextZIndex();
 
     // Se era minimizzata, la ripristina
     if (winData.isMinimized) {
@@ -370,6 +377,7 @@
   const manager = {
     openWindow,
     bringToFront,
+    getNextZIndex,
     minimizeWindow,
     maximizeWindow: toggleMaximize,  // alias corretto: toggleMaximize gestisce entrambe le direzioni
     closeWindow,

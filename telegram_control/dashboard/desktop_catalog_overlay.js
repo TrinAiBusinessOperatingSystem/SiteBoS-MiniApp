@@ -154,13 +154,19 @@
 
     /**
      * Separazione Emoji / Icona dal Testo Breve
+     * Estrae pulitamente qualsiasi emoji iniziale per il box icona ed elimina l'emoji dal titolo
      */
     function splitShortName(shortName) {
-        if (!shortName) return { icon: '', text: '' };
-        const match = shortName.match(/^(\p{Emoji_Presentation}|\p{Emoji}\uFE0F)\s*(.*)$/u);
-        const icon = match ? match[1] : '';
-        const text = match ? match[2] : shortName;
-        return { icon, text: cleanLabelText(text) };
+        if (!shortName) return { icon: '📁', text: '' };
+        // Regex robusta per isolare l'emoji/simbolo iniziale
+        const emojiRegex = /^([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F600}-\u{1F64F}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E6}-\u{1F1FF}]|[\u{2000}-\u{32FF}]\uFE0F?)\s*/u;
+        const match = shortName.match(emojiRegex);
+        if (match) {
+            const icon = match[1];
+            const text = cleanLabelText(shortName.substring(match[0].length));
+            return { icon, text };
+        }
+        return { icon: '📁', text: cleanLabelText(shortName) };
     }
 
     /**
@@ -285,6 +291,18 @@
     }
 
     /**
+     * Porta l'Overlay del Catalogo in primo piano risincronizzandosi con il DesktopWindowManager
+     */
+    function bringOverlayToFront() {
+        const overlay = document.getElementById('desktop-catalog-overlay');
+        if (!overlay) return;
+        const nextZ = (window.DesktopWindowManager && typeof window.DesktopWindowManager.getNextZIndex === 'function')
+            ? window.DesktopWindowManager.getNextZIndex()
+            : 995000;
+        overlay.style.zIndex = nextZ;
+    }
+
+    /**
      * Apre o commuta l'Overlay Flottante del Catalogo Master sulla Scrivania.
      *
      * Lock Protocol (identico a twa_global_launch.js):
@@ -327,10 +345,14 @@
         if (!overlay) {
             overlay = document.createElement('div');
             overlay.id = 'desktop-catalog-overlay';
-            overlay.className = 'fixed top-12 left-1/2 -translate-x-1/2 w-[92vw] max-w-6xl z-[999000] bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-slate-900 select-none flex flex-col space-y-5 transition-all duration-300';
+            overlay.className = 'fixed top-12 left-1/2 -translate-x-1/2 w-[92vw] max-w-6xl bg-white/95 border border-slate-200 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-slate-900 select-none flex flex-col space-y-5 transition-all duration-300';
+            overlay.onmousedown = function () {
+                bringOverlayToFront();
+            };
             document.body.appendChild(overlay);
         }
         overlay.classList.remove('hidden');
+        bringOverlayToFront();
 
         await renderOverlayContent();
     }
@@ -690,12 +712,19 @@
                     </div>
                 </div>
 
-                <!-- CONTROLLI FINESTRA OVERLAY -->
+                <!-- CONTROLLI FINESTRA OVERLAY (PULSANTE CONTESTUALE: CATEGORIA vs VOCE) -->
                 <div class="flex items-center gap-2 shrink-0">
-                    <button onclick="window.DesktopCatalogOverlay.openAddProduct()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-sm flex items-center gap-2 transition cursor-pointer active:scale-95">
-                        <i class="fas fa-plus"></i>
-                        <span>Nuova Voce</span>
-                    </button>
+                    ${overlayViewLevel === 'categories' ? `
+                        <button onclick="window.DesktopCatalogOverlay.openAddCategory()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-sm flex items-center gap-2 transition cursor-pointer active:scale-95">
+                            <i class="fas fa-folder-plus"></i>
+                            <span>Nuova Categoria</span>
+                        </button>
+                    ` : `
+                        <button onclick="window.DesktopCatalogOverlay.openAddProduct()" class="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs shadow-sm flex items-center gap-2 transition cursor-pointer active:scale-95">
+                            <i class="fas fa-plus"></i>
+                            <span>Nuova Voce</span>
+                        </button>
+                    `}
                     <button onclick="window.DesktopCatalogOverlay.toggleMaximize()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 hover:text-slate-900 flex items-center justify-center text-xs transition cursor-pointer active:scale-95" title="Ingrandisci / Ripristina">
                         <i class="fas fa-window-maximize"></i>
                     </button>
@@ -739,8 +768,8 @@
                 </div>
             </div>
 
-            <!-- GRIGLIA CARD (STILE BOTTONCIONI LIGHT) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-h-[62vh] overflow-y-auto pr-1">
+            <!-- GRIGLIA CARD (STILE BOTTONCIONI LIGHT ARMONICI) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 max-h-[62vh] overflow-y-auto pr-1">
         `;
 
         if (overlayViewLevel === 'actions' && activeProduct && overlayProductData) {
@@ -760,30 +789,30 @@
             } else {
                 filteredActions.forEach(card => {
                     html += `
-                        <div onclick="window.DesktopCatalogOverlay.triggerAction('${card.id}')" class="group relative bg-slate-50/90 hover:bg-white border border-slate-200/90 hover:border-blue-500/60 rounded-2xl p-4.5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 backdrop-blur-xl cursor-pointer">
+                        <div onclick="window.DesktopCatalogOverlay.triggerAction('${card.id}')" class="group relative bg-white border border-slate-200 hover:border-blue-500/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                             <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="w-11 h-11 rounded-xl bg-slate-900 text-white border border-slate-800 text-lg flex items-center justify-center shadow-2xs group-hover:scale-105 transition duration-200">
+                                <div class="flex items-center justify-between mb-3.5">
+                                    <div class="w-11 h-11 rounded-xl bg-slate-900 text-white border border-slate-800 text-lg flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
                                         <i class="fas ${card.icon}"></i>
                                     </div>
-                                    <span class="px-2.5 py-0.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-[8.5px] font-black uppercase tracking-widest">
+                                    <span class="px-2.5 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-[9px] font-black uppercase tracking-widest">
                                         ${card.badge}
                                     </span>
                                 </div>
 
-                                <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1">
+                                <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1.5">
                                     ${card.label}
                                 </h3>
-                                <p class="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                                <p class="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed mb-4">
                                     ${card.desc}
                                 </p>
                             </div>
 
-                            <div class="pt-3.5 mt-3.5 border-t border-slate-200/80 flex items-center justify-between">
-                                <span class="text-[9.5px] font-black text-slate-400 uppercase tracking-wider">
+                            <div class="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                                     GESTISCI
                                 </span>
-                                <button class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-black text-[9.5px] uppercase tracking-wider transition">
+                                <button class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-black text-[10px] uppercase tracking-wider transition shadow-xs">
                                     APRI ➔
                                 </button>
                             </div>
@@ -814,30 +843,30 @@
                     const isReady = item.blueprint_ready === true;
 
                     html += `
-                        <div onclick="window.DesktopCatalogOverlay.selectProduct(${idx})" class="group relative bg-slate-50/90 hover:bg-white border border-slate-200/90 hover:border-blue-500/60 rounded-2xl p-4.5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 backdrop-blur-xl cursor-pointer">
+                        <div onclick="window.DesktopCatalogOverlay.selectProduct(${idx})" class="group relative bg-white border border-slate-200 hover:border-blue-500/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                             <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="w-10 h-10 rounded-xl bg-white border border-slate-200 text-lg flex items-center justify-center shadow-2xs group-hover:scale-105 transition duration-200">
-                                        ${prodIcon || '💡'}
+                                <div class="flex items-center justify-between mb-3.5">
+                                    <div class="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 text-xl flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
+                                        ${prodIcon || (item.icon || '💡')}
                                     </div>
-                                    <span class="px-2 py-0.5 rounded-full border text-[8.5px] font-black uppercase tracking-widest ${isReady ? 'bg-slate-900 text-white border-slate-800' : 'bg-slate-100 text-slate-700 border-slate-200'}">
+                                    <span class="px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${isReady ? 'bg-slate-900 text-white border-slate-800' : 'bg-slate-100 text-slate-700 border-slate-200'}">
                                         ${isReady ? 'ATTIVO' : 'SUGGERITO'}
                                     </span>
                                 </div>
 
-                                <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1">
+                                <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1.5">
                                     ${prodShort}
                                 </h3>
-                                <p class="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                                <p class="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed mb-4">
                                     ${cleanDesc}
                                 </p>
                             </div>
 
-                            <div class="pt-3.5 mt-3.5 border-t border-slate-200/80 flex items-center justify-between">
-                                <span class="text-[9.5px] font-black text-slate-400 uppercase tracking-wider">
+                            <div class="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                                     ${isReady ? 'GESTISCI' : 'ATTIVA ORA'}
                                 </span>
-                                <button class="px-3 py-1.5 rounded-xl ${isReady ? 'bg-slate-900 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white font-black text-[9.5px] uppercase tracking-wider transition">
+                                <button class="px-3.5 py-1.5 rounded-xl ${isReady ? 'bg-slate-900 hover:bg-blue-600' : 'bg-blue-600 hover:bg-blue-700'} text-white font-black text-[10px] uppercase tracking-wider transition shadow-xs">
                                     ${isReady ? 'GESTISCI ➔' : 'ATTIVA ➔'}
                                 </button>
                             </div>
@@ -864,37 +893,42 @@
                 `;
             } else {
                 filteredCategories.forEach(cat => {
-                    const sub = cat.subcategories || [];
+                    const sub = cat.subcategories || cat.products || [];
                     const macroLabel = cat.macrocategories === 'SOP' ? 'PROCEDURA' : (cat.macrocategories === 'SER' ? 'SERVIZIO' : 'PRODOTTO');
                     const macroBadge = cat.macrocategories === 'SOP' ? 'bg-blue-50 text-blue-700 border-blue-200' : (cat.macrocategories === 'SER' ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-amber-50 text-amber-700 border-amber-200');
-                    const cleanCatName = cleanLabelText(cat.short_name || cat.name);
+                    
+                    const { icon: extractedIcon, text: cleanCatTitle } = splitShortName(cat.short_name || cat.name);
                     const cleanCatDesc = cleanLabelText(cat.name || '');
+                    const catIcon = (cat.icon && cat.icon !== '📁') ? cat.icon : extractedIcon;
+
+                    // Usa callback_data o name per identificare in modo inequivocabile la categoria al click
+                    const catKey = (cat.callback_data || cat.name || cat.short_name || '').replace(/'/g, "\\'");
 
                     html += `
-                        <div onclick="window.DesktopCatalogOverlay.selectCategory('${cleanCatName.replace(/'/g, "\\'")}')" class="group relative bg-slate-50/90 hover:bg-white border border-slate-200/90 hover:border-blue-500/60 rounded-2xl p-4.5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 backdrop-blur-xl cursor-pointer">
+                        <div onclick="window.DesktopCatalogOverlay.selectCategory('${catKey}')" class="group relative bg-white border border-slate-200 hover:border-blue-500/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                             <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="w-11 h-11 rounded-xl bg-white border border-slate-200 text-xl flex items-center justify-center shadow-2xs group-hover:scale-105 transition duration-200">
-                                        ${cat.icon || '📁'}
+                                <div class="flex items-center justify-between mb-3.5">
+                                    <div class="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 text-xl flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
+                                        ${catIcon}
                                     </div>
-                                    <span class="px-2 py-0.5 rounded-full border text-[8.5px] font-black uppercase tracking-widest ${macroBadge}">
+                                    <span class="px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${macroBadge}">
                                         ${macroLabel}
                                     </span>
                                 </div>
 
-                                <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1">
-                                    ${cleanCatName}
+                                <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1.5">
+                                    ${cleanCatTitle}
                                 </h3>
-                                <p class="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed">
+                                <p class="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed mb-4">
                                     ${cleanCatDesc}
                                 </p>
                             </div>
 
-                            <div class="pt-3.5 mt-3.5 border-t border-slate-200/80 flex items-center justify-between">
-                                <span class="text-[9.5px] font-black text-slate-400 uppercase tracking-wider">
+                            <div class="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
+                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">
                                     ${sub.length} VOCI
                                 </span>
-                                <button class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-black text-[9.5px] uppercase tracking-wider transition">
+                                <button class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-black text-[10px] uppercase tracking-wider transition shadow-xs">
                                     APRI ➔
                                 </button>
                             </div>
@@ -912,8 +946,25 @@
     }
 
     /**
-     * Intercetta i click sui pulsanti di aggiunta e sottomoduli aprendo in Finestra Flottante Multi-Tasking
+     * Intercetta i click sui pulsanti di aggiunta aprendo in Finestra Flottante Multi-Tasking (In Primo Piano)
      */
+    function openAddCategoryWindow() {
+        initSessionParams();
+        let url = `../gestione/add-category.html?macro=${overlayMacro}&ash=${encodeURIComponent(overlayAsh)}&msg=${encodeURIComponent(overlayMsg)}`;
+
+        if (window.DesktopWindowManager) {
+            window.DesktopWindowManager.openWindow({
+                title: 'Nuova Categoria Merceologica',
+                url: url,
+                icon: 'fa-folder-plus',
+                width: 880,
+                height: 640
+            });
+        } else {
+            window.location.href = url;
+        }
+    }
+
     function openAddProductWindow() {
         initSessionParams();
         let url = `../gestione/add-product.html?macro=${overlayMacro}&ash=${encodeURIComponent(overlayAsh)}&msg=${encodeURIComponent(overlayMsg)}`;
@@ -951,14 +1002,22 @@
             renderOverlayContent();
         },
 
-        selectCategory: function (catName) {
+        selectCategory: function (catKey) {
             if (!cachedCatalog) return;
-            const targetCat = cachedCatalog.find(c => cleanLabelText(c.name || c.short_name).toLowerCase() === catName.toLowerCase());
+            const targetCat = cachedCatalog.find(c =>
+                (c.callback_data && c.callback_data === catKey) ||
+                (c.name && c.name === catKey) ||
+                (c.short_name && c.short_name === catKey) ||
+                cleanLabelText(c.name || '').toLowerCase() === (catKey || '').toLowerCase() ||
+                cleanLabelText(c.short_name || '').toLowerCase() === (catKey || '').toLowerCase()
+            );
             if (targetCat) {
                 activeCategory = targetCat;
                 overlayViewLevel = 'items';
                 overlaySearchQuery = '';
                 renderOverlayContent();
+            } else {
+                console.warn('[CatalogOverlay] Categoria non trovata per chiave:', catKey);
             }
         },
 
@@ -1011,7 +1070,9 @@
             renderOverlayContent();
         },
 
-        openAddProduct: openAddProductWindow
+        openAddCategory: openAddCategoryWindow,
+        openAddProduct: openAddProductWindow,
+        bringToFront: bringOverlayToFront
     };
 
 })(window);
