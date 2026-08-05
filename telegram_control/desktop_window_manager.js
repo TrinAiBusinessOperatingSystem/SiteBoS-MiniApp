@@ -99,26 +99,29 @@
 
     if (winData.isMaximized) {
       winData.isMaximized = false;
-      winData.element.style.top = winData.normalPos.top + 'px';
-      winData.element.style.left = winData.normalPos.left + 'px';
-      winData.element.style.width = winData.normalPos.width + 'px';
-      winData.element.style.height = winData.normalPos.height + 'px';
-      winData.element.classList.remove('rounded-none');
+      winData.element.style.top = (winData.normalPos ? winData.normalPos.top : 50) + 'px';
+      winData.element.style.left = (winData.normalPos ? winData.normalPos.left : 50) + 'px';
+      winData.element.style.transform = (winData.normalPos && winData.normalPos.transform) ? winData.normalPos.transform : 'none';
+      winData.element.style.width = (winData.normalPos ? winData.normalPos.width : 460) + 'px';
+      winData.element.style.height = (winData.normalPos ? winData.normalPos.height : 780) + 'px';
+      winData.element.classList.remove('rounded-xl');
       winData.element.classList.add('rounded-2xl');
     } else {
       winData.normalPos = {
         top: winData.element.offsetTop,
         left: winData.element.offsetLeft,
+        transform: winData.element.style.transform || 'none',
         width: winData.element.offsetWidth,
         height: winData.element.offsetHeight
       };
       winData.isMaximized = true;
-      winData.element.style.top = '10px';
-      winData.element.style.left = '10px';
-      winData.element.style.width = 'calc(100vw - 20px)';
+      winData.element.style.top = '50%';
+      winData.element.style.left = '50%';
+      winData.element.style.transform = 'translate(-50%, -50%)';
+      winData.element.style.width = 'calc(100vw - 40px)';
       winData.element.style.height = 'calc(100vh - 70px)';
       winData.element.classList.remove('rounded-2xl');
-      winData.element.classList.add('rounded-none');
+      winData.element.classList.add('rounded-xl');
     }
   }
 
@@ -374,6 +377,13 @@
                 body { 
                   padding-top: 0 !important; 
                   margin-top: 0 !important; 
+                }
+                body:not(.is-wide-page) > div:first-child,
+                body:not(.is-wide-page) > main,
+                body:not(.is-wide-page) > form {
+                  max-width: 620px !important;
+                  margin-left: auto !important;
+                  margin-right: auto !important;
                 }
               `;
               (doc.head || doc.documentElement).appendChild(style);

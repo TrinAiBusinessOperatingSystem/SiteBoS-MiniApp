@@ -162,10 +162,10 @@
                 width: overlay.style.width || '92vw',
                 height: overlay.style.height || 'auto'
             };
-            overlay.style.top = '10px';
-            overlay.style.left = '10px';
-            overlay.style.transform = 'none';
-            overlay.style.width = 'calc(100vw - 20px)';
+            overlay.style.top = '50%';
+            overlay.style.left = '50%';
+            overlay.style.transform = 'translate(-50%, -50%)';
+            overlay.style.width = 'calc(100vw - 40px)';
             overlay.style.height = 'calc(100vh - 70px)';
             isMaximized = true;
         }
