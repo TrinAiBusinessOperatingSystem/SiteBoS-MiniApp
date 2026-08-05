@@ -75,18 +75,39 @@
   }
 
   /**
+   * Identifica se l'applicazione è eseguita in ambiente Desktop
+   * (Telegram Desktop client "tdesktop", "weba", "webk", "desktop", "macos", oppure schermo >= 768px, oppure UA non-mobile)
+   */
+  function isDesktopEnvironment() {
+    const tg = window.Telegram?.WebApp;
+    const platform = (tg?.platform || '').toLowerCase();
+    const isTgDesktop = ['tdesktop', 'weba', 'webk', 'desktop', 'macos'].includes(platform);
+    const isWideScreen = window.innerWidth >= 768;
+    const isMobileUA = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+    return isTgDesktop || isWideScreen || (!isMobileUA && window.innerWidth >= 500);
+  }
+
+  /**
    * Renderizza la Lavagna di Bottoncioni Desktop con gestione Scorciatoie & Navigation Sync
    */
   function renderDesktopWhiteboard(activeCategory = null) {
     const whiteboardContainer = document.getElementById('desktop-whiteboard-container');
+    const mainCarousel = document.querySelector('main');
     if (!whiteboardContainer) return;
 
-    // Se siamo su schermi mobile (< 768px), nasconde la lavagna
-    if (window.innerWidth < 768) {
+    const isDesktop = isDesktopEnvironment();
+
+    // Se siamo su schermi mobile, nasconde la lavagna e mostra il carosello
+    if (!isDesktop) {
       whiteboardContainer.classList.add('hidden');
+      if (mainCarousel) mainCarousel.classList.remove('hidden');
       return;
     }
+
+    // Su Desktop -> Mostra la lavagna e nasconde il carosello mobile
     whiteboardContainer.classList.remove('hidden');
+    if (mainCarousel) mainCarousel.classList.add('hidden');
 
     const registry = window.getOwnerPagesRegistry ? window.getOwnerPagesRegistry() : [];
     const shortcuts = getPinnedShortcuts();
@@ -201,7 +222,7 @@
    * Su Mobile (< 768px) -> Navigazione standard
    */
   function handleTileClick(url, name, icon) {
-    if (window.innerWidth >= 768 && window.DesktopWindowManager) {
+    if (isDesktopEnvironment() && window.DesktopWindowManager) {
       window.DesktopWindowManager.openWindow({
         title: name,
         url: url,

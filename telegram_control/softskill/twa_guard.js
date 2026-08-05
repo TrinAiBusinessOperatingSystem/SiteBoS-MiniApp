@@ -33,8 +33,8 @@
     try { tg.ready(); } catch (_) {}
     try { if (autoExpand && typeof tg.expand === 'function') tg.expand(); } catch (_) {}
     try { if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch (_) {}
-    try { if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#090d16'); } catch (_) {}
-    try { if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#090d16'); } catch (_) {}
+    try { if (typeof tg.setHeaderColor === 'function') tg.setHeaderColor('#ffffff'); } catch (_) {}
+    try { if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#ffffff'); } catch (_) {}
     return tg;
   }
 

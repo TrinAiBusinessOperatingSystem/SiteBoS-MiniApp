@@ -198,10 +198,10 @@
    */
   function initSiteBosTwaLaunch(options = {}) {
     const defaultOptions = {
-      headerColor: '#090d16',
-      backgroundColor: '#090d16',
+      headerColor: '#ffffff',
+      backgroundColor: '#ffffff',
       disableVerticalSwipes: true,
-      enableFullscreen: false
+      enableFullscreen: true
     };
     const opts = Object.assign({}, defaultOptions, options);
 
@@ -226,9 +226,12 @@
         tg.ready();
       }
 
-      // 3. Launch Expansion Mode (Standard Telegram expand)
+      // 3. Launch Expansion & Fullscreen Mode su Telegram Desktop & Mobile
+      if (typeof tg.requestFullscreen === 'function') {
+        try { tg.requestFullscreen(); } catch (_) {}
+      }
       if (typeof tg.expand === 'function') {
-        tg.expand();
+        try { tg.expand(); } catch (_) {}
       }
 
       // 4. Blocco Swipe Verticale per proteggere Caroselli 3D e gesture
@@ -238,7 +241,7 @@
         } catch (_) {}
       }
 
-      // 5. Personalizzazione Colori Tema (Header & Background)
+      // 5. Personalizzazione Colori Tema (Header & Background Bianchi)
       if (opts.headerColor && typeof tg.setHeaderColor === 'function') {
         try {
           tg.setHeaderColor(opts.headerColor);
