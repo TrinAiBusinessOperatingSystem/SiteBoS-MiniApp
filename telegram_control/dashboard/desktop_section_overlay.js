@@ -302,12 +302,17 @@
             return;
         }
         if (window.DesktopWindowManager) {
+            const lowerUrl = (url || '').toLowerCase();
+            const isWideTool = lowerUrl.includes('supervisor') || lowerUrl.includes('controllo_gestione') || lowerUrl.includes('intelligent-warehouse');
+            const winWidth = isWideTool ? 880 : 460;
+            const winHeight = isWideTool ? 720 : 780;
+
             window.DesktopWindowManager.openWindow({
                 title: name,
                 url: url,
-                icon: 'fa-window-maximize',
-                width: 880,
-                height: 640
+                icon: icon || 'fa-mobile-screen-button',
+                width: winWidth,
+                height: winHeight
             });
         } else {
             window.location.href = url;

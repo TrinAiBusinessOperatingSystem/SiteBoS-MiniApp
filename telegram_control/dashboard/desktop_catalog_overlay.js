@@ -257,6 +257,8 @@
             if (e.target.closest('button') || e.target.closest('input')) return;
             isDragging = true;
             headerElem.style.cursor = 'grabbing';
+            // Disabilita pointer-events su tutti gli iframe per evitare che catturino il cursore durante il drag
+            document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
 
             initialX = e.clientX - xOffset;
             initialY = e.clientY - yOffset;
@@ -285,6 +287,8 @@
         function onMouseUp() {
             isDragging = false;
             headerElem.style.cursor = 'grab';
+            // Ripristina pointer-events sugli iframe
+            document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'auto');
             document.onmousemove = null;
             document.onmouseup = null;
         }
@@ -410,13 +414,18 @@
         if (activeCategory?.callback_data) url += `&catId=${encodeURIComponent(activeCategory.callback_data)}`;
         url += `&from_hub=true`;
 
+        // Se è un modulo di analisi a tabella o audit -> larghezza estesa (880), altrimenti dimensione Cellulare Mobile (460x780)
+        const isWideTool = page.includes('supervisor_hub') || page.includes('edit-advanced');
+        const winWidth = isWideTool ? 880 : 460;
+        const winHeight = isWideTool ? 720 : 780;
+
         if (window.DesktopWindowManager) {
             window.DesktopWindowManager.openWindow({
                 title: customTitle || page.replace('.html', '').replace(/[\-_]/g, ' ').toUpperCase(),
                 url: url,
-                icon: 'fas fa-edit',
-                width: 920,
-                height: 680
+                icon: 'fas fa-mobile-screen-button',
+                width: winWidth,
+                height: winHeight
             });
         } else {
             window.location.href = url;
@@ -957,8 +966,8 @@
                 title: 'Nuova Categoria Merceologica',
                 url: url,
                 icon: 'fa-folder-plus',
-                width: 880,
-                height: 640
+                width: 460,
+                height: 780
             });
         } else {
             window.location.href = url;
@@ -975,8 +984,8 @@
                 title: 'Nuovo Prodotto / Servizio',
                 url: url,
                 icon: 'fa-plus-circle',
-                width: 920,
-                height: 680
+                width: 460,
+                height: 780
             });
         } else {
             window.location.href = url;

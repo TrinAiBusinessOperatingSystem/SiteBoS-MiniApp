@@ -469,15 +469,19 @@
         }
       }
 
-      // Tutte le altre pagine -> iframe flottante diretto, nessun menu intermedio
+      // Tutte le altre pagine -> iframe flottante diretto a dimensione Smartphone Frame
       const targetUrl = buildFinalUrl(url);
+      const isWideTool = lowerUrl.includes('supervisor') || lowerUrl.includes('controllo_gestione') || lowerUrl.includes('intelligent-warehouse');
+      const winWidth = isWideTool ? 880 : 460;
+      const winHeight = isWideTool ? 720 : 780;
+
       if (window.DesktopWindowManager) {
         window.DesktopWindowManager.openWindow({
           title: name,
           url: targetUrl,
-          icon: icon || 'fas fa-window-maximize',
-          width: 920,
-          height: 660
+          icon: icon || 'fas fa-mobile-screen-button',
+          width: winWidth,
+          height: winHeight
         });
       } else {
         window.location.href = targetUrl;

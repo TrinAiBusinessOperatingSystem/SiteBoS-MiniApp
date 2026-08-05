@@ -126,11 +126,19 @@
    * Chiude e rimuove la finestra
    */
   function closeWindow(winId) {
-    const winData = openWindows.get(winId);
-    if (!winData) return;
-
-    winData.element.remove();
-    openWindows.delete(winId);
+    if (!winId) return;
+    let winData = openWindows.get(winId);
+    if (!winData) {
+      const cleanId = sanitizeWindowId(winId);
+      winData = openWindows.get(cleanId);
+      if (winData) {
+        winData.element.remove();
+        openWindows.delete(cleanId);
+      }
+    } else {
+      winData.element.remove();
+      openWindows.delete(winId);
+    }
     updateTaskbar();
   }
 
@@ -139,6 +147,8 @@
    */
   function updateTaskbar() {
     const taskbar = ensureTaskbar();
+    taskbar.innerHTML = ''; // SEMPRE pulisce l'innerHTML per evitare pill fantasma di finestre chiuse
+
     if (openWindows.size === 0) {
       taskbar.classList.add('hidden');
       return;
@@ -155,7 +165,6 @@
       }
     });
 
-    taskbar.innerHTML = '';
     openWindows.forEach((winData, winId) => {
       const isActive = winId === activeId && !winData.isMinimized;
       const pill = document.createElement('button');
@@ -222,6 +231,9 @@
         yOffset = winElem.offsetTop  === 0 ? yOffset : 0;
       }
 
+      // Disabilita pointer-events su tutti gli iframe per evitare che catturino gli eventi del mouse durante il drag
+      document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'none');
+
       initialX = e.clientX - xOffset;
       initialY = e.clientY - yOffset;
 
@@ -260,6 +272,8 @@
     function onMouseUp() {
       isDragging = false;
       headerElem.style.cursor = 'grab';
+      // Ripristina pointer-events sugli iframe al termine del drag
+      document.querySelectorAll('iframe').forEach(f => f.style.pointerEvents = 'auto');
       document.onmousemove = null;
       document.onmouseup   = null;
     }
@@ -275,8 +289,8 @@
     const rawId = options.id || options.mod_id || url;
     const winId = sanitizeWindowId(rawId);
 
-    const defaultW = options.width || 860;
-    const defaultH = options.height || 640;
+    const defaultW = options.width || 460;
+    const defaultH = options.height || 780;
 
     // CHECK ANTI-DUPLICATO & COLLISIONE
     if (openWindows.has(winId)) {
