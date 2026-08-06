@@ -398,25 +398,15 @@
       }
 
       // 3. Launch Mode: FullScreen su Desktop, FullSize (expand) su Mobile
-      const platform = (tg.platform || '').toLowerCase();
-      const isDesktopPlatform = ['tdesktop', 'weba', 'webk', 'desktop', 'macos'].includes(platform) || (window.innerWidth >= 768 && !/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent));
+      // 3. Launch Mode: FullScreen solo se esplicitamente richiesto (evita distacco pulsanti nativi su multi-monitor)
+      if (opts.enableFullscreen && typeof tg.requestFullscreen === 'function') {
+        try { tg.requestFullscreen(); } catch (_) {}
+      } else if (typeof tg.exitFullscreen === 'function') {
+        try { tg.exitFullscreen(); } catch (_) {}
+      }
 
-      if (isDesktopPlatform) {
-        // Su PC Desktop -> FullScreen totale per sfruttare la Lavagna ed il Window Manager
-        if (typeof tg.requestFullscreen === 'function') {
-          try { tg.requestFullscreen(); } catch (_) {}
-        }
-        if (typeof tg.expand === 'function') {
-          try { tg.expand(); } catch (_) {}
-        }
-      } else {
-        // Su Mobile Smartphone -> Solo FullSize (tg.expand) per evitare la sovrapposizione sul notch
-        if (typeof tg.exitFullscreen === 'function') {
-          try { tg.exitFullscreen(); } catch (_) {}
-        }
-        if (typeof tg.expand === 'function') {
-          try { tg.expand(); } catch (_) {}
-        }
+      if (typeof tg.expand === 'function') {
+        try { tg.expand(); } catch (_) {}
       }
 
       // 4. Blocco Swipe Verticale per proteggere Caroselli 3D e gesture
