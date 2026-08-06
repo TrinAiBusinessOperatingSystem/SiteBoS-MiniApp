@@ -126,7 +126,7 @@
   }
 
   /**
-   * Chiude e rimuove la finestra
+   * Chiude e rimuove la finestra proteggendo lo stato Dirty e rilasciando il lock
    */
   function closeWindow(winId) {
     if (!winId) return;
@@ -134,14 +134,41 @@
     if (!winData) {
       const cleanId = sanitizeWindowId(winId);
       winData = openWindows.get(cleanId);
-      if (winData) {
-        winData.element.remove();
-        openWindows.delete(cleanId);
-      }
-    } else {
-      winData.element.remove();
-      openWindows.delete(winId);
     }
+    if (!winData) return;
+
+    // Check se l'iframe contenuto nella finestra ha modifiche non salvate (Dirty State)
+    try {
+      const iframe = winData.element.querySelector('iframe');
+      if (iframe && iframe.contentWindow) {
+        const iframeGuard = iframe.contentWindow.SiteBosDirtyGuard;
+        if (iframeGuard && typeof iframeGuard.requestNavigateAway === 'function') {
+          if (iframeGuard.isAnyDirty()) {
+            iframeGuard.requestNavigateAway(null, function () {
+              _forceCloseWindow(winData);
+            });
+            return; // Blocca la chiusura immediata finché l'utente non sceglie
+          }
+        }
+      }
+    } catch (_) {}
+
+    _forceCloseWindow(winData);
+  }
+
+  function _forceCloseWindow(winData) {
+    if (!winData) return;
+    try {
+      const iframe = winData.element.querySelector('iframe');
+      if (iframe && iframe.contentWindow && iframe.contentWindow.SiteBosDirtyGuard) {
+        if (typeof iframe.contentWindow.SiteBosDirtyGuard.markClean === 'function') {
+          iframe.contentWindow.SiteBosDirtyGuard.markClean();
+        }
+      }
+    } catch (_) {}
+
+    winData.element.remove();
+    openWindows.delete(winData.id);
     updateTaskbar();
   }
 

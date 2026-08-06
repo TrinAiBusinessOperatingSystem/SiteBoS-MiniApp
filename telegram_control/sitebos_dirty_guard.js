@@ -109,9 +109,15 @@
 
     function markDirty(scope, saveCallback, ttlSeconds = 300) {
         if (!scope) scope = 'default_scope';
+        const isAlreadyDirty = _dirtyMap.has(scope);
+        
         _dirtyMap.set(scope, { saveCallback, ttlSeconds });
-        postLockAcquire(scope, ttlSeconds, { type: 'dirty' });
-        scheduleRenewal(scope, ttlSeconds, false);
+
+        // Invia la chiamata HTTP a n8n SOLO la prima volta che lo scope diventa Dirty
+        if (!isAlreadyDirty) {
+            postLockAcquire(scope, ttlSeconds, { type: 'dirty' });
+            scheduleRenewal(scope, ttlSeconds, false);
+        }
 
         // Propaga al parent window se siamo in un iframe
         try {
