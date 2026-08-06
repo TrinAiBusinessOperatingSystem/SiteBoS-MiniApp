@@ -11,6 +11,7 @@
     <!-- Telegram WebApp SDK & Global Launch Controller -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="../twa_global_launch.js"></script>
+    <script src="../sitebos_dirty_guard.js"></script>
     <script src="identity_logic.js"></script>
     <script src="owner_pages_registry.js"></script>
     <script src="../desktop_window_manager.js"></script>
@@ -1481,8 +1482,18 @@
             });
         }
 
+        // Helper locale per determinare se l'ambiente è Mobile (Smartphone) o PC Desktop
+        function isMobileDevice() {
+            const platform = (tg?.platform || '').toLowerCase();
+            if (['android', 'ios', 'mobile'].includes(platform)) return true;
+            if (['tdesktop', 'desktop', 'macos', 'weba', 'webk'].includes(platform)) return false;
+            const ua = (navigator.userAgent || '').toLowerCase();
+            if (/android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(ua)) return true;
+            return (window.innerWidth < 768);
+        }
+
         // Index Selection and Sensory execution
-        function selectIdx(idx, direction) {
+        function selectIdx(idx, direction, opts = {}) {
             if (!modules || modules.length === 0) return;
             let targetIdx = (idx + modules.length) % modules.length;
             if (targetIdx === activeIdx) return;
@@ -1499,21 +1510,23 @@
 
             // Highlight side dot and play distinct feedback when wrapping around from start to end or end to start
             const isWrapping = (activeIdx === modules.length - 1 && targetIdx === 0) || (activeIdx === 0 && targetIdx === modules.length - 1);
-            if (isWrapping) {
-                playMechanicalTick();
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            } else {
-                playMechanicalTick();
-                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            if (!opts.silent) {
+                if (isWrapping) {
+                    playMechanicalTick();
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                } else {
+                    playMechanicalTick();
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                }
             }
 
             activeIdx = targetIdx;
             updateStackLayout(dir);
         }
 
-        window.navigateStack = function (direction) {
+        window.navigateStack = function (direction, opts = {}) {
             if (!modules || modules.length === 0) return;
-            selectIdx(activeIdx + direction, direction);
+            selectIdx(activeIdx + direction, direction, opts);
         };
 
         // Touch scrubbing logic for Dot Indicator wrapper
@@ -2061,13 +2074,13 @@
 
         function startAttractMode() {
             if (isAttractActive) return;
-            // Se siamo su Desktop PC, NON avviare l'attract mode ed i click acustici in background
-            if (window.DesktopWhiteboard && window.DesktopWhiteboard.isMobileDevice && !window.DesktopWhiteboard.isMobileDevice()) {
+            // Se siamo su PC Desktop, NON avviare l'attract mode ed i click acustici in background
+            if (!isMobileDevice()) {
                 return;
             }
             isAttractActive = true;
             attractInterval = setInterval(() => {
-                if (window.navigateStack) window.navigateStack(1);
+                if (window.navigateStack) window.navigateStack(1, { silent: true });
             }, ATTRACT_STEP_MS);
         }
 

@@ -152,8 +152,15 @@
      * Chiude l'Overlay
      */
     function closeSectionOverlay() {
-        const overlay = document.getElementById('desktop-section-overlay');
-        if (overlay) overlay.classList.add('hidden');
+        const doClose = () => {
+            const overlay = document.getElementById('desktop-section-overlay');
+            if (overlay) overlay.classList.add('hidden');
+        };
+        if (window.SiteBosDirtyGuard) {
+            window.SiteBosDirtyGuard.requestNavigateAway(null, doClose);
+        } else {
+            doClose();
+        }
     }
 
     /**

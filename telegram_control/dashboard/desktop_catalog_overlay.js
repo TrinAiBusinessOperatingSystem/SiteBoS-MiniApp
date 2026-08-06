@@ -380,10 +380,17 @@
      * Chiamata qui: catalog.html su un'altra scheda viene immediatamente sbloccata.
      */
     function closeCatalogOverlay() {
-        const overlay = document.getElementById('desktop-catalog-overlay');
-        if (overlay) overlay.classList.add('hidden');
-        // Rilascio immediato del lock → altri tab/pagine catalog possono ora aprirsi
-        releaseCatalogLock();
+        const doClose = () => {
+            const overlay = document.getElementById('desktop-catalog-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            // Rilascio immediato del lock → altri tab/pagine catalog possono ora aprirsi
+            releaseCatalogLock();
+        };
+        if (window.SiteBosDirtyGuard) {
+            window.SiteBosDirtyGuard.requestNavigateAway(null, doClose);
+        } else {
+            doClose();
+        }
     }
 
     /**

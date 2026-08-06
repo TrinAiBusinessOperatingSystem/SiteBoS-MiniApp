@@ -138,8 +138,89 @@
     overlay.classList.remove('hidden');
   }
 
+  const CROSS_LOCK_WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/17a1bf79-43cd-428b-a497-33745ca44857";
+
+  function getAshFromUrl() {
+    try {
+      const urlParams = new URLSearchParams(window.location.search || '');
+      return urlParams.get('ash') || (window.Telegram?.WebApp?.initDataUnsafe?.start_param || '');
+    } catch (_) { return ''; }
+  }
+
+  function getPlatformType() {
+    const tg = window.Telegram?.WebApp;
+    const platform = (tg?.platform || '').toLowerCase();
+    if (['android', 'ios', 'mobile'].includes(platform)) return 'mobile';
+    if (['tdesktop', 'desktop', 'macos', 'weba', 'webk'].includes(platform)) return 'desktop';
+    const ua = (navigator.userAgent || '').toLowerCase();
+    if (/android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(ua)) return 'mobile';
+    return (window.innerWidth < 768) ? 'mobile' : 'desktop';
+  }
+
   /**
-   * Avvia il Lock First-Come First-Served Strict
+   * Tenta di acquisire il lock cross-platform tramite backend n8n / MongoDB
+   */
+  async function tryAcquireCrossPlatformLock(scope, ttlSeconds = 300) {
+    const ash = getAshFromUrl();
+    if (!ash || !scope) return true;
+    try {
+      const res = await fetch(CROSS_LOCK_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _auth: window.Telegram?.WebApp?.initData || '',
+          ash: ash,
+          scope: scope,
+          platform: getPlatformType(),
+          action: 'acquire',
+          ttl: ttlSeconds
+        })
+      });
+      const data = await res.json();
+      if (data && data.blocked) {
+        const remainingMin = Math.max(1, Math.ceil((data.remainingSeconds || 300) / 60));
+        const otherPlatform = data.platform === 'desktop' ? 'PC Desktop' : 'Smartphone Mobile';
+        const labelStr = data.label ? `<b>${data.label}</b>` : `sezione <b>${data.scope || scope}</b>`;
+        renderFriendlyLockOverlay(
+          `Questa sessione è in uso su <b>${otherPlatform}</b> (${labelStr}).<br><br>Sblocco automatico stimato: ⏱️ <b>circa ${remainingMin} minuti</b> o non appena l'altra sessione verrà chiusa.`
+        );
+        return false;
+      }
+    } catch (e) {
+      console.warn('[CrossPlatformLock] acquire check warn:', e);
+    }
+    return true;
+  }
+
+  /**
+   * Rilascia il lock cross-platform tramite sendBeacon
+   */
+  function sendBeaconCrossRelease(scope) {
+    const ash = getAshFromUrl();
+    if (!ash || !scope) return;
+    try {
+      const payload = JSON.stringify({
+        _auth: window.Telegram?.WebApp?.initData || '',
+        ash: ash,
+        scope: scope,
+        platform: getPlatformType(),
+        action: 'release'
+      });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(CROSS_LOCK_WEBHOOK_URL, new Blob([payload], { type: 'application/json' }));
+      } else {
+        fetch(CROSS_LOCK_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: payload,
+          keepalive: true
+        }).catch(() => {});
+      }
+    } catch (_) {}
+  }
+
+  /**
+   * Avvia il Lock First-Come First-Served Strict (Local Cross-Tab + Remote Cross-Platform)
    */
   function setupFirstComeLock(pageAnalysis) {
     if (pageAnalysis.isConsultant) return true; // CONSULTANTI -> Zero blocchi
@@ -159,29 +240,35 @@
       return false;
     }
 
-    // Check 3: Same Module Lock attivo da un'altra scheda?
+    // Check 3: Same Module Lock attivo da un'altra scheda localmente?
     if (isLockActiveOnOtherTab(scope)) {
       renderFriendlyLockOverlay(`Per garantire la sincronizzazione dei dati ed evitare sovrascritture accidentali, questa sezione (<b>${scope}</b>) è attualmente aperta ed operativa su un altro schermo.`);
       return false;
     }
+
+    // Check 4: Remote Cross-Platform Lock (n8n/MongoDB)
+    tryAcquireCrossPlatformLock(scope, scope === 'blueprint' ? 1200 : 300);
 
     // Se non ci sono conflitti: PRENDE IL LOCK (First-Come)
     activeScope = scope;
     localStorage.setItem(`sitebos_lock_${scope}`, currentTabId);
     localStorage.setItem(`sitebos_hb_${scope}`, Date.now().toString());
 
-    // Avvia Heartbeat ogni 3 secondi per segnalare che la scheda è viva
+    // Avvia Heartbeat locale ogni 3 secondi per segnalare che la scheda è viva
     heartbeatInterval = setInterval(function () {
       if (activeScope) {
         localStorage.setItem(`sitebos_hb_${activeScope}`, Date.now().toString());
       }
     }, 3000);
 
-    // Rilascio immediato del lock alla chiusura della pagina
+    // Rilascio immediato del lock alla chiusura della pagina (Local + Remote sendBeacon)
     const releaseLock = function () {
-      if (activeScope && localStorage.getItem(`sitebos_lock_${activeScope}`) === currentTabId) {
-        localStorage.removeItem(`sitebos_lock_${activeScope}`);
-        localStorage.removeItem(`sitebos_hb_${activeScope}`);
+      if (activeScope) {
+        if (localStorage.getItem(`sitebos_lock_${activeScope}`) === currentTabId) {
+          localStorage.removeItem(`sitebos_lock_${activeScope}`);
+          localStorage.removeItem(`sitebos_hb_${activeScope}`);
+        }
+        sendBeaconCrossRelease(activeScope);
       }
       if (heartbeatInterval) clearInterval(heartbeatInterval);
     };
@@ -189,6 +276,9 @@
     window.addEventListener('beforeunload', releaseLock);
     window.addEventListener('unload', releaseLock);
     window.addEventListener('pagehide', releaseLock);
+    window.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') releaseLock();
+    });
 
     return true;
   }
