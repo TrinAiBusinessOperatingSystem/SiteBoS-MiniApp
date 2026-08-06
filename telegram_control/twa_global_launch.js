@@ -506,4 +506,18 @@
   } else {
     initSiteBosTwaLaunch();
   }
+
+  // Auto-Inject sitebos_dirty_guard.js in qualsiasi pagina se non già caricata nel DOM
+  (function autoLoadDirtyGuard() {
+    if (window.SiteBosDirtyGuard) return;
+    const script = document.createElement('script');
+    script.src = (function () {
+      const path = window.location.pathname.toLowerCase();
+      if (path.includes('/dashboard/') || path.includes('/gestione/') || path.includes('/identity/') || path.includes('/operativita/') || path.includes('/agents/') || path.includes('/softskill/') || path.includes('/supporto/') || path.includes('/fine-tuning/')) {
+        return '../sitebos_dirty_guard.js';
+      }
+      return './sitebos_dirty_guard.js';
+    })();
+    document.head.appendChild(script);
+  })();
 })(window);

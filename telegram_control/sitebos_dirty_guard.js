@@ -375,10 +375,59 @@
         });
     }
 
+    // 3. Auto-Attach per catturare automaticamente qualsiasi modifica nei form
+    function autoAttachFormListeners() {
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('/userguide/') || path.includes('/customer_bot/')) return;
+
+        const scope = (function () {
+            if (path.includes('/identity/') || path.includes('bot_config') || path.includes('edit_owner') || path.includes('advanced-setup')) return 'identity';
+            if (path.includes('catalog') || path.includes('add-') || path.includes('edit-')) return 'catalog';
+            if (path.includes('supervisor')) return 'supervisor';
+            if (path.includes('orders')) return 'orders';
+            if (path.includes('job') || path.includes('itinerari')) return 'jobs';
+            if (path.includes('safety') || path.includes('sicurezza')) return 'agents_safety';
+            if (path.includes('controllo') || path.includes('gestione')) return 'agents_control';
+            if (path.includes('fine-tuning')) return 'fine_tuning';
+            return 'generic_edit';
+        })();
+
+        document.addEventListener('input', function (e) {
+            const target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+                if (!target.dataset.noGuard && target.type !== 'hidden' && target.type !== 'search') {
+                    markDirty(scope);
+                }
+            }
+        }, true);
+
+        document.addEventListener('change', function (e) {
+            const target = e.target;
+            if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT')) {
+                if (!target.dataset.noGuard && target.type !== 'hidden' && target.type !== 'search') {
+                    markDirty(scope);
+                }
+            }
+        }, true);
+
+        document.addEventListener('click', function (e) {
+            const btn = e.target.closest('button, input[type="submit"], a');
+            if (!btn) return;
+            const btnText = (btn.innerText || btn.value || btn.id || btn.className || '').toLowerCase();
+            if (btnText.includes('salva') || btnText.includes('conferma') || btnText.includes('save') || btnText.includes('submit')) {
+                markClean(scope);
+            }
+        }, true);
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', setupTelegramBackButtonHandler);
+        document.addEventListener('DOMContentLoaded', function () {
+            setupTelegramBackButtonHandler();
+            autoAttachFormListeners();
+        });
     } else {
         setupTelegramBackButtonHandler();
+        autoAttachFormListeners();
     }
 
     // Esporta nel namespace globale
