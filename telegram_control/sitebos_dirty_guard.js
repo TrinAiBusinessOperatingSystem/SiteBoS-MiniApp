@@ -10,6 +10,7 @@
     const _dirtyMap = new Map();       // scope -> { saveCallback, ttlSeconds }
     const _generatingMap = new Map();  // scope -> { label, conflictScopes, ttlSeconds }
     const _renewalTimers = new Map();  // scope -> timerId
+    const _acquiredScopes = new Set();  // scope -> traccia se il lock HTTP è già stato inviato a n8n
 
     function getAsh() {
         try {
@@ -109,17 +110,20 @@
 
     function markDirty(scope, saveCallback, ttlSeconds = 300) {
         if (!scope) scope = 'default_scope';
-        const isAlreadyDirty = _dirtyMap.has(scope);
         
-        _dirtyMap.set(scope, { saveCallback, ttlSeconds });
-
-        // Invia la chiamata HTTP a n8n SOLO la prima volta che lo scope diventa Dirty
-        if (!isAlreadyDirty) {
-            postLockAcquire(scope, ttlSeconds, { type: 'dirty' });
-            scheduleRenewal(scope, ttlSeconds, false);
+        // Se lo scope è già marcato dirty o ha già inviato la richiesta HTTP di lock, ignoriamo la chiamata duplicata!
+        if (_acquiredScopes.has(scope) || _dirtyMap.has(scope)) {
+            _dirtyMap.set(scope, { saveCallback, ttlSeconds });
+            return;
         }
 
-        // Propaga al parent window se siamo in un iframe
+        _dirtyMap.set(scope, { saveCallback, ttlSeconds });
+        _acquiredScopes.add(scope);
+
+        postLockAcquire(scope, ttlSeconds, { type: 'dirty' });
+        scheduleRenewal(scope, ttlSeconds, false);
+
+        // Propaga al parent window se siamo in un iframe (SENZA rieseguire la chiamata HTTP dal parent!)
         try {
             if (window.parent && window.parent !== window && window.parent.SiteBosDirtyGuard) {
                 window.parent.SiteBosDirtyGuard._syncIframeDirty(scope, true);
@@ -130,6 +134,7 @@
     function markClean(scope) {
         if (!scope) scope = 'default_scope';
         _dirtyMap.delete(scope);
+        _acquiredScopes.delete(scope);
         clearTimeout(_renewalTimers.get(scope));
         _renewalTimers.delete(scope);
         sendBeaconRelease(scope);
@@ -297,7 +302,10 @@
         });
 
         abandonBtn.addEventListener('click', function () {
+            const scopesToClean = Array.from(new Set([..._dirtyMap.keys(), ..._acquiredScopes]));
+            scopesToClean.forEach(scope => markClean(scope));
             _dirtyMap.clear();
+            _acquiredScopes.clear();
             _renewalTimers.forEach(t => clearTimeout(t));
             _renewalTimers.clear();
             overlay.remove();
@@ -356,12 +364,14 @@
             e.preventDefault();
             e.returnValue = 'Hai modifiche non salvate.';
         }
-        for (let scope of _dirtyMap.keys()) sendBeaconRelease(scope);
+        const allScopes = new Set([..._dirtyMap.keys(), ..._acquiredScopes]);
+        for (let scope of allScopes) sendBeaconRelease(scope);
         for (let scope of _generatingMap.keys()) sendBeaconRelease(scope);
     });
 
     window.addEventListener('pagehide', function () {
-        for (let scope of _dirtyMap.keys()) sendBeaconRelease(scope);
+        const allScopes = new Set([..._dirtyMap.keys(), ..._acquiredScopes]);
+        for (let scope of allScopes) sendBeaconRelease(scope);
         for (let scope of _generatingMap.keys()) sendBeaconRelease(scope);
     });
 
