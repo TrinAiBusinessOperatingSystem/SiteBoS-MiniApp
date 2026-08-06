@@ -397,24 +397,44 @@
         tg.ready();
       }
 
-      // 3. Launch Mode: FullScreen su Desktop PC per la Lavagna Widescreen, Expand su Mobile
-      const platform = (tg.platform || '').toLowerCase();
-      const isDesktopPlatform = ['tdesktop', 'weba', 'webk', 'desktop', 'macos'].includes(platform) || (window.innerWidth >= 768 && !/android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent));
-
-      if (isDesktopPlatform) {
-        // Su PC Desktop -> FullScreen totale (requestFullscreen + expand) per la Lavagna Widescreen
-        if (typeof tg.requestFullscreen === 'function') {
-          try { tg.requestFullscreen(); } catch (_) {}
-        }
-        if (typeof tg.expand === 'function') {
-          try { tg.expand(); } catch (_) {}
-        }
-      } else {
-        // Su Mobile Smartphone -> Solo FullSize (expand)
-        if (typeof tg.expand === 'function') {
-          try { tg.expand(); } catch (_) {}
-        }
+      // 3. Launch Mode: Expand predefinito su Finestra + Toggle Schermo Intero su Richiesta Utente
+      if (opts.enableFullscreen && typeof tg.requestFullscreen === 'function') {
+        try { tg.requestFullscreen(); } catch (_) {}
+      } else if (typeof tg.expand === 'function') {
+        try { tg.expand(); } catch (_) {}
       }
+
+      // Helper Globale per commutare tra Schermo Intero Widescreen e Finestra Normale
+      window.toggleTelegramFullscreen = function () {
+        const tg = window.Telegram?.WebApp;
+        if (!tg) return false;
+
+        let nowFs = false;
+        if (tg.isFullscreen) {
+          if (typeof tg.exitFullscreen === 'function') {
+            try { tg.exitFullscreen(); } catch (_) {}
+          }
+          nowFs = false;
+        } else {
+          if (typeof tg.requestFullscreen === 'function') {
+            try { tg.requestFullscreen(); } catch (_) {}
+          }
+          if (typeof tg.expand === 'function') {
+            try { tg.expand(); } catch (_) {}
+          }
+          nowFs = true;
+        }
+
+        // Aggiorna l'etichetta del bottone nell'interfaccia
+        const labelEl = document.getElementById('label-fullscreen-toggle');
+        const btnEl = document.getElementById('btn-toggle-telegram-fullscreen');
+        if (labelEl) labelEl.textContent = nowFs ? 'Ripristina Finestra' : 'Schermo Intero';
+        if (btnEl) {
+          const iconEl = btnEl.querySelector('i');
+          if (iconEl) iconEl.className = nowFs ? 'fas fa-compress' : 'fas fa-expand';
+        }
+        return nowFs;
+      };
 
       // 4. Blocco Swipe Verticale per proteggere Caroselli 3D e gesture
       if (opts.disableVerticalSwipes && typeof tg.disableVerticalSwipes === 'function') {

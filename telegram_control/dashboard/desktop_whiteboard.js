@@ -302,14 +302,14 @@
             <span>Manuale Utente</span>
           </button>
 
-          <!-- 3. GUIDA AUDIO SYNTH (fas fa-volume-high) -->
-          <button onclick="typeof window.toggleDashboardAudio === 'function' ? window.toggleDashboardAudio() : null" 
-                  class="px-3.5 py-2.5 rounded-2xl bg-white hover:bg-emerald-50 border border-slate-200/90 text-slate-800 hover:text-emerald-700 font-black text-xs shadow-xs flex items-center gap-2 cursor-pointer transition active:scale-95"
-                  title="Guida Vocale Audio Sintetizzato">
-            <div class="w-6 h-6 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
-              <i class="fas fa-volume-high"></i>
+          <!-- 3. TOGGLE SCHERMO INTERO / FINESTRA -->
+          <button id="btn-toggle-telegram-fullscreen" onclick="window.toggleTelegramFullscreen ? window.toggleTelegramFullscreen() : null" 
+                  class="px-3.5 py-2.5 rounded-2xl bg-white hover:bg-indigo-50 border border-slate-200/90 text-slate-800 hover:text-indigo-700 font-black text-xs shadow-xs flex items-center gap-2 cursor-pointer transition active:scale-95"
+                  title="Attiva / Disattiva Schermo Intero Widescreen">
+            <div class="w-6 h-6 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs">
+              <i class="fas fa-expand"></i>
             </div>
-            <span>Audio Guida</span>
+            <span id="label-fullscreen-toggle">Schermo Intero</span>
           </button>
 
         </div>
