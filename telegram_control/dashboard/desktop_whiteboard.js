@@ -293,7 +293,7 @@
           </button>
 
           <!-- 2. MANUALE UTENTE GUIDA (fas fa-globe) -->
-          <button onclick="window.openUserGuide ? window.openUserGuide('../userguide/01_intro.html') : null" 
+          <button onclick="window.openUserGuide ? window.openUserGuide('../userguide/01b_desktop_dashboard.html') : window.DesktopWhiteboard.handleTileClick('../userguide/01b_desktop_dashboard.html', 'Manuale Utente Desktop', 'fa-globe')" 
                   class="px-3.5 py-2.5 rounded-2xl bg-white hover:bg-slate-50 border border-slate-200/90 text-slate-800 hover:text-slate-900 font-black text-xs shadow-xs flex items-center gap-2 cursor-pointer transition active:scale-95"
                   title="Manuale Utente & Guida Operativa">
             <div class="w-6 h-6 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-xs">
