@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiTeBoS | Desk Board Console</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090d16;
+            color: #f3f4f6;
+            user-select: none;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        .kanban-col {
+            background-color: rgba(17, 24, 39, 0.7);
+            border: 1px solid rgba(31, 41, 55, 0.8);
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        .col-drop-active {
+            border-color: #06b6d4 !important;
+            background-color: rgba(8, 145, 178, 0.15) !important;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
+        }
+
+        .job-card {
+            background-color: #111827;
+            border: 1px solid #1f2937;
+            transition: all 0.2s ease;
+            cursor: grab;
+        }
+        
+        .job-card:active { cursor: grabbing; }
+
+        .job-card.card-dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+            border-color: #3b82f6;
+        }
+
+        .operator-pill {
+            cursor: grab;
+            transition: all 0.2s ease;
+        }
+        
+        .operator-pill:active { cursor: grabbing; }
+
+        .operator-pill.pill-dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+
+        .desktop-guard-overlay {
+            display: none;
+        }
+
+        @media (max-width: 1023px) {
+            .desktop-guard-overlay {
+                display: flex;
+            }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- DESKTOP GUARD OVERLAY (SCHERMI < 1024px) -->
+    <div class="desktop-guard-overlay fixed inset-0 z-[9999] bg-gray-950 flex-col items-center justify-center p-8 text-center">
+        <i class="fa-solid fa-desktop text-5xl text-cyan-400 mb-4 animate-bounce"></i>
+        <h1 class="text-white text-xl font-bold mb-2">Console Desk Segreteria</h1>
+        <p class="text-gray-400 text-xs max-w-sm">Il Tabellone Kanban Dual-Panel della segreteria richiede uno schermo desktop o tablet con risoluzione minima di 1024px.</p>
+    </div>
+
+    <!-- HEADER STRATEGICO CONSOLE -->
+    <header class="bg-gray-900/90 border-b border-gray-800 px-6 py-3.5 flex items-center justify-between gap-4 backdrop-blur shrink-0">
+        <!-- Logo & Studio -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-cyan-950 border border-cyan-800 flex items-center justify-center text-cyan-400">
+                <i class="fa-solid fa-desktop text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-extrabold text-white text-base tracking-tight" id="board-brand-name">SiteBoS Desk Board</h1>
+                    <span class="text-[10px] font-bold text-cyan-400 bg-cyan-950 border border-cyan-800 px-2 py-0.5 rounded-full uppercase">Segreteria</span>
+                </div>
+                <p class="text-xs text-gray-400" id="board-studio-name">Studio Principale · Gestione Prossimità</p>
+            </div>
+        </div>
+
+        <!-- KPI Giornalieri -->
+        <div class="flex items-center gap-6 bg-gray-950/60 border border-gray-800 px-5 py-2 rounded-2xl text-xs">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                <span class="text-gray-400">In Attesa:</span>
+                <span id="kpi-wait" class="font-bold text-white text-sm">0</span>
+            </div>
+            <div class="w-px h-4 bg-gray-800"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span class="text-gray-400">In Corso:</span>
+                <span id="kpi-active" class="font-bold text-white text-sm">0</span>
+            </div>
+            <div class="w-px h-4 bg-gray-800"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                <span class="text-gray-400">Completati Oggi:</span>
+                <span id="kpi-done" class="font-bold text-white text-sm">0</span>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-3">
+            <button onclick="autoAssignAll()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-bolt"></i>
+                <span>⚡ Auto-Assign All</span>
+            </button>
+            <button onclick="openManualJobModal()" class="bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>+ Nuovo Job</span>
+            </button>
+            <button onclick="refreshBoard()" class="w-10 h-10 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white flex items-center justify-center transition-all" title="Aggiorna Tabellone">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- LANE SUPERIORE: DESK_ASSIST (INTAKE DA COMPLETARE) -->
+    <section id="desk-assist-lane" class="bg-rose-950/20 border-b border-rose-900/40 px-6 py-3 shrink-0">
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping"></span>
+                <h2 class="text-xs font-extrabold text-rose-400 uppercase tracking-widest">
+                    🖐 INTAKE DA COMPLETARE (DESK ASSIST) — <span id="intake-count">0</span> schede
+                </h2>
+            </div>
+            <span class="text-[10px] text-gray-500">I clienti che hanno richiesto l'assistenza al bancone</span>
+        </div>
+
+        <div id="intake-cards-container" class="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            <!-- Popolato dinamicamente da JS -->
+            <div class="text-xs text-gray-500 italic py-2">Nessun cliente in attesa di intake al desk.</div>
+        </div>
+    </section>
+
+    <!-- WORKSPACE PRINCIPALE: DUAL-PANEL LAYOUT -->
+    <div class="flex-1 flex overflow-hidden">
+        
+        <!-- PANNELLO SINISTRO: POSTAZIONI FISICHE (KANBAN COLUMNS) -->
+        <main class="flex-1 overflow-x-auto p-6 flex gap-5 no-scrollbar" id="kanban-stations-container">
+            <!-- Popolato dinamicamente da JS con le colonne delle postazioni -->
+            <div class="text-gray-500 text-xs py-10 flex items-center justify-center w-full">
+                <i class="fa-solid fa-circle-notch fa-spin text-cyan-400 text-xl mr-3"></i>
+                Caricamento postazioni e turni...
+            </div>
+        </main>
+
+        <!-- PANNELLO DESTRO: OPERATORI DISPONIBILI (PANEL LATERALE) -->
+        <aside class="w-80 bg-gray-900/80 border-l border-gray-800 p-5 flex flex-col shrink-0">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-users text-cyan-400 text-sm"></i>
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider">Operatori Disponibili</h3>
+                </div>
+                <span class="text-[10px] text-gray-500 bg-gray-800 px-2 py-0.5 rounded-full" id="operators-count-badge">0 attivi</span>
+            </div>
+
+            <p class="text-[11px] text-gray-400 mb-4 leading-relaxed bg-gray-950/50 p-2.5 rounded-xl border border-gray-800/60">
+                <i class="fa-solid fa-hand-pointer text-cyan-400 mr-1"></i>
+                Trascina un operatore sull'intestazione di una postazione a sinistra per assegnarlo.
+            </p>
+
+            <div id="operators-list-container" class="flex-1 overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
+                <!-- Popolato dinamicamente da JS con le pillole degli operatori -->
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- MODALE POPUP: COMPLETA INTAKE DESK_ASSIST IN-PAGE -->
+    <div id="intake-modal" class="fixed inset-0 z-[10000] bg-gray-950/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-5">
+            <div class="flex justify-between items-start border-b border-gray-800 pb-3">
+                <div>
+                    <h3 class="text-base font-bold text-white">✅ Completa Scheda Intake</h3>
+                    <p class="text-xs text-cyan-400 font-semibold" id="modal-intake-client-name">Mario Rossi</p>
+                </div>
+                <button onclick="closeIntakeModal()" class="w-8 h-8 rounded-xl bg-gray-800 text-gray-400 hover:text-white flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-gray-400 font-bold uppercase tracking-wider mb-2">Servizi del Catalogo</label>
+                    <div id="modal-services-grid" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto no-scrollbar border border-gray-800 rounded-2xl p-3 bg-gray-950/50">
+                        <!-- Popolato da JS -->
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-gray-400 font-bold uppercase tracking-wider mb-2">Assegna a Postazione / Operatore</label>
+                    <select id="modal-assign-select" class="w-full bg-gray-950 border border-gray-800 text-white rounded-xl p-3 text-xs font-semibold focus:border-cyan-400 outline-none">
+                        <!-- Popolato da JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-gray-400 font-bold uppercase tracking-wider mb-1">Note della Segreteria</label>
+                    <textarea id="modal-intake-notes" rows="2" placeholder="Eventuali annotazioni o richieste particolari del cliente..." class="w-full bg-gray-950 border border-gray-800 text-white rounded-xl p-3 text-xs focus:border-cyan-400 outline-none resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button onclick="closeIntakeModal()" class="px-4 py-2.5 rounded-xl border border-gray-800 text-gray-400 text-xs font-semibold hover:text-white">Annulla</button>
+                <button onclick="confirmIntakeSubmit()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Metti in Coda il Turno</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGICA BOARD DESK ENGINE -->
+    <script>
+        let stationsList = [];
+        let operatorsList = [];
+        let activeJobs = [];
+        let activeIntakes = [];
+        let currentDeskOperatorId = 'desk_op_01';
+
+        let draggedJobId = null;
+        let draggedOperatorId = null;
+        let draggedType = null;
+        let draggedFromStationId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initDeskBoard();
+        });
+
+        async function initDeskBoard() {
+            await refreshBoard();
+            setInterval(refreshBoard, 30000);
+        }
+
+        async function refreshBoard() {
+            try {
+                // Polling mock o da endpoint di produzione
+                stationsList = [
+                    { station_id: 'poltrona_1', station_name: 'Sedia Clinica 1', assigned_operator_id: 'op_ferrari', operator_name: 'Dr. Ferrari' },
+                    { station_id: 'poltrona_2', station_name: 'Ambulatorio B', assigned_operator_id: 'op_bianchi', operator_name: 'Dr. Bianchi' },
+                    { station_id: 'poltrona_3', station_name: 'Cabina Estetica Lux', assigned_operator_id: null, operator_name: 'Non Assegnato' }
+                ];
+
+                operatorsList = [
+                    { operator_id: 'op_ferrari', operator_name: 'Dr. Ferrari', role: 'TECHNICIAN', status: 'BUSY', current_station: 'poltrona_1' },
+                    { operator_id: 'op_bianchi', operator_name: 'Dr. Bianchi', role: 'TECHNICIAN', status: 'BUSY', current_station: 'poltrona_2' },
+                    { operator_id: 'op_moretti', operator_name: 'Dr.ssa Moretti', role: 'TECHNICIAN', status: 'FREE', current_station: null }
+                ];
+
+                activeIntakes = [
+                    { job_id: 'job_intake_101', client_name: 'Mario Rossi', preselected_service: 'Igiene Dentale', submitted_at: '10:14' }
+                ];
+
+                activeJobs = [
+                    { job_id: 'job_001', turn_code: '#A-05', client_name: 'Mario Rossi', service_name: 'Igiene Dentale', station_id: 'poltrona_1', status: 'IN_PROGRESS', eta_minutes: 45 },
+                    { job_id: 'job_002', turn_code: '#A-07', client_name: 'Giovanna Esposito', service_name: 'Visita Carie', station_id: 'poltrona_2', status: 'IN_PROGRESS', eta_minutes: 20 },
+                    { job_id: 'job_003', turn_code: '#A-08', client_name: 'Luigi Bianchi', service_name: 'Detartrasi', station_id: 'poltrona_1', status: 'ON_SHELF', eta_minutes: 30 }
+                ];
+
+                renderIntakes();
+                renderStationsKanban();
+                renderOperatorsPanel();
+                updateKPIs();
+            } catch (err) {
+                console.error('[DeskBoard] Errore aggiornamento:', err);
+            }
+        }
+
+        /* ── RENDERING LANE INTTAKE ── */
+        function renderIntakes() {
+            const container = document.getElementById('intake-cards-container');
+            document.getElementById('intake-count').textContent = activeIntakes.length;
+
+            if (activeIntakes.length === 0) {
+                container.innerHTML = `<div class="text-xs text-gray-500 italic py-2">Nessun cliente in attesa di intake al desk.</div>`;
+                return;
+            }
+
+            container.innerHTML = activeIntakes.map(item => `
+                <div class="bg-rose-950/40 border border-rose-800/80 rounded-2xl p-3 shrink-0 flex items-center gap-4 shadow-lg" data-job-id="${item.job_id}">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[9px] font-bold text-rose-300 bg-rose-900/60 px-2 py-0.5 rounded-md">DESK ASSIST</span>
+                            <span class="text-[10px] text-gray-400">${item.submitted_at}</span>
+                        </div>
+                        <p class="text-white font-bold text-xs">${escapeHtml(item.client_name)}</p>
+                        <p class="text-gray-400 text-[10px]">${escapeHtml(item.preselected_service)}</p>
+                    </div>
+                    <div class="flex flex-col gap-1.5">
+                        <button onclick="openIntakeModal('${item.job_id}')" class="bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all shadow">
+                            ✅ Completa
+                        </button>
+                        <button onclick="autoAssignJob('${item.job_id}')" class="bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-3 py-1.5 rounded-xl transition-all shadow btn-auto-assign">
+                            ⚡ Auto-Assegna
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /* ── RENDERING KANBAN POSTAZIONI ── */
+        function renderStationsKanban() {
+            const container = document.getElementById('kanban-stations-container');
+
+            container.innerHTML = stationsList.map(st => {
+                const stationJobs = activeJobs.filter(j => j.station_id === st.station_id);
+                return `
+                    <div class="kanban-col w-80 rounded-3xl flex flex-col shrink-0"
+                         data-station-id="${st.station_id}"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event)">
+                        
+                        <!-- Header Colonna Postazione -->
+                        <div class="p-4 border-b border-gray-800 bg-gray-900/80 rounded-t-3xl flex items-center justify-between"
+                             ondragover="handleDragOver(event)"
+                             ondrop="handleDropOperator(event, '${st.station_id}')">
+                            <div>
+                                <h3 class="text-xs font-extrabold text-white uppercase tracking-wider">${escapeHtml(st.station_name)}</h3>
+                                <p class="text-[11px] text-cyan-400 font-semibold flex items-center gap-1 mt-0.5">
+                                    <i class="fa-solid fa-user-doctor text-[10px]"></i>
+                                    <span>${escapeHtml(st.operator_name)}</span>
+                                </p>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-1 rounded-lg ${st.assigned_operator_id ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-gray-800 text-gray-500'}">
+                                ${st.assigned_operator_id ? 'ATTIVA' : 'LIBERA'}
+                            </span>
+                        </div>
+
+                        <!-- Jobs List -->
+                        <div class="p-3 flex-1 overflow-y-auto space-y-3 no-scrollbar min-h-[300px]">
+                            ${stationJobs.map(job => `
+                                <div class="job-card rounded-2xl p-3 shadow-md ${job.status === 'IN_PROGRESS' ? 'border-emerald-800/80 bg-emerald-950/10' : ''}"
+                                     draggable="${job.status !== 'IN_PROGRESS'}"
+                                     data-job-id="${job.job_id}"
+                                     ondragstart="handleJobDragStart(event)">
+                                    
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-xs font-black text-cyan-400 font-mono">${job.turn_code}</span>
+                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded-full ${job.status === 'IN_PROGRESS' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-cyan-950 text-cyan-400'}">
+                                            ${job.status === 'IN_PROGRESS' ? 'IN CORSO' : 'IN CODA'}
+                                        </span>
+                                    </div>
+                                    <p class="text-white font-bold text-xs mb-0.5">${escapeHtml(job.client_name)}</p>
+                                    <p class="text-gray-400 text-[11px] mb-3">${escapeHtml(job.service_name)}</p>
+                                    <div class="flex items-center justify-between text-[10px] text-gray-500 pt-2 border-t border-gray-800/60">
+                                        <span><i class="fa-regular fa-clock mr-1"></i>${job.eta_minutes} min</span>
+                                        ${job.status === 'IN_PROGRESS' ? '<span class="text-emerald-400 font-semibold"><i class="fa-solid fa-play mr-1"></i>In esecuzione</span>' : '<span class="text-gray-400">Trascina per spostare</span>'}
+                                    </div>
+                                </div>
+                            `).join('')}
+
+                            ${stationJobs.length === 0 ? `
+                                <div class="border-2 border-dashed border-gray-800 rounded-2xl p-6 text-center text-gray-600 text-xs flex flex-col items-center justify-center gap-2">
+                                    <i class="fa-solid fa-plus text-base text-gray-700"></i>
+                                    <span>Slot Libero</span>
+                                    <span class="text-[10px] text-gray-600">Trascina un turno qui</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* ── RENDERING OPERATORI PANNELLO DESTRO ── */
+        function renderOperatorsPanel() {
+            const container = document.getElementById('operators-list-container');
+            document.getElementById('operators-count-badge').textContent = `${operatorsList.length} attivi`;
+
+            container.innerHTML = operatorsList.map(op => `
+                <div class="operator-pill bg-gray-950 border border-gray-800 hover:border-cyan-500/50 rounded-2xl p-3 flex items-center justify-between shadow-md"
+                     draggable="true"
+                     data-operator-id="${op.operator_id}"
+                     ondragstart="handleOperatorDragStart(event)">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-xl ${op.status === 'FREE' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-amber-950 text-amber-400 border border-amber-800'} flex items-center justify-center font-bold text-xs">
+                            ${op.operator_name.substr(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-xs">${escapeHtml(op.operator_name)}</p>
+                            <p class="text-[10px] text-gray-500">${op.current_station ? 'Postazione: ' + op.current_station : 'Nessuna postazione'}</p>
+                        </div>
+                    </div>
+                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-md ${op.status === 'FREE' ? 'bg-emerald-950 text-emerald-400' : 'bg-amber-950 text-amber-400'}">
+                        ${op.status === 'FREE' ? '● LIBERO' : '🔴 OCCUPATO'}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        /* ── LOGICA DRAG & DROP NATIVO ── */
+        function handleOperatorDragStart(event) {
+            draggedOperatorId = event.currentTarget.dataset.operatorId;
+            draggedType = 'OPERATOR';
+            event.dataTransfer.setData('text/plain', `op:${draggedOperatorId}`);
+            event.currentTarget.classList.add('pill-dragging');
+        }
+
+        function handleJobDragStart(event) {
+            draggedJobId = event.currentTarget.dataset.jobId;
+            draggedFromStationId = event.currentTarget.closest('.kanban-col').dataset.stationId;
+            draggedType = 'JOB';
+            event.dataTransfer.setData('text/plain', `job:${draggedJobId}`);
+            event.currentTarget.classList.add('card-dragging');
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('col-drop-active');
+        }
+
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('col-drop-active');
+        }
+
+        async function handleDropOperator(event, targetStationId) {
+            event.preventDefault();
+            if (draggedType !== 'OPERATOR') return;
+
+            const res = await fetch('/webhook/phygital-job-reassign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'ASSIGN_OPERATOR_TO_STATION',
+                    operator_id: draggedOperatorId,
+                    station_id: targetStationId,
+                    reassigned_by: currentDeskOperatorId
+                })
+            });
+
+            refreshBoard();
+            draggedOperatorId = null;
+            draggedType = null;
+        }
+
+        async function handleDrop(event) {
+            event.preventDefault();
+            const targetColumn = event.currentTarget;
+            targetColumn.classList.remove('col-drop-active');
+
+            if (draggedType !== 'JOB') return;
+            const targetStationId = targetColumn.dataset.stationId;
+            if (targetStationId === draggedFromStationId) return;
+
+            const res = await fetch('/webhook/phygital-job-reassign', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'REASSIGN_JOB',
+                    job_id: draggedJobId,
+                    from_station_id: draggedFromStationId,
+                    new_station_id: targetStationId,
+                    reassigned_by: currentDeskOperatorId
+                })
+            });
+
+            refreshBoard();
+            draggedJobId = null;
+            draggedType = null;
+        }
+
+        /* ── AUTO-ASSIGNMENT ENGINE ── */
+        async function autoAssignJob(jobId) {
+            try {
+                const res = await fetch('/webhook/phygital-auto-assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ job_id: jobId, mode: 'SINGLE' })
+                });
+                refreshBoard();
+            } catch (e) {
+                console.error('Errore auto-assign:', e);
+            }
+        }
+
+        async function autoAssignAll() {
+            try {
+                const res = await fetch('/webhook/phygital-auto-assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'ALL_PENDING' })
+                });
+                refreshBoard();
+            } catch (e) {
+                console.error('Errore auto-assign all:', e);
+            }
+        }
+
+        /* ── MODALE INTAKE POPUP ── */
+        function openIntakeModal(jobId) {
+            const modal = document.getElementById('intake-modal');
+            const item = activeIntakes.find(i => i.job_id === jobId);
+            if (item) {
+                document.getElementById('modal-intake-client-name').textContent = item.client_name;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeIntakeModal() {
+            document.getElementById('intake-modal').classList.add('hidden');
+        }
+
+        function confirmIntakeSubmit() {
+            closeIntakeModal();
+            refreshBoard();
+        }
+
+        function updateKPIs() {
+            document.getElementById('kpi-wait').textContent = activeJobs.filter(j => j.status === 'ON_SHELF').length;
+            document.getElementById('kpi-active').textContent = activeJobs.filter(j => j.status === 'IN_PROGRESS').length;
+            document.getElementById('kpi-done').textContent = 8;
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

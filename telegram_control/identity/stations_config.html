@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SiTeBoS | Configurazione Postazioni</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090d16;
+            color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-8 max-w-4xl mx-auto">
+    
+    <!-- HEADER -->
+    <header class="mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <button onclick="window.history.back()" class="w-10 h-10 rounded-xl bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <span class="text-xs font-bold font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800 px-3 py-1 rounded-full uppercase tracking-wider">
+                <i class="fa-solid fa-sliders mr-1.5"></i>Identity Menu
+            </span>
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white mb-1">Configurazione Postazioni</h1>
+        <p class="text-gray-400 text-xs md:text-sm">Assegna un nome reale e personalizzato a ciascuna postazione produttiva (sedie cliniche, riuniti, cabine o banchi). I nomi verranno ereditati dal Tabellone e dal modulo CFO.</p>
+    </header>
+
+    <!-- CONTENT: LISTA POSTAZIONI -->
+    <main class="flex-1 space-y-4 mb-8">
+        <div class="bg-gray-900/60 border border-gray-800 rounded-2xl p-4 mb-2 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-indigo-950/80 border border-indigo-800 flex items-center justify-center text-indigo-400">
+                    <i class="fa-solid fa-layer-group text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="text-sm font-bold text-white">Capacità Produttiva</h2>
+                    <p class="text-xs text-gray-400" id="capacity-subtitle">Postazioni configurate nel Setup Avanzato</p>
+                </div>
+            </div>
+            <button id="btn-add-station" onclick="addNewStationCard()" class="text-xs bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-2 rounded-xl transition-all flex items-center gap-1.5">
+                <i class="fa-solid fa-plus"></i> Aggiungi Postazione
+            </button>
+        </div>
+
+        <div id="stations-list-container" class="space-y-3">
+            <!-- Popolato dinamicamente da JS -->
+            <div class="text-center py-12 text-gray-500 text-xs" id="loading-state">
+                <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-cyan-400"></i>
+                <p>Caricamento configurazione postazioni...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER ACTIONS -->
+    <footer class="sticky bottom-4 z-40 bg-gray-950/90 backdrop-blur border border-gray-800 p-4 rounded-2xl flex items-center justify-between gap-4 shadow-2xl">
+        <button onclick="window.history.back()" class="px-5 py-3 rounded-xl border border-gray-800 text-gray-400 text-xs font-semibold hover:text-white transition-all">
+            Annulla
+        </button>
+        <button id="btn-save-stations" onclick="saveStationsConfig()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white font-bold text-sm py-3 px-6 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Salva Configurazione Postazioni</span>
+        </button>
+    </footer>
+
+    <!-- SCRIPT LOGIC -->
+    <script>
+        let stationsData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.expand();
+            }
+            loadOwnerStations();
+        });
+
+        async function loadOwnerStations() {
+            const container = document.getElementById('stations-list-container');
+            try {
+                // Recupera il profilo Owner NoSQL per estrarre le postazioni esistenti
+                const response = await fetch('/webhook/edit_owner?action=get_stations');
+                if (response.ok) {
+                    const data = await response.json();
+                    stationsData = data.stations || [
+                        { station_id: 'poltrona_1', station_name: 'Sedia Clinica 1' },
+                        { station_id: 'poltrona_2', station_name: 'Ambulatorio Chirurgia B' },
+                        { station_id: 'poltrona_3', station_name: 'Cabina Estetica Lux' }
+                    ];
+                } else {
+                    // Fallback predefinito
+                    stationsData = [
+                        { station_id: 'poltrona_1', station_name: 'Sedia Clinica 1' },
+                        { station_id: 'poltrona_2', station_name: 'Ambulatorio Chirurgia B' },
+                        { station_id: 'poltrona_3', station_name: 'Cabina Estetica Lux' }
+                    ];
+                }
+            } catch (err) {
+                console.warn('Uso postazioni predefinite di fallback:', err);
+                stationsData = [
+                    { station_id: 'poltrona_1', station_name: 'Sedia Clinica 1' },
+                    { station_id: 'poltrona_2', station_name: 'Ambulatorio Chirurgia B' },
+                    { station_id: 'poltrona_3', station_name: 'Cabina Estetica Lux' }
+                ];
+            }
+            renderStations();
+        }
+
+        function renderStations() {
+            const container = document.getElementById('stations-list-container');
+            document.getElementById('capacity-subtitle').textContent = `${stationsData.length} postazioni attive disponibili`;
+
+            if (stationsData.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 bg-gray-900/40 border border-dashed border-gray-800 rounded-2xl text-gray-500 text-xs">
+                        Nessuna postazione configurata. Clicca su "+ Aggiungi Postazione" per iniziare.
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = stationsData.map((st, index) => `
+                <div class="station-card bg-gray-900 border border-gray-800 hover:border-gray-700 rounded-2xl p-4 flex items-center gap-4 transition-all">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-950/60 border border-indigo-800 flex items-center justify-center flex-shrink-0 text-indigo-400">
+                        <i class="fa-solid fa-chair text-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-gray-500 font-mono uppercase mb-0.5 block tracking-wider">Postazione #${index + 1} (ID: ${st.station_id})</label>
+                        <input type="text"
+                               id="input-station-${index}"
+                               data-id="${st.station_id}"
+                               placeholder="es. Sedia Clinica ${index + 1}"
+                               value="${escapeHtml(st.station_name)}"
+                               oninput="stationsData[${index}].station_name = this.value"
+                               class="w-full bg-transparent text-white font-semibold text-sm border-b border-gray-700 focus:border-cyan-400 focus:outline-none py-1 transition-colors" />
+                    </div>
+                    <button onclick="removeStation(${index})" class="p-2 text-gray-500 hover:text-rose-400 transition-colors" title="Rimuovi postazione">
+                        <i class="fa-solid fa-trash-can text-sm"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function addNewStationCard() {
+            const newIndex = stationsData.length + 1;
+            stationsData.push({
+                station_id: `poltrona_${newIndex}`,
+                station_name: `Nuova Postazione ${newIndex}`
+            });
+            renderStations();
+        }
+
+        function removeStation(index) {
+            if (stationsData.length <= 1) {
+                alert('È necessario mantenere almeno una postazione configurata.');
+                return;
+            }
+            stationsData.splice(index, 1);
+            renderStations();
+        }
+
+        async function saveStationsConfig() {
+            const btn = document.getElementById('btn-save-stations');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i><span>Salvataggio in corso...</span>`;
+
+            try {
+                const response = await fetch('/webhook/edit_owner', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'save_stations',
+                        stations: stationsData
+                    })
+                });
+
+                if (response.ok) {
+                    btn.className = "flex-1 bg-emerald-600 text-white font-bold text-sm py-3 px-6 rounded-xl flex items-center justify-center gap-2";
+                    btn.innerHTML = `<i class="fa-solid fa-check"></i><span>Configurazione Salvata!</span>`;
+                    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                    setTimeout(() => {
+                        window.history.back();
+                    }, 1200);
+                } else {
+                    throw new Error('Errore risposta server');
+                }
+            } catch (err) {
+                console.error('Errore salvataggio postazioni:', err);
+                alert('Errore durante il salvataggio della configurazione postazioni.');
+                btn.disabled = false;
+                btn.className = "flex-1 bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm py-3 px-6 rounded-xl flex items-center justify-center gap-2";
+                btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i><span>Riprova Salvataggio</span>`;
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

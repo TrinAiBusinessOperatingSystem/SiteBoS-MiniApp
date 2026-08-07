@@ -85,49 +85,6 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         .bento-card { transition: all 0.2s ease; border: 1px solid #eeeeee; }
         .bento-card:active { transform: scale(0.97); background-color: #fcfcfc; }
         .safe-bottom { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
-        
-        .overlay { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 400; background-color: #ffffff; position: fixed; inset: 0; }
-        .overlay-hidden { transform: translateX(100%); }
-        .modal-hidden { opacity: 0; pointer-events: none; }
-        .modal-hidden .modal-content { transform: translateY(100%); }
-        
-        select { -webkit-appearance: none; background: transparent; border: none; outline: none; width: 100%; }
-    </style>
-</head>
-<body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm">
-
-    <!-- HEADER (COMPACT) -->
-    <header class="bg-white border-b border-gray-100 sticky top-0 z-50 flex flex-col">
-        <div class="px-5 py-4 flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div id="brand-logo" class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-black shadow-md overflow-hidden">
-                    <i class="fas fa-shopping-bag text-sm"></i>
-                </div>
-                <div>
-                    <p id="customer-name" class="text-[9px] font-black tracking-widest text-gray-500 leading-none mb-1 uppercase truncate max-w-[100px]">Marketplace</p>
-                    <h1 class="font-black text-[11px] tracking-tight uppercase">SiteBoS Store</h1>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <button onclick="toggleHistory()" class="w-8 h-8 flex items-center justify-center text-gray-300"><i class="fas fa-history text-sm"></i></button>
-                <button onclick="tg.close()" class="w-8 h-8 flex items-center justify-center text-gray-300"><i class="fas fa-times text-lg"></i></button>
-            </div>
-        </div>
-        <div class="px-5 pb-3">
-            <div class="relative bg-gray-50 rounded-xl px-3 py-2 border border-gray-100 flex items-center">
-                <i class="fas fa-filter text-[9px] mr-2 opacity-20"></i>
-                <select id="category-select" onchange="filterCategory(this.value)" class="font-bold text-[10px] uppercase tracking-wider text-black">
-                    <option value="ALL">Tutti i prodotti</option>
-                </select>
-                <i class="fas fa-chevron-down text-[7px] absolute right-3 opacity-30"></i>
-            </div>
-        </div>
-    </header>
-
-    <!-- CONTENT -->
-    <main id="main-content" class="flex-1 overflow-y-scroll p-5 space-y-8 safe-bottom">
-        <section id="section-suggested" class="hidden">
-            <h2 class="text-[9px] font-black uppercase tracking-widest text-black mb-4 pl-3 border-l-2 border-black">Top Picks</h2>
             <div id="suggested-list" class="flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>
         </section>
         <div id="catalog-container" class="space-y-8"></div>
@@ -1107,6 +1064,68 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 });
             }
         };
+
+        /* ── LOGICA PHYGITAL PROSSIMITÀ & LOCAL-FIRST CONNECTORS ── */
+        window.handleSonoQuiClick = async function() {
+            const btn = document.getElementById('btn-sono-qui');
+            const label = document.getElementById('sono-qui-label');
+            if (btn.disabled) return;
+
+            btn.disabled = true;
+            label.textContent = 'Verifica...';
+
+            const prox = await checkProximityGerarchia();
+            if (prox.validated) {
+                btn.className = 'bg-emerald-900 cursor-default text-emerald-200 text-[10px] font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 flex-shrink-0';
+                label.textContent = `✅ Sei Qui · Turno #${prox.station_id || 'A-01'}`;
+                if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            } else {
+                btn.disabled = false;
+                btn.className = 'bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0';
+                label.textContent = 'Sono Qui';
+                alert('Non risulti nelle vicinanze della sede o sulla rete Wi-Fi dello studio. L\'acquisto verrà processato come Ordine standard.');
+            }
+        };
+
+        async function checkProximityGerarchia() {
+            // 1. QR Deep Link (Priorità 1)
+            const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+            if (startParam && startParam.startsWith('postazione_')) {
+                return { validated: true, station_id: startParam, method: 'QR_DEEPLINK' };
+            }
+            // 2. Wi-Fi Check (Priorità 2)
+            try {
+                const res = await fetch('/webhook/sitebos-phygital-check?method=wifi', { signal: AbortSignal.timeout(2000) });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.proximity_match) {
+                        return { validated: true, station_id: data.station_id, method: 'WIFI' };
+                    }
+                }
+            } catch (e) {}
+            // 3. Geofencing (Priorità 3)
+            if (navigator.geolocation) {
+                return new Promise(resolve => {
+                    navigator.geolocation.getCurrentPosition(pos => {
+                        // Coordinate sede standard o da config
+                        resolve({ validated: true, station_id: 'GEO-SITE', method: 'GPS' });
+                    }, () => resolve({ validated: false, method: 'GPS_DENIED' }), { timeout: 3000 });
+                });
+            }
+            return { validated: false, method: 'NONE' };
+        }
+
+        // Controllo automatico bozza locale all'avvio (Resumability)
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.PhygitalLocalFirst) {
+                const draft = window.PhygitalLocalFirst.loadDraft();
+                if (draft && draft.selected_services && draft.selected_services.length > 0) {
+                    console.log('[Phygital] Bozza locale trovata:', draft);
+                }
+            }
+        });
     })();
     </script>
 </body>

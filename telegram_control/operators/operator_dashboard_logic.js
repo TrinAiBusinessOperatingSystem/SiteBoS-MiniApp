@@ -769,6 +769,109 @@ function deleteOwnerJob() {
   refreshOperatorShelf();
 }
 
+/* ── TRIGGER "AVANTI IL PROSSIMO" CON ASH SECURITY ED IDEMPOTENCY KEY ── */
+async function handleNextJobTrigger(jobId, operatorId, activeSopDurationMin) {
+    const btn = document.getElementById('btn-avanti-prossimo');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>Sincronizzazione in corso...`;
+    }
+
+    const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('idemp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+    const payload = {
+        job_id: jobId,
+        operator_id: operatorId,
+        completed_at: new Date().toISOString(),
+        duration_minutes: activeSopDurationMin || 15,
+        idempotency_key: idempotencyKey
+    };
+
+    const ashHeader = (window.TwaGuard && window.TwaGuard.requireAsh) ? window.TwaGuard.requireAsh() : ('ash_trigger_' + Date.now());
+    const delays = [0, 1000, 2000, 4000];
+    let attempt = 0;
+    let success = false;
+
+    while (attempt < delays.length) {
+        if (delays[attempt] > 0) {
+            await new Promise(r => setTimeout(r, delays[attempt]));
+        }
+        try {
+            const res = await fetch('/webhook/job-complete-trigger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Authorized-Session-Hash': ashHeader
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.status === 200 || res.status === 201) {
+                success = true;
+                break;
+            }
+        } catch (err) {
+            console.warn(`[PhygitalTrigger] Tentativo ${attempt + 1} fallito:`, err);
+        }
+        attempt++;
+    }
+
+    if (success) {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+        refreshOperatorShelf();
+    } else {
+        // Fallback LocalStorage per riconnessione
+        try {
+            localStorage.setItem(`sitebos_pending_job_close_${jobId}`, JSON.stringify(payload));
+        } catch (e) {}
+        alert('Connessione instabile. La chiusura del Job è stata salvata in locale e verrà inviata non appena la rete torna disponibile.');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-rotate-right mr-2"></i>Riprova Avanti il Prossimo`;
+        }
+    }
+}
+
+/* ── SLOT LOCK MANAGER (OPERATOR OVERRIDE) ── */
+const slotLockManager = {
+    activeLockToken: null,
+    lockTimer: null,
+
+    async requestLock(slotId, operatorId) {
+        try {
+            const res = await fetch('/webhook/slot-lock', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ slot_id: slotId, operator_id: operatorId, lock_duration_s: 120 })
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                this.activeLockToken = data.lock_token;
+                this.startCountdown(120);
+                return { ok: true, token: data.lock_token };
+            }
+            return { ok: false, message: 'Slot già occupato o bloccato da un altro operatore' };
+        } catch (err) {
+            return { ok: false, message: 'Errore di rete durante la richiesta di lock dello slot' };
+        }
+    },
+
+    startCountdown(seconds) {
+        if (this.lockTimer) clearInterval(this.lockTimer);
+        let remaining = seconds;
+        this.lockTimer = setInterval(() => {
+            remaining--;
+            if (remaining <= 0) {
+                clearInterval(this.lockTimer);
+                this.activeLockToken = null;
+                alert('⏳ Il tempo di riserva dello slot è scaduto (120s). Lo slot è stato sbloccato.');
+            }
+        }, 1000);
+    }
+};
+
 // 3 REACTIVE SYNC TRIGGERS
 document.addEventListener("DOMContentLoaded", () => {
   init();
