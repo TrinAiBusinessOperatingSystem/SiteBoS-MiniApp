@@ -89,14 +89,44 @@
   }
 
   /**
-   * Mostra l'overlay visivo calmo, elegante e distensivo
+   * Genera dinamicamente l'overlay di blocco adattandosi al tipo di lock (Concorrente o Generazione AI)
    */
-  function renderFriendlyLockOverlay(reasonText) {
+  function renderFriendlyLockOverlay(reasonText, isGenerating = false) {
     let overlay = document.getElementById('sitebos-friendly-lock-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'sitebos-friendly-lock-overlay';
-      overlay.className = 'fixed inset-0 bg-slate-950/85 backdrop-blur-lg z-[999999] flex items-center justify-center p-4 transition-opacity duration-300';
+      overlay.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[999999] flex items-center justify-center p-4 transition-opacity duration-300';
+      document.body.appendChild(overlay);
+    }
+
+    if (isGenerating) {
+      // Schermata di congelamento per Generazione AI attiva (Senza pulsanti di uscita)
+      overlay.innerHTML = `
+        <div class="bg-slate-900/95 border border-blue-500/30 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center text-slate-100 flex flex-col items-center gap-6">
+          <div class="relative flex items-center justify-center">
+            <div class="w-16 h-16 rounded-full border-4 border-blue-500/10 border-t-blue-500 animate-spin"></div>
+            <div class="absolute text-xl text-blue-400">
+              <i class="fas fa-brain animate-pulse"></i>
+            </div>
+          </div>
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-[9px] font-black uppercase tracking-widest text-blue-400 mb-3">
+              <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
+              ELABORAZIONE INTELLIGENZA ARTIFICIALE
+            </div>
+            <h3 class="text-sm font-extrabold uppercase text-white leading-tight">Scrittura in corso...</h3>
+            <p class="text-xs text-slate-300 font-medium mt-3 leading-relaxed">
+              ${reasonText}
+            </p>
+          </div>
+          <div class="text-[10px] text-slate-500 font-medium tracking-wide uppercase">
+            L'editor si sbloccherà automaticamente al termine
+          </div>
+        </div>
+      `;
+    } else {
+      // Schermata di blocco standard per concorrenza cross-tab o cross-platform (Con pulsante Home)
       overlay.innerHTML = `
         <div class="bg-slate-900/95 border border-slate-700/80 p-6 rounded-3xl w-full max-w-sm shadow-2xl backdrop-blur-2xl text-center text-slate-100 flex flex-col items-center gap-4">
           <div class="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center text-2xl shadow-lg">
@@ -111,9 +141,6 @@
             <p class="text-xs text-slate-300 font-medium mt-2 leading-relaxed">
               ${reasonText}
             </p>
-            <p class="text-[11px] text-slate-400 font-normal mt-2 leading-snug">
-              Non appena la sessione sull'altro dispositivo verrà completata o chiusa, potrai lavorare qui in totale tranquillità.
-            </p>
           </div>
           <button id="sitebos-go-home-btn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
             <i class="fas fa-house text-xs"></i>
@@ -121,7 +148,6 @@
           </button>
         </div>
       `;
-      document.body.appendChild(overlay);
 
       const homeBtn = overlay.querySelector('#sitebos-go-home-btn');
       if (homeBtn) {
@@ -147,6 +173,14 @@
     } catch (_) { return ''; }
   }
 
+  function getLockManagerAsh() {
+    try {
+      const token = sessionStorage.getItem('sitebos_access_token');
+      if (token) return token;
+    } catch (_) {}
+    return getAshFromUrl();
+  }
+
   function getPlatformType() {
     const tg = window.Telegram?.WebApp;
     const platform = (tg?.platform || '').toLowerCase();
@@ -158,10 +192,10 @@
   }
 
   /**
-   * Tenta di acquisire il lock cross-platform tramite backend n8n / MongoDB
+   * Tenta di acquisire il lock remoto (Intercetta lo scope 'generating')
    */
   async function tryAcquireCrossPlatformLock(scope, ttlSeconds = 300) {
-    const ash = getAshFromUrl();
+    const ash = getLockManagerAsh();
     if (!ash || !scope) return true;
     try {
       const res = await fetch(CROSS_LOCK_WEBHOOK_URL, {
@@ -178,12 +212,21 @@
       });
       const data = await res.json();
       if (data && data.blocked) {
-        const remainingMin = Math.max(1, Math.ceil((data.remainingSeconds || 300) / 60));
-        const otherPlatform = data.platform === 'desktop' ? 'PC Desktop' : 'Smartphone Mobile';
-        const labelStr = data.label ? `<b>${data.label}</b>` : `sezione <b>${data.scope || scope}</b>`;
-        renderFriendlyLockOverlay(
-          `Questa sessione è in uso su <b>${otherPlatform}</b> (${labelStr}).<br><br>Sblocco automatico stimato: ⏱️ <b>circa ${remainingMin} minuti</b> o non appena l'altra sessione verrà chiusa.`
-        );
+        if (data.scope === 'generating') {
+          // Attivazione dell'overlay No-Edit per elaborazione AI attiva
+          renderFriendlyLockOverlay(
+            `L'assistente sta scrivendo ed elaborando i tuoi dati (es. ${data.label || 'Sincronizzazione'}). Per evitare sovrascritture, l'editor rimarrà temporaneamente congelato.`,
+            true
+          );
+        } else {
+          // Attivazione dell'overlay standard per concorrenza
+          const remainingMin = Math.max(1, Math.ceil((data.remainingSeconds || 300) / 60));
+          const otherPlatform = data.platform === 'desktop' ? 'PC Desktop' : 'Smartphone Mobile';
+          const labelStr = data.label ? `<b>${data.label}</b>` : `sezione <b>${data.scope || scope}</b>`;
+          renderFriendlyLockOverlay(
+            `Questa sessione è in uso su <b>${otherPlatform}</b> (${labelStr}).<br><br>Sblocco automatico stimato: ⏱️ <b>circa ${remainingMin} minuti</b> o non appena l'altra sessione verrà chiusa.`
+          );
+        }
         return false;
       }
     } catch (e) {
@@ -196,7 +239,7 @@
    * Rilascia il lock cross-platform tramite sendBeacon
    */
   function sendBeaconCrossRelease(scope) {
-    const ash = getAshFromUrl();
+    const ash = getLockManagerAsh();
     if (!ash || !scope) return;
     try {
       const payload = JSON.stringify({

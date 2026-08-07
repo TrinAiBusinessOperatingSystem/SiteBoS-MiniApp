@@ -14,8 +14,16 @@
 
     function getAsh() {
         try {
+            const stored = sessionStorage.getItem('sitebos_access_token');
+            if (stored) return stored;
+        } catch (_) {}
+        try {
             const urlParams = new URLSearchParams(window.location.search || '');
-            return urlParams.get('ash') || (window.Telegram?.WebApp?.initDataUnsafe?.start_param || '');
+            const urlAsh = urlParams.get('ash');
+            if (urlAsh) return urlAsh;
+        } catch (_) {}
+        try {
+            return window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
         } catch (_) { return ''; }
     }
 
@@ -85,20 +93,17 @@
     }
 
     /**
-     * Programma il renewal automatico del lock a 80% del TTL
+     * Programma il renewal automatico del lock ogni 60 secondi (1 minuto) per lo stato Dirty
      */
     function scheduleRenewal(scope, ttlSeconds, isGenerating = false) {
         clearTimeout(_renewalTimers.get(scope));
-        const renewAt = Math.max(10, Math.floor((ttlSeconds || 300) * 0.80)) * 1000;
+        // Heartbeat di rinnovo fisso ogni 60 secondi (1 minuto)
+        const renewAt = 60 * 1000;
         const timerId = setTimeout(() => {
-            if (isGenerating && _generatingMap.has(scope)) {
-                const info = _generatingMap.get(scope);
-                postLockAcquire(scope, info.ttlSeconds, { label: info.label, conflictScopes: info.conflictScopes });
-                scheduleRenewal(scope, info.ttlSeconds, true);
-            } else if (!isGenerating && _dirtyMap.has(scope)) {
+            if (_dirtyMap.has(scope)) {
                 const info = _dirtyMap.get(scope);
-                postLockAcquire(scope, info.ttlSeconds);
-                scheduleRenewal(scope, info.ttlSeconds, false);
+                postLockAcquire(scope, info.ttlSeconds || 300);
+                scheduleRenewal(scope, info.ttlSeconds || 300, false);
             }
         }, renewAt);
         _renewalTimers.set(scope, timerId);

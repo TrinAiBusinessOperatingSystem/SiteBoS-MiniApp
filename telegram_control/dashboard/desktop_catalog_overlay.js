@@ -8,6 +8,51 @@
     'use strict';
 
     const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
+    const OVERLAY_CROSS_LOCK_URL = "https://prod.workflow.trinai.it/webhook/17a1bf79-43cd-428b-a497-33745ca44857";
+
+    /**
+     * Tenta di acquisire il lock remoto n8n/MongoDB per l'overlay catalogo.
+     * Ritorna false e mostra l'overlay di blocco se il lock è già occupato cross-platform.
+     */
+    async function tryOverlayCrossPlatformLock() {
+        initSessionParams();
+        if (!overlayAsh) return true; // Senza token non bloccare (fallback safe)
+        try {
+            const tg = window.Telegram?.WebApp;
+            const platform = (function () {
+                const p = (tg?.platform || '').toLowerCase();
+                if (['android', 'ios', 'mobile'].includes(p)) return 'mobile';
+                if (['tdesktop', 'desktop', 'macos', 'weba', 'webk'].includes(p)) return 'desktop';
+                const ua = (navigator.userAgent || '').toLowerCase();
+                if (/android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(ua)) return 'mobile';
+                return (window.innerWidth < 768) ? 'mobile' : 'desktop';
+            })();
+
+            const res = await fetch(OVERLAY_CROSS_LOCK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    _auth: tg?.initData || '',
+                    ash: overlayAsh,
+                    scope: OVERLAY_LOCK_SCOPE,
+                    platform: platform,
+                    action: 'acquire',
+                    ttl: 300
+                })
+            });
+            const data = await res.json();
+            if (data && data.blocked) {
+                const otherPlatform = data.platform === 'desktop' ? 'PC Desktop' : 'Smartphone Mobile';
+                showLockBlockedOverlay(
+                    `Il Catalogo è attualmente aperto ed in uso su <b>${otherPlatform}</b>. Potrai modificarlo non appena la sessione sull'altro dispositivo verrà chiusa.`
+                );
+                return false;
+            }
+        } catch (e) {
+            console.warn('[CatalogOverlay] Cross-platform lock check warn:', e);
+        }
+        return true;
+    }
 
     // Stato Globale dell'Overlay
     let cachedCatalog = null;
@@ -130,6 +175,15 @@
      * Inizializza i parametri di sessione ash e msg
      */
     function initSessionParams() {
+        try {
+            const stored = sessionStorage.getItem('sitebos_access_token');
+            if (stored) {
+                overlayAsh = stored;
+                const urlParams = new URLSearchParams(window.location.search);
+                overlayMsg = urlParams.get('msg') || urlParams.get('message_id') || '';
+                return;
+            }
+        } catch (_) {}
         const urlParams = new URLSearchParams(window.location.search);
         overlayAsh = urlParams.get('ash') || '';
         overlayMsg = urlParams.get('msg') || urlParams.get('message_id') || '';
@@ -346,6 +400,10 @@
             return;
         }
 
+        // ── Check 3: Remote Cross-Platform Lock (n8n/MongoDB) — PC vs Smartphone ──
+        const crossPlatformAllowed = await tryOverlayCrossPlatformLock();
+        if (!crossPlatformAllowed) return;
+
         // ── Acquisisce il lock catalog per questa sessione overlay ───────────────
         acquireCatalogLock();
 
@@ -385,6 +443,23 @@
             if (overlay) overlay.classList.add('hidden');
             // Rilascio immediato del lock → altri tab/pagine catalog possono ora aprirsi
             releaseCatalogLock();
+            // Rilascio del lock remoto n8n/MongoDB
+            try {
+                const tg = window.Telegram?.WebApp;
+                const platform = window.innerWidth < 768 ? 'mobile' : 'desktop';
+                const payload = JSON.stringify({
+                    _auth: tg?.initData || '',
+                    ash: overlayAsh,
+                    scope: OVERLAY_LOCK_SCOPE,
+                    platform: platform,
+                    action: 'release'
+                });
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon(OVERLAY_CROSS_LOCK_URL, new Blob([payload], { type: 'application/json' }));
+                } else {
+                    fetch(OVERLAY_CROSS_LOCK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(() => {});
+                }
+            } catch (_) {}
         };
         if (window.SiteBosDirtyGuard) {
             window.SiteBosDirtyGuard.requestNavigateAway(null, doClose);
