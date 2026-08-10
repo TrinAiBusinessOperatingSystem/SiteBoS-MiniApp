@@ -148,6 +148,7 @@
                 </div>
 
                 <!-- CARICAMENTO DA GALLERIA FILE (FALLBACK UNIFICATO) -->
+                <input type="file" id="camera-native-input" accept="image/*,video/*" capture="environment" class="hidden" onchange="handleGallerySelected(event)">
                 <input type="file" id="gallery-file-input" accept="image/*,video/*" multiple class="hidden" onchange="handleGallerySelected(event)">
                 <button onclick="document.getElementById('gallery-file-input').click()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs py-2.5 rounded-2xl transition flex items-center justify-center gap-2">
                     <i class="fas fa-folder-open text-gray-500"></i> <span>Carica da Galleria / File</span>
@@ -235,27 +236,45 @@
                 if (videoStream) {
                     videoStream.getTracks().forEach(t => t.stop());
                 }
-                videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: {
-                        facingMode: { ideal: 'environment' },
-                        width: { ideal: 1280 },
-                        height: { ideal: 720 }
-                    },
-                    audio: false
-                });
+
+                // 1. Tenta vincoli ottimali per fotocamera posteriore (environment)
+                let constraints = { video: { facingMode: 'environment' }, audio: false };
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (e1) {
+                    console.warn("Stream environment fallito, uso vincoli video generici:", e1);
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                }
+
+                if (!videoStream || !videoStream.getVideoTracks().length) {
+                    throw new Error("Nessun flusso video valido restituito dal dispositivo.");
+                }
 
                 video.srcObject = videoStream;
+                video.muted = true;
+                video.setAttribute('muted', 'true');
+                video.setAttribute('playsinline', 'true');
+
                 video.classList.remove('hidden');
                 placeholder.classList.add('hidden');
                 startBtn.classList.add('hidden');
                 liveControls.classList.remove('hidden');
+                
+                // Forzare l'avvio del video per WebKit / Android WebView
+                try {
+                    await video.play();
+                } catch (playErr) {
+                    console.warn("Riproduzione video automatica intercettata dal browser:", playErr);
+                }
                 
                 if (window.Telegram?.WebApp?.HapticFeedback) {
                     window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
                 }
             } catch (err) {
                 console.error("Camera access error:", err);
-                alert("Impossibile accedere alla fotocamera posteriore. Utilizza il pulsante 'Carica da Galleria'.");
+                // Fallback automatico su fotocamera nativa OS
+                const nativeInput = document.getElementById('camera-native-input');
+                if (nativeInput) nativeInput.click();
             }
         }
 
