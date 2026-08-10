@@ -189,6 +189,38 @@
             <p class="text-[10px] text-gray-500 font-medium">L'IA sta riconoscendo le postazioni di lavoro e gli strumenti della tua attività</p>
         </div>
 
+        <!-- CARD RISULTATI ANALISI IA (NASCOSTA DI DEFAULT) -->
+        <div id="scan-results-card" class="hidden card p-5 space-y-4">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-black">✨ Postazioni Riconosciute dall'IA</h3>
+                </div>
+                <span class="text-[9px] font-black uppercase tracking-widest text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">Analisi Completata</span>
+            </div>
+
+            <!-- SOMMARIO DEL LAYOUT -->
+            <p id="results-summary-text" class="text-xs text-gray-600 font-medium leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-200/60"></p>
+
+            <!-- LISTA OPERATIONAL UNITS RILEVATE -->
+            <div class="space-y-2">
+                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Postazioni & Asset Rilevati</span>
+                <div id="results-units-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    <!-- Popolato dinamicamente da JS -->
+                </div>
+            </div>
+
+            <!-- BOTTONI AZIONE -->
+            <div class="pt-2 grid grid-cols-2 gap-2">
+                <button onclick="startIncrementalScan()" class="py-3 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-plus-circle"></i> <span>Nuova Scansione</span>
+                </button>
+                <button onclick="window.history.back()" class="py-3 bg-black hover:bg-gray-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                    <i class="fas fa-check"></i> <span>Conferma & Chiudi</span>
+                </button>
+            </div>
+        </div>
+
     </main>
 
     <!-- LOGICA JS AVANZATA -->
@@ -548,6 +580,13 @@
                     data: capturedVideoB64.split(',')[1]
                   }] : []);
 
+            // Stato locale cumulativo delle postazioni e macchinari estratti
+            window.currentScanResult = window.currentScanResult || {
+                stations: [],
+                machinery: [],
+                layout_summary: ''
+            };
+
             const payload = {
                 _auth: tg?.initData || '',
                 ash: ash,
@@ -556,6 +595,8 @@
                 media_type: currentMode,
                 inline_data: mediaArray,
                 files: mediaArray,
+                existing_stations: window.currentScanResult.stations,
+                existing_machinery: window.currentScanResult.machinery,
                 timestamp: Date.now()
             };
 
@@ -573,15 +614,23 @@
                     body: JSON.stringify(payload)
                 });
 
-                const successMsg = "✨ Analisi del locale completata con successo! Le postazioni e gli strumenti sono stati registrati.";
-                if (window.Telegram?.WebApp) {
-                    window.Telegram.WebApp.HapticFeedback?.notificationOccurred('success');
-                    window.Telegram.WebApp.showAlert(successMsg, () => {
-                        window.history.back();
-                    });
-                } else {
-                    alert(successMsg);
-                    window.history.back();
+                const resData = await response.json().catch(() => ({}));
+                console.log("Risposta dal Webhook n8n:", resData);
+
+                // Estrazione dati dall'output Gemini DPF (struttura ufficiale: stations, machinery, layout_summary)
+                const output = resData.location_scanner_output || resData.response_output || resData.output || resData;
+                
+                // Aggiornamento dello stato cumulativo locale con la risposta integrata
+                window.currentScanResult.stations = output.stations || output.operational_units || window.currentScanResult.stations || [];
+                window.currentScanResult.machinery = output.machinery || window.currentScanResult.machinery || [];
+                window.currentScanResult.layout_summary = output.layout_summary || output.summary || output.message || "Analisi visiva completata.";
+
+                // Nasconde il loader di invio e renderizza la vista dinamica interattiva
+                document.getElementById('sending-loader').classList.add('hidden');
+                renderScanResultsUI();
+
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 }
             } catch (err) {
                 console.error("Errore durante l'invio delle immagini al Webhook:", err);
@@ -596,6 +645,174 @@
                 } else {
                     alert(errMsg);
                 }
+            }
+        }
+
+        // Funzione di rendering dinamico dei risultati con comandi Modifica ed Elimina
+        function renderScanResultsUI() {
+            const resultsCard = document.getElementById('scan-results-card');
+            const summaryEl = document.getElementById('results-summary-text');
+            const unitsListEl = document.getElementById('results-units-list');
+
+            if (!resultsCard || !unitsListEl) return;
+
+            if (summaryEl) summaryEl.innerText = window.currentScanResult.layout_summary || 'Nessun sommario disponibile.';
+
+            const stations = window.currentScanResult.stations || [];
+            const machinery = window.currentScanResult.machinery || [];
+
+            unitsListEl.innerHTML = '';
+
+            if (stations.length === 0 && machinery.length === 0) {
+                unitsListEl.innerHTML = `<p class="text-xs text-gray-500 font-medium text-center py-2">Nessuna postazione registrata. Scatta nuove foto per analizzare il locale.</p>`;
+                resultsCard.classList.remove('hidden');
+                return;
+            }
+
+            // Rendering Postazioni di Lavoro con controlli ✏️ ed 🗑️
+            stations.forEach((st, sIdx) => {
+                const stId = st.station_id || `station_${sIdx + 1}`;
+                const stName = st.station_name || st.name || `Postazione ${sIdx + 1}`;
+                
+                // Macchinari associati a questa postazione
+                const assignedMachinery = machinery.filter(m => m.station_assignment === stId || m.station_assignment === stName);
+
+                const stationCard = document.createElement('div');
+                stationCard.className = 'p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-2';
+                
+                let machHtml = '';
+                if (assignedMachinery.length > 0) {
+                    machHtml = '<div class="space-y-1 pt-1 border-t border-gray-200/60">';
+                    assignedMachinery.forEach((m) => {
+                        const mIdx = machinery.indexOf(m);
+                        machHtml += `
+                            <div class="flex items-center justify-between text-[10px] text-gray-700 bg-white p-1.5 rounded-lg border border-gray-100">
+                                <span>🛠️ <strong>${m.type}</strong> (€${m.value || 0})</span>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="editMachineryItem(${mIdx})" class="px-1.5 py-0.5 text-blue-600 hover:bg-blue-50 rounded"><i class="fas fa-pen"></i></button>
+                                    <button onclick="deleteMachineryItem(${mIdx})" class="px-1.5 py-0.5 text-red-500 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    machHtml += '</div>';
+                }
+
+                stationCard.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-black text-black">📍 ${stName}</span>
+                            <span class="text-[9px] font-bold uppercase tracking-wider text-gray-500 bg-gray-200 px-2 py-0.5 rounded-md">${stId}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="editStationItem(${sIdx})" class="px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Modifica Nome"><i class="fas fa-pen"></i></button>
+                            <button onclick="deleteStationItem(${sIdx})" class="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded-lg transition" title="Elimina Postazione"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    ${machHtml}
+                `;
+                unitsListEl.appendChild(stationCard);
+            });
+
+            // Rendering Dotazioni Comuni & IT (senza station_assignment specifico)
+            const commonMachinery = machinery.filter(m => !m.station_assignment || m.station_assignment === 'common');
+            if (commonMachinery.length > 0) {
+                const commonCard = document.createElement('div');
+                commonCard.className = 'p-3 bg-blue-50/50 border border-blue-200 rounded-xl space-y-2';
+                
+                let commonMachHtml = '<div class="space-y-1 pt-1 border-t border-blue-200/60">';
+                commonMachinery.forEach((m) => {
+                    const mIdx = machinery.indexOf(m);
+                    commonMachHtml += `
+                        <div class="flex items-center justify-between text-[10px] text-blue-900 bg-white/80 p-1.5 rounded-lg border border-blue-100">
+                            <span>🛠️ <strong>${m.type}</strong> (€${m.value || 0})</span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="editMachineryItem(${mIdx})" class="px-1.5 py-0.5 text-blue-600 hover:bg-blue-100 rounded"><i class="fas fa-pen"></i></button>
+                                <button onclick="deleteMachineryItem(${mIdx})" class="px-1.5 py-0.5 text-red-500 hover:bg-red-50 rounded"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    `;
+                });
+                commonMachHtml += '</div>';
+
+                commonCard.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-blue-900">📦 Dotazioni Comuni & IT</span>
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">Common</span>
+                    </div>
+                    ${commonMachHtml}
+                `;
+                unitsListEl.appendChild(commonCard);
+            }
+
+            resultsCard.classList.remove('hidden');
+        }
+
+        // Modifica Nome Postazione
+        function editStationItem(idx) {
+            const currentName = window.currentScanResult.stations[idx]?.station_name || '';
+            const newName = prompt("Modifica il nome della postazione:", currentName);
+            if (newName && newName.trim() !== '') {
+                window.currentScanResult.stations[idx].station_name = newName.trim();
+                renderScanResultsUI();
+            }
+        }
+
+        // Eliminazione Postazione
+        function deleteStationItem(idx) {
+            if (confirm("Sei sicuro di voler eliminare questa postazione?")) {
+                const deletedSt = window.currentScanResult.stations.splice(idx, 1)[0];
+                if (deletedSt && deletedSt.station_id) {
+                    // Riassegna i macchinari associati a "common"
+                    window.currentScanResult.machinery.forEach(m => {
+                        if (m.station_assignment === deletedSt.station_id) m.station_assignment = 'common';
+                    });
+                }
+                renderScanResultsUI();
+            }
+        }
+
+        // Modifica Dettagli Macchinario
+        function editMachineryItem(idx) {
+            const item = window.currentScanResult.machinery[idx];
+            if (!item) return;
+
+            const newType = prompt("Modifica il nome dell'asset / macchinario:", item.type || '');
+            if (newType && newType.trim() !== '') {
+                item.type = newType.trim();
+                const newValue = prompt("Inserisci il valore d'acquisto stimato (€):", item.value || 0);
+                if (newValue !== null && !isNaN(newValue)) {
+                    item.value = parseInt(newValue, 10);
+                }
+                renderScanResultsUI();
+            }
+        }
+
+        // Eliminazione Macchinario
+        function deleteMachineryItem(idx) {
+            if (confirm("Rimuovere questo macchinario dalla lista?")) {
+                window.currentScanResult.machinery.splice(idx, 1);
+                renderScanResultsUI();
+            }
+        }
+
+        // Riavvio Scansione Incrementale (mantiene la lista esistente in memoria ed apre la fotocamera per nuove acquisizioni)
+        function startIncrementalScan() {
+            capturedPhotos = [];
+            capturedVideoB64 = null;
+            if (recordedChunks) recordedChunks = [];
+            
+            renderPreviewGrid();
+
+            document.getElementById('scan-results-card').classList.add('hidden');
+            document.getElementById('action-submit-section').classList.remove('hidden');
+            document.getElementById('media-preview-section').classList.remove('hidden');
+
+            const infoMsg = `✨ Scatta foto o carica video per integrare la lista corrente (${window.currentScanResult.stations.length} postazioni già rilevate).`;
+            if (window.Telegram?.WebApp?.showAlert) {
+                window.Telegram.WebApp.showAlert(infoMsg);
+            } else {
+                alert(infoMsg);
             }
         }
     </script>
