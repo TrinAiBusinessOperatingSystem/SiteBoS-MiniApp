@@ -230,7 +230,12 @@
 
             <!-- LISTA OPERATIONAL UNITS RILEVATE -->
             <div class="space-y-2">
-                <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Dettaglio Postazioni & Beni Riconosciuti</span>
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-black uppercase tracking-wider text-gray-400 block">Dettaglio Postazioni & Beni Riconosciuti</span>
+                    <button onclick="openAddNewItemChoiceModal()" class="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-black hover:bg-gray-800 text-white rounded-lg shadow-2xs transition flex items-center gap-1">
+                        <i class="fas fa-plus text-[9px]"></i> <span>Aggiungi Manualmente</span>
+                    </button>
+                </div>
                 <div id="results-units-list" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
                     <!-- Popolato dinamicamente da JS -->
                 </div>
@@ -241,7 +246,7 @@
                 <button onclick="startIncrementalScan()" class="py-3 bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-700 font-black text-xs uppercase tracking-wider rounded-xl transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-plus-circle"></i> <span>Scansiona Altra Zona</span>
                 </button>
-                <button onclick="window.history.back()" class="py-3 bg-black hover:bg-gray-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                <button onclick="confirmAndSaveState()" class="py-3 bg-black hover:bg-gray-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
                     <i class="fas fa-check"></i> <span>Conferma & Registra</span>
                 </button>
             </div>
@@ -1000,48 +1005,298 @@
             }
         }
 
-        // Eliminazione Postazione
-        function deleteStationItem(idx) {
-            if (confirm("Sei sicuro di voler eliminare questa postazione?")) {
-                const deletedSt = window.currentScanResult.stations.splice(idx, 1)[0];
-                if (deletedSt && deletedSt.station_id) {
-                    // Riassegna i macchinari associati a "common"
-                    window.currentScanResult.machinery.forEach(m => {
-                        if (m.station_assignment === deletedSt.station_id) m.station_assignment = 'common';
-                    });
+        // Inizializzazione dello stato salvato al caricamento della pagina (chiamata remota get_owner_data a edit_owner)
+        window.addEventListener('DOMContentLoaded', () => {
+            initSavedState();
+        });
+
+        async function initSavedState() {
+            // 1. Tenta il recupero dal backend MongoDB via Webhook edit_owner (get_owner_data)
+            try {
+                const payload = {
+                    _auth: window.Telegram?.WebApp?.initData || '',
+                    action: 'get_owner_data'
+                };
+
+                const response = await fetch("https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    const resData = await response.json().catch(() => ({}));
+                    let rawObj = Array.isArray(resData) ? (resData[0] || {}) : (resData || {});
+                    
+                    const ownerData = rawObj.owner_data || rawObj;
+                    const savedScan = ownerData?.location_scanner_output || ownerData?.location_scan || rawObj?.location_scanner_output;
+
+                    const stationsList = savedScan?.stations || ownerData?.stations || ownerData?.operational_units || [];
+                    const machineryList = savedScan?.machinery || ownerData?.machinery || ownerData?.assets || [];
+                    const layoutSummary = savedScan?.layout_summary || ownerData?.layout_summary || "Analisi visiva del locale salvata.";
+
+                    if (stationsList.length > 0 || machineryList.length > 0) {
+                        window.currentScanResult.stations = stationsList;
+                        window.currentScanResult.machinery = machineryList;
+                        window.currentScanResult.layout_summary = layoutSummary;
+                        
+                        console.log("Dati recuperati con successo da edit_owner per advanced-setup (MongoDB):", window.currentScanResult);
+                        saveToLocalStorage(); // Backup in cache locale
+                        renderScanResultsUI();
+                        return;
+                    }
                 }
-                renderScanResultsUI();
+            } catch (err) {
+                console.warn("Impossibile recuperare dati remoti da edit_owner, verifico cache locale:", err);
+            }
+
+            // 2. Fallback su localStorage se prima installazione o in assenza di rete
+            try {
+                const saved = localStorage.getItem('sitebos_location_scan_data');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && ((parsed.stations && parsed.stations.length > 0) || (parsed.machinery && parsed.machinery.length > 0))) {
+                        window.currentScanResult = parsed;
+                        console.log("Stato salvato recuperato da localStorage (fallback):", window.currentScanResult);
+                        renderScanResultsUI();
+                    }
+                }
+            } catch (e) {
+                console.warn("Nessuno stato salvato in localStorage o errore di parsing:", e);
             }
         }
 
-        // Eliminazione Macchinario
-        function deleteMachineryItem(idx) {
-            if (confirm("Rimuovere questo macchinario dalla lista?")) {
-                window.currentScanResult.machinery.splice(idx, 1);
-                renderScanResultsUI();
+        // Salvataggio persistente in localStorage
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('sitebos_location_scan_data', JSON.stringify(window.currentScanResult));
+            } catch (e) {
+                console.error("Errore salvataggio localStorage:", e);
             }
         }
 
-        // Riavvio Scansione Incrementale (mantiene la lista esistente in memoria ed apre la fotocamera per nuove acquisizioni)
-        function startIncrementalScan() {
-            capturedPhotos = [];
-            capturedVideoB64 = null;
-            if (recordedChunks) recordedChunks = [];
-            
-            renderPreviewGrid();
+        // Salvataggio e Conferma finale remota su MongoDB (save_owner_data) allineata 1:1 con advanced-setup.html
+        async function confirmAndSaveState() {
+            saveToLocalStorage(); // Backup locale immediato
 
-            // Mostra di nuovo gli ingressi fotocamera/upload
-            document.getElementById('intro-selector-box')?.classList.remove('hidden');
-            document.getElementById('camera-stream-box')?.classList.remove('hidden');
-            document.getElementById('scan-results-card')?.classList.add('hidden');
+            const stationsList = window.currentScanResult.stations || [];
+            const machineryList = window.currentScanResult.machinery || [];
 
-            const infoMsg = `✨ Scatta nuove foto o carica video per integrare la lista corrente (${window.currentScanResult.stations.length} postazioni già rilevate).`;
-            if (window.Telegram?.WebApp?.showAlert) {
-                window.Telegram.WebApp.showAlert(infoMsg);
+            const payload = {
+                _auth: window.Telegram?.WebApp?.initData || '',
+                action: 'save_owner_data',
+                data_update: {
+                    machinery: machineryList,
+                    reuniti_count: stationsList.length,
+                    number_of_chairs: stationsList.length,
+                    stations: stationsList,
+                    operational_units: stationsList,
+                    assets: machineryList,
+                    layout_summary: window.currentScanResult.layout_summary || "",
+                    location_scanner_output: window.currentScanResult
+                }
+            };
+
+            try {
+                await fetch("https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                console.log("Dati inviati con successo a edit_owner (save_owner_data)");
+            } catch (e) {
+                console.warn("Errore durante il salvataggio remoto su edit_owner:", e);
+            }
+
+            const successMsg = "✨ Asset e Postazioni registrati con successo nel profilo aziendale NoSQL!";
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.HapticFeedback?.notificationOccurred('success');
+                window.Telegram.WebApp.showAlert(successMsg, () => {
+                    window.history.back();
+                });
             } else {
-                alert(infoMsg);
+                alert(successMsg);
+                window.history.back();
             }
         }
+
+        // Modal di Scelta: Aggiungi Nuova Postazione oppure Nuovo Macchinario
+        function openAddNewItemChoiceModal() {
+            window.editingState = { type: 'choice', index: null };
+            document.getElementById('edit-modal-title').innerText = `Inserisci Nuovo Elemento`;
+
+            const modalBody = document.getElementById('edit-modal-body');
+            modalBody.innerHTML = `
+                <div class="space-y-2 py-2">
+                    <button onclick="addNewStationModal()" class="w-full p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-2xl text-left flex items-center justify-between active:scale-98 transition">
+                        <div>
+                            <span class="text-xs font-black text-black uppercase tracking-wider block">📍 Nuova Postazione di Lavoro</span>
+                            <span class="text-[10px] text-gray-500 font-medium">Crea una nuova stanza, banco bar, riunito o banco clienti</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </button>
+
+                    <button onclick="addNewMachineryModal()" class="w-full p-4 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-2xl text-left flex items-center justify-between active:scale-98 transition">
+                        <div>
+                            <span class="text-xs font-black text-black uppercase tracking-wider block">🛠️ Nuovo Asset / Macchinario</span>
+                            <span class="text-[9px] text-gray-500 font-medium">Aggiungi un nuovo macchinario, frigorifero, cassa o dispositivo IT</span>
+                        </div>
+                        <i class="fas fa-chevron-right text-gray-400 text-xs"></i>
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        // Modal per Inserimento NUOVA Postazione
+        function addNewStationModal() {
+            window.editingState = { type: 'new_station', index: null };
+            document.getElementById('edit-modal-title').innerText = `Inserisci Nuova Postazione`;
+
+            const modalBody = document.getElementById('edit-modal-body');
+            modalBody.innerHTML = `
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Nome Postazione</label>
+                    <input type="text" id="input-st-name" placeholder="es: Banco Barber 2 o Cucina Frittura" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-black focus:outline-hidden focus:border-black">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">ID Identificativo (slug)</label>
+                    <input type="text" id="input-st-id" placeholder="es: postazione_2" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-mono font-bold text-gray-700 focus:outline-hidden focus:border-black">
+                </div>
+            `;
+        }
+
+        // Modal per Inserimento NUOVO Macchinario
+        function addNewMachineryModal() {
+            window.editingState = { type: 'new_machinery', index: null };
+            document.getElementById('edit-modal-title').innerText = `Inserisci Nuovo Macchinario / Asset`;
+
+            const stations = window.currentScanResult.stations || [];
+            let stationOptions = `<option value="common">📦 Dotazioni Comuni / IT (common)</option>`;
+            stations.forEach(s => {
+                const sId = s.station_id || s.name;
+                const sName = s.station_name || s.name;
+                stationOptions += `<option value="${sId}">📍 ${sName} (${sId})</option>`;
+            });
+
+            const modalBody = document.getElementById('edit-modal-body');
+            modalBody.innerHTML = `
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Nome Asset / Macchinario</label>
+                    <input type="text" id="input-m-type" placeholder="es: Macchina Caffè Espresso 2 Gruppi" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-black focus:outline-hidden focus:border-black">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Valore d'Acquisto (€)</label>
+                        <input type="number" id="input-m-value" placeholder="3200" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-emerald-700 focus:outline-hidden focus:border-black">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Ammortamento (Anni)</label>
+                        <input type="number" id="input-m-useful" value="5" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-black focus:outline-hidden focus:border-black">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Postazione Assegnata</label>
+                    <select id="input-m-assignment" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-black focus:outline-hidden focus:border-black">
+                        ${stationOptions}
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Titolo di Possesso</label>
+                        <select id="input-m-ownership" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-black focus:outline-hidden focus:border-black">
+                            <option value="Proprietà" selected>Proprietà</option>
+                            <option value="Leasing">Leasing</option>
+                            <option value="Noleggio">Noleggio</option>
+                            <option value="Comodato">Comodato</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Anno Acquisto</label>
+                        <input type="number" id="input-m-year" value="2026" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-black focus:outline-hidden focus:border-black">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="text-[10px] font-black uppercase text-gray-500 tracking-wider">Verticale Settoriale</label>
+                    <select id="input-m-vertical" class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-bold text-black focus:outline-hidden focus:border-black">
+                        <option value="food">Food / Ristorazione</option>
+                        <option value="dental">Odontoiatria / Dental</option>
+                        <option value="health">Sanità / Salute</option>
+                        <option value="beauty">Estetica / Benessere</option>
+                        <option value="workshop">Officina / Laboratorio</option>
+                        <option value="common" selected>Comune / Infrastruttura IT</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        // Estensione di saveEditModal per gestire anche i nuovi inserimenti
+        const originalSaveEditModal = saveEditModal;
+        saveEditModal = function() {
+            const { type } = window.editingState;
+
+            if (type === 'new_station') {
+                const newName = document.getElementById('input-st-name')?.value?.trim();
+                let newId = document.getElementById('input-st-id')?.value?.trim();
+                
+                if (newName) {
+                    if (!newId) newId = newName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+                    window.currentScanResult.stations.push({
+                        station_id: newId,
+                        station_name: newName
+                    });
+                    saveToLocalStorage();
+                    closeEditModal();
+                    renderScanResultsUI();
+                    return;
+                }
+            } else if (type === 'new_machinery') {
+                const newType = document.getElementById('input-m-type')?.value?.trim();
+                if (newType) {
+                    const newValue = parseInt(document.getElementById('input-m-value')?.value, 10) || 0;
+                    const newUseful = parseInt(document.getElementById('input-m-useful')?.value, 10) || 5;
+                    const newAssignment = document.getElementById('input-m-assignment')?.value || 'common';
+                    const newOwnership = document.getElementById('input-m-ownership')?.value || 'Proprietà';
+                    const newYear = parseInt(document.getElementById('input-m-year')?.value, 10) || 2026;
+                    const newVertical = document.getElementById('input-m-vertical')?.value || 'common';
+
+                    window.currentScanResult.machinery.push({
+                        type: newType,
+                        value: newValue,
+                        useful_life: newUseful,
+                        station_assignment: newAssignment,
+                        ownership: newOwnership,
+                        year: newYear,
+                        vertical: newVertical
+                    });
+                    saveToLocalStorage();
+                    closeEditModal();
+                    renderScanResultsUI();
+                    return;
+                }
+            }
+
+            originalSaveEditModal();
+            saveToLocalStorage();
+        };
+
+        // Aggiornamento anche nelle funzioni di eliminazione
+        const originalDeleteStation = deleteStationItem;
+        deleteStationItem = function(idx) {
+            originalDeleteStation(idx);
+            saveToLocalStorage();
+        };
+
+        const originalDeleteMachinery = deleteMachineryItem;
+        deleteMachineryItem = function(idx) {
+            originalDeleteMachinery(idx);
+            saveToLocalStorage();
+        };
     </script>
 </body>
 </html>
