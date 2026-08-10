@@ -57,7 +57,7 @@
 
 <body class="safe-area-inset min-h-screen flex flex-col justify-between select-none bg-[#fafafa]">
 
-    <!-- TOP HEADER -->
+    <!-- TOP HEADER (GRAYSCALE TONE) -->
     <div
         class="z-30 bg-white/90 backdrop-blur-md border-b border-gray-200 px-5 py-3 flex items-center justify-between shadow-sm">
         <button id="btn-back" onclick="handleBack()"
@@ -66,8 +66,8 @@
         </button>
 
         <div class="flex items-center gap-2">
-            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-            <span class="text-[10px] font-black uppercase tracking-widest text-black">SiTeBoS AI Graph Explorer</span>
+            <i class="fa-brands fa-telegram text-gray-800 text-sm"></i>
+            <span class="text-[10px] font-black uppercase tracking-widest text-black">SiTeBoS Network Graph</span>
         </div>
 
         <button onclick="resetGraphView()"
@@ -76,23 +76,26 @@
         </button>
     </div>
 
-    <!-- FILTER BUTTONS -->
+    <!-- FILTER BUTTONS (TONI DI GRIGIO) -->
     <div
         class="z-20 bg-white/80 backdrop-blur-sm px-4 py-2 border-b border-gray-200/80 flex items-center justify-center gap-2 overflow-x-auto shadow-sm">
         <button onclick="filterCluster('ALL')" id="flt-ALL"
             class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-black text-white shadow-md">Tutti
             i Nodi</button>
+        <button onclick="filterCluster('BOT')" id="flt-BOT"
+            class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-800 text-white font-extrabold shadow-md border border-gray-900"><i
+                class="fa-brands fa-telegram mr-1"></i> Bot Telegram</button>
         <button onclick="filterCluster('AI')" id="flt-AI"
-            class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500 text-black font-extrabold shadow-md border border-amber-600">🤖
+            class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-200 text-black border border-gray-300">🤖
             Solamente AI</button>
         <button onclick="filterCluster('OWNER')" id="flt-OWNER"
             class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-100 text-black border border-gray-300">👑
             Titolare</button>
         <button onclick="filterCluster('OPERATOR')" id="flt-OPERATOR"
-            class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-50 text-purple-900 border border-purple-200">👷
+            class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-100 text-black border border-gray-300">👷
             Operatore</button>
         <button onclick="filterCluster('CUSTOMER')" id="flt-CUSTOMER"
-            class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-900 border border-emerald-200">👤
+            class="flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-100 text-black border border-gray-300">👤
             Cliente</button>
     </div>
 
@@ -103,15 +106,15 @@
         <!-- OVERLAY INSTRUCTIONS -->
         <div class="absolute top-3 left-4 z-10 pointer-events-none opacity-60">
             <p class="text-[9px] font-bold uppercase tracking-widest text-gray-500">
-                <i class="fas fa-hand-pointer mr-1 text-amber-500"></i> Passa sopra con il mouse per la scheda
-                fluttuante a destra
+                <i class="fa-brands fa-telegram mr-1 text-gray-800"></i> Passa sopra o clicca per la scheda informativa
+                a destra
             </p>
         </div>
     </div>
 
-    <!-- SCHEDA INFORMATIVA FLUTTUANTE ANCORATA A DESTRA (SIDEBAR RIGHT) -->
+    <!-- SCHEDA INFORMATIVA FLUTTUANTE ANCORATA A DESTRA (GRAYSCALE TONE) -->
     <div id="node-drawer"
-        class="floating-card closed fixed top-20 right-4 z-50 bg-white/95 backdrop-blur-2xl border border-gray-200 rounded-3xl p-5 space-y-4 shadow-2xl w-80 md:w-96">
+        class="floating-card closed fixed top-20 right-4 z-50 bg-white/95 backdrop-blur-2xl border border-gray-300 rounded-3xl p-5 space-y-4 shadow-2xl w-80 md:w-96">
         <div class="flex items-start justify-between">
             <div class="space-y-1">
                 <span id="drawer-badge"
@@ -153,15 +156,19 @@
         let nodesDataset = null;
         let edgesDataset = null;
 
-        // MAPPA NODI PULITI - LABEL CON CONTIENE SOLO L'ICONA EMOJI GRANDE
+        // MAPPA NODI - TONI DI GRIGIO & TELEGRAM BOTS
         const rawNodes = [
-            // 4 HUB PRINCIPALI STESSA DIMENSIONE (SIZE 36)
-            { id: 'HUB_AI_ENGINE', label: '🤖', title: 'SiTeBoS AI Engine', cluster: 'AI', shape: 'circle', color: { background: '#f59e0b', border: '#b45309' }, font: { color: '#000000', size: 26, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Motore di Intelligenza Artificiale centrale che guida le pipeline e i setup assistiti.' },
-            { id: 'HUB_OWNER', label: '👑', title: 'Titolare (Owner)', cluster: 'OWNER', shape: 'circle', color: { background: '#000000', border: '#333333' }, font: { color: '#ffffff', size: 26, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Pannello Direzionale del Titolare d impresa.' },
-            { id: 'HUB_OPERATOR', label: '👷', title: 'Staff Operatore', cluster: 'OPERATOR', shape: 'circle', color: { background: '#7c3aed', border: '#5b21b6' }, font: { color: '#ffffff', size: 26, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Console operativa per lo staff e gli operatori sul campo.' },
-            { id: 'HUB_CUSTOMER', label: '👤', title: 'Cliente (Customer)', cluster: 'CUSTOMER', shape: 'circle', color: { background: '#059669', border: '#047857' }, font: { color: '#ffffff', size: 26, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Esperienza cliente pubblica via Telegram WebApp.' },
+            // 4 HUB PRINCIPALI UNIFORMI (SIZE 36) - STYLE TONI DI GRIGIO
+            { id: 'HUB_AI_ENGINE', label: '🤖', title: 'SiTeBoS AI Engine', cluster: 'AI', isAI: true, shape: 'circle', color: { background: '#334155', border: '#0f172a' }, font: { color: '#ffffff', size: 22, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Motore di Intelligenza Artificiale centrale che guida le pipeline e i setup assistiti.' },
+            { id: 'HUB_OWNER', label: '👑', title: 'Titolare (Owner)', cluster: 'OWNER', shape: 'circle', color: { background: '#0f172a', border: '#334155' }, font: { color: '#ffffff', size: 22, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Pannello Direzionale del Titolare d impresa.' },
+            { id: 'HUB_OPERATOR', label: '👷', title: 'Staff Operatore', cluster: 'OPERATOR', shape: 'circle', color: { background: '#475569', border: '#1e293b' }, font: { color: '#ffffff', size: 22, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Console operativa per lo staff e gli operatori sul campo.' },
+            { id: 'HUB_CUSTOMER', label: '👤', title: 'Cliente (Customer)', cluster: 'CUSTOMER', shape: 'circle', color: { background: '#64748b', border: '#334155' }, font: { color: '#ffffff', size: 22, face: 'Plus Jakarta Sans', fontBold: true }, size: 36, desc: 'Esperienza cliente pubblica via Telegram WebApp.' },
 
-            // IMPRENDITORE (OWNER) & AI PIPELINES
+            // NODI BOT TELEGRAM (ICONA TELEGRAM / AEREO DI CARTA)
+            { id: 'bot_owner', label: '✈️', name: 'Bot Telegram Titolare', cluster: 'BOT', isBot: true, link: '02_onboarding.html', desc: 'Bot Telegram di comando per il Titolare: notifiche push cassa, alert sicurezza DVR, risposte rapide e comandi vocali.' },
+            { id: 'bot_customer', label: '✈️', name: 'Bot Telegram Cliente', cluster: 'CUSTOMER', isBot: true, link: '05_customer.html', desc: 'Bot Telegram aziendale per l accoglienza clienti, invio vetrina e-commerce Bento Grid, booking ed assistenza NPL.' },
+
+            // IMPRENDITORE (OWNER) & AI PIPELINES (TONI DI GRIGIO)
             { id: 'dash_3d', label: '🍿', name: 'Console Direzionale 3D', cluster: 'OWNER', link: '01_intro.html', desc: 'Console Direzionale 3D con gesture swipe e comandi vocali Sam VenomHearth.' },
             { id: 'desktop_wb', label: '💻', name: 'Lavagna PC Desktop', cluster: 'OWNER', link: '01b_desktop_dashboard.html', desc: 'Workspace Desktop multi-finestra con scorciatoie e blocco modifiche.' },
             { id: 'catalog_master', label: '📦', name: 'Catalogo Master', cluster: 'OWNER', link: '03_catalog.html', desc: 'Gestione unificata di Prodotti, Servizi e Procedure SOP.' },
@@ -173,7 +180,6 @@
             { id: 'mktg_agent', label: '🌐', name: 'Agente Marketing', cluster: 'OWNER', isAI: true, link: '04_online.html', desc: 'Pianificazione campagne social, articoli blog ed invio newsletter via AI.' },
             { id: 'edit_post', label: '📱', name: 'Creazione Post Social', cluster: 'OWNER', link: '04_online.html', desc: 'Creazione e pubblicazione automatica post su OmniSocials per prodotti e servizi.' },
             { id: 'edit_blog', label: '📝', name: 'Editor Pagina Blog', cluster: 'OWNER', link: '04_online.html', desc: 'Creazione ed editor articoli blog SEO GEO per i prodotti del catalogo.' },
-            { id: 'bot_config', label: '🤖', name: 'Bot Telegram Personale', cluster: 'OWNER', link: '02_onboarding.html', desc: 'Configurazione risposte, benvenuto e comandi del Bot Telegram aziendale.' },
             { id: 'fine_tuning', label: '🧠', name: 'Fine-Tuning Export', cluster: 'OWNER', isAI: true, link: '12_fine_tuning.html', desc: 'Esportazione dataset JSONL ed auto-addestramento agenti AI.' },
 
             // OPERATORE (STAFF)
@@ -190,58 +196,63 @@
             { id: 'chat_bot', label: '💬', name: 'Customer Bot NPL', cluster: 'CUSTOMER', isAI: true, link: '05_customer.html#assistente-chat', desc: 'Chat NPL h24 guidata dall AI per risposte ed assistente clienti.' }
         ];
 
-        // ARCHI E CONNESSIONI CON EVIDENZIAZIONE AI ENGINE
+        // ARCHI E CONNESSIONI IN TONI DI GRIGIO
         const rawEdges = [
-            // HUB AI ENGINE VERSO TUTTE LE PIPELINE E SETUP ASSISTITI
-            { from: 'HUB_AI_ENGINE', to: 'ai_ingestion', label: 'Pipeline Ingestion', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'advanced_setup', label: 'Setup Assistito', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'trust_engine', label: 'Generatore Modelli', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'dvr_safety', label: 'Valutazione Rischi', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'cfo_ctrl', label: 'Predictive Margins', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'mktg_agent', label: 'Content Planner', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'fine_tuning', label: 'LoRA Training', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'prejob_briefing', label: 'Big Five Co-Pilot', color: { color: '#f59e0b' }, width: 2.5 },
-            { from: 'HUB_AI_ENGINE', to: 'chat_bot', label: 'NPL Conversational', color: { color: '#f59e0b' }, width: 2.5 },
+            // HUB AI ENGINE VERSO PIPELINE
+            { from: 'HUB_AI_ENGINE', to: 'ai_ingestion', label: 'Pipeline Ingestion', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'advanced_setup', label: 'Setup Assistito', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'trust_engine', label: 'Generatore Modelli', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'dvr_safety', label: 'Valutazione Rischi', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'cfo_ctrl', label: 'Predictive Margins', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'mktg_agent', label: 'Content Planner', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'fine_tuning', label: 'LoRA Training', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'prejob_briefing', label: 'Big Five Co-Pilot', color: { color: '#475569' }, width: 2 },
+            { from: 'HUB_AI_ENGINE', to: 'chat_bot', label: 'NPL Conversational', color: { color: '#475569' }, width: 2 },
 
-            // INGESTION COLLEGATA A SETUP ED INTEGRITA CATALOGO
-            { from: 'ai_ingestion', to: 'advanced_setup', label: 'Auto-Popola Params', color: { color: '#f59e0b' }, dashes: true },
-            { from: 'ai_ingestion', to: 'catalog_master', label: 'Crea Prodotto/SOP', color: { color: '#0284c7' } },
+            // INGESTION COLLEGATA
+            { from: 'ai_ingestion', to: 'advanced_setup', label: 'Auto-Popola Params', color: { color: '#64748b' }, dashes: true },
+            { from: 'ai_ingestion', to: 'catalog_master', label: 'Crea Prodotto/SOP', color: { color: '#334155' } },
 
             // CONNESSI AGLI HUB DI RUOLO
             { from: 'HUB_OWNER', to: 'dash_3d' },
             { from: 'HUB_OWNER', to: 'desktop_wb' },
             { from: 'HUB_OWNER', to: 'catalog_master' },
-            { from: 'HUB_OWNER', to: 'bot_config' },
+            { from: 'HUB_OWNER', to: 'bot_owner' },
 
             { from: 'HUB_OPERATOR', to: 'lavagna_jobs' },
             { from: 'HUB_OPERATOR', to: 'desk_board' },
             { from: 'HUB_OPERATOR', to: 'sign_pad' },
             { from: 'HUB_OPERATOR', to: 'sign_simple' },
 
+            { from: 'HUB_CUSTOMER', to: 'bot_customer' },
             { from: 'HUB_CUSTOMER', to: 'ecom_bento' },
             { from: 'HUB_CUSTOMER', to: 'booking_app' },
             { from: 'HUB_CUSTOMER', to: 'checkin_geo' },
 
-            // FLUSSO MARKETING -> SOCIAL & BLOG -> CATALOGO
-            { from: 'mktg_agent', to: 'edit_post', label: 'Pianifica Post Social', color: { color: '#0284c7' }, width: 2 },
-            { from: 'mktg_agent', to: 'edit_blog', label: 'Pianifica Articoli Blog', color: { color: '#0284c7' }, width: 2 },
-            { from: 'edit_post', to: 'catalog_master', label: 'Promuove Prodotti', color: { color: '#0284c7' } },
-            { from: 'edit_blog', to: 'catalog_master', label: 'Indicizza Servizi', color: { color: '#0284c7' } },
+            // BOT TELEGRAM TITOLARE CONNESSO A CFO & SICUREZZA
+            { from: 'bot_owner', to: 'cfo_ctrl', label: 'Push Report Cassa', color: { color: '#1e293b' }, width: 2 },
+            { from: 'bot_owner', to: 'dvr_safety', label: 'Alert Scadenze DVR', color: { color: '#1e293b' }, width: 2 },
 
-            // BOT TELEGRAM PERSONALE COLLEGATO A CUSTOMER ED E-COMMERCE
-            { from: 'bot_config', to: 'HUB_CUSTOMER', label: 'Accoglie Cliente', color: { color: '#059669' }, width: 2.5 },
-            { from: 'bot_config', to: 'ecom_bento', label: 'Invia Vetrina TWA', color: { color: '#059669' } },
+            // BOT TELEGRAM CLIENTE CONNESSO A VETRINA & CHAT
+            { from: 'bot_customer', to: 'ecom_bento', label: 'Invia Vetrina TWA', color: { color: '#334155' }, width: 2 },
+            { from: 'bot_customer', to: 'chat_bot', label: 'Chat Assistenza', color: { color: '#334155' }, width: 2 },
+
+            // FLUSSO MARKETING -> SOCIAL & BLOG -> CATALOGO
+            { from: 'mktg_agent', to: 'edit_post', label: 'Pianifica Post Social', color: { color: '#475569' } },
+            { from: 'mktg_agent', to: 'edit_blog', label: 'Pianifica Articoli Blog', color: { color: '#475569' } },
+            { from: 'edit_post', to: 'catalog_master', label: 'Promuove Prodotti', color: { color: '#64748b' } },
+            { from: 'edit_blog', to: 'catalog_master', label: 'Indicizza Servizi', color: { color: '#64748b' } },
 
             // CONNESSI CROSS-FLUSSO REALE
-            { from: 'catalog_master', to: 'ecom_bento', label: 'Sincronizza Vetrina', color: { color: '#0284c7' } },
-            { from: 'trust_engine', to: 'sign_pad', label: 'Modelli Firma', color: { color: '#0284c7' } },
-            { from: 'trust_engine', to: 'sign_simple', label: 'Modelli Firma', color: { color: '#0284c7' } },
+            { from: 'catalog_master', to: 'ecom_bento', label: 'Sincronizza Vetrina', color: { color: '#334155' } },
+            { from: 'trust_engine', to: 'sign_pad', label: 'Modelli Firma', color: { color: '#334155' } },
+            { from: 'trust_engine', to: 'sign_simple', label: 'Modelli Firma', color: { color: '#334155' } },
 
-            { from: 'checkin_geo', to: 'lavagna_jobs', label: 'Coda Turno Atomico', color: { color: '#059669' } },
-            { from: 'checkin_geo', to: 'desk_board', label: 'Presenza in Sede', color: { color: '#059669' } },
-            { from: 'booking_app', to: 'desk_board', label: 'Slot-Lock 120s', color: { color: '#059669' } },
-            { from: 'lavagna_jobs', to: 'prejob_briefing', label: 'Avvio Job', color: { color: '#7c3aed' } },
-            { from: 'lavagna_jobs', to: 'cfo_ctrl', label: 'Avanti il Prossimo (Telemetria)', color: { color: '#7c3aed' } }
+            { from: 'checkin_geo', to: 'lavagna_jobs', label: 'Coda Turno Atomico', color: { color: '#475569' } },
+            { from: 'checkin_geo', to: 'desk_board', label: 'Presenza in Sede', color: { color: '#475569' } },
+            { from: 'booking_app', to: 'desk_board', label: 'Slot-Lock 120s', color: { color: '#475569' } },
+            { from: 'lavagna_jobs', to: 'prejob_briefing', label: 'Avvio Job', color: { color: '#334155' } },
+            { from: 'lavagna_jobs', to: 'cfo_ctrl', label: 'Avanti il Prossimo (Telemetria)', color: { color: '#334155' } }
         ];
 
         function initGraph() {
@@ -254,18 +265,20 @@
                     };
                 }
 
-                let bg = '#ffffff', border = '#000000', fontColor = '#000000';
-                if (n.isAI) { bg = '#fffbeb'; border = '#f59e0b'; fontColor = '#b45309'; }
-                else if (n.cluster === 'OWNER') { bg = '#ffffff'; border = '#000000'; fontColor = '#000000'; }
-                else if (n.cluster === 'OPERATOR') { bg = '#f3e8ff'; border = '#7c3aed'; fontColor = '#5b21b6'; }
-                else if (n.cluster === 'CUSTOMER') { bg = '#ecfdf5'; border = '#059669'; fontColor = '#047857'; }
+                // PALETTE RIGOROSA IN TONI DI GRIGIO
+                let bg = '#ffffff', border = '#0f172a', fontColor = '#0f172a';
+                if (n.isBot) { bg = '#0f172a'; border = '#0f172a'; fontColor = '#ffffff'; }
+                else if (n.isAI) { bg = '#f8fafc'; border = '#334155'; fontColor = '#0f172a'; }
+                else if (n.cluster === 'OWNER') { bg = '#ffffff'; border = '#1e293b'; fontColor = '#0f172a'; }
+                else if (n.cluster === 'OPERATOR') { bg = '#f1f5f9'; border = '#475569'; fontColor = '#0f172a'; }
+                else if (n.cluster === 'CUSTOMER') { bg = '#f8fafc'; border = '#64748b'; fontColor = '#0f172a'; }
 
                 return {
                     id: n.id,
                     label: n.label,
                     shape: 'circle',
-                    color: { background: bg, border: border, highlight: { background: '#f59e0b', border: '#b45309' } },
-                    font: { color: fontColor, size: 20, face: 'Plus Jakarta Sans', fontBold: true },
+                    color: { background: bg, border: border, highlight: { background: '#0f172a', border: '#0f172a' } },
+                    font: { color: n.isBot ? '#ffffff' : fontColor, size: 20, face: 'Plus Jakarta Sans', fontBold: true },
                     size: 20,
                     data: n
                 };
@@ -276,7 +289,7 @@
                 ...e,
                 width: e.width || 1.5,
                 smooth: { type: 'continuous' },
-                font: { size: 8, fill: '#64748b', strokeWidth: 0, align: 'middle' },
+                font: { size: 8, fill: '#475569', strokeWidth: 0, align: 'middle' },
                 arrows: { to: { enabled: true, scaleFactor: 0.5 } }
             })));
 
@@ -294,7 +307,7 @@
                     stabilization: { iterations: 140 }
                 },
                 interaction: {
-                    hover: true, // HOVER ABILITATO PER ATTIVARE LA SCHEDA A DESTRA
+                    hover: true,
                     dragNodes: true,
                     zoomView: true,
                     dragView: true
@@ -303,7 +316,7 @@
 
             network = new vis.Network(container, data, options);
 
-            // CLICK NODO -> MOSTRA CARD A DESTRA
+            // CLICK NODO -> SHOW FLOATING CARD
             network.on('click', function (params) {
                 if (params.nodes.length > 0) {
                     const nodeId = params.nodes[0];
@@ -316,7 +329,7 @@
                 }
             });
 
-            // HOVER NODO (MOUSEOVER) -> MOSTRA CARD A DESTRA
+            // HOVER NODO -> SHOW FLOATING CARD
             network.on('hoverNode', function (params) {
                 const nodeId = params.node;
                 const nodeObj = formattedNodes.find(n => n.id === nodeId);
@@ -333,18 +346,21 @@
             document.getElementById('drawer-link').href = data.link || '#';
 
             const badge = document.getElementById('drawer-badge');
-            if (data.isAI || data.cluster === 'AI') {
-                badge.innerText = 'AI ASSISTED PIPELINE';
-                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500 text-black';
+            if (data.isBot) {
+                badge.innerText = 'TELEGRAM BOT';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-black text-white';
+            } else if (data.isAI || data.cluster === 'AI') {
+                badge.innerText = 'AI PIPELINE';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-800 text-white';
             } else if (data.cluster === 'OWNER') {
                 badge.innerText = 'OWNER CLUSTER';
-                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-black text-white';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-900 text-white';
             } else if (data.cluster === 'OPERATOR') {
                 badge.innerText = 'OPERATOR CLUSTER';
-                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-purple-600 text-white';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-700 text-white';
             } else if (data.cluster === 'CUSTOMER') {
                 badge.innerText = 'CUSTOMER CLUSTER';
-                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-600 text-white';
+                badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-gray-600 text-white';
             }
 
             drawer.classList.remove('closed');
@@ -361,13 +377,16 @@
 
             const activeBtn = document.getElementById(`flt-${cluster}`);
             if (activeBtn) {
-                if (cluster === 'AI') activeBtn.className = 'flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-500 text-black shadow-md border border-amber-600 font-extrabold';
-                else activeBtn.className = 'flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-black text-white shadow-md';
+                activeBtn.className = 'flt-btn px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider bg-black text-white shadow-md';
             }
 
             if (cluster === 'ALL') {
                 nodesDataset.clear();
                 nodesDataset.add(rawNodes.map(n => formattedNode(n)));
+            } else if (cluster === 'BOT') {
+                const filtered = rawNodes.filter(n => n.isBot);
+                nodesDataset.clear();
+                nodesDataset.add(filtered.map(n => formattedNode(n)));
             } else if (cluster === 'AI') {
                 const filtered = rawNodes.filter(n => n.isAI || n.cluster === 'AI');
                 nodesDataset.clear();
@@ -384,17 +403,18 @@
             if (n.id === 'HUB_AI_ENGINE') return n;
             if (n.shape === 'circle' && n.id.startsWith('HUB_')) return n;
 
-            let bg = '#ffffff', border = '#000000', fontColor = '#000000';
-            if (n.isAI) { bg = '#fffbeb'; border = '#f59e0b'; fontColor = '#b45309'; }
-            else if (n.cluster === 'OPERATOR') { bg = '#f3e8ff'; border = '#7c3aed'; fontColor = '#5b21b6'; }
-            else if (n.cluster === 'CUSTOMER') { bg = '#ecfdf5'; border = '#059669'; fontColor = '#047857'; }
+            let bg = '#ffffff', border = '#0f172a', fontColor = '#0f172a';
+            if (n.isBot) { bg = '#0f172a'; border = '#0f172a'; fontColor = '#ffffff'; }
+            else if (n.isAI) { bg = '#f8fafc'; border = '#334155'; fontColor = '#0f172a'; }
+            else if (n.cluster === 'OPERATOR') { bg = '#f1f5f9'; border = '#475569'; fontColor = '#0f172a'; }
+            else if (n.cluster === 'CUSTOMER') { bg = '#f8fafc'; border = '#64748b'; fontColor = '#0f172a'; }
 
             return {
                 id: n.id,
                 label: n.label,
                 shape: 'circle',
                 color: { background: bg, border: border },
-                font: { color: fontColor, size: 20, face: 'Plus Jakarta Sans', fontBold: true },
+                font: { color: n.isBot ? '#ffffff' : fontColor, size: 20, face: 'Plus Jakarta Sans', fontBold: true },
                 size: 20,
                 data: n
             };
