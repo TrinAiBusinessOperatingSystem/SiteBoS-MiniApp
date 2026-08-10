@@ -378,6 +378,59 @@
                 user_utterances: [
                     "ricarica conto crediti", "shop dei crediti", "compra altri crediti", "ricarica crediti", "shop crediti", "saldo crediti", "crediti", "ricarica"
                 ] 
+            },
+
+            // =========================================================================
+            // 6. CONFIGURAZIONE IDENTITY, POSTAZIONI & AVVIO AGENTI
+            // =========================================================================
+            { 
+                category: "identity", 
+                name: "Scanner Visivo Postazioni & Asset", 
+                url: "identity/location-scanner.html", 
+                mod_id: "stations_scanner", 
+                user_utterances: [
+                    "scansiona le postazioni dell'attività",
+                    "avvia lo scanner per asset e postazioni",
+                    "aggiungi nuove postazioni con la fotocamera",
+                    "scanner posizioni asset",
+                    "scansiona postazioni lavoro",
+                    "scanner posizioni",
+                    "scansiona postazioni",
+                    "scanner asset",
+                    "postazioni", "scanner", "asset", "locali"
+                ] 
+            },
+            { 
+                category: "identity", 
+                name: "Gestione Nomi Postazioni Produttive", 
+                url: "identity/stations_config.html", 
+                mod_id: "stations_config", 
+                user_utterances: [
+                    "modifica i nomi delle postazioni",
+                    "configura le sedie e le cabine di lavoro",
+                    "gestione capacità produttiva dello studio",
+                    "configurazione nomi postazioni",
+                    "gestione postazioni lavoro",
+                    "nomi postazioni",
+                    "capacità produttiva",
+                    "postazione", "poltrona", "cabina", "riunito"
+                ] 
+            },
+            { 
+                category: "identity", 
+                name: "Avvio Agenti IA & Hub Direzionale", 
+                url: "agents/agent_intelligence.html", 
+                mod_id: "agent_launch", 
+                user_utterances: [
+                    "avvia gli agenti di intelligenza aziendale",
+                    "apri la consolle avvio agenti ia",
+                    "lancia l'agente di sicurezza e gestione",
+                    "avvio agenti ia",
+                    "hub agenti intelligenza",
+                    "avvio agenti",
+                    "hub agenti",
+                    "agenti", "intelligence", "agente"
+                ] 
             }
         ];
 
