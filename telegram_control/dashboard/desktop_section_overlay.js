@@ -16,9 +16,9 @@
      */
     const SECTIONS_DATA = {
         identity: {
-            title: "IDENTITY & SETUP AZIENDALE",
+            title: "IDENTITÀ & CONFIGURAZIONE AZIENDALE",
             subtitle: "Configura la personalità del Bot Telegram, i dati del titolare, la conformità fiscale e la piattaforma cloud.",
-            badge: "CONFIGURAZIONE",
+            badge: "IDENTITÀ & CONFIGURAZIONE",
             color: "blue",
             items: [
                 { id: "bot_config", name: "Setup Bot Telegram", desc: "Definisci nome, ruolo, tono di voce, istruzioni e capacità AI dell'assistente.", icon: "🤖", url: "../identity/bot_config.html", badge: "AI BOT" },
@@ -240,7 +240,7 @@
                         📋 CATALOGO MASTER
                     </button>
                     <button onclick="window.DesktopSectionOverlay.open('identity')" class="px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition cursor-pointer ${currentSectionKey === 'identity' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'}">
-                        ⚙️ IDENTITY & SETUP
+                        ⚙️ IDENTITÀ & CONFIGURAZIONE
                     </button>
                     <button onclick="window.DesktopSectionOverlay.open('operativita')" class="px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider transition cursor-pointer ${currentSectionKey === 'operativita' ? 'bg-purple-600 text-white shadow-sm' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'}">
                         📦 OPERATIVITÀ

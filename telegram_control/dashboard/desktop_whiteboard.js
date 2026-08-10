@@ -98,10 +98,10 @@
     {
       id: "identity_hub",
       categoryKey: "identity",
-      label: "Configurazione",
+      label: "Identità & Configurazione",
       desc: "Anagrafica aziendale, setup del bot, verticalizzazione di settore e conti finanziari.",
       icon: "fa-id-card",
-      badge: "IDENTITY & SETUP"
+      badge: "IDENTITÀ & CONFIGURAZIONE"
     },
     {
       id: "catalog",
@@ -155,8 +155,6 @@
       { name: "Setup Configurazione Bot", desc: "Personalizza le impostazioni ed il comportamento del bot.", url: "../identity/bot_config.html", icon: "fa-robot", category: "identity" },
       { name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica, la firma ed i recapiti aziendali.", url: "../identity/edit_owner.html", icon: "fa-user-gear", category: "identity" },
       { name: "Scanner Live Postazioni & Asset", desc: "Scansione visiva live dell'attività per registrare postazioni, locali ed asset.", url: "../identity/location-scanner.html", icon: "fa-camera-retro", category: "identity" },
-      { name: "Gestione Postazioni & Note Staff", desc: "Assegna e modifica i nomi delle postazioni di lavoro.", url: "../identity/stations_config.html", icon: "fa-chair", category: "identity" },
-      { name: "Avvio Agenti IA & Hub Direzionale", desc: "Lancia ed orchestra gli agenti operativi (Sicurezza HSE, CFO, Marketing, HR).", url: "../agents/agent_intelligence.html", icon: "fa-robot", category: "identity" },
       { name: "Trust & Stamp Engine (Audit & Modelli)", desc: "Gestione modelli documentali NoSQL, 3 vie di firma e timbro ASH.", url: "../operators/template_editor.html", icon: "fa-shield-halved", category: "identity" },
       { name: "Setup Avanzato & Fiscale", desc: "Verticalizzazione del settore ed impostazioni dei conti finanziari.", url: "../identity/advanced-setup.html", icon: "fa-sliders", category: "identity" },
       { name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite cloud direzionale ed all'ecosistema di intelligenza aziendale TrinAi.", url: "https://dashboard.trinai.it", icon: "TrinAi_Logo.jpg", category: "identity" }
@@ -173,7 +171,8 @@
     operativita: [
       { name: "Ordini Live & Spedizioni", desc: "Monitoraggio in tempo reale degli ordini in entrata.", url: "../operativita/orders-manager.html", icon: "fa-truck-ramp-box", category: "operativita" },
       { name: "Piano Lavori & Priorità", desc: "Organizza le code di lavoro e pianifica l'evasione commesse.", url: "../operativita/job-create.html", icon: "fa-tasks", category: "operativita" },
-      { name: "Percorsi AI Logistica", desc: "Algoritmi predittivi per l'ottimizzazione percorsi consegne.", url: "../operativita/pianificazione_itinerari.html", icon: "fa-route", category: "operativita" }
+      { name: "Percorsi AI Logistica", desc: "Algoritmi predittivi per l'ottimizzazione percorsi consegne.", url: "../operativita/pianificazione_itinerari.html", icon: "fa-route", category: "operativita" },
+      { name: "Gestione Postazioni & Note Staff", desc: "Assegna e modifica i nomi delle postazioni ed inserisci le note di manutenzione dello staff.", url: "../identity/stations_config.html", icon: "fa-chair", category: "operativita" }
     ],
     intelligence: [
       { name: "Intelligence Generale Direzionale", desc: "Modulo di controllo direzionale e reportistica sintetica.", url: "../agents/agent_intelligence.html", icon: "fa-brain", category: "intelligence" },
@@ -275,7 +274,7 @@
               </span>
             </div>
             <h1 class="text-xl font-black uppercase text-slate-900 tracking-tight mt-0.5">
-              ${activeCategory ? `SEZIONE: ${activeCategory.toUpperCase()}` : 'MACRO CATEGORIE DI GESTIONE'}
+              ${activeCategory ? `SEZIONE: ${({ identity: 'IDENTITÀ & CONFIGURAZIONE', gestione: 'GESTIONE & CATALOGO', operativita: 'OPERATIVITÀ & COMMESSE', intelligence: 'ANALISI & CONTROLLO', supporto: 'SUPPORTO & ASSISTENZA', addestramento: 'ADDESTRAMENTO AI' })[activeCategory] || activeCategory.toUpperCase()}` : 'MACRO CATEGORIE DI GESTIONE'}
             </h1>
             <p class="text-xs text-slate-600 font-bold mt-0.5">
               ${activeCategory ? 'Seleziona un modulo operativo per aprirlo in finestra trascinabile.' : 'Seleziona una Macro Categoria per esplorare gli strumenti e i moduli aziendali.'}

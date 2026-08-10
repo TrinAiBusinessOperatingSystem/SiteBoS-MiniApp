@@ -381,7 +381,7 @@
             },
 
             // =========================================================================
-            // 6. CONFIGURAZIONE IDENTITY, POSTAZIONI & AVVIO AGENTI
+            // 6. CONFIGURAZIONE IDENTITY & POSTAZIONI OPERATIVE
             // =========================================================================
             { 
                 category: "identity", 
@@ -401,7 +401,7 @@
                 ] 
             },
             { 
-                category: "identity", 
+                category: "operativita", 
                 name: "Gestione Nomi Postazioni Produttive", 
                 url: "identity/stations_config.html", 
                 mod_id: "stations_config", 
@@ -414,22 +414,6 @@
                     "nomi postazioni",
                     "capacità produttiva",
                     "postazione", "poltrona", "cabina", "riunito"
-                ] 
-            },
-            { 
-                category: "identity", 
-                name: "Avvio Agenti IA & Hub Direzionale", 
-                url: "agents/agent_intelligence.html", 
-                mod_id: "agent_launch", 
-                user_utterances: [
-                    "avvia gli agenti di intelligenza aziendale",
-                    "apri la consolle avvio agenti ia",
-                    "lancia l'agente di sicurezza e gestione",
-                    "avvio agenti ia",
-                    "hub agenti intelligenza",
-                    "avvio agenti",
-                    "hub agenti",
-                    "agenti", "intelligence", "agente"
                 ] 
             }
         ];

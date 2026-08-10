@@ -41,13 +41,6 @@
             desc: "Scansione live dell'attività per aggiungere automaticamente Asset e Postazioni.", 
             url: "identity/location-scanner.html", 
             icon: "fa-camera-retro" 
-        },
-        { 
-            id: "agent_launch", 
-            label: "Avvio Agenti IA", 
-            desc: "Hub direzionale di avvio e gestione per gli agenti operativi (Sicurezza, CFO, HR, Magazzino).", 
-            url: "agents/agent_intelligence.html", 
-            icon: "fa-robot" 
         }
     ];
 
