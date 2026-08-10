@@ -194,6 +194,53 @@
 
     <!-- LOGICA JS AVANZATA -->
     <script>
+        let isMobile = false;
+
+        function isMobileDevice() {
+            const tg = window.Telegram?.WebApp;
+            const platform = (tg?.platform || '').toLowerCase();
+            if (['android', 'ios', 'mobile'].includes(platform)) return true;
+            if (['tdesktop', 'desktop', 'macos', 'weba', 'webk'].includes(platform)) return false;
+
+            const ua = (navigator.userAgent || '').toLowerCase();
+            if (/android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(ua)) return true;
+            return (window.innerWidth < 768) || (window.screen.width < 768);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.expand();
+            }
+
+            isMobile = isMobileDevice();
+            if (!isMobile) {
+                // Modalità PC Desktop -> Solo Upload File da Computer
+                const startCamBtn = document.getElementById('btn-start-camera');
+                const placeholderTitle = document.getElementById('placeholder-title');
+                const placeholderSub = document.getElementById('placeholder-sub');
+                const placeholderIcon = document.getElementById('placeholder-icon');
+
+                if (startCamBtn) startCamBtn.classList.add('hidden');
+                if (placeholderTitle) placeholderTitle.innerText = "Modalità Desktop: Solo Upload File";
+                if (placeholderSub) placeholderSub.innerText = "Trascina o carica foto (max 5) o un video clip (max 15s) dal tuo computer";
+                if (placeholderIcon) placeholderIcon.className = "fas fa-desktop text-black";
+            }
+
+            // Drag & drop support
+            const dropZone = document.getElementById('camera-placeholder');
+            if (dropZone) {
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+                    dropZone.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); }, false);
+                });
+                dropZone.addEventListener('drop', (e) => {
+                    const dt = e.dataTransfer;
+                    if (dt && dt.files && dt.files.length) {
+                        handleGallerySelected({ target: { files: dt.files } });
+                    }
+                }, false);
+            }
+        });
+
         let currentMode = 'photos'; // 'photos' | 'video'
         let capturedPhotos = [];    // Array max 5 Base64 string JPG
         let capturedVideoB64 = null; // String Base64 del video 15s
