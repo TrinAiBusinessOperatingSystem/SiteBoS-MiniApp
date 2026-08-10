@@ -21,10 +21,11 @@ if (!ash) {
 let operatorData = null;
 let animationFrameId = null;
 
-// Satellites Configuration (6 Satelliti Operativi)
+// Satellites Configuration (7 Satelliti Operativi)
 const satellitesData = [
   { id: 'tasks', label: 'TASK ATTIVI', icon: 'fa-tasks', color: '#3b82f6', url: 'operator_tasks.html' },
   { id: 'job-create', label: 'CREA NUOVO JOB', icon: 'fa-briefcase', color: '#8b5cf6', url: '../operativita/job-create.html' },
+  { id: 'documents', label: 'DOCUMENTI & FIRMA', icon: 'fa-file-signature', color: '#6366f1', url: 'document_sign_simple.html' },
   { id: 'big5', label: 'PROFILO PERSONALITÀ', icon: 'fa-brain', color: '#a78bfa', action: 'showBigFiveDrawer' },
   { id: 'badges', label: 'BADGE & TROFEI', icon: 'fa-trophy', color: '#f59e0b', url: 'operator_badges.html' },
   { id: 'training', label: 'FORMAZIONE & SKILLS', icon: 'fa-graduation-cap', color: '#10b981', url: '../softskill/index.html' },

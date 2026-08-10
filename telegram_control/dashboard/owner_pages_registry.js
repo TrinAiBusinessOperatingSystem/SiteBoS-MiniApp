@@ -268,6 +268,15 @@
             },
             { 
                 category: "identity", 
+                name: "Trust & Stamp Engine (Modelli Legali & Firma)", 
+                url: "operators/template_editor.html", 
+                mod_id: "trust_stamp_engine", 
+                user_utterances: [
+                    "trust stamp engine", "modelli documentali legali", "audit conformita modelli", "timbro ash crittografico", "firma digitale modelli", "consenso informato modelli", "modelli firma", "timbro ash", "conformita", "trust stamp"
+                ] 
+            },
+            { 
+                category: "identity", 
                 name: "Parametri Avanzati & Setup Clinica", 
                 url: "identity/advanced-setup.html", 
                 mod_id: "advanced_setup", 

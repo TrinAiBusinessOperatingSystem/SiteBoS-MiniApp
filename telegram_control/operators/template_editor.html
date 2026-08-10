@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="dark">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Editor Modelli Documentali & Compliance | SiteBoS</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #090d16; color: #f3f4f6; }
+        .glass-card { background: rgba(17, 24, 39, 0.85); backdrop-filter: blur(12px); border: 1px solid rgba(31, 41, 55, 0.8); }
+        .editor-textarea { font-family: 'Fira Code', monospace; font-size: 11px; background: #030712; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-8">
+    <!-- Header -->
+    <header class="p-4 glass-card sticky top-0 z-50 flex items-center justify-between border-b border-gray-800">
+        <div class="flex items-center space-x-3">
+            <button id="btn-back" class="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white transition">
+                <i class="fa-solid fa-arrow-left text-lg"></i>
+            </button>
+            <div>
+                <h1 class="text-base font-bold text-white tracking-wide">Editor Modelli Documentali</h1>
+                <p class="text-xs text-indigo-400 font-medium">Configurazione Owner & AI Template Setup</p>
+            </div>
+        </div>
+        <span class="px-3 py-1 bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full text-xs font-semibold">
+            Owner Setup
+        </span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="p-4 space-y-5 flex-grow max-w-4xl mx-auto w-full">
+        <!-- Generatore AI via Prompt -->
+        <div class="glass-card rounded-2xl p-4 space-y-3 border border-indigo-500/30 bg-indigo-950/20">
+            <div class="flex items-center space-x-2 text-indigo-300 font-bold text-xs">
+                <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
+                <span>Assistente AI Generazione Modello Legale HTML5</span>
+            </div>
+            <p class="text-xs text-gray-400">
+                Descrivi in linguaggio naturale il documento o consenso richiesto. L'AI genererà la struttura HTML5 a norma con segnaposto ed assegnerà la Via di Firma consigliata.
+            </p>
+            <div class="flex space-x-2">
+                <input type="text" id="ai-prompt-input" placeholder="Es. Consenso informato sbiancamento dentale con rischi, benefici e diritti GDPR..." class="flex-grow py-3 px-4 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500">
+                <button id="btn-ai-generate" class="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition flex items-center space-x-2 shrink-0">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Genera</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Form Dati Modello -->
+        <div class="glass-card rounded-2xl p-4 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-gray-400">Titolo Modello Documento</label>
+                    <input type="text" id="txt-template-title" placeholder="Es. Consenso Informato Sbiancamento Dentale" class="w-full py-2.5 px-3 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-gray-400">Codice Univoco Template (Slug)</label>
+                    <input type="text" id="txt-template-id" placeholder="Es. tpl_consenso_sbiancamento_01" class="w-full py-2.5 px-3 bg-gray-950 border border-gray-800 rounded-xl text-xs font-mono text-indigo-300 focus:outline-none focus:border-indigo-500">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-gray-400">Codice Procedura SOP Associata</label>
+                    <input type="text" id="txt-sop-id" placeholder="Es. SOP-DENT-052" class="w-full py-2.5 px-3 bg-gray-950 border border-gray-800 rounded-xl text-xs font-mono text-amber-300 focus:outline-none focus:border-indigo-500">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-xs font-semibold text-gray-400">Formato Layout Stampa</label>
+                    <select id="sel-layout-type" class="w-full py-2.5 px-3 bg-gray-950 border border-gray-800 rounded-xl text-xs text-white focus:outline-none focus:border-indigo-500">
+                        <option value="A4">A4 Portrait (210mm x 297mm)</option>
+                        <option value="THERMAL_58">Scontrino Termico 58mm</option>
+                        <option value="THERMAL_80">Scontrino Termico 80mm</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Selezione Compliance Route -->
+            <div class="space-y-2 border-t border-gray-800 pt-3">
+                <label class="text-xs font-bold text-gray-300 uppercase tracking-wider block">Seleziona Via di Firma (Compliance Route)</label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label class="p-3 bg-gray-950 border border-gray-800 rounded-xl flex items-start space-x-3 cursor-pointer hover:border-indigo-500/50 transition">
+                        <input type="radio" name="compliance_route" value="SIMPLE_STAMP" checked class="mt-1 text-indigo-600 focus:ring-0">
+                        <div>
+                            <span class="text-xs font-bold text-white block">Via C: SIMPLE STAMP</span>
+                            <span class="text-[10px] text-gray-400 block leading-snug">Firma Touch su display TWA + Timbro ASH crittografico. Consensi ordinari e verbali rapidi.</span>
+                        </div>
+                    </label>
+
+                    <label class="p-3 bg-gray-950 border border-gray-800 rounded-xl flex items-start space-x-3 cursor-pointer hover:border-amber-500/50 transition">
+                        <input type="radio" name="compliance_route" value="EXTERNAL_PAD" class="mt-1 text-amber-600 focus:ring-0">
+                        <div>
+                            <span class="text-xs font-bold text-amber-300 block">Via A: EXTERNAL PAD</span>
+                            <span class="text-[10px] text-gray-400 block leading-snug">Tavoletta hardware biometrica esterna. Convalida visiva operatore. Nessun upload immagini.</span>
+                        </div>
+                    </label>
+
+                    <label class="p-3 bg-gray-950 border border-gray-800 rounded-xl flex items-start space-x-3 cursor-pointer hover:border-cyan-500/50 transition">
+                        <input type="radio" name="compliance_route" value="CERTIFIED_API" class="mt-1 text-cyan-600 focus:ring-0">
+                        <div>
+                            <span class="text-xs font-bold text-cyan-300 block">Via B: CERTIFIED API</span>
+                            <span class="text-[10px] text-gray-400 block leading-snug">Firma qualificata eIDAS via OTP/SPID (Yousign/InfoCert). Contratti ed adempimenti ad alto valore.</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Code Editor & Live Preview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Left: HTML Code -->
+            <div class="glass-card rounded-2xl p-4 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-gray-400 uppercase">Codice HTML5 Template</span>
+                    <div class="space-x-1 text-[10px]">
+                        <button id="btn-insert-var-client" class="px-2 py-0.5 bg-gray-800 text-gray-300 rounded hover:bg-gray-700">+ client_name</button>
+                        <button id="btn-insert-var-stamp" class="px-2 py-0.5 bg-gray-800 text-gray-300 rounded hover:bg-gray-700">+ ash_stamp</button>
+                    </div>
+                </div>
+                <textarea id="txt-html-raw" rows="14" class="w-full editor-textarea p-3 rounded-xl border border-gray-800 text-gray-200 focus:outline-none focus:border-indigo-500 resize-none leading-relaxed" placeholder="Inserisci il codice HTML5..."></textarea>
+            </div>
+
+            <!-- Right: Live Preview -->
+            <div class="glass-card rounded-2xl p-4 space-y-2">
+                <span class="text-xs font-bold text-gray-400 uppercase block">Anteprima Live Stampa</span>
+                <div id="live-preview-box" class="bg-white p-4 rounded-xl text-black min-h-[300px] max-h-[360px] overflow-y-auto border border-gray-700 text-xs shadow-inner">
+                    <p class="text-gray-400 text-center py-12">L'anteprima del documento comparirà qui...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Fixed Action Footer -->
+    <footer class="p-4 glass-card sticky bottom-0 z-50 border-t border-gray-800 max-w-4xl mx-auto w-full">
+        <button id="btn-save-template" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center space-x-2 text-sm tracking-wide">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Salva Modello Documentale NoSQL</span>
+        </button>
+    </footer>
+
+    <!-- Logic scripts -->
+    <script src="twa_guard.js"></script>
+    <script src="template_editor_logic.js"></script>
+</body>
+</html>

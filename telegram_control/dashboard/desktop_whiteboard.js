@@ -154,6 +154,7 @@
     identity: [
       { name: "Setup Configurazione Bot", desc: "Personalizza le impostazioni ed il comportamento del bot.", url: "../identity/bot_config.html", icon: "fa-robot", category: "identity" },
       { name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica, la firma ed i recapiti aziendali.", url: "../identity/edit_owner.html", icon: "fa-user-gear", category: "identity" },
+      { name: "Trust & Stamp Engine (Audit & Modelli)", desc: "Gestione modelli documentali NoSQL, 3 vie di firma e timbro ASH.", url: "../operators/template_editor.html", icon: "fa-shield-halved", category: "identity" },
       { name: "Setup Avanzato & Fiscale", desc: "Verticalizzazione del settore ed impostazioni dei conti finanziari.", url: "../identity/advanced-setup.html", icon: "fa-sliders", category: "identity" },
       { name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite cloud direzionale ed all'ecosistema di intelligenza aziendale TrinAi.", url: "https://dashboard.trinai.it", icon: "TrinAi_Logo.jpg", category: "identity" }
     ],
