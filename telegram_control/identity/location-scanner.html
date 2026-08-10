@@ -617,15 +617,23 @@
                 const resData = await response.json().catch(() => ({}));
                 console.log("Risposta dal Webhook n8n:", resData);
 
-                // Estrazione dati dall'output Gemini DPF (struttura ufficiale: stations, machinery, layout_summary)
-                const output = resData.location_scanner_output || resData.response_output || resData.output || resData;
-                
-                // Aggiornamento dello stato cumulativo locale con la risposta integrata
-                window.currentScanResult.stations = output.stations || output.operational_units || window.currentScanResult.stations || [];
-                window.currentScanResult.machinery = output.machinery || window.currentScanResult.machinery || [];
-                window.currentScanResult.layout_summary = output.layout_summary || output.summary || output.message || "Analisi visiva completata.";
+                // Unboxing di resData se n8n restituisce un Array di item
+                let rawObj = Array.isArray(resData) ? (resData[0] || {}) : (resData || {});
 
-                // Nasconde il loader di invio e renderizza la vista dinamica interattiva
+                // Estrazione esplicita di location_scanner_output
+                let scannerData = rawObj.location_scanner_output || rawObj.response_output || rawObj.output || rawObj;
+
+                // Parsing difensivo in caso di stringa JSON
+                if (typeof scannerData === 'string') {
+                    try { scannerData = JSON.parse(scannerData); } catch (e) { console.warn("Impossibile fare parse di scannerData:", e); }
+                }
+
+                // Aggiornamento dello stato cumulativo locale con i dati da location_scanner_output
+                window.currentScanResult.stations = scannerData?.stations || scannerData?.operational_units || window.currentScanResult.stations || [];
+                window.currentScanResult.machinery = scannerData?.machinery || window.currentScanResult.machinery || [];
+                window.currentScanResult.layout_summary = scannerData?.layout_summary || scannerData?.summary || scannerData?.message || "Analisi visiva completata.";
+
+                // Nasconde sempre il loader di invio e renderizza la vista dinamica interattiva
                 document.getElementById('sending-loader').classList.add('hidden');
                 renderScanResultsUI();
 
