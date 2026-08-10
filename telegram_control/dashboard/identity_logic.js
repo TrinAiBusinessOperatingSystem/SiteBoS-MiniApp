@@ -46,6 +46,19 @@
 
     // Handles specific actions of Identity Hub sub-menu items
     function handleIdentityAction(item, ash, msgId) {
+        if (!item) return false;
+
+        const isScanner = item.id === 'stations_scanner' || (item.url && item.url.includes('location-scanner'));
+        if (isScanner && window.isMobileDevice && !window.isMobileDevice()) {
+            const msg = "📱 Apri lo scanner dal tuo cellulare in Telegram per inquadrare il locale e scansionare le postazioni.";
+            if (tg && typeof tg.showAlert === 'function') {
+                tg.showAlert(msg);
+            } else {
+                alert(msg);
+            }
+            return true; // Handled without opening window
+        }
+
         if (item.isExternal) {
             if (tg) {
                 tg.showConfirm("Stai per uscire dalla MiniApp per andare alla Dashboard Cloud. Continuare?", (ok) => {

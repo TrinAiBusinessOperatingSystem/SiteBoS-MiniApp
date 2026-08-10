@@ -466,6 +466,18 @@
     if (!isMobileDevice()) {
       const lowerUrl = (url || '').toLowerCase();
 
+      // Scanner Visivo -> su PC Desktop mostra l'avviso a schermo senza aprire alcuna finestra
+      if (lowerUrl.includes('location-scanner') || lowerUrl.includes('stations_scanner')) {
+        const tg = window.Telegram?.WebApp;
+        const msg = "📱 Apri lo scanner dal tuo cellulare in Telegram per inquadrare il locale e scansionare le postazioni.";
+        if (tg && typeof tg.showAlert === 'function') {
+          tg.showAlert(msg);
+        } else {
+          alert(msg);
+        }
+        return;
+      }
+
       // Se la URL è un link esterno HTTP/HTTPS (es. Piattaforma TrinAi Cloud), apri direttamente in scheda esterna
       if (lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://')) {
         const tg = window.Telegram?.WebApp;
