@@ -469,7 +469,7 @@
       // Scanner Visivo -> su PC Desktop mostra l'avviso a schermo senza aprire alcuna finestra
       if (lowerUrl.includes('location-scanner') || lowerUrl.includes('stations_scanner')) {
         const tg = window.Telegram?.WebApp;
-        const msg = "📱 Apri lo scanner dal tuo cellulare in Telegram per inquadrare il locale e scansionare le postazioni.";
+        const msg = "📱 Apri lo scanner dal tuo cellulare per inquadrare il locale e scansionare le postazioni.";
         if (tg && typeof tg.showAlert === 'function') {
           tg.showAlert(msg);
         } else {

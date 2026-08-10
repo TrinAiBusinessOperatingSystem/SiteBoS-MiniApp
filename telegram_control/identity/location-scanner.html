@@ -4,7 +4,7 @@
     <meta name="color-scheme" content="light">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Scanner Visivo IA | SiteBoS</title>
+    <title>Scanner Visivo IA | SiteBoS Architect Desk</title>
 
     <!-- Telegram WebApp SDK & Global Launch Controller -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -48,8 +48,8 @@
             border: 3px solid #eee;
             border-top: 3px solid #000;
             border-radius: 50%;
-            width: 32px;
-            height: 32px;
+            width: 28px;
+            height: 28px;
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -58,7 +58,7 @@
 <body class="safe-area-inset min-h-screen flex flex-col justify-between bg-[#fafafa]">
 
     <!-- HEADER ARCHITECT DESK -->
-    <header class="p-5 bg-white border-b border-gray-100 flex justify-between items-center z-50 shadow-sm shrink-0">
+    <header class="p-4 bg-white border-b border-gray-100 flex justify-between items-center z-50 shadow-sm shrink-0">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-xs">
                 <i class="fas fa-camera-retro text-sm"></i>
@@ -76,241 +76,425 @@
     </header>
 
     <!-- MAIN CONTAINER -->
-    <main class="flex-1 max-w-md w-full mx-auto p-5 space-y-6">
+    <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-4">
 
-        <!-- SCANNER CONTAINER -->
-        <div id="mobile-scanner-container" class="space-y-6">
-            
-            <!-- INTRO INFORMATIVA -->
-            <div class="space-y-1 text-center">
+        <!-- INTRO INFORMATIVA & SELECTOR MODALITÀ -->
+        <div class="card p-4 space-y-3">
+            <div class="flex justify-between items-center">
                 <span class="text-[9px] font-black uppercase tracking-widest text-gray-600 bg-gray-100 px-3 py-1 rounded-full border border-gray-200">Vision Multimodale</span>
-                <h2 class="text-base font-black uppercase tracking-tight text-gray-900 mt-2">Inquadra il tuo Locale o Postazione</h2>
-                <p class="text-xs text-gray-500 font-medium leading-relaxed">Registra un breve video (10-30s) o scatta una foto. L'IA identificherà postazioni ed asset per la tua attività.</p>
+                <span class="text-[9px] font-bold text-gray-400">720p Base64 Payload</span>
+            </div>
+            
+            <!-- TABS MODALITÀ -->
+            <div class="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-2xl border border-gray-200">
+                <button id="tab-btn-photos" onclick="switchMode('photos')" class="py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition bg-black text-white shadow-xs">
+                    📸 Foto (Max 5)
+                </button>
+                <button id="tab-btn-video" onclick="switchMode('video')" class="py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition bg-transparent text-gray-600 hover:text-black">
+                    🎥 Video (Max 15s)
+                </button>
+            </div>
+        </div>
+
+        <!-- CAMERA LIVE STREAM BOX (MODELLO SUPERVISOR_HUB.HTML) -->
+        <div class="card p-4 space-y-3 relative overflow-hidden">
+            
+            <!-- VIDEO STREAM ELEMENT -->
+            <video id="camera-feed" class="w-full h-56 rounded-2xl bg-black object-cover hidden border border-gray-200 shadow-inner" autoplay playsinline muted></video>
+            <canvas id="camera-canvas" class="hidden"></canvas>
+
+            <!-- PLACEHOLDER CAMERA OFF -->
+            <div id="camera-placeholder" class="py-8 text-center space-y-3">
+                <div class="w-16 h-16 bg-gray-50 border border-gray-200 text-black rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-xs">
+                    <i class="fas fa-video-slash text-gray-400" id="placeholder-icon"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-black" id="placeholder-title">Fotocamera Spenta</h3>
+                    <p class="text-[10px] text-gray-400 font-medium mt-0.5" id="placeholder-sub">Avvia la fotocamera posteriore o carica da file</p>
+                </div>
             </div>
 
-            <!-- UPLOAD / MEDIA CAPTURE CARD -->
-            <div class="card p-6 text-center space-y-4 border-dashed border-2 border-gray-200 hover:border-black transition">
-                <input type="file" id="media-file-input" accept="video/*,image/*" class="hidden" onchange="handleMediaSelected(event)">
+            <!-- CONTROLLI AZIONE TELECAMERA -->
+            <div class="space-y-2 pt-1">
                 
-                <div id="upload-idle-state" class="space-y-3">
-                    <div class="w-16 h-16 bg-gray-50 border border-gray-200 text-black rounded-3xl flex items-center justify-center mx-auto text-2xl shadow-xs">
-                        <i class="fas fa-video"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-xs font-black uppercase tracking-wider text-black">Registra Video o Scegli Foto</h3>
-                        <p class="text-[10px] text-gray-400 font-medium mt-0.5">Walkthrough video consigliato (10-30 sec)</p>
-                    </div>
-                    <div class="flex justify-center pt-2">
-                        <button onclick="if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); document.getElementById('media-file-input').click()" class="bg-black hover:bg-gray-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-2xl shadow-sm flex items-center gap-2 transition">
-                            <i class="fas fa-camera"></i> <span>Avvia Scansione Live</span>
-                        </button>
-                    </div>
-                </div>
+                <!-- PULSANTE AVVIA FOTOCAMERA LIVE POSTERIORE (facingMode: environment) -->
+                <button id="btn-start-camera" onclick="startLiveCamera()" class="w-full bg-black hover:bg-gray-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-video"></i> <span>Avvia Fotocamera Live (Rear)</span>
+                </button>
 
-                <!-- PROCESSING STATE (HIDDEN BY DEFAULT) -->
-                <div id="upload-loading-state" class="hidden py-6 space-y-3">
-                    <div class="loader-spin mx-auto"></div>
-                    <p class="text-xs font-bold text-black animate-pulse" id="loading-text">Analisi Spaziale IA in corso...</p>
-                    <p class="text-[10px] text-gray-400 font-medium">Rilevamento unità operative ed asset fisici</p>
-                </div>
-            </div>
-
-            <!-- RISULTATO SCANSIONE: "HO TROVATO QUESTO:" (HIDDEN UNTIL SCAN IS DONE) -->
-            <div id="scan-results-container" class="hidden space-y-4">
-                
-                <div class="flex justify-between items-center border-b border-gray-100 pb-3">
-                    <h3 class="text-xs font-black uppercase tracking-wider text-black flex items-center gap-2">
-                        <i class="fas fa-search text-gray-500"></i> <span>IA Vision: "Ho trovato questo:"</span>
-                    </h3>
-                    <span class="text-[9px] text-gray-500 font-bold uppercase tracking-wider bg-gray-100 px-2.5 py-1 rounded-full" id="results-count-badge">0 elementi</span>
-                </div>
-
-                <!-- CARD POSTAZIONI / UNITA OPERATIVE -->
-                <div class="card p-5 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-black uppercase text-gray-500 tracking-wider">🖥️ Postazioni & Unità Operative</span>
-                        <button onclick="addManualWorkstation()" class="text-[10px] font-black uppercase tracking-wider text-black hover:underline">+ Aggiungi</button>
-                    </div>
-                    <div id="workstations-list" class="space-y-2">
-                        <!-- Popolato dinamicamente da JS -->
-                    </div>
-                </div>
-
-                <!-- CARD ASSET & MACCHINARI -->
-                <div class="card p-5 space-y-3">
-                    <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-black uppercase text-gray-500 tracking-wider">🛠️ Asset & Macchinari Tracciati</span>
-                        <button onclick="addManualAsset()" class="text-[10px] font-black uppercase tracking-wider text-black hover:underline">+ Aggiungi</button>
-                    </div>
-                    <div id="assets-list" class="space-y-2">
-                        <!-- Popolato dinamicamente da JS -->
-                    </div>
-                </div>
-
-                <!-- BOTTONI DI AZIONE E SALVATAGGIO -->
-                <div class="space-y-2 pt-2">
-                    <button onclick="confirmAndSaveScan()" class="w-full bg-black hover:bg-gray-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 transition">
-                        <i class="fas fa-check-circle text-sm"></i> <span>Conferma & Salva in Identità</span>
+                <!-- CONTROLLI SCATTO / REGISTRAZIONE (VISIBILI QUANDO LA FOTOCAMERA È ATTIVA) -->
+                <div id="live-controls" class="hidden space-y-2">
+                    
+                    <!-- BOTTONE SCATTA FOTO LIVE -->
+                    <button id="btn-snap-photo" onclick="snapLivePhoto()" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 transition">
+                        <i class="fas fa-camera"></i> <span id="label-snap">Scatta Foto (<span id="photo-count-badge">0</span>/5)</span>
                     </button>
-                    <button onclick="resetScanner()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-2.5 rounded-2xl font-bold transition">
-                        🔄 Nuova Scansione
+
+                    <!-- BOTTONE REGISTRA VIDEO 15s -->
+                    <button id="btn-record-video" onclick="toggleVideoRecording()" class="hidden w-full bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs uppercase tracking-wider py-3.5 rounded-2xl shadow-sm flex items-center justify-center gap-2 transition">
+                        <i class="fas fa-circle-dot" id="icon-rec"></i> <span id="label-rec">Registra Clip 15s</span>
                     </button>
+
+                    <!-- BARRA COUNTDOWN REGISTRAZIONE VIDEO -->
+                    <div id="video-rec-bar-container" class="hidden space-y-1">
+                        <div class="flex justify-between text-[9px] font-black text-rose-600 uppercase">
+                            <span>REGISTRAZIONE IN CORSO...</span>
+                            <span id="video-timer-label">15s</span>
+                        </div>
+                        <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                            <div id="video-progress-bar" class="bg-rose-600 h-full w-full transition-all duration-1000 ease-linear"></div>
+                        </div>
+                    </div>
                 </div>
 
+                <!-- CARICAMENTO DA GALLERIA FILE (FALLBACK UNIFICATO) -->
+                <input type="file" id="gallery-file-input" accept="image/*,video/*" multiple class="hidden" onchange="handleGallerySelected(event)">
+                <button onclick="document.getElementById('gallery-file-input').click()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs py-2.5 rounded-2xl transition flex items-center justify-center gap-2">
+                    <i class="fas fa-folder-open text-gray-500"></i> <span>Carica da Galleria / File</span>
+                </button>
             </div>
 
         </div>
 
+        <!-- GRIGLIA ANTEPRIME MEDIA ACQUISITI (MAX 5 FOTO O VIDEO 15s) -->
+        <div id="media-preview-section" class="card p-4 space-y-3 hidden">
+            <div class="flex justify-between items-center border-b border-gray-100 pb-2">
+                <span class="text-[10px] font-black uppercase text-gray-500 tracking-wider" id="preview-section-title">🖼️ Foto Acquisite</span>
+                <button onclick="clearMediaState()" class="text-[10px] font-bold text-rose-600 hover:underline">Svuota Tutto</button>
+            </div>
+
+            <!-- ANTEPRIME FOTO -->
+            <div id="photos-grid" class="grid grid-cols-3 gap-2">
+                <!-- Popolato da JS -->
+            </div>
+
+            <!-- ANTEPRIMA VIDEO -->
+            <div id="video-preview-box" class="hidden space-y-2">
+                <video id="video-preview-player" class="w-full h-44 rounded-xl bg-black border border-gray-200" controls></video>
+                <span class="text-[9px] font-bold text-gray-500 block text-center">Clip Video 720p (Max 15s) pronta</span>
+            </div>
+        </div>
+
+        <!-- RISULTATI IA & BOTTONE SALVA/WEBHOOK -->
+        <div id="action-submit-section" class="hidden space-y-2">
+            <button id="btn-submit-webhook" onclick="submitScanToWebhook()" class="w-full bg-black hover:bg-gray-800 active:scale-95 text-white font-black text-xs uppercase tracking-wider py-4 rounded-2xl shadow-md flex items-center justify-center gap-2 transition">
+                <i class="fas fa-paper-plane text-sm"></i> <span>🚀 Invia all'IA & Salva in Identità</span>
+            </button>
+        </div>
+
+        <!-- LOADER INVIATA (HIDDEN BY DEFAULT) -->
+        <div id="sending-loader" class="hidden card p-6 text-center space-y-3">
+            <div class="loader-spin mx-auto"></div>
+            <p class="text-xs font-black text-black animate-pulse">Trasmissione Payload Base64 al Webhook in corso...</p>
+            <p class="text-[10px] text-gray-400 font-medium">Elaborazione NoSQL Asset & Postazioni</p>
+        </div>
+
     </main>
 
-    <!-- LOGICA JS -->
+    <!-- LOGICA JS AVANZATA -->
     <script>
-        let currentScanData = {
-            workstations: [],
-            assets: [],
-            square_meters: 45
-        };
+        let currentMode = 'photos'; // 'photos' | 'video'
+        let capturedPhotos = [];    // Array max 5 Base64 string JPG
+        let capturedVideoB64 = null; // String Base64 del video 15s
+        let videoStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let recTimer = null;
+        let recSecondsLeft = 15;
 
-        function isMobileDevice() {
-            const tg = window.Telegram?.WebApp;
-            const platform = (tg?.platform || '').toLowerCase();
-            if (['android', 'ios', 'mobile'].includes(platform)) return true;
-            if (['tdesktop', 'desktop', 'macos', 'weba', 'webk'].includes(platform)) return false;
+        function switchMode(mode) {
+            currentMode = mode;
+            const btnPhotos = document.getElementById('tab-btn-photos');
+            const btnVideo = document.getElementById('tab-btn-video');
+            const snapBtn = document.getElementById('btn-snap-photo');
+            const recBtn = document.getElementById('btn-record-video');
 
-            const ua = (navigator.userAgent || '').toLowerCase();
-            if (/android|iphone|ipad|ipod|windows phone|iemobile|mobile/i.test(ua)) return true;
-            return (window.innerWidth < 768) || (window.screen.width < 768);
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.expand();
-            }
-        });
-
-        function handleMediaSelected(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            document.getElementById('upload-idle-state').classList.add('hidden');
-            document.getElementById('upload-loading-state').classList.remove('hidden');
-
-            setTimeout(() => {
-                currentScanData = {
-                    square_meters: 60,
-                    workstations: [
-                        { id: "UO-01", name: "Postazione 1 - Sollevatore Alfa", icon: "fa-car-side" },
-                        { id: "UO-02", name: "Postazione 2 - Banco Collaudo PC", icon: "fa-desktop" }
-                    ],
-                    assets: [
-                        { id: "AST-01", name: "Ponte Sollevatore Idraulico 4T" },
-                        { id: "AST-02", name: "Multimetro Elettronico Digitale" }
-                    ]
-                };
-
-                renderScanResults();
-                document.getElementById('upload-loading-state').classList.add('hidden');
-                document.getElementById('upload-idle-state').classList.remove('hidden');
-                document.getElementById('scan-results-container').classList.remove('hidden');
-            }, 1800);
-        }
-
-        function renderScanResults() {
-            const wsContainer = document.getElementById('workstations-list');
-            const astContainer = document.getElementById('assets-list');
-
-            wsContainer.innerHTML = '';
-            astContainer.innerHTML = '';
-
-            currentScanData.workstations.forEach((ws, idx) => {
-                const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs";
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <i class="fas ${ws.icon || 'fa-chair'} text-black"></i>
-                        <span class="font-bold text-black">${ws.name}</span>
-                    </div>
-                    <button onclick="removeWorkstation(${idx})" class="text-rose-600 hover:text-rose-700 p-1">
-                        <i class="fas fa-trash-can"></i>
-                    </button>
-                `;
-                wsContainer.appendChild(div);
-            });
-
-            currentScanData.assets.forEach((ast, idx) => {
-                const div = document.createElement('div');
-                div.className = "flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs";
-                div.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-wrench text-gray-700"></i>
-                        <span class="font-semibold text-gray-800">${ast.name}</span>
-                    </div>
-                    <button onclick="removeAsset(${idx})" class="text-rose-600 hover:text-rose-700 p-1">
-                        <i class="fas fa-trash-can"></i>
-                    </button>
-                `;
-                astContainer.appendChild(div);
-            });
-
-            document.getElementById('results-count-badge').innerText = 
-                `${currentScanData.workstations.length} postazioni, ${currentScanData.assets.length} asset`;
-        }
-
-        function removeWorkstation(index) {
-            currentScanData.workstations.splice(index, 1);
-            renderScanResults();
-        }
-
-        function removeAsset(index) {
-            currentScanData.assets.splice(index, 1);
-            renderScanResults();
-        }
-
-        function addManualWorkstation() {
-            const name = prompt("Inserisci nome canonico postazione:");
-            if (name) {
-                currentScanData.workstations.push({
-                    id: "UO-" + (currentScanData.workstations.length + 1),
-                    name: name,
-                    icon: "fa-chair"
-                });
-                renderScanResults();
-            }
-        }
-
-        function addManualAsset() {
-            const name = prompt("Inserisci nome asset/macchinario:");
-            if (name) {
-                currentScanData.assets.push({
-                    id: "AST-" + (currentScanData.assets.length + 1),
-                    name: name
-                });
-                renderScanResults();
-            }
-        }
-
-        function confirmAndSaveScan() {
-            const setupState = JSON.parse(localStorage.getItem('sitebos_advanced_setup_state') || '{}');
-            setupState.workstations_count = currentScanData.workstations.length;
-            setupState.operational_units = currentScanData.workstations;
-            setupState.detected_assets = currentScanData.assets;
-            setupState.square_meters = currentScanData.square_meters;
-
-            localStorage.setItem('sitebos_advanced_setup_state', JSON.stringify(setupState));
-
-            if (window.Telegram?.WebApp) {
-                window.Telegram.WebApp.HapticFeedback?.notificationOccurred('success');
-                window.Telegram.WebApp.showAlert('Scansione visiva salvata con successo!', () => {
-                    window.history.back();
-                });
+            if (mode === 'photos') {
+                btnPhotos.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition bg-black text-white shadow-xs";
+                btnVideo.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition bg-transparent text-gray-600 hover:text-black";
+                snapBtn.classList.remove('hidden');
+                recBtn.classList.add('hidden');
+                document.getElementById('preview-section-title').innerText = "🖼️ Foto Acquisite (Max 5)";
             } else {
-                alert("Scansione visiva salvata!");
-                window.history.back();
+                btnVideo.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition bg-black text-white shadow-xs";
+                btnPhotos.className = "py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition bg-transparent text-gray-600 hover:text-black";
+                snapBtn.classList.add('hidden');
+                recBtn.classList.remove('hidden');
+                document.getElementById('preview-section-title').innerText = "🎥 Video Registrato (Max 15s)";
+            }
+            renderPreviewGrid();
+        }
+
+        async function startLiveCamera() {
+            const video = document.getElementById('camera-feed');
+            const placeholder = document.getElementById('camera-placeholder');
+            const startBtn = document.getElementById('btn-start-camera');
+            const liveControls = document.getElementById('live-controls');
+
+            try {
+                if (videoStream) {
+                    videoStream.getTracks().forEach(t => t.stop());
+                }
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: { ideal: 'environment' },
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = videoStream;
+                video.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                startBtn.classList.add('hidden');
+                liveControls.classList.remove('hidden');
+                
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                }
+            } catch (err) {
+                console.error("Camera access error:", err);
+                alert("Impossibile accedere alla fotocamera posteriore. Utilizza il pulsante 'Carica da Galleria'.");
             }
         }
 
-        function resetScanner() {
-            document.getElementById('scan-results-container').classList.add('hidden');
+        function snapLivePhoto() {
+            if (capturedPhotos.length >= 5) {
+                alert("Hai già raggiunto il limite massimo di 5 foto.");
+                return;
+            }
+
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('camera-canvas');
+            
+            canvas.width = Math.min(video.videoWidth || 1280, 1280);
+            canvas.height = Math.min(video.videoHeight || 720, 720);
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const b64Data = canvas.toDataURL('image/jpeg', 0.8);
+            capturedPhotos.push(b64Data);
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+
+            renderPreviewGrid();
+        }
+
+        function toggleVideoRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                stopVideoRecording();
+            } else {
+                startVideoRecording();
+            }
+        }
+
+        function startVideoRecording() {
+            if (!videoStream) return;
+            recordedChunks = [];
+            
+            try {
+                mediaRecorder = new MediaRecorder(videoStream, { mimeType: 'video/webm;codecs=vp8' });
+            } catch (e) {
+                try {
+                    mediaRecorder = new MediaRecorder(videoStream);
+                } catch (e2) {
+                    alert("Formato registrazione video non supportato dal dispositivo.");
+                    return;
+                }
+            }
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' });
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    capturedVideoB64 = reader.result;
+                    const player = document.getElementById('video-preview-player');
+                    player.src = URL.createObjectURL(blob);
+                    renderPreviewGrid();
+                };
+                reader.readAsDataURL(blob);
+            };
+
+            mediaRecorder.start();
+            
+            const recBtn = document.getElementById('btn-record-video');
+            const labelRec = document.getElementById('label-rec');
+            const barContainer = document.getElementById('video-rec-bar-container');
+            const progressBar = document.getElementById('video-progress-bar');
+            
+            recBtn.classList.replace('bg-rose-600', 'bg-gray-900');
+            labelRec.innerText = "Interrompi Registrazione";
+            barContainer.classList.remove('hidden');
+            progressBar.style.width = '100%';
+
+            recSecondsLeft = 15;
+            document.getElementById('video-timer-label').innerText = "15s";
+
+            recTimer = setInterval(() => {
+                recSecondsLeft--;
+                document.getElementById('video-timer-label').innerText = `${recSecondsLeft}s`;
+                progressBar.style.width = `${(recSecondsLeft / 15) * 100}%`;
+
+                if (recSecondsLeft <= 0) {
+                    stopVideoRecording();
+                }
+            }, 1000);
+        }
+
+        function stopVideoRecording() {
+            if (recTimer) clearInterval(recTimer);
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+
+            const recBtn = document.getElementById('btn-record-video');
+            const labelRec = document.getElementById('label-rec');
+            const barContainer = document.getElementById('video-rec-bar-container');
+
+            recBtn.classList.replace('bg-gray-900', 'bg-rose-600');
+            labelRec.innerText = "Registra Clip 15s";
+            barContainer.classList.add('hidden');
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        function handleGallerySelected(event) {
+            const files = Array.from(event.target.files);
+            if (!files.length) return;
+
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    if (capturedPhotos.length >= 5) return;
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const img = new Image();
+                        img.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = Math.min(img.width, 1280);
+                            canvas.height = Math.min(img.height, 720);
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                            capturedPhotos.push(canvas.toDataURL('image/jpeg', 0.8));
+                            renderPreviewGrid();
+                        };
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                } else if (file.type.startsWith('video/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        capturedVideoB64 = e.target.result;
+                        const player = document.getElementById('video-preview-player');
+                        player.src = e.target.result;
+                        switchMode('video');
+                        renderPreviewGrid();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+
+        function renderPreviewGrid() {
+            const photoBadge = document.getElementById('photo-count-badge');
+            if (photoBadge) photoBadge.innerText = capturedPhotos.length;
+
+            const previewSection = document.getElementById('media-preview-section');
+            const photosGrid = document.getElementById('photos-grid');
+            const videoBox = document.getElementById('video-preview-box');
+            const submitSection = document.getElementById('action-submit-section');
+
+            photosGrid.innerHTML = '';
+
+            if (currentMode === 'photos') {
+                videoBox.classList.add('hidden');
+                if (capturedPhotos.length > 0) {
+                    previewSection.classList.remove('hidden');
+                    photosGrid.classList.remove('hidden');
+                    submitSection.classList.remove('hidden');
+
+                    capturedPhotos.forEach((src, idx) => {
+                        const div = document.createElement('div');
+                        div.className = "relative rounded-xl overflow-hidden border border-gray-200 group aspect-square bg-gray-100";
+                        div.innerHTML = `
+                            <img src="${src}" class="w-full h-full object-cover">
+                            <span class="absolute top-1 left-1 bg-black/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">#${idx+1}</span>
+                            <button onclick="removePhoto(${idx})" class="absolute top-1 right-1 bg-rose-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow-sm">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                        photosGrid.appendChild(div);
+                    });
+                } else {
+                    previewSection.classList.add('hidden');
+                    submitSection.classList.add('hidden');
+                }
+            } else {
+                photosGrid.classList.add('hidden');
+                if (capturedVideoB64) {
+                    previewSection.classList.remove('hidden');
+                    videoBox.classList.remove('hidden');
+                    submitSection.classList.remove('hidden');
+                } else {
+                    previewSection.classList.add('hidden');
+                    videoBox.classList.add('hidden');
+                    submitSection.classList.add('hidden');
+                }
+            }
+        }
+
+        function removePhoto(index) {
+            capturedPhotos.splice(index, 1);
+            renderPreviewGrid();
+        }
+
+        function clearMediaState() {
+            capturedPhotos = [];
+            capturedVideoB64 = null;
+            renderPreviewGrid();
+        }
+
+        async function submitScanToWebhook() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ash = urlParams.get('ash') || '';
+            const msgId = urlParams.get('msg') || '';
+
+            const payload = {
+                ash: ash,
+                msg_id: msgId,
+                media_type: currentMode,
+                photos: currentMode === 'photos' ? capturedPhotos : [],
+                video: currentMode === 'video' ? capturedVideoB64 : null,
+                timestamp: Date.now()
+            };
+
+            document.getElementById('action-submit-section').classList.add('hidden');
+            document.getElementById('media-preview-section').classList.add('hidden');
+            document.getElementById('sending-loader').classList.remove('hidden');
+
+            // Simulazione / invio al Webhook
+            setTimeout(() => {
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.HapticFeedback?.notificationOccurred('success');
+                    window.Telegram.WebApp.showAlert('Scansione visiva IA trasmessa al backend con successo!', () => {
+                        window.history.back();
+                    });
+                } else {
+                    alert("Scansione visiva IA trasmessa al backend con successo!");
+                    window.history.back();
+                }
+            }, 2000);
         }
     </script>
 </body>

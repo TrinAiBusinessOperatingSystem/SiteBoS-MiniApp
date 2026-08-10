@@ -50,7 +50,7 @@
 
         const isScanner = item.id === 'stations_scanner' || (item.url && item.url.includes('location-scanner'));
         if (isScanner && window.isMobileDevice && !window.isMobileDevice()) {
-            const msg = "📱 Apri lo scanner dal tuo cellulare in Telegram per inquadrare il locale e scansionare le postazioni.";
+            const msg = "📱 Apri lo scanner dal tuo cellulare per inquadrare il locale e scansionare le postazioni.";
             if (tg && typeof tg.showAlert === 'function') {
                 tg.showAlert(msg);
             } else {
