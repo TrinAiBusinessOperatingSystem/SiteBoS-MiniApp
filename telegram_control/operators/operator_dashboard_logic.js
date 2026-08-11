@@ -117,6 +117,9 @@ async function loadOperatorData() {
       sessionStorage.setItem('operator_data', JSON.stringify(operatorData));
       sessionStorage.setItem('stakeholder_raw', JSON.stringify(data.stakeholder));
       sessionStorage.setItem('operator_ash', ash);
+      if (window.JobSyncQueue) {
+        window.JobSyncQueue.saveStakeholder(ash, data.stakeholder);
+      }
     } else {
       throw new Error(data.message || 'Failed to load data');
     }

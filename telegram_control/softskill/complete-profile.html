@@ -750,6 +750,7 @@
             try {
                 showAnalysisOverlay();
                 
+                // Tenta il recupero online dal server n8n/Make
                 const response = await fetch(webhook.webhookUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -763,12 +764,7 @@
                 });
 
                 if (!response.ok) {
-                    let errorMsg = `Webhook failed: ${response.status}`;
-                    try {
-                        const errData = await response.json();
-                        if (errData && errData.error) errorMsg = errData.error;
-                    } catch(e) {}
-                    throw new Error(errorMsg);
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
                 const result = await response.json();
@@ -779,6 +775,12 @@
                 }
 
                 profileData = analysisData.data;
+
+                // ── SALVATAGGIO SU DISCO: Aggiorna la cache persistente per l'offline e l'LLM ──
+                if (typeof webhook.saveCompleteProfile === 'function') {
+                    webhook.saveCompleteProfile(profileData);
+                }
+
                 closeAnalysisOverlay();
 
                 setTimeout(() => {
@@ -787,11 +789,35 @@
                 }, 800);
 
             } catch (error) {
-                console.error('❌ Errore:', error);
-                closeAnalysisOverlay();
-                setTimeout(() => {
-                    document.getElementById('errorState').style.display = 'block';
-                }, 600);
+                console.warn('⚠️ Recupero online fallito. Tento caricamento locale di sicurezza...', error);
+                
+                // ── FALLBACK LOCAL-FIRST: Legge il profilo persistito sul telefono ──
+                const cachedProfile = typeof webhook.getCompleteProfile === 'function' ? webhook.getCompleteProfile() : null;
+                
+                if (cachedProfile) {
+                    profileData = cachedProfile;
+                    closeAnalysisOverlay();
+                    
+                    setTimeout(() => {
+                        renderProfile(profileData);
+                        document.getElementById('mainContent').style.display = 'block';
+                        // Feedback visivo opzionale di modalità offline
+                        const descEl = document.getElementById('description');
+                        if (descEl) {
+                            descEl.insertAdjacentHTML(
+                                'afterend', 
+                                '<p style="color: #f59e0b; font-size:11px; font-weight:700; margin-top:5px; text-transform:uppercase;">Offline Mode — Dati caricati localmente</p>'
+                            );
+                        }
+                    }, 800);
+                } else {
+                    // Errore reale solo se non esiste nemmeno una copia in cache
+                    console.error('❌ Errore: Nessun profilo in cache disponibile.', error);
+                    closeAnalysisOverlay();
+                    setTimeout(() => {
+                        document.getElementById('errorState').style.display = 'block';
+                    }, 600);
+                }
             }
         }
 

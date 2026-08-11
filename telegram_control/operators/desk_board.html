@@ -6,6 +6,8 @@
     <title>SiTeBoS | Desk Board Console</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="job_sync_queue.js"></script>
+    <script src="desk_board_sse.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -89,9 +91,16 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="font-extrabold text-white text-base tracking-tight" id="board-brand-name">SiteBoS Desk Board</h1>
-                    <span class="text-[10px] font-bold text-cyan-400 bg-cyan-950 border border-cyan-800 px-2 py-0.5 rounded-full uppercase">Segreteria</span>
+                    <span class="text-[10px] font-bold text-cyan-400 bg-cyan-950 border border-cyan-800 px-2 py-0.5 rounded-full uppercase">Prendi Lavori</span>
                 </div>
-                <p class="text-xs text-gray-400" id="board-studio-name">Studio Principale · Gestione Prossimità</p>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span id="cloud-sync-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/60 border border-emerald-800 text-[10px] font-bold text-emerald-400">
+                        <i class="fa-solid fa-cloud-check text-xs"></i> <span>🟢 Sincronizzato</span>
+                    </span>
+                    <span id="sse-live-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800 text-[10px] font-bold text-cyan-400">
+                        <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span> <span>🟢 LIVE SSE</span>
+                    </span>
+                </div>
             </div>
         </div>
 
@@ -118,25 +127,25 @@
 
         <!-- Azioni Header -->
         <div class="flex items-center gap-3">
-            <button onclick="location.href='document_sign_pad.html'" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2" title="Tavoletta Grafometrica Esterna">
+            <button onclick="location.href='operator_dashboard.html'" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-95 text-white text-xs font-black px-4 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2 border border-cyan-400/30" title="Vai alla Dashboard Satelliti 3D">
+                <i class="fa-solid fa-satellite text-sm"></i>
+                <span>🛰️ Dashboard Console</span>
+            </button>
+            <button onclick="location.href='document_sign_pad.html'" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2" title="Tavoletta Grafometrica Esterna">
                 <i class="fa-solid fa-tablet-button"></i>
-                <span>✍️ Tavoletta Pad</span>
+                <span>✍️ Pad</span>
             </button>
-            <button onclick="location.href='../operativita/pianificazione_itinerari.html'" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2" title="AI Route Solver Logistico">
+            <button onclick="location.href='../operativita/pianificazione_itinerari.html'" class="bg-amber-600 hover:bg-amber-500 active:scale-95 text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2" title="AI Route Solver Logistico">
                 <i class="fa-solid fa-route"></i>
-                <span>🗺️ Route Solver</span>
-            </button>
-            <button onclick="location.href='../gestione/inbound_orders.html'" class="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2" title="Registro Inbound Ordini">
-                <i class="fa-solid fa-boxes-packing"></i>
-                <span>📦 Inbound</span>
-            </button>
-            <button onclick="autoAssignAll()" class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2">
-                <i class="fa-solid fa-bolt"></i>
-                <span>⚡ Auto-Assign</span>
+                <span>🗺️ Route</span>
             </button>
             <button onclick="openManualJobModal()" class="bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-lg flex items-center gap-2">
                 <i class="fa-solid fa-plus"></i>
                 <span>+ Job</span>
+            </button>
+            <button onclick="location.href='legal.html'" class="bg-gray-800 hover:bg-gray-700 active:scale-95 text-gray-300 hover:text-white text-xs font-bold px-3 py-2.5 rounded-xl transition-all shadow border border-gray-700 flex items-center gap-1.5" title="Note Legali &amp; Compliance Privacy Art. 4 Statuto Lavoratori">
+                <i class="fa-solid fa-scale-balanced text-cyan-400"></i>
+                <span>⚖️ Legal</span>
             </button>
             <button onclick="refreshBoard()" class="w-10 h-10 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white flex items-center justify-center transition-all" title="Aggiorna Tabellone">
                 <i class="fa-solid fa-rotate-right"></i>
@@ -236,6 +245,35 @@
                     <i class="fa-solid fa-check"></i>
                     <span>Metti in Coda il Turno</span>
                 </button>
+            </div>
+        </div>
+    <!-- MODALE POPUP: LOCK SCREEN REATTIVO (SICUREZZA PASSIVA LOCALE) -->
+    <div id="passive-lock-overlay" class="fixed inset-0 z-[20000] bg-gray-950/95 backdrop-blur-xl hidden flex flex-col items-center justify-center p-6 text-center">
+        <div class="bg-gray-900 border border-amber-500/30 rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6">
+            <div class="w-16 h-16 rounded-2xl bg-amber-950/60 border border-amber-800 flex items-center justify-center text-amber-400 mx-auto animate-pulse">
+                <i class="fa-solid fa-lock text-3xl"></i>
+            </div>
+            
+            <div class="space-y-2">
+                <h2 class="text-lg font-extrabold text-white">🔐 Autorizzazione Operatore Scaduta</h2>
+                <p class="text-xs text-gray-400 leading-relaxed">
+                    Il limite di tolleranza per il controllo di presenza locale è stato superato. Per sbloccare la consolle lavori, esegui la verifica in loco o richiedi l'approvazione remota.
+                </p>
+            </div>
+
+            <div class="space-y-3 pt-2">
+                <button onclick="location.href='../identity/location-scanner.html'" class="w-full bg-cyan-600 hover:bg-cyan-500 active:scale-95 text-white font-bold text-xs py-3.5 px-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-qrcode text-base"></i>
+                    <span>📍 Scansiona QR / Check-in Loco</span>
+                </button>
+                <button onclick="requestRemoteBypassSSE()" id="btn-request-bypass" class="w-full bg-gray-800 hover:bg-gray-700 active:scale-95 text-cyan-400 font-bold text-xs py-3.5 px-4 rounded-xl border border-gray-700 transition-all flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-tower-cell text-base"></i>
+                    <span>📡 Richiedi Sblocco alla Segreteria (Push SSE)</span>
+                </button>
+            </div>
+
+            <div id="sse-bypass-status" class="text-[10px] text-gray-500 hidden font-mono">
+                <i class="fa-solid fa-circle-notch fa-spin text-cyan-400 mr-1"></i> In ascolto canale SSE per l'approvazione push della segreteria...
             </div>
         </div>
     </div>
@@ -545,6 +583,49 @@
         function escapeHtml(str) {
             return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
+
+        /* ── SICUREZZA PASSIVA LOCALE & RICONVALIDA SILENZIOSA (REV. 13) ── */
+        function checkPassiveSecurityOnBoot() {
+            if (!window.JobSyncQueue) return;
+            // 1. Tenta la riconvalida ambientale silenziosa (Wi-Fi / GPS) ad ogni boot
+            window.JobSyncQueue.silentRevalidate();
+
+            // 2. Calcolo dello stato del lucchetto
+            const status = window.JobSyncQueue.checkVerification();
+            if (status.valid) {
+                console.log('🔒 [Sicurezza Passiva] Lucchetto locale valido (0ms). Sblocco istantaneo senza chiamate di rete.');
+            } else {
+                console.warn('🔐 [Sicurezza Passiva] Autorizzazione locale scaduta:', status.reason);
+                showLockScreen();
+            }
+        }
+
+        function showLockScreen() {
+            const overlay = document.getElementById('passive-lock-overlay');
+            if (overlay) overlay.classList.remove('hidden');
+        }
+
+        function unlockBoardUI() {
+            const overlay = document.getElementById('passive-lock-overlay');
+            if (overlay) overlay.classList.add('hidden');
+            const bypassStatus = document.getElementById('sse-bypass-status');
+            if (bypassStatus) bypassStatus.classList.add('hidden');
+            console.log('🔓 [Sicurezza Passiva] Interfaccia sbloccata con successo.');
+            refreshBoard();
+        }
+
+        function requestRemoteBypassSSE() {
+            const statusEl = document.getElementById('sse-bypass-status');
+            if (statusEl) statusEl.classList.remove('hidden');
+            if (window.DeskBoardSSE && typeof window.DeskBoardSSE.init === 'function') {
+                window.DeskBoardSSE.init();
+            }
+        }
+
+        // Esegui il controllo passivo al boot
+        window.addEventListener('DOMContentLoaded', function() {
+            checkPassiveSecurityOnBoot();
+        });
     </script>
 </body>
 </html>

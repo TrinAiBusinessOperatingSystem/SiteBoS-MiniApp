@@ -56,6 +56,9 @@ async function loadData() {
     if (data.status === 'success' && data.stakeholder) {
       originalData = data.stakeholder;
       populateForm(data.stakeholder);
+      if (window.JobSyncQueue) {
+        window.JobSyncQueue.saveStakeholder(ash, data.stakeholder);
+      }
     } else {
       throw new Error(data.message || 'Errore caricamento');
     }

@@ -947,37 +947,41 @@ async function generateQuote() {
     showLoading(true, 'Generazione preventivo...');
 
     try {
-        const response = await fetch(WEBHOOK_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                action: 'generate_quote',
-                vat: operatorSession?.vat || URL_VAT,
-                operator_id: operatorSession?.chat_id || URL_CHAT_ID,
-                customer: selectedTarget,
-                services: quoteCart,
-                notes: notes,
-                photos: quotePhotos,
-                documents: quoteDocuments
-            })
-        });
+        const payload = {
+            action: 'generate_quote',
+            ash: URL_ASH,
+            _auth: tg.initData,
+            vat: operatorSession?.vat || URL_VAT,
+            operator_id: operatorSession?.chat_id || URL_CHAT_ID,
+            customer: selectedTarget,
+            services: quoteCart,
+            notes: notes,
+            photos: quotePhotos,
+            documents: quoteDocuments
+        };
 
-        if (!response.ok) throw new Error('Quote generation failed');
+        if (navigator.onLine) {
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
 
-        const data = await response.json();
-        console.log('✅ Quote generated:', data);
+            if (!response.ok) throw new Error('Quote generation failed');
+            const data = await response.json();
+            console.log('✅ Quote generated:', data);
+        } else if (window.JobSyncQueue) {
+            window.JobSyncQueue.syncOnAction('generate_quote_' + Date.now(), payload);
+            console.log('⏳ [Offline] Preventivo salvato in coda fisica locale (Sync-on-Action).');
+        }
 
         showAlert('✅ Preventivo generato con successo!', 'success');
 
         // ⏱️ Attendi 1.5s per mostrare il messaggio di successo
         setTimeout(() => {
-            // Estrai invite_token dal customer (già presente in selectedTarget)
             const inviteToken = selectedTarget.tasks?.[0]?.invite_token || currentSessionId;
-            
-            // ✅ FIX: Usa navigateOperatorWithContext con additionalParams
-            // Questa funzione aggiunge automaticamente chat_id e vat senza duplicarli
             navigateOperatorWithContext('operator_project_editor.html', {
-                operator: operatorSession?.chat_id || URL_CHAT_ID,
+                ash: URL_ASH,
                 token: inviteToken
             });
         }, 1500);

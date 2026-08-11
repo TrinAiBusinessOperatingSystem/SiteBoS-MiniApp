@@ -237,9 +237,34 @@ class WebhookHandler {
   /**
    * Cancella backup dopo sincronizzazione
    */
-  clearBackups() {
-    const backupKey = `backup_${this.ash}`;
-    localStorage.removeItem(backupKey);
+  /**
+   * Salva il profilo psicologico/comportamentale completo sul disco locale
+   * @param {Object} profileData - Il JSON completo restituito da get_analysis
+   */
+  saveCompleteProfile(profileData) {
+    if (!profileData) return;
+    const key = `sitebos_softskills_profile_${this.ash}`;
+    try {
+      localStorage.setItem(key, JSON.stringify(profileData));
+      console.log('💾 [Persistenza] Profilo Soft Skills completo salvato con successo su disco.');
+    } catch (e) {
+      console.error('❌ Errore salvataggio profilo su disco:', e);
+    }
+  }
+
+  /**
+   * Recupera il profilo completo salvato in locale (per uso offline o Micro-LLM)
+   * @returns {Object|null} Il profilo memorizzato o null
+   */
+  getCompleteProfile() {
+    const key = `sitebos_softskills_profile_${this.ash}`;
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (e) {
+      console.error('❌ Errore lettura profilo da disco:', e);
+      return null;
+    }
   }
 }
 
