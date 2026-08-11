@@ -37,9 +37,16 @@
             overflow: hidden;
         }
 
-        #network-graph {
+        #network-graph-container {
             width: 100vw;
             height: calc(100vh - 110px);
+            overflow: hidden;
+            background: #fafafa;
+        }
+
+        #network-graph {
+            width: 100%;
+            height: 100%;
             background: #fafafa;
         }
 
@@ -78,10 +85,10 @@
 
     <!-- LATERAL FLOATING ROUND BUTTONS SIDEBAR (TASTI TONDI CON MULTI-SELECT DINAMICA) -->
     <div class="fixed top-20 left-4 z-40 flex flex-col gap-3 bg-white/80 backdrop-blur-xl p-2.5 rounded-full border border-gray-300/80 shadow-2xl">
-        <button onclick="toggleCluster('OWNER')" id="btn-cluster-OWNER" title="Filtra Titolare (Owner)"
+        <button onclick="toggleCluster('OWNER')" id="btn-cluster-OWNER" title="Filtra Titolare"
             class="cluster-btn active w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all duration-200 shadow-md bg-slate-900 text-white ring-2 ring-slate-900 scale-105">
             <i class="fas fa-crown text-xs"></i>
-            <span class="text-[7px] font-black uppercase mt-0.5 tracking-tighter">Owner</span>
+            <span class="text-[7px] font-black uppercase mt-0.5 tracking-tighter">Titolare</span>
         </button>
 
         <button onclick="toggleCluster('OPERATOR')" id="btn-cluster-OPERATOR" title="Filtra Operatore Staff"
@@ -90,10 +97,10 @@
             <span class="text-[7px] font-black uppercase mt-0.5 tracking-tighter">Staff</span>
         </button>
 
-        <button onclick="toggleCluster('CUSTOMER')" id="btn-cluster-CUSTOMER" title="Filtra Cliente (Customer)"
+        <button onclick="toggleCluster('CUSTOMER')" id="btn-cluster-CUSTOMER" title="Filtra Cliente"
             class="cluster-btn active w-11 h-11 rounded-full flex flex-col items-center justify-center transition-all duration-200 shadow-md bg-slate-900 text-white ring-2 ring-slate-900 scale-105">
             <i class="fas fa-user text-xs"></i>
-            <span class="text-[7px] font-black uppercase mt-0.5 tracking-tighter">Client</span>
+            <span class="text-[7px] font-black uppercase mt-0.5 tracking-tighter">Cliente</span>
         </button>
 
         <button onclick="toggleCluster('AI')" id="btn-cluster-AI" title="Filtra SiTeBoS Engine"
@@ -104,15 +111,23 @@
 
         <div class="w-7 h-[1px] bg-gray-300 mx-auto my-0.5"></div>
 
-        <button onclick="resetAllClusters()" title="Ripristina Tutti i Nodi"
+        <button onclick="toggle3DMode()" id="btn-toggle-3d" title="Attiva/Disattiva Sfera 3D Jarvis"
+            class="w-11 h-11 rounded-full flex flex-col items-center justify-center bg-slate-900 text-white shadow-lg ring-2 ring-slate-900 scale-105 transition-all">
+            <i class="fas fa-cube text-xs"></i>
+            <span class="text-[7px] font-black uppercase mt-0.5 tracking-tighter">3D</span>
+        </button>
+
+        <button onclick="resetAllClusters()" title="Ripristina Mappa Funzioni"
             class="w-11 h-11 rounded-full flex items-center justify-center bg-gray-100 hover:bg-black hover:text-white text-gray-700 transition-all shadow-sm">
             <i class="fas fa-rotate text-xs"></i>
         </button>
     </div>
 
     <!-- CANVAS CONTAINER FOR VIS-NETWORK -->
-    <div class="relative flex-1 w-full h-full">
-        <div id="network-graph"></div>
+    <div class="relative flex-1 w-full h-full" id="network-graph-container-wrapper">
+        <div id="network-graph-container" class="w-full h-full">
+            <div id="network-graph"></div>
+        </div>
 
     <!-- OVERLAY ISTRUZIONI -->
     <div class="absolute top-3 left-20 z-10 pointer-events-none opacity-80">
@@ -172,11 +187,11 @@
 
         // MAPPA NODI - TONI DI GRIGIO & ICONE VETTORIALI NERE SITEBOS
         const rawNodes = [
-            // 4 HUB PRINCIPALI UNIFORMI (SIZE 36) - ICONE SITEBOS
-            { id: 'HUB_AI_ENGINE', faIcon: '\uf544', faClass: 'fa-solid fa-robot', title: 'SiTeBoS Engine', cluster: 'AI', isAI: true, shape: 'circle', color: { background: '#334155', border: '#0f172a' }, font: { color: '#ffffff', size: 22, face: '"Font Awesome 6 Free"', fontBold: true }, size: 36, desc: 'Engine centrale di intelligenza ed automazione SiTeBoS che guida le pipeline e i setup assistiti.' },
-            { id: 'HUB_OWNER', faIcon: '\uf521', faClass: 'fa-solid fa-crown', title: 'Titolare (Owner)', cluster: 'OWNER', shape: 'circle', color: { background: '#0f172a', border: '#334155' }, font: { color: '#ffffff', size: 22, face: '"Font Awesome 6 Free"', fontBold: true }, size: 36, desc: 'Pannello Direzionale del Titolare d impresa.' },
-            { id: 'HUB_OPERATOR', faIcon: '\uf0b1', faClass: 'fa-solid fa-briefcase', title: 'Staff Operatore', cluster: 'OPERATOR', shape: 'circle', color: { background: '#475569', border: '#1e293b' }, font: { color: '#ffffff', size: 22, face: '"Font Awesome 6 Free"', fontBold: true }, size: 36, desc: 'Console operativa per lo staff e gli operatori sul campo.' },
-            { id: 'HUB_CUSTOMER', faIcon: '\uf007', faClass: 'fa-solid fa-user', title: 'Cliente (Customer)', cluster: 'CUSTOMER', shape: 'circle', color: { background: '#64748b', border: '#334155' }, font: { color: '#ffffff', size: 22, face: '"Font Awesome 6 Free"', fontBold: true }, size: 36, desc: 'Esperienza cliente pubblica via Telegram WebApp.' },
+            // 4 HUB PRINCIPALI UNIFORMI - ICONE SITEBOS PULITE SENZA CERCHIO
+            { id: 'HUB_AI_ENGINE', faIcon: '\uf085', faClass: 'fa-solid fa-gears', title: 'SiTeBoS Engine', cluster: 'AI', isAI: true, link: '09_controllo_gestione.html', desc: 'Engine centrale di intelligenza ed automazione SiTeBoS che guida le pipeline e i setup assistiti.' },
+            { id: 'HUB_OWNER', faIcon: '\uf521', faClass: 'fa-solid fa-crown', title: 'Titolare', cluster: 'OWNER', link: '01_intro.html', desc: 'Pannello Direzionale del Titolare d impresa.' },
+            { id: 'HUB_OPERATOR', faIcon: '\uf0b1', faClass: 'fa-solid fa-briefcase', title: 'Staff Operatore', cluster: 'OPERATOR', link: '06_team.html', desc: 'Console operativa per lo staff e gli operatori sul campo.' },
+            { id: 'HUB_CUSTOMER', faIcon: '\uf007', faClass: 'fa-solid fa-user', title: 'Cliente', cluster: 'CUSTOMER', link: '05_customer.html', desc: 'Esperienza cliente pubblica via Telegram WebApp.' },
 
             // IMPRENDITORE (OWNER) & DASHBOARD
             { id: 'dash_owner', faIcon: '\uf108', faClass: 'fa-solid fa-display', name: 'Dashboard Direzionale Owner', cluster: 'OWNER', link: '01_intro.html', desc: 'Console Direzionale unificata adattiva: Card Stack 3D su Mobile TWA e Multi-Window Manager su PC Desktop.' },
@@ -195,9 +210,10 @@
 
             // SOTTOSTRUTTURA MENU IDENTITY & SETUP
             { id: 'edit_owner', faIcon: '\uf2bd', faClass: 'fa-solid fa-user-tie', name: 'Dati Titolare & Skill', cluster: 'OWNER', link: '02_onboarding.html', desc: 'Anagrafica titolare, rag. sociale, P.IVA e competenze staff (skill_tags) per erogazione SOP.' },
-            { id: 'stations_config', faIcon: '\uf1b0', faClass: 'fa-solid fa-chair', name: 'Postazioni & Cabine', cluster: 'OWNER', link: '02_onboarding.html', desc: 'Gestione capacità produttiva, riuniti, poltrone e cabine di lavoro.' },
+            { id: 'stations_config', faIcon: '\uf030', faClass: 'fa-solid fa-camera', name: 'Scanner Postazioni e Asset', cluster: 'OWNER', link: '02_onboarding.html', desc: 'Scansione e mappatura visiva con fotocamera di postazioni, riuniti, poltrone, macchinari ed asset aziendali.' },
             { id: 'advanced_setup', faIcon: '\uf1de', faClass: 'fa-solid fa-sliders', name: 'Setup Intelligente', cluster: 'OWNER', isAI: true, link: '02_onboarding.html#setup-avanzato', desc: 'Setup assistito dall AI per la configurazione fiscale, aliquote IVA, regimi ed orari.' },
             { id: 'trust_engine', faIcon: '\uf577', faClass: 'fa-solid fa-file-signature', name: 'Trust & Stamp Engine', cluster: 'OWNER', isAI: true, link: '14_trust_stamp_engine.html', desc: 'Generatore AI di modelli legali e configurazione delle 3 vie di firma.' },
+            { id: 'cert_provider_api', faIcon: '\uf3ed', faClass: 'fa-solid fa-shield-halved', name: 'Provider Firma API', cluster: 'OPERATOR', link: '14_trust_stamp_engine.html#cert-provider', desc: 'Provider esterno certificato di firma digitale (eIDAS / Infocert / Namirial / SPID / CIE) per la firma API ed il timbro certificato.' },
 
             // SOTTOSTRUTTURA MENU CATALOGO (CATALOG.HTML) & AZIONI INTERNE
             { id: 'add_product', faIcon: '\uf0fe', faClass: 'fa-solid fa-square-plus', name: 'Nuovo Prodotto/Servizio', cluster: 'OWNER', link: '03_catalog.html', desc: 'Inserimento ed anagrafica commerciale nuovo Prodotto o Servizio.' },
@@ -221,51 +237,70 @@
             { id: 'wh_lot_trace', faIcon: '\uf481', faClass: 'fa-solid fa-barcode', name: 'Documento di Lotto', cluster: 'OWNER', isAI: true, link: '07_magazzino_logistica.html', desc: 'Tracciabilità lotti di produzione, scadenze e generazione documento di lotto.' },
 
             { id: 'dvr_safety', faIcon: '\uf3ed', faClass: 'fa-solid fa-shield-halved', name: 'Sicurezza DVR D.Lgs. 81/08', cluster: 'OWNER', isAI: true, link: '11_agente_sicurezza.html', desc: 'Valutazione rischi D.Lgs. 81/08 ed elaborazione automatica DVR.' },
-            { id: 'supervisor_hub', faIcon: '\uf508', faClass: 'fa-solid fa-user-shield', name: 'Supervisor Hub AI', cluster: 'AI', isAI: true, link: '11_agente_sicurezza.html', desc: 'Auditing Supervisor & Check HSE: trascrizione evidenze sul campo, audit di coerenza sulla norma impostata nella SOP Blueprint e Giudizio Motivato (ex Art. 86 AI Act).' },
+            { id: 'supervisor_hub', faIcon: '\uf508', faClass: 'fa-solid fa-user-shield', name: 'Supervisor Hub AI', cluster: 'AI', isAI: true, link: '08_supervisor_hub.html', desc: 'Auditing Supervisor & Check HSE: trascrizione evidenze sul campo, audit di coerenza sulla norma impostata nella SOP Blueprint e Giudizio Motivato (ex Art. 86 AI Act).' },
             { id: 'mktg_agent', faIcon: '\uf0ac', faClass: 'fa-solid fa-globe', name: 'Agente Marketing', cluster: 'OWNER', isAI: true, link: '04_online.html', desc: 'Pianificazione campagne social, articoli blog ed invio newsletter via AI.' },
             
             // 2 NUOVI NODI MARKETING: SOCIAL E WEB
-            { id: 'mktg_social', faIcon: '\uf1e0', faClass: 'fa-solid fa-share-nodes', name: 'Social', cluster: 'OWNER', isAI: true, link: '04_online.html', desc: 'Canale Social Media: distribuzione automatica contenuti e coinvolgimento clienti.' },
-            { id: 'mktg_web', faIcon: '\uf002', faClass: 'fa-solid fa-magnifying-glass', name: 'Web', cluster: 'OWNER', isAI: true, link: '04_online.html', desc: 'Canale Web & Search: traffico organico, indicizzazione SEO GEO ed interazione clienti.' },
+            { id: 'mktg_social', faIcon: '\uf1e0', faClass: 'fa-solid fa-share-nodes', name: 'Social', cluster: 'OWNER', link: '04_online.html', desc: 'Canale Social Media: distribuzione automatica contenuti e coinvolgimento clienti.' },
+            { id: 'mktg_web', faIcon: '\uf002', faClass: 'fa-solid fa-magnifying-glass', name: 'Web', cluster: 'OWNER', link: '04_online.html', desc: 'Canale Web & Search: traffico organico, indicizzazione SEO GEO ed interazione clienti.' },
             { id: 'job_create', faIcon: '\uf0fe', faClass: 'fa-solid fa-square-plus', name: 'Nuova Commessa', cluster: 'OWNER', link: '06_team.html', desc: 'Creazione ed inserimento rapido nuova commessa o ordine di lavoro.' },
             { id: 'itinerari_planner', faIcon: '\uf4d7', faClass: 'fa-solid fa-route', name: 'Itinerari & Logistica', cluster: 'OWNER', isAI: true, link: '06_team.html', desc: 'Pianificazione intelligente itinerari di consegna e supporto logistico sul campo.' },
             { id: 'billing_credits', faIcon: '\uf09d', faClass: 'fa-solid fa-credit-card', name: 'Billing Crediti & Wallet', cluster: 'OWNER', link: 'pricing.html', desc: 'Shop ricarica crediti API, piani subscription e gestione wallet aziendale.' },
             { id: 'fine_tuning', faIcon: '\uf5dc', faClass: 'fa-solid fa-microchip', name: 'Fine-Tuning Export', cluster: 'OWNER', isAI: true, link: '12_fine_tuning.html', desc: 'Esportazione dataset JSONL ed auto-addestramento agenti AI.' },
 
-            // OPERATORE (STAFF)
+            // OPERATORE (STAFF) - PROFILAZIONE SOFTSKILL & PIPELINE ESECUTIVA
+            { id: 'softskill_quiz', faIcon: '\uf044', faClass: 'fa-solid fa-pen-to-square', name: 'Quiz Softskills Entry', cluster: 'OPERATOR', link: '06_team.html', desc: 'Ingresso quiz valutativo 150 domande scenario-based per la profilazione dell operatore.' },
+            { id: 'softskill_mod1', faIcon: '\uf496', faClass: 'fa-solid fa-spa', name: 'Modulo 1: Resilienza & Io Interiore', cluster: 'OPERATOR', link: '06_team.html', desc: 'Test 1: gestione stress, autodisciplina e resilienza personale.' },
+            { id: 'softskill_mod2', faIcon: '\uf500', faClass: 'fa-solid fa-user-group', name: 'Modulo 2: Dinamiche Sociali & Comunicazione', cluster: 'OPERATOR', link: '06_team.html', desc: 'Test 2: ascolto attivo, empatia, leadership e gestione conflitti.' },
+            { id: 'softskill_mod3', faIcon: '\uf085', faClass: 'fa-solid fa-cogs', name: 'Modulo 3: Modus Operandi & Strategia', cluster: 'OPERATOR', link: '06_team.html', desc: 'Test 3: problem solving, adattabilità e decision making operativo.' },
+            { id: 'softskill_mod4', faIcon: '\uf06e', faClass: 'fa-solid fa-eye', name: 'Modulo 4: Visione & Valutazione', cluster: 'OPERATOR', link: '06_team.html', desc: 'Test 4: valutazione executive, competenze trasversali e sintesi attitudinale.' },
+            { id: 'softskills', faIcon: '\uf19d', faClass: 'fa-solid fa-graduation-cap', name: 'Profilo Completo Big5', cluster: 'OPERATOR', link: '06_team.html', desc: 'Profilo Big Five sintetico: superpoteri, punti deboli ed archetipo motivazionale generato dai 4 test.' },
+            { id: 'prejob_briefing', faIcon: '\uf0eb', faClass: 'fa-solid fa-lightbulb', name: 'Pre-Job AI Briefing', cluster: 'OPERATOR', link: '06_team.html#prejob-briefing', desc: 'Briefing offline edge_llm_worker.js: matching Big Five vs step critico SOP per Pro-Tip sartoriale.' },
+            { id: 'personal_mobile_brain', faIcon: '\uf5dc', faClass: 'fa-solid fa-brain', name: 'Personal Mobile Brain', cluster: 'OPERATOR', link: '06_team.html#personal-brain', desc: 'Cervello Edge/Mobile personalizzato dell operatore per il briefing pre-job, tutoring contestuale ASH ed assistenza operatore in tempo reale.' },
             { id: 'lavagna_jobs', faIcon: '\uf0ae', faClass: 'fa-solid fa-list-check', name: 'Lavagna Turni di Lavoro', cluster: 'OPERATOR', link: '06_team.html#lavagna-turni', desc: 'Lavagna turni reattiva con pulsante Prendi il Prossimo Job, coda ON_SHELF ed avanzamento checklist SOP.' },
-            { id: 'softskills', faIcon: '\uf19d', faClass: 'fa-solid fa-graduation-cap', name: 'Profilo Soft Skills ASH', cluster: 'OPERATOR', link: '06_team.html', desc: 'Assessment Big Five: profilazione archetipo, superpoteri e punti deboli dello staff.' },
-            { id: 'prejob_briefing', faIcon: '\uf0eb', faClass: 'fa-solid fa-lightbulb', name: 'Pre-Job AI Briefing', cluster: 'OPERATOR', isAI: true, link: '06_team.html#prejob-briefing', desc: 'Briefing offline edge_llm_worker.js: matching Big Five vs step critico SOP per Pro-Tip sartoriale.' },
-            { id: 'desk_board', faIcon: '\uf274', faClass: 'fa-solid fa-calendar-check', name: 'Desk Board Bancone', cluster: 'OPERATOR', link: '06_team.html#desk-board', desc: 'Tabellone prenotazioni, assistenza bancone e Slot-Lock 120s.' },
-            { id: 'sign_pad', faIcon: '\uf304', faClass: 'fa-solid fa-pen-clip', name: 'Firma Tavoletta', cluster: 'OPERATOR', link: '14_trust_stamp_engine.html', desc: 'Firma su tavoletta esterna con verifica visiva operatore.' },
-            { id: 'sign_simple', faIcon: '\uf0a3', faClass: 'fa-solid fa-stamp', name: 'Timbro ASH', cluster: 'OPERATOR', link: '14_trust_stamp_engine.html', desc: 'Firma touch su schermo con Timbro Crittografico ASH e GPS.' },
+            { id: 'desk_board', faIcon: '\uf274', faClass: 'fa-solid fa-calendar-check', name: 'Desk Board Bancone (Segreteria)', cluster: 'OPERATOR', link: '06_team.html#desk-board', desc: 'Tabellone prenotazioni segreteria, accoglienza bancone e Firma Graphometrica da Tavoletta.' },
+            { id: 'sign_pad', faIcon: '\uf304', faClass: 'fa-solid fa-pen-clip', name: 'Firma Tavoletta Segreteria', cluster: 'OPERATOR', link: '14_trust_stamp_engine.html', desc: 'Firma graphometrica su tavoletta hardware del bancone segreteria con verifica operatore.' },
+            { id: 'sign_simple', faIcon: '\uf0a3', faClass: 'fa-solid fa-stamp', name: 'Timbro ASH Cliente', cluster: 'CUSTOMER', link: '14_trust_stamp_engine.html', desc: 'Marca temporale e Timbro Crittografico ASH per il Cliente.' },
 
             // CLIENTE (CUSTOMER) - 2 STRADE DI INGRESSO
             { id: 'checkin_geo', faIcon: '\uf3c5', faClass: 'fa-solid fa-location-dot', name: 'Sono Qui', cluster: 'CUSTOMER', link: '05_customer.html#checkin', desc: '1ª Strada (In Negozio): check-in geolocalizzato, presenza bancone ed accodamento in lavagna turni.' },
             { id: 'checkin_home', faIcon: '\uf015', faClass: 'fa-solid fa-house', name: 'Sono a Casa', cluster: 'CUSTOMER', link: '05_customer.html#ecommerce-bento', desc: '2ª Strada (Da Remoto): ordine da casa su Ecommerce, consegne a domicilio e prenotazioni.' },
+            { id: 'first_visit_interview', faIcon: '\uf4fc', faClass: 'fa-solid fa-user-check', name: 'Intervista Prima Visita', cluster: 'CUSTOMER', isAI: true, link: '05_customer.html#interview', desc: 'Intervista di benvenuto prima visita: anamnesi, esigenze cliente e profilatura immediata.' },
             { id: 'ecom_bento', faIcon: '\uf07a', faClass: 'fa-solid fa-cart-shopping', name: 'Ecommerce', cluster: 'CUSTOMER', link: '05_customer.html#ecommerce-bento', desc: 'Vetrina Ecommerce Bento Grid: prodotti, servizi e carrello per acquisti da casa o in negozio.' },
+            { id: 'client_turn_board', faIcon: '\uf0ae', faClass: 'fa-solid fa-list-check', name: 'Gestione Turni', cluster: 'CUSTOMER', link: '06_team.html#lavagna-turni', desc: 'Gestione turni reattiva visibile al cliente con stato di avanzamento della chiamata.' },
             { id: 'booking_app', faIcon: '\uf073', faClass: 'fa-solid fa-calendar-days', name: 'Booking App', cluster: 'CUSTOMER', link: '05_customer.html#booking', desc: 'Scelta orari e risorse in tempo reale per appuntamenti.' },
             { id: 'quote_builder', faIcon: '\uf570', faClass: 'fa-solid fa-file-invoice', name: 'Preventivi', cluster: 'CUSTOMER', isAI: true, link: '05_customer.html#preventivi', desc: 'Configuratore e generatore preventivi custom con approvazione rapida da parte del cliente.' },
+            { id: 'spin_win', faIcon: '\uf06b', faClass: 'fa-solid fa-gift', name: 'Spin & Win & Gamification', cluster: 'CUSTOMER', link: '05_customer.html#gamification', desc: 'Premialità ed ingaggio cliente in attesa: ruota della fortuna Spin & Win, punti fedeltà e sfide gamification sul tabellone turni.' },
+            { id: 'addon_discount', faIcon: '\uf295', faClass: 'fa-solid fa-percent', name: 'Sconto Addon Prodotto', cluster: 'CUSTOMER', link: '03_catalog.html', desc: 'Premio Spin & Win: coupon sconto immediato applicabile su Addon e prodotti correlati dell anagrafica SKU.' },
+            { id: 'digital_asset', faIcon: '\uf1c1', faClass: 'fa-solid fa-file-pdf', name: 'Asset Digitale', cluster: 'CUSTOMER', link: '03_catalog.html', desc: 'Premio Spin & Win: sblocco immediato asset digitale (PDF, guida, ebook o risorsa riservata).' },
             { id: 'chat_bot', faIcon: '\uf4ad', faClass: 'fa-solid fa-comment-dots', name: 'Customer Bot NPL', cluster: 'CUSTOMER', isAI: true, link: '05_customer.html#assistente-chat', desc: 'Chat NPL h24 guidata dall AI per risposte ed assistente clienti.' }
         ];
 
         // ARCHI E CONNESSIONI ARCHITETTURALI REALI (TONI DI GRIGIO SOFT & ETICHETTE NERE SOPRA LA LINEA)
         const rawEdges = [
-            // HUB AI ENGINE VERSO PIPELINE AI
-            { from: 'HUB_AI_ENGINE', to: 'ai_ingestion', label: 'Pipeline Ingestion', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'advanced_setup', label: 'Setup Assistito', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'trust_engine', label: 'Generatore Modelli', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'dvr_safety', label: 'Valutazione Rischi', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'supervisor_hub', label: 'Auditing Supervisor', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'cfo_ctrl', label: 'Predictive Margins', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'mktg_agent', label: 'Content Planner', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'fine_tuning', label: 'LoRA Training', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'prejob_briefing', label: 'Big Five Co-Pilot', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'HUB_AI_ENGINE', to: 'chat_bot', label: 'NPL Conversational', color: { color: '#94a3b8' }, width: 1.5 },
+            // HUB AI ENGINE VERSO PIPELINE AI (CONNESSIONI BLU ELETTRICO)
+            { from: 'HUB_AI_ENGINE', to: 'ai_ingestion', label: 'Pipeline Ingestion', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'advanced_setup', label: 'Setup Assistito', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'trust_engine', label: 'Generatore Modelli', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'dvr_safety', label: 'Valutazione Rischi', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'supervisor_hub', label: 'Auditing Supervisor', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'cfo_ctrl', label: 'Predictive Margins', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'mktg_agent', label: 'Content Planner', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'fine_tuning', label: 'LoRA Training', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'chat_bot', label: 'NPL Conversational', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'itinerari_planner', label: 'Itinerari & Logistica Engine', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'first_visit_interview', label: 'Intervista Anamnesi Engine', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'wh_stock_sync', label: 'Check Consegne Stock Engine', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'process_blueprints', label: 'Algoritmo Blueprint SOP', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'cfo_advisory', label: 'CFO Advisory Simulator', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'web_research', label: 'Web Scraper AI Engine', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'fiscal_research', label: 'Fiscal Scraper Engine', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'wh_ingestion', label: 'Fatture Ingestion Engine', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
+            { from: 'HUB_AI_ENGINE', to: 'wh_lot_trace', label: 'Tracciabilità Lotti Engine', color: { color: '#2563eb', highlight: '#1d4ed8' }, width: 2.5 },
 
-            // CONNESSI ALL'HUB OWNER (LE 2 VIE PRINCIPALI DELL'OWNER)
-            { from: 'HUB_OWNER', to: 'trinai_onboarding', label: '1. Onboarding Piattaforma', color: { color: '#64748b' }, width: 2 },
-            { from: 'HUB_OWNER', to: 'dash_owner', label: '2. Console Direzionale', color: { color: '#64748b' }, width: 2 },
+            // CONNESSI ALL'HUB OWNER (LE 2 VIE PRINCIPALI DELL'OWNER - ORO #eab308)
+            { from: 'HUB_OWNER', to: 'trinai_onboarding', label: '1. Onboarding Piattaforma', color: { color: '#eab308', highlight: '#ca8a04' }, width: 2.5 },
+            { from: 'HUB_OWNER', to: 'dash_owner', label: '2. Console Direzionale', color: { color: '#eab308', highlight: '#ca8a04' }, width: 2.5 },
 
             // COLLEGAMENTI ONBOARDING -> BILLING, MINISITE, PROFILATURA & FINE-TUNING
             { from: 'trinai_onboarding', to: 'edit_owner', label: 'Dati Titolare & Skill', color: { color: '#64748b' }, width: 2 },
@@ -367,32 +402,76 @@
             { from: 'process_blueprints', to: 'supervisor_hub', label: 'Norma Compliance SOP (D.Lgs. 81/08)', color: { color: '#64748b' }, width: 1.5 },
             { from: 'lavagna_jobs', to: 'supervisor_hub', label: 'Evidenze Esecuzione & Check HSE', color: { color: '#64748b' }, width: 1.5 },
             { from: 'supervisor_hub', to: 'dvr_safety', label: 'Giudizio Motivato & Audit DVR', color: { color: '#64748b' }, width: 1.5 },
-            { from: 'softskills', to: 'prejob_briefing', label: 'Big Five ASH', color: { color: '#64748b' }, width: 1.5 },
-            { from: 'process_blueprints', to: 'prejob_briefing', label: 'Matching Step SOP', color: { color: '#64748b' }, width: 1.5 },
-            { from: 'prejob_briefing', to: 'lavagna_jobs', label: 'Pro-Tip Edge AI', color: { color: '#94a3b8' }, dashes: true },
+            // PIPELINE PROFILAZIONE SOFTSKILL & CO-PILOT EDGE OPERATORE (MARRONE #92400e)
+            { from: 'HUB_OPERATOR', to: 'softskill_quiz', label: 'Avvio Quiz 150 Domande', color: { color: '#92400e', highlight: '#78350f' }, width: 2.5 },
+            { from: 'softskill_quiz', to: 'softskill_mod1', label: 'Test 1: Resilienza & Io Interiore', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'softskill_quiz', to: 'softskill_mod2', label: 'Test 2: Dinamiche Sociali & Comunicazione', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'softskill_quiz', to: 'softskill_mod3', label: 'Test 3: Modus Operandi & Strategia', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'softskill_quiz', to: 'softskill_mod4', label: 'Test 4: Visione & Valutazione', color: { color: '#64748b' }, width: 1.5 },
 
-            // OPERATORE E CLIENTE
-            { from: 'HUB_OPERATOR', to: 'lavagna_jobs', label: 'Tabellone Turni Staff', color: { color: '#64748b' }, width: 2 },
-            { from: 'HUB_OPERATOR', to: 'desk_board', color: { color: '#94a3b8' } },
-            { from: 'HUB_OPERATOR', to: 'sign_pad', color: { color: '#94a3b8' } },
-            { from: 'HUB_OPERATOR', to: 'sign_simple', color: { color: '#94a3b8' } },
-            // FLUSSI E 2 STRADE DEL CLIENTE (1. SONO QUI, 2. SONO A CASA)
-            { from: 'HUB_CUSTOMER', to: 'checkin_geo', label: '1ª Strada: Sono Qui (In Negozio)', color: { color: '#64748b' }, width: 2 },
-            { from: 'HUB_CUSTOMER', to: 'checkin_home', label: '2ª Strada: Sono a Casa (Da Remoto)', color: { color: '#64748b' }, width: 2 },
+            // CONVERGENZA I 4 TEST -> PROFILO COMPLETO BIG5
+            { from: 'softskill_mod1', to: 'softskills', label: 'Score Resilienza', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'softskill_mod2', to: 'softskills', label: 'Score Comunicazione', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'softskill_mod3', to: 'softskills', label: 'Score Strategia', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'softskill_mod4', to: 'softskills', label: 'Score Executive', color: { color: '#64748b' }, width: 1.5 },
+
+            // PROFILO COMPLETO BIG5 -> PRE-JOB AI BRIEFING -> PERSONAL MOBILE BRAIN -> OPERATORE
+            { from: 'softskills', to: 'prejob_briefing', label: 'Iniezione Profilo Big5 ASH', color: { color: '#64748b' }, width: 2 },
+            { from: 'process_blueprints', to: 'prejob_briefing', label: 'Matching Step SOP', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'prejob_briefing', to: 'personal_mobile_brain', label: 'Generazione Briefing Co-Pilot', color: { color: '#64748b' }, width: 2 },
+            { from: 'personal_mobile_brain', to: 'HUB_OPERATOR', label: 'Tutoring Edge Operatore', color: { color: '#92400e', highlight: '#78350f' }, width: 2.5 },
+
+            // ALTRE AZIONI OPERATORE
+            { from: 'HUB_OPERATOR', to: 'lavagna_jobs', label: 'Tabellone Turni Staff', color: { color: '#92400e', highlight: '#78350f' }, width: 2.5 },
+            { from: 'HUB_OPERATOR', to: 'desk_board', label: 'Accoglienza Bancone', color: { color: '#92400e', highlight: '#78350f' }, width: 2.5 },
+            { from: 'HUB_OPERATOR', to: 'sign_pad', label: 'Firma Tavoletta', color: { color: '#92400e', highlight: '#78350f' }, width: 2.5 },
+            { from: 'HUB_OPERATOR', to: 'sign_simple', label: 'Timbro ASH', color: { color: '#92400e', highlight: '#78350f' }, width: 2.5 },
+
+            // FLUSSI E 2 STRADE DEL CLIENTE (1. SONO QUI, 2. SONO A CASA - VERDE #16a34a)
+            { from: 'HUB_CUSTOMER', to: 'checkin_geo', label: '1ª Strada: Sono Qui (In Negozio)', color: { color: '#16a34a', highlight: '#15803d' }, width: 2.5 },
+            { from: 'HUB_CUSTOMER', to: 'checkin_home', label: '2ª Strada: Sono a Casa (Da Remoto)', color: { color: '#16a34a', highlight: '#15803d' }, width: 2.5 },
             
-            // 1ª STRADA: SONO QUI (IN NEGOZIO)
+            // 1ª STRADA: SONO QUI (IN NEGOZIO -> INTERVISTA PRIMA VISITA / ECOMMERCE -> TABELLONE TURNI -> SPIN & WIN)
+            { from: 'checkin_geo', to: 'first_visit_interview', label: 'Intervista Prima Visita', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'checkin_geo', to: 'ecom_bento', label: 'Ecommerce In Negozio', color: { color: '#64748b' }, width: 1.5 },
             { from: 'checkin_geo', to: 'desk_board', label: 'Presenza Bancone', color: { color: '#64748b' }, width: 1.5 },
-            { from: 'checkin_geo', to: 'lavagna_jobs', label: 'Turno Atomico In Negozio', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'first_visit_interview', to: 'client_turn_board', label: 'Accodamento Tabellone Turni', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'ecom_bento', to: 'client_turn_board', label: 'Accodamento Tabellone Turni', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'client_turn_board', to: 'spin_win', label: 'Spin & Win & Gamification', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'client_turn_board', to: 'lavagna_jobs', label: 'Sync Turno Operatore', color: { color: '#64748b' }, width: 1.5 },
+            
+            // PREMI SPIN & WIN -> ANAGRAFICA PRODOTTO/SERVIZIO -> BLUEPRINT & MINISITE
+            { from: 'spin_win', to: 'addon_discount', label: 'Premio Sconto Addon', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'spin_win', to: 'digital_asset', label: 'Premio Asset Digitale', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'addon_discount', to: 'add_edit_product', label: 'Addon SKU Catalogo', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'digital_asset', to: 'add_edit_product', label: 'Asset Digitale SKU', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'add_edit_product', to: 'process_blueprints', label: 'SOP Blueprint Esecutivo', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'add_edit_product', to: 'minisite', label: 'Vetrina MiniSite Platform', color: { color: '#64748b' }, width: 1.5 },
             
             // 2ª STRADA: SONO A CASA (ECOMMERCE -> BOOKING, PREVENTIVI & NPL)
             { from: 'checkin_home', to: 'ecom_bento', label: 'Vetrina Ecommerce Remota', color: { color: '#64748b' }, width: 1.5 },
             { from: 'ecom_bento', to: 'booking_app', label: 'Booking Appuntamenti', color: { color: '#64748b' }, width: 1.5 },
             { from: 'ecom_bento', to: 'quote_builder', label: 'Richiesta & Configurazione Preventivi', color: { color: '#64748b' }, width: 1.5 },
             { from: 'ecom_bento', to: 'chat_bot', label: 'Customer Bot NPL', color: { color: '#64748b' }, width: 1.5 },
+            { from: 'HUB_AI_ENGINE', to: 'quote_builder', label: 'Preventivatore AI Engine', color: { color: '#2563eb' }, width: 2 },
             
-            { from: 'menu_catalog', to: 'ecom_bento', label: 'Vetrina', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'trust_engine', to: 'sign_pad', label: 'Firma Tavoletta', color: { color: '#94a3b8' }, width: 1.5 },
-            { from: 'trust_engine', to: 'sign_simple', label: 'Timbro ASH', color: { color: '#94a3b8' }, width: 1.5 },
+            // GOVERNANCE TRUST & STAMP ENGINE DI OWNER -> 3 VIE DI FIRMA
+            { from: 'trust_engine', to: 'sign_simple', label: 'Governance Timbro ASH', color: { color: '#eab308' }, width: 1.5 },
+            { from: 'trust_engine', to: 'cert_provider_api', label: 'Governance Provider Firma API', color: { color: '#eab308' }, width: 1.5 },
+            { from: 'trust_engine', to: 'sign_pad', label: 'Governance Firma Tavoletta Bancone', color: { color: '#eab308' }, width: 1.5 },
+            { from: 'trust_engine', to: 'process_blueprints', label: 'Verifica Legal & Compliance SOP', color: { color: '#64748b' }, width: 1.5 },
+
+            // PIPE 1: TIMBRO ASH CLIENTE DIRETTO (OPERATORE -> TIMBRO ASH -> CLIENTE)
+            { from: 'HUB_OPERATOR', to: 'sign_simple', label: '1. Operatore Appone Timbro ASH', color: { color: '#92400e' }, width: 2 },
+            { from: 'sign_simple', to: 'HUB_CUSTOMER', label: '2. Timbro Crittografico ASH al Cliente', color: { color: '#16a34a' }, width: 2 },
+
+            // PIPE 2: FIRMA API CERTIFICATA (OPERATORE -> PROVIDER FIRMA API -> CLIENTE)
+            { from: 'HUB_OPERATOR', to: 'cert_provider_api', label: '1. Operatore Chiama Provider API Firma', color: { color: '#92400e' }, width: 2 },
+            { from: 'cert_provider_api', to: 'HUB_CUSTOMER', label: '2. Provider API Invia Richiesta Firma al Cliente', color: { color: '#16a34a' }, width: 2 },
+
+            // PIPE 3: FIRMA TAVOLETTA BANCONE (OPERATORE -> FIRMA TAVOLETTA -> DESK BOARD)
+            { from: 'HUB_OPERATOR', to: 'sign_pad', label: 'Operatore Avvia Firma Tavoletta', color: { color: '#92400e' }, width: 2 },
+            { from: 'sign_pad', to: 'desk_board', label: 'Firma Graphometrica Bancone Segreteria', color: { color: '#64748b' }, width: 2 },
             { from: 'booking_app', to: 'desk_board', label: 'Slot-Lock 120s', color: { color: '#94a3b8' }, width: 1.5 }
         ];
 
@@ -428,12 +507,13 @@
                 physics: {
                     solver: 'forceAtlas2Based',
                     forceAtlas2Based: {
-                        gravitationalConstant: -95,
-                        centralGravity: 0.004,
-                        springLength: 160,
-                        springConstant: 0.03
+                        gravitationalConstant: -110,
+                        centralGravity: 0.005,
+                        springLength: 75,
+                        springConstant: 0.12,
+                        avoidOverlap: 0.7
                     },
-                    stabilization: { iterations: 160 }
+                    stabilization: { iterations: 200 }
                 },
                 interaction: {
                     hover: true,
@@ -445,18 +525,49 @@
 
             network = new vis.Network(container, data, options);
 
-            // CLICK NODO -> SHOW FLOATING CARD
+
+
+            // CLICK NODO O SPAZIO VUOTO (SUL BIANCO) -> EVENTO UNICO E DEBOUCED DI VIS-NETWORK
+            // CLICK NODO O SPAZIO VUOTO (SUL BIANCO) -> ARRESTA SPIN 3D E RIPRISTINA LAYOUT PIATTO
             network.on('click', function (params) {
                 if (params.nodes.length > 0) {
                     const nodeId = params.nodes[0];
-                    const nodeObj = formattedNodes.find(n => n.id === nodeId);
-                    if (nodeObj && (nodeObj.data || nodeObj.title)) {
-                        openDrawer(nodeObj.data || nodeObj);
+                    stopJarvisSphereMode();
+                    reLayoutPyramidFromRoot(nodeId);
+
+                    const nodeObj = rawNodes.find(n => n.id === nodeId);
+                    if (nodeObj) {
+                        openDrawer(nodeObj);
                     }
                 } else {
+                    // CLICK SU BIANCO / SPAZIO VUOTO -> ARRESTA LO SPIN E RIPRISTINA LAYOUT PIATTO
                     closeDrawer();
+                    if (network) network.unselectNodes();
+                    if (isJarvisSphereActive) {
+                        stopJarvisSphereMode();
+                        applyClusterFilter();
+                    }
                 }
             });
+
+            // TRASCINAMENTO (DRAG START) -> ARRESTA LO SPIN 3D E RIPRISTINA LAYOUT PIATTO
+            network.on('dragStart', function (params) {
+                if (isJarvisSphereActive) {
+                    stopJarvisSphereMode();
+                    applyClusterFilter();
+                }
+            });
+
+            // ZOOM -> ARRESTA LO SPIN 3D E RIPRISTINA LAYOUT PIATTO
+            network.on('zoom', function (params) {
+                if (isJarvisSphereActive) {
+                    stopJarvisSphereMode();
+                    applyClusterFilter();
+                }
+            });
+
+            // AVVIO SFERA OLOGRAFICA FLUTTUANTE 3D TYPE JARVIS ALL'INGRESSO
+            startJarvisSphereMode();
 
             // SALVA E MANTIENI LA POSIZIONE DI TRASCINAMENTO DEL NODO
             network.on('dragEnd', function (params) {
@@ -574,10 +685,173 @@
             applyClusterFilter();
         }
 
+        // MOTORE SFERA OLOGRAFICA FLUTTUANTE 3D TYPE JARVIS (SOLO NODI ROTANTI, SFONDO FISSO SENZA TILT)
+        let jarvisAnimationFrame = null;
+        let sphereAngleY = 0;
+        let sphereAngleX = 0.12;
+        let isJarvisSphereActive = false;
+        let rawCoords3D = {};
+
+        function assign3DSphericalCoordinates(nodes) {
+            const numNodes = nodes.length;
+            const phi = (1 + Math.sqrt(5)) / 2; // Sezione Aurea Fibonacci
+            const radius = 380;
+
+            const coords = {};
+            nodes.forEach((n, i) => {
+                if (n.id === 'HUB_OWNER') {
+                    // VERTICE TOP DEL TRIANGOLO MAESTRO
+                    coords[n.id] = { x: 0, y: -450, z: 0, isFixedVertex: true };
+                } else if (n.id === 'HUB_OPERATOR') {
+                    // VERTICE BASSO-SINISTRA DEL TRIANGOLO MAESTRO
+                    coords[n.id] = { x: -550, y: 350, z: 0, isFixedVertex: true };
+                } else if (n.id === 'HUB_CUSTOMER') {
+                    // VERTICE BASSO-DESTRA DEL TRIANGOLO MAESTRO
+                    coords[n.id] = { x: 550, y: 350, z: 0, isFixedVertex: true };
+                } else if (n.id === 'HUB_AI_ENGINE') {
+                    coords[n.id] = { x: 0, y: -650, z: -100 };
+                } else {
+                    const y = 0.7 - (i / (numNodes - 1)) * 1.4;
+                    const rAtY = Math.sqrt(Math.max(0.1, 1 - y * y));
+                    const theta = 2 * Math.PI * i / phi;
+
+                    coords[n.id] = {
+                        x: Math.cos(theta) * rAtY * radius,
+                        y: y * radius,
+                        z: Math.sin(theta) * rAtY * radius
+                    };
+                }
+            });
+            return coords;
+        }
+
+        function startJarvisSphereMode() {
+            if (isJarvisSphereActive) return;
+            isJarvisSphereActive = true;
+
+            if (network) {
+                network.setOptions({ physics: false });
+            }
+
+            const btn3D = document.getElementById('btn-toggle-3d');
+            if (btn3D) {
+                btn3D.className = 'w-11 h-11 rounded-full flex flex-col items-center justify-center bg-slate-900 text-white shadow-lg ring-2 ring-slate-900 scale-105 transition-all';
+            }
+
+            const visibleNodes = nodesDataset.get();
+            rawCoords3D = assign3DSphericalCoordinates(visibleNodes);
+
+            if (jarvisAnimationFrame) {
+                cancelAnimationFrame(jarvisAnimationFrame);
+                jarvisAnimationFrame = null;
+            }
+            animateJarvisSphere();
+        }
+
+        function stopJarvisSphereMode() {
+            isJarvisSphereActive = false;
+            if (jarvisAnimationFrame) {
+                cancelAnimationFrame(jarvisAnimationFrame);
+                jarvisAnimationFrame = null;
+            }
+            if (network) {
+                network.setOptions({ physics: false });
+            }
+            const btn3D = document.getElementById('btn-toggle-3d');
+            if (btn3D) {
+                btn3D.className = 'w-11 h-11 rounded-full flex flex-col items-center justify-center bg-gray-100 hover:bg-black hover:text-white text-gray-700 transition-all shadow-sm';
+            }
+        }
+
+        let lastToggleTime = 0;
+        function toggleJarvisSphereMode() {
+            const now = Date.now();
+            if (now - lastToggleTime < 300) return; // Guard anti-doppio trigger
+            lastToggleTime = now;
+
+            if (isJarvisSphereActive) {
+                stopJarvisSphereMode();
+            } else {
+                startJarvisSphereMode();
+            }
+        }
+
+        function animateJarvisSphere() {
+            if (!isJarvisSphereActive || !nodesDataset) {
+                if (jarvisAnimationFrame) {
+                    cancelAnimationFrame(jarvisAnimationFrame);
+                    jarvisAnimationFrame = null;
+                }
+                return;
+            }
+
+            sphereAngleY += 0.007; // Rotazione continua 3D orbita Y
+            const cosY = Math.cos(sphereAngleY);
+            const sinY = Math.sin(sphereAngleY);
+            const cosX = Math.cos(sphereAngleX);
+            const sinX = Math.sin(sphereAngleX);
+
+            const focalLength = 650;
+            const updates = [];
+
+            const visibleNodes = nodesDataset.get();
+            visibleNodes.forEach(n => {
+                const orig = rawCoords3D[n.id];
+                if (!orig) return;
+
+                // I 3 NODI DEL TRIANGOLO MAESTRO (OWNER TOP, OPERATOR BASSO-SX, CUSTOMER BASSO-DX) STANNO BLOCCATI AI VERTICI
+                if (n.id === 'HUB_OWNER') {
+                    updates.push({ id: n.id, x: 0, y: -450, physics: false });
+                    return;
+                }
+                if (n.id === 'HUB_OPERATOR') {
+                    updates.push({ id: n.id, x: -550, y: 350, physics: false });
+                    return;
+                }
+                if (n.id === 'HUB_CUSTOMER') {
+                    updates.push({ id: n.id, x: 550, y: 350, physics: false });
+                    return;
+                }
+
+                // Calcolo Matrice di Rotazione Spaziale 3D per i nodi interni del triangolo
+                const x1 = orig.x * cosY - orig.z * sinY;
+                const z1 = orig.x * sinY + orig.z * cosY;
+                const y1 = orig.y * cosX - z1 * sinX;
+                const z2 = orig.y * sinX + z1 * cosX;
+
+                // Proiezione Prospettica Spaziale 3D -> 2D
+                const scale = focalLength / (focalLength + z2);
+                const screenX = x1 * scale;
+                const screenY = y1 * scale;
+
+                updates.push({
+                    id: n.id,
+                    x: screenX,
+                    y: screenY,
+                    physics: false
+                });
+            });
+
+            nodesDataset.update(updates);
+
+            if (isJarvisSphereActive) {
+                jarvisAnimationFrame = requestAnimationFrame(animateJarvisSphere);
+            }
+        }
+
+        function toggle3DMode() {
+            if (isJarvisSphereActive) {
+                stopJarvisSphereMode();
+                applyClusterFilter();
+            } else {
+                startJarvisSphereMode();
+            }
+        }
+
         function resetAllClusters() {
             activeClusters = new Set(['OWNER', 'OPERATOR', 'CUSTOMER', 'AI']);
             updateClusterButtonsUI();
-            applyClusterFilter();
+            startJarvisSphereMode();
         }
 
         function updateClusterButtonsUI() {
@@ -591,6 +865,241 @@
                     }
                 }
             });
+        }
+
+        // CALCOLO GERARCHICO DELLA PROSSIMITÀ A PIRAMIDE DALL'ALTO VERSO IL BASSO
+        function computeHubProximities(visibleNodes, visibleEdges, activeHubIds, hubPositions) {
+            const nodePositions = {};
+            const adj = {};
+
+            visibleNodes.forEach(n => { adj[n.id] = []; });
+            visibleEdges.forEach(e => {
+                if (adj[e.from]) adj[e.from].push(e.to);
+                if (adj[e.to]) adj[e.to].push(e.from);
+            });
+
+            const queue = [];
+            const visited = new Set();
+            const hubHopGroups = {};
+
+            activeHubIds.forEach(hId => {
+                if (hubPositions[hId]) {
+                    nodePositions[hId] = { x: hubPositions[hId].x, y: hubPositions[hId].y, hop: 0, hubOwner: hId };
+                    queue.push({ id: hId, hubOwner: hId, hop: 0 });
+                    visited.add(hId);
+                    hubHopGroups[hId] = {};
+                }
+            });
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+                const neighbors = adj[current.id] || [];
+
+                neighbors.forEach(nbrId => {
+                    if (!visited.has(nbrId)) {
+                        visited.add(nbrId);
+                        const nextHop = current.hop + 1;
+                        queue.push({ id: nbrId, hubOwner: current.hubOwner, hop: nextHop });
+
+                        if (!hubHopGroups[current.hubOwner][nextHop]) {
+                            hubHopGroups[current.hubOwner][nextHop] = [];
+                        }
+                        hubHopGroups[current.hubOwner][nextHop].push(nbrId);
+                    }
+                });
+            }
+
+            // Svolgimento a Piramide per ciascun Hub: Vertice in alto -> Righe orizzontali in basso
+            activeHubIds.forEach(hubId => {
+                const hPos = hubPositions[hubId];
+                if (!hPos) return;
+
+                const hops = hubHopGroups[hubId] || {};
+                Object.keys(hops).forEach(hopStr => {
+                    const hopLevel = parseInt(hopStr, 10);
+                    const nodeList = hops[hopStr];
+                    const count = nodeList.length;
+                    const spacing = 160; // Spaziatura orizzontale della piramide
+                    const levelY = hPos.y + 140 * hopLevel; // Avanzamento verticale verso il basso
+
+                    const totalWidth = (count - 1) * spacing;
+                    const startX = hPos.x - totalWidth / 2;
+
+                    nodeList.forEach((nId, idx) => {
+                        nodePositions[nId] = {
+                            x: (count === 1) ? hPos.x : startX + idx * spacing,
+                            y: levelY,
+                            hop: hopLevel,
+                            hubOwner: hubId
+                        };
+                    });
+                });
+            });
+
+            return nodePositions;
+        }
+
+        // RIMODULAZIONE ISTANTANEA DELL'INTERO GRAFO A PIRAMIDE (NODO CLICCATO AL VERTICE RADICE TOP)
+        function reLayoutPyramidFromRoot(rootId) {
+            if (!rootId || !network) return;
+
+            const visibleNodes = nodesDataset.get();
+            const visibleEdges = edgesDataset.get();
+
+            const adj = {};
+            visibleNodes.forEach(n => { adj[n.id] = []; });
+            visibleEdges.forEach(e => {
+                if (adj[e.from]) adj[e.from].push(e.to);
+                if (adj[e.to]) adj[e.to].push(e.from);
+            });
+
+            // BFS da rootId per calcolare la distanza di Hop di tutti i nodi visibili
+            const hopLevels = {};
+            const queue = [{ id: rootId, hop: 0 }];
+            const visited = new Set([rootId]);
+            const levelGroups = { 0: [rootId] };
+
+            while (queue.length > 0) {
+                const current = queue.shift();
+                const neighbors = adj[current.id] || [];
+
+                neighbors.forEach(nbrId => {
+                    if (!visited.has(nbrId)) {
+                        visited.add(nbrId);
+                        const nextHop = current.hop + 1;
+                        queue.push({ id: nbrId, hop: nextHop });
+
+                        if (!levelGroups[nextHop]) {
+                            levelGroups[nextHop] = [];
+                        }
+                        levelGroups[nextHop].push(nbrId);
+                    }
+                });
+            }
+
+            // Se ci sono nodi non raggiungibili da BFS (es. grappoli separati), mettili al livello più in basso
+            const maxHop = Math.max(...Object.keys(levelGroups).map(k => parseInt(k, 10)));
+            const unvisitedHop = maxHop + 1;
+            visibleNodes.forEach(n => {
+                if (!visited.has(n.id)) {
+                    if (!levelGroups[unvisitedHop]) levelGroups[unvisitedHop] = [];
+                    levelGroups[unvisitedHop].push(n.id);
+                }
+            });
+
+            // Calcolo posizioni istantanee per ciascuna riga della Piramide
+            const updates = [];
+            const startY = -450;
+            const rowHeight = 160;
+
+            Object.keys(levelGroups).forEach(hopStr => {
+                const hopLevel = parseInt(hopStr, 10);
+                const nodesInRow = levelGroups[hopStr];
+                const count = nodesInRow.length;
+                const rowY = startY + hopLevel * rowHeight;
+
+                const spacing = Math.max(140, Math.min(220, 1400 / Math.max(1, count)));
+                const totalWidth = (count - 1) * spacing;
+                const startX = -totalWidth / 2;
+
+                nodesInRow.forEach((nId, idx) => {
+                    const posX = (count === 1) ? 0 : startX + idx * spacing;
+
+                    // CALCOLO ICON SIZE E FONT SIZE A SCALARE (DIMENSIONE MINIMA = 42PX COME SECONDA RIGA)
+                    let iconSize = 42;
+                    let fontSize = 13;
+
+                    if (hopLevel === 0) {
+                        iconSize = 76; // Nodo Selezionato Radice Top (Ultra-Large)
+                        fontSize = 20;
+                    } else if (hopLevel === 1) {
+                        iconSize = 58; // Nodi Figli Primo Livello
+                        fontSize = 16;
+                    } else {
+                        iconSize = 42; // Nodi Secondo Livello e Successivi (Minimo 42px)
+                        fontSize = 13;
+                    }
+
+                    const isMainHub = nId.startsWith('HUB_');
+                    if (isMainHub) {
+                        const hubObj = rawNodes.find(rn => rn.id === nId);
+                        let iconColor = '#0f172a';
+                        if (nId === 'HUB_AI_ENGINE') iconColor = '#2563eb';
+                        else if (nId === 'HUB_OWNER') iconColor = '#eab308';
+                        else if (nId === 'HUB_OPERATOR') iconColor = '#92400e';
+                        else if (nId === 'HUB_CUSTOMER') iconColor = '#16a34a';
+
+                        updates.push({
+                            id: nId,
+                            x: posX,
+                            y: rowY,
+                            physics: false,
+                            shape: 'icon',
+                            icon: {
+                                face: '"Font Awesome 6 Free"',
+                                code: (hubObj && hubObj.faIcon) ? hubObj.faIcon : '\uf068',
+                                size: hopLevel === 0 ? 76 : 56,
+                                color: iconColor,
+                                weight: '900'
+                            },
+                            font: {
+                                color: '#0f172a',
+                                size: hopLevel === 0 ? 18 : 15,
+                                face: 'Plus Jakarta Sans',
+                                fontBold: true,
+                                strokeWidth: 5,
+                                strokeColor: '#ffffff'
+                            }
+                        });
+                        return;
+                    }
+
+                    const existingNode = nodesDataset.get(nId);
+                    const iconCode = (existingNode && existingNode.icon && existingNode.icon.code) ? existingNode.icon.code : '\uf068';
+                    const iconColor = (nId === 'HUB_AI_ENGINE') ? '#2563eb' : ((existingNode && existingNode.icon && existingNode.icon.color) ? existingNode.icon.color : '#0f172a');
+
+                    updates.push({
+                        id: nId,
+                        x: posX,
+                        y: rowY,
+                        physics: false,
+                        // ICONE ED ETICHETTE SEMPRE IN PRIMISSIMO PIANO CON BACKGROUND STACCO RIGIDO SUGLI ARCHI
+                        icon: {
+                            face: '"Font Awesome 6 Free"',
+                            code: iconCode,
+                            size: iconSize,
+                            color: iconColor,
+                            weight: '900'
+                        },
+                        font: {
+                            color: '#0f172a',
+                            size: fontSize,
+                            face: 'Plus Jakarta Sans',
+                            fontBold: true,
+                            strokeWidth: 5,
+                            strokeColor: '#ffffff'
+                        }
+                    });
+                });
+            });
+
+            // Aggiornamento istantaneo del dataset dei nodi
+            nodesDataset.update(updates);
+
+            // Inquadratura immediata ed allargamento della fotocamera sull'intero grafo rimodulato
+            setTimeout(() => {
+                network.fit({
+                    animation: {
+                        duration: 450,
+                        easingFunction: 'easeInOutQuad'
+                    }
+                });
+            }, 30);
+        }
+
+        function resetProximityHighlight() {
+            if (!network) return;
+            applyClusterFilter();
         }
 
         function applyClusterFilter() {
@@ -611,12 +1120,59 @@
                 return false;
             });
 
-            nodesDataset.clear();
-            nodesDataset.add(filteredNodes.map(n => formattedNode(n)));
+            const visibleNodeIds = new Set(filteredNodes.map(n => n.id));
+
+            // DISPOSIZIONE GEOMETRICA DINAMICA DEI 4 NODI PRINCIPALI (1 CENTRO, 2 ORIZZONTALE, 3 TRIANGOLO, 4 QUADRATO)
+            const allHubIds = ['HUB_AI_ENGINE', 'HUB_OWNER', 'HUB_OPERATOR', 'HUB_CUSTOMER'];
+            const activeHubIds = allHubIds.filter(id => visibleNodeIds.has(id));
+            
+            const hubPositions = {};
+            if (activeHubIds.length === 1) {
+                hubPositions[activeHubIds[0]] = { x: 0, y: -450 };
+            } else if (activeHubIds.length === 2) {
+                hubPositions[activeHubIds[0]] = { x: -650, y: 0 };
+                hubPositions[activeHubIds[1]] = { x: 650, y: 0 };
+            } else if (activeHubIds.length === 3) {
+                // TRIANGOLO AMPIO CHE RACCHIUDE L'INTERO GRAFO
+                hubPositions[activeHubIds[0]] = { x: 0, y: -650 };
+                hubPositions[activeHubIds[1]] = { x: -780, y: 500 };
+                hubPositions[activeHubIds[2]] = { x: 780, y: 500 };
+            } else if (activeHubIds.length === 4) {
+                // PERIMETRO AMPIO CHE RACCHIUDE L'INTERO GRAFO
+                hubPositions['HUB_AI_ENGINE'] = { x: 0, y: -650 };
+                hubPositions['HUB_OWNER'] = { x: -800, y: 0 };
+                hubPositions['HUB_OPERATOR'] = { x: 800, y: 0 };
+                hubPositions['HUB_CUSTOMER'] = { x: 0, y: 650 };
+            }
 
             // Filtra solo gli archi le cui due estremità sono visibili
-            const visibleNodeIds = new Set(filteredNodes.map(n => n.id));
             const filteredEdges = rawEdges.filter(e => visibleNodeIds.has(e.from) && visibleNodeIds.has(e.to));
+
+            // ALGORITMO DI PROSSIMITÀ BFS PER LIVELLO DI HOP DAI 4 HUB PRINCIPALI
+            const proximityPositions = computeHubProximities(filteredNodes, filteredEdges, activeHubIds, hubPositions);
+            const savedPositions = getSavedGraphPositions();
+
+            nodesDataset.clear();
+            nodesDataset.add(filteredNodes.map(n => {
+                const formatted = formattedNode(n);
+                if (hubPositions[n.id]) {
+                    return {
+                        ...formatted,
+                        x: hubPositions[n.id].x,
+                        y: hubPositions[n.id].y,
+                        physics: false
+                    };
+                }
+                if (proximityPositions[n.id] && !savedPositions[n.id]) {
+                    return {
+                        ...formatted,
+                        x: proximityPositions[n.id].x,
+                        y: proximityPositions[n.id].y,
+                        physics: false
+                    };
+                }
+                return formatted;
+            }));
 
             edgesDataset.clear();
             edgesDataset.add(filteredEdges.map(e => ({
@@ -639,17 +1195,61 @@
                 arrows: { to: { enabled: true, scaleFactor: 0.5 } }
             })));
 
-            network.fit({ animation: true });
+            if (network) {
+                setTimeout(() => {
+                    network.fit({
+                        animation: {
+                            duration: 700,
+                            easingFunction: 'easeInOutQuad'
+                        }
+                    });
+                }, 50);
+            }
         }
 
         function formattedNode(n) {
             const savedPositions = getSavedGraphPositions();
             const savedPos = savedPositions[n.id];
+            const isMainHub = n.id.startsWith('HUB_');
+
+            if (isMainHub) {
+                let iconColor = '#0f172a';
+                if (n.id === 'HUB_AI_ENGINE') {
+                    iconColor = '#2563eb'; // Rotelle Engine in BLU ELETTORALE
+                } else if (n.id === 'HUB_OWNER') {
+                    iconColor = '#eab308'; // Corona Owner ORO
+                } else if (n.id === 'HUB_OPERATOR') {
+                    iconColor = '#92400e'; // Ventiquattrore Staff MARRONE CUOIO
+                } else if (n.id === 'HUB_CUSTOMER') {
+                    iconColor = '#16a34a'; // Utente Cliente VERDE SMERALDO
+                }
+
+                return {
+                    id: n.id,
+                    label: n.title || n.name || n.label,
+                    shape: 'icon',
+                    icon: {
+                        face: '"Font Awesome 6 Free"',
+                        code: n.faIcon || '\uf068',
+                        size: 56,
+                        color: iconColor,
+                        weight: '900'
+                    },
+                    font: {
+                        color: '#0f172a',
+                        size: 16,
+                        face: 'Plus Jakarta Sans',
+                        fontBold: true,
+                        strokeWidth: 5,
+                        strokeColor: '#ffffff'
+                    },
+                    data: n,
+                    ...(savedPos ? { x: savedPos.x, y: savedPos.y, physics: false, fixed: false } : {})
+                };
+            }
 
             let iconColor = '#0f172a';
-            if (n.id.startsWith('HUB_')) {
-                iconColor = '#0f172a';
-            } else if (n.isAI) {
+            if (n.isAI) {
                 iconColor = '#1e293b';
             } else if (n.cluster === 'OPERATOR') {
                 iconColor = '#334155';
@@ -664,15 +1264,17 @@
                 icon: {
                     face: '"Font Awesome 6 Free"',
                     code: n.faIcon || '\uf068',
-                    size: n.id.startsWith('HUB_') ? 36 : 24,
+                    size: 42,
                     color: iconColor,
                     weight: '900'
                 },
                 font: {
                     color: '#0f172a',
-                    size: 11,
+                    size: 13,
                     face: 'Plus Jakarta Sans',
-                    fontBold: true
+                    fontBold: true,
+                    strokeWidth: 4,
+                    strokeColor: '#ffffff'
                 },
                 data: n,
                 ...(savedPos ? { x: savedPos.x, y: savedPos.y, physics: false, fixed: false } : {})
@@ -681,15 +1283,8 @@
 
         function resetGraphView() {
             localStorage.removeItem('sitebos_userguide_graph_positions');
-            if (nodesDataset) {
-                const updates = nodesDataset.get().map(n => ({
-                    id: n.id,
-                    physics: true,
-                    fixed: false
-                }));
-                nodesDataset.update(updates);
-            }
-            if (network) network.fit({ animation: true });
+            resetAllClusters();
+            startJarvisSphereMode();
         }
 
         window.onload = function () {
