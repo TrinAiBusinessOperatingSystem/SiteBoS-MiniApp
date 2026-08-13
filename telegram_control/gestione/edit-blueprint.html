@@ -308,6 +308,21 @@
                 <button onclick="triggerComplianceCheck()"
                     class="bg-black text-white px-4 py-2 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm active:scale-90">Check</button>
             </div>
+
+            <!-- DOCUMENTO ALLEGATO DI COMPLIANCE (DOCUMENT ENGINE) -->
+            <div class="p-4 bg-cyan-50/60 border border-cyan-200 rounded-2xl space-y-2">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-[7px] font-black uppercase text-cyan-700 tracking-widest">Documento Allegato (Trust & Stamp)</p>
+                        <p id="attachedDocName" class="text-[10px] font-bold text-slate-900 leading-snug">Nessun Modello Documentale Collegato</p>
+                    </div>
+                    <button onclick="openDocumentPicker()" class="bg-cyan-600 hover:bg-cyan-700 text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest shadow-sm active:scale-90 flex items-center gap-1">
+                        <i class="fas fa-folder-open"></i> Seleziona
+                    </button>
+                </div>
+                <input type="hidden" id="compliance_doc_id" value="">
+                <input type="hidden" id="compliance_route" value="">
+            </div>
         </section>
 
         <!-- STAGES -->
@@ -670,7 +685,7 @@
                 voiceAudio.play().then(() => {
                     isAudioPlaying = true;
                     if (icon) {
-                        icon.className = 'fas fa-stop text-xs';
+                        icon.className = 'fas fa-volume-xmark text-xs';
                         btn.classList.remove('bg-white', 'text-slate-500', 'border-gray-200');
                         btn.classList.add('bg-black', 'text-white', 'border-black');
                     }
@@ -679,6 +694,27 @@
                 });
             }
         };
+
+        window.openDocumentPicker = function() {
+            const pickerUrl = 'doc-engine-library.html?mode=picker';
+            window.open(pickerUrl, '_blank', 'width=500,height=700');
+        };
+
+        window.onDocumentSelectedFromPicker = function(templateId, templateName, route) {
+            document.getElementById('compliance_doc_id').value = templateId;
+            document.getElementById('compliance_route').value = route;
+            document.getElementById('attachedDocName').innerText = templateName + ' (' + route + ')';
+            if (window.blueprintData) {
+                window.blueprintData.compliance_doc_id = templateId;
+                window.blueprintData.compliance_route = route;
+            }
+        };
+
+        window.addEventListener('message', (e) => {
+            if (e.data && e.data.type === 'DOC_SELECTED') {
+                window.onDocumentSelectedFromPicker(e.data.templateId, e.data.templateName, e.data.route);
+            }
+        });
     })();
     </script>
 </body>

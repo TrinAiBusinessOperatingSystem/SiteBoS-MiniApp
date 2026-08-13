@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Viewer Documento Notarizzato | SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="supervisor-print-engine.js"></script>
+    <script>
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            if (!isTelegramSession) {
+                const currentPath = window.location.pathname;
+                let redirectPath = "../index.html";
+                if (currentPath.includes('/gestione/')) {
+                    redirectPath = "../index.html";
+                }
+                window.location.replace(redirectPath);
+            }
+        })();
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#090d16', cardBg: '#111827', accentCyan: '#06b6d4' },
+                    borderRadius: { '3xl': '1.5rem' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090d16;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-card {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .a4-print-sheet {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            font-family: 'Georgia', serif;
+            position: relative;
+        }
+
+        .ash-watermark {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            font-family: monospace;
+            font-size: 9px;
+            color: rgba(15, 23, 42, 0.4);
+            border: 1px dashed rgba(15, 23, 42, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        @media print {
+            body { background: #ffffff !important; color: #000000 !important; }
+            header, footer, .no-print { display: none !important; }
+            .a4-print-sheet { box-shadow: none !important; border: none !important; padding: 0 !important; }
+        }
+    </style>
+</head>
+
+<body class="min-h-screen pb-24 safe-area-inset">
+
+    <!-- HEADER -->
+    <header class="sticky top-0 z-40 bg-[#090d16]/90 backdrop-blur-md border-b border-gray-800 px-4 py-3 flex items-center justify-between no-print">
+        <button onclick="window.location.href='doc-engine-library.html'" class="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors uppercase tracking-wider">
+            <i class="fas fa-arrow-left"></i> Libreria
+        </button>
+        <div class="flex items-center gap-2">
+            <i class="fas fa-file-pdf text-cyan-400 text-sm"></i>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Viewer Documento</span>
+        </div>
+        <button onclick="printDocument()" class="px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg flex items-center gap-1.5">
+            <i class="fas fa-print"></i> Stampa
+        </button>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- STATUS BAR -->
+        <div class="glass-card p-4 rounded-2xl flex items-center justify-between no-print">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-700/60 flex items-center justify-center text-emerald-400 text-base">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <div>
+                    <div class="text-xs font-bold text-white">Documento Notarizzato & Firmato</div>
+                    <div class="text-[10px] text-gray-400">Verificato tramite OpenAPI eSignature (FEA)</div>
+                </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-700">FIRMATO</span>
+        </div>
+
+        <!-- A4 DOCUMENT PAPER RENDER -->
+        <div class="a4-print-sheet p-8 rounded-xl border border-gray-300 space-y-6 relative" id="printable-area">
+            
+            <!-- WATERMARK STAMP -->
+            <div class="ash-watermark">
+                ASH-HMAC: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855<br>
+                NOTARIZED: 12/08/2026 13:40:00 ISO+02:00 | TENANT: 2041408875
+            </div>
+
+            <div class="border-b border-slate-300 pb-4 flex justify-between items-start">
+                <div>
+                    <h1 class="text-sm font-bold text-slate-900 uppercase tracking-tight">CONSENSO TRATTAMENTO DATI GDPR</h1>
+                    <p class="text-[10px] text-slate-600 italic mt-0.5">Riferimento Normativo: Regolamento UE 2016/679 (GDPR Art. 13)</p>
+                </div>
+                <div class="text-right text-[10px] text-slate-700">
+                    <div class="font-bold text-slate-900">AZIENDA DI PROVA S.R.L.</div>
+                    <div>P.IVA: 12485671007</div>
+                    <div class="text-slate-500">Doc ID: EVIDENCE_20260812_001</div>
+                </div>
+            </div>
+
+            <div class="text-xs text-slate-800 leading-relaxed space-y-3 min-h-[300px]">
+                <p>Spett.le <strong>Mario Rossi</strong> (CF: RSSMRA80A01H501U),</p>
+                <p>Con la presente si attesta il rilascio del consenso al trattamento dei dati personali relativi ai servizi erogati, secondo i principi di liceità, correttezza e trasparenza previsti dal Regolamento Europeo GDPR UE 2016/679.</p>
+                <p>I dati raccolti saranno utilizzati esclusivamente per l'esecuzione della prestazione richiesta e per gli adempimenti fiscali e normativi previsti dalla legge.</p>
+            </div>
+
+            <div class="border-t border-slate-300 pt-6 grid grid-cols-2 gap-8 text-[10px] text-slate-800">
+                <div class="space-y-6">
+                    <p class="font-bold uppercase text-slate-900">Firma Titolare / Esecutore:</p>
+                    <div class="border-b border-slate-400 h-8 font-mono text-[9px] text-slate-600 flex items-end">
+                        [Firmato Digitalmente da Esecutore]
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <p class="font-bold uppercase text-slate-900">Firma Cliente per Accettazione:</p>
+                    <div class="border-b border-slate-400 h-8 font-mono text-[9px] text-emerald-700 flex items-end justify-between">
+                        <span>[OpenAPI eSignature OTP OK]</span>
+                        <span>12/08/2026</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER ACTIONS -->
+    <div class="fixed bottom-0 left-0 right-0 z-30 bg-[#090d16]/95 backdrop-blur-lg border-t border-gray-800 p-3 no-print">
+        <div class="max-w-3xl mx-auto flex items-center justify-between gap-3">
+            <button onclick="window.location.href='doc-engine-library.html'" class="w-1/2 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all">
+                Torna a Libreria
+            </button>
+            <button onclick="printDocument()" class="w-1/2 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2">
+                <i class="fas fa-print text-sm"></i> Stampa / Scarica PDF
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        function printDocument() {
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            window.print();
+        }
+    </script>
+</body>
+
+</html>

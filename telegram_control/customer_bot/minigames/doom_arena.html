@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta color-scheme="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Doom Arena 2D | Minigioco SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="cx_doom_arena.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #ffffff; color: #0f172a; }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col justify-between max-w-md mx-auto bg-white text-slate-900">
+    <header class="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center font-bold">
+                <i class="fas fa-crosshair"></i>
+            </div>
+            <div>
+                <h1 class="text-xs font-black uppercase tracking-wider text-slate-900 m-0">3. Doom Arena 2D</h1>
+                <p class="text-[9px] text-slate-500 font-bold m-0">Shooter Reattività · Premio +40 PT</p>
+            </div>
+        </div>
+        <span id="pts-display" class="text-xs font-black bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">250 PT</span>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center space-y-4 my-4">
+        <div class="relative w-full h-72 bg-slate-900 rounded-3xl border border-slate-800 overflow-hidden shadow-md flex items-center justify-center">
+            <canvas id="doom-canvas" width="300" height="260" class="w-full h-full"></canvas>
+        </div>
+        <p id="doom-status-msg" class="text-xs font-bold text-center text-slate-600">Spara ai 5 bersagli rossi in movimento per vincere!</p>
+    </main>
+
+    <footer>
+        <button id="btn-shoot" onclick="shootTarget()" class="w-full py-3.5 bg-black hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow transition active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-crosshair text-red-400"></i>
+            <span>💥 SPARA AL BERSAGLIO</span>
+        </button>
+    </footer>
+
+    <script>
+        let pts = 250;
+        let hits = 0;
+        let targets = [{ x: 80, y: 100 }, { x: 220, y: 140 }, { x: 150, y: 70 }];
+
+        function drawDoom() {
+            const canvas = document.getElementById('doom-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 300, 260);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, 300, 260);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText(`TARGET COLPITI: ${hits} / 5`, 15, 25);
+
+            targets.forEach(t => {
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 20, 0, Math.PI * 2);
+                ctx.fillStyle = '#ef4444';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(t.x, t.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+            });
+        }
+
+        function shootTarget() {
+            hits++;
+            targets = targets.map(t => ({
+                x: 30 + Math.random() * 240,
+                y: 30 + Math.random() * 190
+            }));
+            drawDoom();
+
+            if (hits >= 5) {
+                pts += 40;
+                document.getElementById('pts-display').innerText = `${pts} PT`;
+                document.getElementById('doom-status-msg').innerText = "🎉 VITTORIA ARENA! +40 PT Accreditati!";
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            } else {
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', drawDoom);
+    </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta color-scheme="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Indovino chi sei? | Minigioco SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="cx_quiz_softskills.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #ffffff; color: #0f172a; }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col justify-between max-w-md mx-auto bg-white text-slate-900">
+    <header class="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center font-bold">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div>
+                <h1 class="text-xs font-black uppercase tracking-wider text-slate-900 m-0">2. Indovino chi sei?</h1>
+                <p class="text-[9px] text-slate-500 font-bold m-0">Quiz Attitudinale 7 Domande · Premio +50 PT</p>
+            </div>
+        </div>
+        <span id="pts-display" class="text-xs font-black bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">250 PT</span>
+    </header>
+
+    <main id="quiz-main-stage" class="flex-1 flex flex-col justify-between my-4 space-y-4">
+        <!-- BARRA AVANZAMENTO -->
+        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div id="quiz-progress-bar" class="bg-black h-full w-1/7 transition-all duration-300"></div>
+        </div>
+
+        <!-- SCHEDA DOMANDA -->
+        <div class="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+            <span id="quiz-step-label" class="text-[9px] font-black uppercase tracking-widest text-slate-400">Domanda 1 di 7</span>
+            <h2 id="quiz-question-text" class="text-xs font-black text-slate-900 leading-relaxed">
+                Quando ti trovi ad affrontare un imprevisto importante, qual è la tua prima reazione?
+            </h2>
+        </div>
+
+        <!-- OPZIONI DI RISPOSTA -->
+        <div id="quiz-options-container" class="space-y-2">
+            <!-- Iniettate da JS -->
+        </div>
+    </main>
+
+    <script>
+        let pts = 250;
+        let qIndex = 0;
+        const questions = [
+            { text: "1/7: Quando affronti un imprevisto importante, qual è la tua prima reazione?", options: ["Analizzo i dettagli con logica e calma", "Seguo l'istinto con forte energia", "Mi confronto con empatia con il team", "Procedo con estrema cautela e sicurezza"] },
+            { text: "2/7: Nel tuo lavoro o studio, cosa ti dà la maggiore soddisfazione?", options: ["Superare gli obiettivi con precisione", "Costruire relazioni umane autentiche", "Innovare provando strade nuove", "Mantenere tutto organizzato e stabile"] },
+            { text: "3/7: Come ti comporti quando le scadenze sono molto strette?", options: ["Pianifico ogni singolo minuto", "Aumento il ritmo d'azione al massimo", "Semplifico le opzioni ed io mi adatto", "Chiedo supporto alle persone vicine"] },
+            { text: "4/7: Quale parola descrive meglio il tuo approccio alle decisioni?", options: ["Razionale", "Coraggioso", "Empatico", "Prudente"] },
+            { text: "5/7: Di fronte ad una critica costruttiva, come reagisci?", options: ["Verifico i fatti oggettivamente", "Uso lo stimolo per migliorarmi subito", "Ascolto le emozioni dell'interlocutore", "Analizzo i rischi futuri"] },
+            { text: "6/7: Cosa apprezzi di più in una collaborazione?", options: ["Chiarezza dei ruoli e dati precisi", "Visione ambiziosa ed entusiasmo", "Armonia ed ascolto reciproco", "Affidabilità e rispetto delle regole"] },
+            { text: "7/7: Come definiresti la tua visione per il futuro?", options: ["Pianificata nei dettagli", "Ricca di nuove sfide", "Orientata alle persone", "Solida e al sicuro"] }
+        ];
+
+        function renderQuestion() {
+            if (qIndex >= questions.length) {
+                renderResult();
+                return;
+            }
+            const q = questions[qIndex];
+            document.getElementById('quiz-step-label').innerText = `Domanda ${qIndex + 1} di 7`;
+            document.getElementById('quiz-question-text').innerText = q.text;
+            document.getElementById('quiz-progress-bar').style.width = `${((qIndex + 1) / 7) * 100}%`;
+
+            const container = document.getElementById('quiz-options-container');
+            container.innerHTML = q.options.map((opt, i) => `
+                <button onclick="selectAnswer()" class="w-full text-left p-3.5 bg-white hover:bg-slate-50 border border-slate-200 hover:border-black rounded-xl text-xs font-bold text-slate-900 transition flex items-center gap-2 active:scale-98">
+                    <span class="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-black">${String.fromCharCode(65 + i)}</span>
+                    <span>${opt}</span>
+                </button>
+            `).join('');
+        }
+
+        function selectAnswer() {
+            qIndex++;
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            renderQuestion();
+        }
+
+        function renderResult() {
+            pts += 50;
+            document.getElementById('pts-display').innerText = `${pts} PT`;
+            const main = document.getElementById('quiz-main-stage');
+            main.innerHTML = `
+                <div class="p-6 bg-slate-50 border border-slate-200 rounded-3xl text-center space-y-4 my-auto">
+                    <div class="w-14 h-14 rounded-2xl bg-black text-white flex items-center justify-center mx-auto text-2xl shadow">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-black uppercase text-slate-900 mb-1">🎉 Profilo DNA Completato!</h2>
+                        <p class="text-xs text-slate-600">Punteggi Attitudinali: 🧠 Mente 88 · ❤️ Cuore 94 · ⚡ Energia 90</p>
+                    </div>
+                    <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-900">
+                        Guadagnati +50 Punti da convertire in Buoni Sconto!
+                    </div>
+                    <button onclick="location.reload()" class="w-full py-3 bg-black text-white font-black text-xs uppercase tracking-wider rounded-xl shadow">
+                        RIFAIE IL QUIZ
+                    </button>
+                </div>
+            `;
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+
+        document.addEventListener('DOMContentLoaded', renderQuestion);
+    </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Document Studio | SiteBoS Trust & Stamp</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            if (!isTelegramSession) {
+                const currentPath = window.location.pathname;
+                let redirectPath = "../index.html";
+                if (currentPath.includes('/gestione/')) {
+                    redirectPath = "../index.html";
+                }
+                window.location.replace(redirectPath);
+            }
+        })();
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#090d16', cardBg: '#111827', accentCyan: '#06b6d4' },
+                    borderRadius: { '3xl': '1.5rem' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #090d16;
+            color: #f3f4f6;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .glass-card {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .preset-tile {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .preset-tile.selected {
+            border-color: #06b6d4 !important;
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+            transform: scale(1.02);
+        }
+
+        .a4-preview-container {
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+            font-family: 'Georgia', serif;
+            min-height: 520px;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+
+<body class="min-h-screen pb-24 safe-area-inset">
+
+    <!-- TOP NAVBAR HEADER -->
+    <header class="sticky top-0 z-40 bg-[#090d16]/90 backdrop-blur-md border-b border-gray-800 px-4 py-3 flex items-center justify-between">
+        <button onclick="window.location.href='doc-engine-library.html'" class="flex items-center gap-2 text-xs font-bold text-gray-400 hover:text-white transition-colors uppercase tracking-wider">
+            <i class="fas fa-arrow-left"></i> Libreria
+        </button>
+        <div class="flex items-center gap-2">
+            <i class="fas fa-file-signature text-cyan-400 text-sm"></i>
+            <span class="text-xs font-black uppercase tracking-widest text-white">Document Studio</span>
+        </div>
+        <button onclick="saveTemplate()" class="px-3 py-1 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg flex items-center gap-1.5">
+            <i class="fas fa-save"></i> Salva
+        </button>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+
+        <!-- STEP 1: PRESET TYPE SELECTION -->
+        <section class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/40">1</span>
+                    <h2 class="text-sm font-black uppercase tracking-wider text-gray-200">Tipo Documento & Preset</h2>
+                </div>
+                <span id="badge-preset-count" class="text-[10px] font-semibold text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full">11 Preset Disponibili</span>
+            </div>
+
+            <!-- SCROLLABLE TILE GRID -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <div onclick="selectPreset('preventivo')" id="preset-preventivo" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Via C</span>
+                    <i class="fas fa-file-invoice-dollar text-2xl text-cyan-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Preventivo</div>
+                        <div class="text-[9px] text-gray-400">Commerciale</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('contratto')" id="preset-contratto" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700">Via B</span>
+                    <i class="fas fa-file-contract text-2xl text-blue-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Contratto</div>
+                        <div class="text-[9px] text-gray-400">Servizi / Prestazione</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('ddt')" id="preset-ddt" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Via C</span>
+                    <i class="fas fa-truck-ramp-box text-2xl text-amber-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">DDT Trasporto</div>
+                        <div class="text-[9px] text-gray-400">Consegna Merci</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('verbale')" id="preset-verbale" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Via C</span>
+                    <i class="fas fa-clipboard-check text-2xl text-emerald-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Accettazione</div>
+                        <div class="text-[9px] text-gray-400">Verbale Lavori</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('gdpr')" id="preset-gdpr" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700">Via B</span>
+                    <i class="fas fa-user-shield text-2xl text-purple-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Consenso GDPR</div>
+                        <div class="text-[9px] text-gray-400">Privacy & Dati</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('hse')" id="preset-hse" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Via C</span>
+                    <i class="fas fa-triangle-exclamation text-2xl text-rose-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Sicurezza HSE</div>
+                        <div class="text-[9px] text-gray-400">D.Lgs. 81/08</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('audit')" id="preset-audit" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700">Via A</span>
+                    <i class="fas fa-shield-halved text-2xl text-teal-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Report Audit</div>
+                        <div class="text-[9px] text-gray-400">Supervisor Check</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('attestato')" id="preset-attestato" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-700">Via C</span>
+                    <i class="fas fa-graduation-cap text-2xl text-yellow-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Attestato</div>
+                        <div class="text-[9px] text-gray-400">Formazione Staff</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('consenso')" id="preset-consenso" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-700">Via A</span>
+                    <i class="fas fa-notes-medical text-2xl text-red-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Sanitario</div>
+                        <div class="text-[9px] text-gray-400">Consenso Clinico</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('incarico')" id="preset-incarico" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-700">Via B</span>
+                    <i class="fas fa-user-gear text-2xl text-sky-400"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Incarico</div>
+                        <div class="text-[9px] text-gray-400">Nomina & Mandato</div>
+                    </div>
+                </div>
+
+                <div onclick="selectPreset('custom')" id="preset-custom" class="preset-tile glass-card p-3.5 rounded-2xl cursor-pointer border border-gray-800 flex flex-col justify-between h-28 relative">
+                    <span class="absolute top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-800 text-gray-300 border border-gray-700">Custom</span>
+                    <i class="fas fa-cubes text-2xl text-gray-300"></i>
+                    <div>
+                        <div class="text-xs font-bold text-white truncate">Personalizzato</div>
+                        <div class="text-[9px] text-gray-400">Modello Libero</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 2: METADATI E NOME NORMANDO -->
+        <section class="glass-card p-4 rounded-2xl space-y-4">
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/40">2</span>
+                <h2 class="text-sm font-black uppercase tracking-wider text-gray-200">Intestazione & Riferimenti</h2>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Nome Modello Documentale</label>
+                    <input type="text" id="doc-name" placeholder="Es. Consenso Informato Trattamento Clinico" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Norma di Riferimento / Compliance</label>
+                    <input type="text" id="doc-norma" placeholder="Es. Regolamento UE 2016/679 (GDPR Art. 13)" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 3: SELETTORE COMPLIANCE ROUTE (3 VIE DI FIRMA) -->
+        <section class="glass-card p-4 rounded-2xl space-y-4">
+            <div class="flex items-center gap-2">
+                <span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/40">3</span>
+                <h2 class="text-sm font-black uppercase tracking-wider text-gray-200">Via di Firma & Legalità (Compliance Route)</h2>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <!-- VIA A -->
+                <div onclick="setRoute('VIA_A')" id="route-VIA_A" class="p-3.5 rounded-xl border border-gray-800 bg-gray-900/60 cursor-pointer space-y-2 transition-all">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black uppercase text-amber-400"><i class="fas fa-pen-nib mr-1"></i> Via A: EXTERNAL PAD</span>
+                        <input type="radio" name="route" value="VIA_A" id="radio-VIA_A" class="accent-amber-400">
+                    </div>
+                    <p class="text-[10px] text-gray-400 leading-relaxed">Tavoletta grafica hardware dedicata al banco segreteria (Wacom/Topaz). Verifica visiva immediata operatore.</p>
+                </div>
+
+                <!-- VIA B -->
+                <div onclick="setRoute('VIA_B')" id="route-VIA_B" class="p-3.5 rounded-xl border border-gray-800 bg-gray-900/60 cursor-pointer space-y-2 transition-all">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black uppercase text-cyan-400"><i class="fas fa-certificate mr-1"></i> Via B: OPENAPI eSignature</span>
+                        <input type="radio" name="route" value="VIA_B" id="radio-VIA_B" class="accent-cyan-400" checked>
+                    </div>
+                    <p class="text-[10px] text-gray-400 leading-relaxed">Firma certificata eIDAS (FEA/FES) via OTP SMS / OpenAPI.it. Valore legale formale a norma di legge.</p>
+                </div>
+
+                <!-- VIA C -->
+                <div onclick="setRoute('VIA_C')" id="route-VIA_C" class="p-3.5 rounded-xl border border-gray-800 bg-gray-900/60 cursor-pointer space-y-2 transition-all">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black uppercase text-indigo-400"><i class="fas fa-stamp mr-1"></i> Via C: TIMBRO ASH</span>
+                        <input type="radio" name="route" value="VIA_C" id="radio-VIA_C" class="accent-indigo-400">
+                    </div>
+                    <p class="text-[10px] text-gray-400 leading-relaxed">Firma touch a dito su TWA con timbro crittografico HMAC-SHA256 e marca temporale. Zero costi immediato.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- STEP 4: EDITOR CORPO DOCUMENTO & PREVIEW LIVE A4 -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 font-bold text-xs flex items-center justify-center border border-cyan-500/40">4</span>
+                    <h2 class="text-sm font-black uppercase tracking-wider text-gray-200">Editor Testo & Anteprima Live A4</h2>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="insertVariable('{{cliente_nome}}')" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-cyan-300 text-[10px] font-mono rounded border border-gray-700">+ {{cliente_nome}}</button>
+                    <button onclick="insertVariable('{{data_odierna}}')" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-cyan-300 text-[10px] font-mono rounded border border-gray-700">+ {{data_odierna}}</button>
+                </div>
+            </div>
+
+            <!-- MAIN A4 SIMULATED PAGE CONTAINER -->
+            <div class="a4-preview-container p-8 rounded-xl border border-gray-300 space-y-6">
+                <!-- HEADER AZIENDALE STAMPABILE -->
+                <div class="border-b border-gray-300 pb-4 flex justify-between items-start">
+                    <div>
+                        <h1 class="text-base font-bold text-slate-900 uppercase tracking-tight" id="preview-header-title">INTESTAZIONE DOCUMENTO</h1>
+                        <p class="text-[11px] text-slate-600 italic mt-0.5" id="preview-header-norma">Riferimento Normativo: General Compliance</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs font-bold text-slate-800" id="preview-company-name">AZIENDA DI PROVA S.R.L.</div>
+                        <div class="text-[10px] text-slate-500">P.IVA: 00000000000</div>
+                    </div>
+                </div>
+
+                <!-- CORPO EDITABILE INLINE -->
+                <div id="doc-editor-body" contenteditable="true" class="min-h-[260px] text-xs text-slate-800 leading-relaxed outline-none p-2 rounded focus:bg-slate-50 border border-dashed border-gray-200">
+                    <p class="mb-3">Spett.le <strong>{{cliente_nome}}</strong>,</p>
+                    <p class="mb-3">Con la presente documentazione si formalizza l'accordo / prestazione concordata in data <strong>{{data_odierna}}</strong>. Il sottoscritto dichiara di aver preso visione di tutte le condizioni generali e di approvare integralmente il contenuto del presente atto.</p>
+                    <p class="mb-3">Restano valide le norme sulla tutela della riservatezza e la protezione dei dati personali previste dalla normativa vigente.</p>
+                </div>
+
+                <!-- SEZIONE FIRMA FOOTER A4 -->
+                <div class="border-t border-gray-300 pt-6 grid grid-cols-2 gap-8 text-[10px] text-slate-700">
+                    <div class="space-y-8">
+                        <p class="font-bold uppercase text-slate-900">Firma del Titolare / Esecutore:</p>
+                        <div class="border-b border-slate-400 h-8"></div>
+                    </div>
+                    <div class="space-y-8">
+                        <p class="font-bold uppercase text-slate-900">Firma del Cliente per Accettazione:</p>
+                        <div class="border-b border-slate-400 h-8 flex items-end justify-center">
+                            <span class="text-[9px] text-slate-400 font-mono mb-1" id="preview-route-tag">[Firma via OPENAPI eSignature]</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER ACTIONS -->
+    <div class="fixed bottom-0 left-0 right-0 z-30 bg-[#090d16]/95 backdrop-blur-lg border-t border-gray-800 p-3">
+        <div class="max-w-4xl mx-auto flex items-center justify-between gap-3">
+            <button onclick="window.location.href='doc-engine-library.html'" class="w-1/3 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all">
+                Annulla
+            </button>
+            <button onclick="saveTemplate()" class="w-2/3 py-2.5 bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2">
+                <i class="fas fa-check-circle text-sm"></i> Salva Modello in Library
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+        }
+
+        let selectedPreset = 'preventivo';
+        let selectedRoute = 'VIA_B';
+
+        const PRESET_DEFAULTS = {
+            preventivo: { name: 'Preventivo Commerciale', norma: 'Codice del Consumo Art. 49', route: 'VIA_C' },
+            contratto: { name: 'Contratto di Servizio', norma: 'Codice Civile Art. 1321 e succ.', route: 'VIA_B' },
+            ddt: { name: 'Documento di Trasporto (DDT)', norma: 'D.P.R. 472/1996', route: 'VIA_C' },
+            verbale: { name: 'Verbale di Accettazione Lavori', norma: 'Norma UNI EN ISO 9001:2015', route: 'VIA_C' },
+            gdpr: { name: 'Consenso Trattamento Dati GDPR', norma: 'Regolamento UE 2016/679 (GDPR Art. 13)', route: 'VIA_B' },
+            hse: { name: 'Modulo Sicurezza Cantiere HSE', norma: 'D.Lgs. 81/08 e s.m.i. Antinfortunistica', route: 'VIA_C' },
+            audit: { name: 'Report Ispezione Supervisor', norma: 'Scrutabilità Algoritmica ex Art. 86 AI Act', route: 'VIA_A' },
+            attestato: { name: 'Attestato Formazione Staff', norma: 'Accordo Stato-Regioni Formazione Lavoratori', route: 'VIA_C' },
+            consenso: { name: 'Consenso Informato Clinico', norma: 'Legge 219/2017 Consenso Informato', route: 'VIA_A' },
+            incarico: { name: 'Lettera di Incarico & Nomina', norma: 'Codice Civile Art. 2222 Lavoro Autonomo', route: 'VIA_B' },
+            custom: { name: 'Documento Personalizzato', norma: 'General Compliance Standard', route: 'VIA_B' }
+        };
+
+        function selectPreset(key) {
+            selectedPreset = key;
+            document.querySelectorAll('.preset-tile').forEach(el => el.classList.remove('selected'));
+            const target = document.getElementById('preset-' + key);
+            if (target) target.classList.add('selected');
+
+            const def = PRESET_DEFAULTS[key] || PRESET_DEFAULTS.custom;
+            document.getElementById('doc-name').value = def.name;
+            document.getElementById('doc-norma').value = def.norma;
+            setRoute(def.route);
+            updatePreviewHeader();
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setRoute(routeKey) {
+            selectedRoute = routeKey;
+            ['VIA_A', 'VIA_B', 'VIA_C'].forEach(r => {
+                const box = document.getElementById('route-' + r);
+                const radio = document.getElementById('radio-' + r);
+                if (r === routeKey) {
+                    box.classList.add('border-cyan-500', 'bg-cyan-950/30');
+                    radio.checked = true;
+                } else {
+                    box.classList.remove('border-cyan-500', 'bg-cyan-950/30');
+                    radio.checked = false;
+                }
+            });
+
+            const tag = document.getElementById('preview-route-tag');
+            if (routeKey === 'VIA_A') tag.innerText = '[Firma via EXTERNAL PAD Tavoletta]';
+            if (routeKey === 'VIA_B') tag.innerText = '[Firma via OPENAPI eSignature OTP]';
+            if (routeKey === 'VIA_C') tag.innerText = '[Firma via TIMBRO ASH Touch]';
+        }
+
+        function updatePreviewHeader() {
+            const name = document.getElementById('doc-name').value || 'INTESTAZIONE DOCUMENTO';
+            const norma = document.getElementById('doc-norma').value || 'General Compliance';
+            document.getElementById('preview-header-title').innerText = name.toUpperCase();
+            document.getElementById('preview-header-norma').innerText = 'Riferimento Normativo: ' + norma;
+        }
+
+        document.getElementById('doc-name').addEventListener('input', updatePreviewHeader);
+        document.getElementById('doc-norma').addEventListener('input', updatePreviewHeader);
+
+        function insertVariable(v) {
+            const editor = document.getElementById('doc-editor-body');
+            editor.focus();
+            document.execCommand('insertText', false, ' ' + v + ' ');
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function saveTemplate() {
+            const name = document.getElementById('doc-name').value;
+            const norma = document.getElementById('doc-norma').value;
+            const bodyHtml = document.getElementById('doc-editor-body').innerHTML;
+
+            if (!name) {
+                alert('Inserisci un nome valido per il modello.');
+                return;
+            }
+
+            const payload = {
+                action: 'save_doc_template',
+                preset_type: selectedPreset,
+                name: name,
+                norma_riferimento: norma,
+                compliance_route: selectedRoute,
+                body_html: bodyHtml
+            };
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            
+            alert('Modello salvato con successo nella Library Documenti!');
+            window.location.href = 'doc-engine-library.html';
+        }
+
+        selectPreset('preventivo');
+    </script>
+</body>
+
+</html>

@@ -6,9 +6,13 @@
     <meta name="color-scheme" content="light">
     <title>Hub Servizi | SiteBoS</title>
     
-    <!-- Telegram WebApp SDK & QRCode Generator -->
+    <!-- Telegram WebApp SDK & QRCode Generator & Local First Core -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="phygital_local_first.js"></script>
+    <script src="minigames/cx_gamification_hub.js"></script>
+
+
     
     <!-- Tailwind CSS & Fonts -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -805,10 +809,32 @@
         // --- CUSTOMER UX: PROXIMITY, PASS QR & GAMIFICATION ENGINE ---
         let qrCodeInstance = null;
 
-        function checkProximity(type) {
+        async function autoCheckinWifiGuest() {
+            if (window.PhygitalLocalFirst) {
+                const wifiStatus = await PhygitalLocalFirst.checkWifiGuestProximity();
+                if (wifiStatus.validated) {
+                    const res = await PhygitalLocalFirst.submitWifiCheckin(wifiStatus);
+                    if (res.ok) {
+                        const btnText = document.querySelector('button[onclick="checkProximity(\'wifi\')"] span');
+                        if (btnText) btnText.innerText = 'CONNESSO WI-FI';
+                        console.log('[Check-in Wi-Fi] Registrazione completata in background via SSE.');
+                    }
+                }
+            }
+        }
+
+        async function checkProximity(type) {
             if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             
             if (type === 'wifi') {
+                if (window.PhygitalLocalFirst) {
+                    const wifiStatus = await PhygitalLocalFirst.checkWifiGuestProximity();
+                    const res = await PhygitalLocalFirst.submitWifiCheckin(wifiStatus);
+                    if (res.ok) {
+                        alert("📶 CHECK-IN WI-FI SEDE CONFERMATO!\n\nDispositivo collegato alla rete dello Studio (ClinicGuest_HighSpeed).\nIl tuo nome è presente sullo schermo della segreteria via SSE.");
+                        return;
+                    }
+                }
                 alert("📶 CHECK-IN WI-FI SEDE CONFERMATO!\n\nDispositivo collegato al Router Locale. Sei registrato all'interno dello Studio (#A-05).");
             } else {
                 if (navigator.geolocation) {
@@ -872,9 +898,14 @@
             alert("🎉 ISCRIZIONE 1-TAP COMPLETATA!\n\nBuono Sconto 10% sbloccato sul tuo chat_id Telegram!");
         }
 
+        if (window.PhygitalLocalFirst) {
+            window.PhygitalLocalFirst.checkOnlineGate();
+            window.PhygitalLocalFirst.syncStakeholderMaster();
+        }
         fetchBrandingAndHistory();
         buildSatellites();
         findActiveSatellite();
+        autoCheckinWifiGuest();
     </script>
 </body>
 </html>

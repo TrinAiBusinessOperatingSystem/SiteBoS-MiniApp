@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta color-scheme="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spin & Win | Minigioco SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="cx_spin_win.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #ffffff; color: #0f172a; }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col justify-between max-w-md mx-auto bg-white text-slate-900">
+    <header class="border-b border-slate-100 pb-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center font-bold">
+                <i class="fas fa-dharmachakra"></i>
+            </div>
+            <div>
+                <h1 class="text-xs font-black uppercase tracking-wider text-slate-900 m-0">1. Spin &amp; Win</h1>
+                <p class="text-[9px] text-slate-500 font-bold m-0">Ruota della Fortuna · Premio +30 PT</p>
+            </div>
+        </div>
+        <span id="pts-display" class="text-xs font-black bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200">250 PT</span>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center space-y-4 my-4">
+        <div class="relative w-72 h-72 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-3xl p-3 shadow-sm">
+            <canvas id="spin-canvas" width="260" height="260" class="w-full h-full"></canvas>
+        </div>
+        <p id="spin-msg" class="text-xs font-bold text-center text-slate-600">Gira la ruota per sbloccare i punti premio sconto!</p>
+    </main>
+
+    <footer>
+        <button id="btn-spin" onclick="executeSpin()" class="w-full py-3.5 bg-black hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow transition active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-dharmachakra text-amber-400"></i>
+            <span>GIRA LA RUOTA (PUNTATA 10 PT)</span>
+        </button>
+    </footer>
+
+    <script>
+        let pts = 250;
+        let angle = 0;
+        let isSpinning = false;
+
+        function drawWheel(a) {
+            const canvas = document.getElementById('spin-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, 260, 260);
+            const cx = 130, cy = 130, r = 115;
+            const labels = ['+50 PT', '0 PT', '+100 PT', '+20 PT', '2X VITTORIA', '+30 PT'];
+            const colors = ['#000000', '#475569', '#000000', '#64748b', '#000000', '#334155'];
+
+            for (let i = 0; i < 6; i++) {
+                const sa = a + (i * Math.PI / 3);
+                const ea = sa + Math.PI / 3;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, r, sa, ea);
+                ctx.fillStyle = colors[i];
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(sa + Math.PI / 6);
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.fillText(labels[i], r - 15, 4);
+                ctx.restore();
+            }
+
+            // Pointer
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - r + 8);
+            ctx.lineTo(cx - 10, cy - r - 10);
+            ctx.lineTo(cx + 10, cy - r - 10);
+            ctx.fillStyle = '#000000';
+            ctx.fill();
+        }
+
+        function executeSpin() {
+            if (isSpinning) return;
+            isSpinning = true;
+            let spd = 0.35;
+            const timer = setInterval(() => {
+                angle += spd;
+                spd *= 0.96;
+                drawWheel(angle);
+                if (spd < 0.008) {
+                    clearInterval(timer);
+                    isSpinning = false;
+                    pts += 30;
+                    document.getElementById('pts-display').innerText = `${pts} PT`;
+                    document.getElementById('spin-msg').innerText = "🎉 VITTORIA! Guadagnati +30 PT!";
+                    if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            }, 30);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => drawWheel(0));
+    </script>
+</body>
+</html>

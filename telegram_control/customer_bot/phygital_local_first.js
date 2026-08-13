@@ -202,17 +202,281 @@ const PhygitalLocalFirst = (() => {
         setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
     }
 
+    /* ── EVENTO C: CHECK-IN AUTOMATICO VIA WI-FI GUEST ("Inquadra, Connetti e Accedi") ── */
+    async function checkWifiGuestProximity() {
+        try {
+            const response = await fetch('/webhook/sitebos-phygital-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: String(chatId),
+                    tenant_id: String(tenantId),
+                    action: 'wifi_proximity_probe'
+                })
+            });
+            if (response.ok) {
+                const result = await response.json();
+                if (result && result.is_wifi_guest) {
+                    return { validated: true, method: 'WIFI_GUEST', ssid: result.ssid || 'ClinicGuest_HighSpeed' };
+                }
+            }
+        } catch (e) {
+            console.warn('[PhygitalLocalFirst] Probe Wi-Fi Prossimità non disponibile:', e);
+        }
+        return { validated: false, method: 'NONE' };
+    }
+
+    const STAKEHOLDER_MASTER_KEY = `sitebos_${tenantId}_${chatId}_stakeholder_master`;
+
+    /* ── STAKEHOLDER MASTER: DOCUMENTO UNICO (SOSTRITUZIONE INTEGRALE SUL TELEFONO) ── */
+    function loadStakeholderMaster() {
+        try {
+            const raw = localStorage.getItem(STAKEHOLDER_MASTER_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            console.error('[PhygitalLocalFirst] Errore lettura Stakeholder Master:', e);
+            return null;
+        }
+    }
+
+    function saveStakeholderMaster(fullMasterObject) {
+        try {
+            if (!fullMasterObject || typeof fullMasterObject !== 'object') return false;
+            // Sovrascrive interamente sul disco locale dello smartphone (Zero Frammentazione)
+            localStorage.setItem(STAKEHOLDER_MASTER_KEY, JSON.stringify({
+                ...fullMasterObject,
+                synced_at: new Date().toISOString()
+            }));
+            console.log('[PhygitalLocalFirst] Pacchetto Stakeholder Master sovrascritto interamente in locale.');
+            return true;
+        } catch (e) {
+            console.error('[PhygitalLocalFirst] Errore sovrascrittura Stakeholder Master:', e);
+            return false;
+        }
+    }
+
+    function checkOnlineGate() {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            showOfflineGateBanner();
+            return false;
+        }
+        return true;
+    }
+
+    function showOfflineGateBanner() {
+        const existing = document.getElementById('sitebos-offline-gate-banner');
+        if (existing) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'sitebos-offline-gate-banner';
+        banner.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[99999] flex flex-col items-center justify-center p-6 text-center text-white';
+        banner.innerHTML = `
+            <div class="w-16 h-16 rounded-3xl bg-red-500/20 border border-red-500/40 flex items-center justify-center mb-4">
+                <i class="fas fa-wifi-slash text-2xl text-red-400"></i>
+            </div>
+            <h2 class="text-xl font-black uppercase tracking-tight mb-2">Connessione Internet Richiesta</h2>
+            <p class="text-xs text-slate-300 max-w-xs leading-relaxed mb-6">
+                L'applicazione SiTeBoS richiede una connessione internet attiva per sincronizzare i tuoi dati. Collegati ad una rete per procedere.
+            </p>
+            <button onclick="window.location.reload()" class="bg-white text-slate-950 font-black py-3 px-6 rounded-2xl text-xs uppercase tracking-widest active:scale-95 transition">
+                <i class="fas fa-rotate-right mr-2"></i> Riprova Connessione
+            </button>
+        `;
+        document.body.appendChild(banner);
+    }
+
+    async function syncStakeholderMaster() {
+        if (!checkOnlineGate()) return { ok: false, error: 'OFFLINE' };
+
+        const currentMaster = loadStakeholderMaster();
+        const payload = {
+            chat_id: String(chatId),
+            tenant_id: String(tenantId),
+            action: 'get_stakeholder_master',
+            stakeholder_context: currentMaster || {}
+        };
+
+        const ashHeader = generateASHHeader(payload);
+        try {
+            const response = await fetch('/webhook/sitebos-phygital-checkin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Authorized-Session-Hash': ashHeader
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.stakeholder) {
+                    saveStakeholderMaster(data.stakeholder); // Full Overwrite Sync
+                    return { ok: true, stakeholder: data.stakeholder };
+                }
+            }
+        } catch (err) {
+            console.error('[PhygitalLocalFirst] Errore sync Stakeholder Master:', err);
+        }
+        return { ok: false };
+    }
+
+    async function submitWifiCheckin(wifiInfo) {
+        if (!checkOnlineGate()) return { ok: false, error: 'OFFLINE' };
+
+        const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+        const fullName = user?.first_name 
+            ? `${user.first_name} ${user.last_name || ''}`.trim()
+            : 'Cliente in Sala d\'Attesa';
+
+        const currentMaster = loadStakeholderMaster();
+
+        const payload = {
+            chat_id: String(chatId),
+            tenant_id: String(tenantId),
+            customer_name: fullName,
+            proximity_validated: true,
+            proximity_method: 'WIFI_GUEST',
+            ssid: wifiInfo?.ssid || 'ClinicGuest_HighSpeed',
+            stakeholder_context: currentMaster || {},
+            submitted_at: new Date().toISOString()
+        };
+
+        const ashHeader = generateASHHeader(payload);
+        try {
+            const response = await fetch('/webhook/sitebos-phygital-checkin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Authorized-Session-Hash': ashHeader
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.stakeholder) {
+                    saveStakeholderMaster(data.stakeholder); // Full Overwrite Sync post check-in
+                }
+                return { ok: true, data };
+            }
+        } catch (err) {
+            console.error('[PhygitalLocalFirst] Errore submit Wi-Fi check-in:', err);
+        }
+        return { ok: false };
+    }
+
+    const CX_PROFILE_KEY = `sitebos_${tenantId}_${chatId}_cx_profile`;
+
+    function saveCxProfile(cxProfileObj, economyProfileObj) {
+        try {
+            const data = {
+                cx_profile: cxProfileObj,
+                economy_profile: economyProfileObj,
+                updatedAt: new Date().toISOString()
+            };
+            localStorage.setItem(CX_PROFILE_KEY, JSON.stringify(data));
+            return data;
+        } catch (e) {
+            console.error('[PhygitalLocalFirst] Errore salvataggio cx_profile:', e);
+            return null;
+        }
+    }
+
+    function loadCxProfile() {
+        try {
+            const raw = localStorage.getItem(CX_PROFILE_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    async function submitCxProfile(cxProfileObj, economyProfileObj, gamesPlayed, prizesAwarded) {
+        saveCxProfile(cxProfileObj, economyProfileObj);
+
+        if (!checkOnlineGate()) return { ok: false, error: 'OFFLINE' };
+
+        const payload = {
+            chat_id: String(chatId),
+            tenant_id: String(tenantId),
+            proximity_method: 'WIFI_GUEST',
+            cx_profile_snapshot: cxProfileObj || {},
+            economy_profile: economyProfileObj || {},
+            games_played: gamesPlayed || [],
+            prizes_awarded: prizesAwarded || [],
+            submitted_at: new Date().toISOString()
+        };
+
+        try {
+            const response = await fetch('/webhook/sitebos-gamification-log', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return { ok: true, data };
+            }
+        } catch (err) {
+            console.error('[PhygitalLocalFirst] Errore submitCxProfile:', err);
+        }
+        return { ok: false };
+    }
+
+    async function redeemAddonVoucher(addonPayload) {
+        try {
+            const draft = loadDraft() || {};
+            const appliedAddons = draft.applied_addons || [];
+            appliedAddons.push(addonPayload);
+            const updatedDraft = saveDraft({ applied_addons: appliedAddons });
+
+            saveReward(addonPayload);
+
+            // Invia in tempo reale l'aggiornamento dell'ordine alla reception
+            if (checkOnlineGate()) {
+                await fetch('/webhook/phygital-desk-assist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: String(chatId),
+                        tenant_id: String(tenantId),
+                        action: 'VOUCHER_ADDON_APPLIED',
+                        applied_addon: addonPayload,
+                        full_draft: updatedDraft
+                    })
+                });
+            }
+            return { ok: true, updatedDraft };
+        } catch (e) {
+            console.error('[PhygitalLocalFirst] Errore redeemAddonVoucher:', e);
+            return { ok: false, error: e };
+        }
+    }
+
     return {
         saveDraft,
         loadDraft,
         clearDraft,
         saveReward,
         loadReward,
+        saveCxProfile,
+        loadCxProfile,
+        submitCxProfile,
+        redeemAddonVoucher,
         submitIntake,
         skipToDesk,
-        showTurnoAttivoMessage
+        showTurnoAttivoMessage,
+        checkWifiGuestProximity,
+        submitWifiCheckin,
+        loadStakeholderMaster,
+        saveStakeholderMaster,
+        syncStakeholderMaster,
+        checkOnlineGate
     };
 })();
+
+
 
 if (typeof window !== 'undefined') {
     window.PhygitalLocalFirst = PhygitalLocalFirst;
