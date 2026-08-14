@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta color-scheme="dark">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sfera Preferenze 3D | Minigioco SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #090d16; color: #f8fafc; }
+        .glass-card {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col justify-between max-w-md mx-auto bg-[#090d16] text-slate-100">
+    <header class="border-b border-gray-800 pb-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="../../index.html" class="w-8 h-8 rounded-xl bg-slate-900 border border-gray-800 flex items-center justify-center text-slate-400 hover:text-white">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </a>
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-indigo-500 text-slate-950 flex items-center justify-center font-black shadow-md">
+                <i class="fas fa-atom"></i>
+            </div>
+            <div>
+                <h1 class="text-xs font-black uppercase tracking-wider text-white m-0">17. Sfera Preferenze 3D</h1>
+                <p class="text-[9px] text-slate-400 font-bold m-0">Visualizzazione DNA · 27 Nodi Attivi</p>
+            </div>
+        </div>
+        <span class="text-xs font-black bg-slate-900 text-cyan-400 px-3 py-1 rounded-xl border border-cyan-500/30">DNA CORE</span>
+    </header>
+
+    <main class="flex-1 flex flex-col items-center justify-center space-y-4 my-4">
+        <div class="relative w-full h-80 glass-card border border-gray-800 rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center">
+            <canvas id="dna-sphere-canvas" class="w-full h-full"></canvas>
+            <div class="absolute top-3 left-3 bg-slate-900/90 border border-gray-800 px-3 py-1 rounded-xl text-[9px] font-bold text-cyan-400 shadow-sm">
+                <span>Ruota la sfera 3D nello spazio</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-5 gap-1.5 w-full text-center text-[8.5px] font-black uppercase">
+            <div class="p-2 glass-card rounded-xl text-slate-200">🧠 Mente</div>
+            <div class="p-2 glass-card rounded-xl text-slate-200">❤️ Cuore</div>
+            <div class="p-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 rounded-xl">⚡ Energia</div>
+            <div class="p-2 glass-card rounded-xl text-slate-200">🛡️ Guardia</div>
+            <div class="p-2 glass-card rounded-xl text-slate-200">🔄 Flusso</div>
+        </div>
+    </main>
+
+    <footer>
+        <button onclick="if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success'); alert('Mappa DNA sincronizzata con la segreteria dello studio!')" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-indigo-600 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg shadow-cyan-500/20 transition active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-check-circle text-slate-950"></i>
+            <span>CONFERMA PREFERENZE DNA</span>
+        </button>
+    </footer>
+
+    <script>
+        function initSphereView() {
+            const canvas = document.getElementById('dna-sphere-canvas');
+            if (!canvas || typeof THREE === 'undefined') return;
+
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            camera.position.z = 3.6;
+
+            const geometry = new THREE.IcosahedronGeometry(1.25, 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
+            const sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            const positions = [
+                [0, 1.25, 0], [1.15, 0.35, 0], [-1.15, 0.35, 0], [0.65, -1.05, 0.5], [-0.65, -1.05, -0.5]
+            ];
+            positions.forEach(pos => {
+                const nGeom = new THREE.SphereGeometry(0.12, 12, 12);
+                const nMat = new THREE.MeshBasicMaterial({ color: 0x6366f1 });
+                const nMesh = new THREE.Mesh(nGeom, nMat);
+                nMesh.position.set(...pos);
+                sphere.add(nMesh);
+            });
+
+            function animate() {
+                requestAnimationFrame(animate);
+                sphere.rotation.x += 0.005;
+                sphere.rotation.y += 0.008;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        document.addEventListener('DOMContentLoaded', initSphereView);
+    </script>
+</body>
+</html>

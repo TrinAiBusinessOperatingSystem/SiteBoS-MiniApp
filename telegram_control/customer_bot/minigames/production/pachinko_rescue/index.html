@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pachinko Rescue | SiteBoS Gamification Suite</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8fafc;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        #app-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+            padding: 8px 10px;
+            gap: 8px;
+        }
+
+        /* 1. Header HUD */
+        #game-header {
+            height: 42px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            padding: 0 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            font-size: 11px;
+            font-weight: 900;
+            color: #0f172a;
+            white-space: nowrap;
+            shrink-0;
+        }
+        .text-good { color: #059669; }
+        .text-bomb { color: #dc2626; }
+        .text-exploded { color: #d97706; }
+
+        /* 2. Box Centrale di Gioco */
+        #canvas-container {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            background: #ffffff;
+            border: 2.5px solid #94a3b8;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06), inset 0 2px 6px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 3. Footer Toolbar con 3 pulsanti affiancati */
+        #game-footer {
+            height: 52px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            shrink-0;
+        }
+
+        .btn-side {
+            width: 52px;
+            height: 52px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.1s;
+            shrink-0;
+        }
+        .btn-side:active { transform: scale(0.90); }
+        .btn-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .btn-dark { background: linear-gradient(135deg, #1e293b, #0f172a); }
+
+        #btn-claim {
+            flex: 1;
+            height: 52px;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .claim-disabled {
+            background: #e2e8f0;
+            color: #94a3b8;
+            cursor: not-allowed !important;
+            border: 1.5px dashed #cbd5e1 !important;
+            box-shadow: none;
+        }
+        .claim-ready {
+            background: linear-gradient(135deg, #10b981, #047857);
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+            animation: claimPulse 1.8s infinite ease-in-out;
+            cursor: pointer !important;
+        }
+        @keyframes claimPulse {
+            0%, 100% { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45); transform: scale(1); }
+            50% { box-shadow: 0 10px 28px rgba(16, 185, 129, 0.7); transform: scale(1.02); }
+        }
+
+        /* TOAST AVVISO */
+        #toast-alert {
+            position: absolute;
+            top: 14px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: #dc2626;
+            color: #fff;
+            padding: 8px 18px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 800;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 15px rgba(220,38,38,0.4);
+            z-index: 150;
+            white-space: nowrap;
+        }
+        #toast-alert.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* MODALE RISCATTO / VITTORIA */
+        #modal-claim {
+            position: absolute;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        #modal-claim.show { opacity: 1; pointer-events: auto; }
+        .claim-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 28px;
+            padding: 24px 20px;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            transform: scale(0.9);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #modal-claim.show .claim-card { transform: scale(1); }
+        .badge-trophy {
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin: 0 auto 12px auto;
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.25);
+        }
+        .btn-modal-action {
+            width: 100%;
+            padding: 12px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: transform 0.1s;
+        }
+        .btn-modal-action:active { transform: scale(0.96); }
+        .btn-confirm { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 6px 18px rgba(16,185,129,0.35); }
+        .btn-replay  { background: #f1f5f9; color: #475569; }
+    </style>
+</head>
+<body>
+
+<div id="app-layout">
+
+    <!-- 1. HEADER HUD -->
+    <header id="game-header">
+        <span>🎁 PREMI: <b id="good-count" class="text-good">0</b></span>
+        <span>💣 BOMBE: <b id="bomb-count" class="text-bomb">0</b></span>
+        <span>💥 PERSI: <b id="exploded-count" class="text-exploded">0</b></span>
+    </header>
+
+    <!-- 2. BOX CENTRALE DI GIOCO CON GLI 8 BUMPERS -->
+    <main id="canvas-container">
+        <canvas id="c"></canvas>
+    </main>
+
+    <!-- 3. FOOTER CON I 3 PULSANTI AFFIANCATI -->
+    <footer id="game-footer">
+        <button class="btn-side btn-blue" id="btn-maze" title="Cambia Posizione Bumpers (Riorganizza Traiettorie)">🎲</button>
+        <button id="btn-claim" class="claim-disabled" onclick="handleClaimClick()">
+            <span id="claim-icon">🔒</span>
+            <span id="claim-text">DISINNESCA LE BOMBE</span>
+        </button>
+        <button class="btn-side btn-dark" id="btn-add" title="Aggiungi Altre Palline (Propensione al Rischio / Greed)">+</button>
+    </footer>
+
+</div>
+
+<div id="toast-alert">⚠️ Elimina prima tutte le bombe per riscattare!</div>
+
+<!-- MODALE RISCATTO / VITTORIA -->
+<div id="modal-claim">
+    <div class="claim-card">
+        <div class="badge-trophy">🏆</div>
+        <h2 style="margin:0 0 6px 0; font-size: 20px; font-weight: 900; color: #0f172a;">AREA BONIFICATA!</h2>
+        <p style="margin:0 0 16px 0; font-size: 12px; color: #64748b; font-weight: 600;">Tutte le bombe sono state eliminate con successo!</p>
+        
+        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 14px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px;">
+                <span>Premi Salvati:</span>
+                <span id="modal-saved-count" style="color: #059669; font-weight: 900;">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px;">
+                <span>Bombe Disinnescate:</span>
+                <span id="modal-defused-count" style="color: #dc2626; font-weight: 900;">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 6px; margin-top: 4px;">
+                <span>Punti Guadagnati:</span>
+                <span id="modal-reward-points" style="color: #d97706;">+0 PUNTI</span>
+            </div>
+        </div>
+
+        <button class="btn-modal-action btn-confirm" onclick="confirmClaimReward()">🎁 INCASSA PREMIO</button>
+        <button class="btn-modal-action btn-replay" onclick="closeModalAndReplay()">🔄 GIOCA ANCORA</button>
+    </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   PACHINKO RESCUE — SITEBOS PRODUCTION GAMIFICATION ENGINE
+   - Motore Fisico 2D Pachinko & Dilemma Psicometrico
+   - 8 Bumpers dorati in 3 dimensioni (3 Grandi, 3 Medi, 2 Piccolini)
+   - Tracciamento Telemetria Scientifica & Pre-Job Briefing Gemini
+   ───────────────────────────────────────────────────────────── */
+
+const container = document.getElementById('canvas-container');
+const canvas    = document.getElementById('c');
+const ctx       = canvas.getContext('2d');
+
+// ── Costanti ─────────────────────────────────────────────────
+const RADIUS       = 20;           // pixel, raggio agile e dinamico
+const CONTACT_DIST = RADIUS * 2 + 2;  // distanza centro-centro = contatto
+const BOMB_EMOJI   = '💣';
+const GOOD_EMOJIS  = ['😊','⭐','💎','🍀','🍕','🚀','🔮','🎈','🌈','🐸','🏆','🎁'];
+
+let balls                  = [];   // {x, y, vx, vy, emoji, isBomb, alive, r, pulseOffset}
+let bumpers                = [];   // {x, y, r, hitAnim} 8 respingenti elastici dorati
+let particles              = [];   // {x,y,vx,vy,life,maxLife,color,r}
+let gx = 0, gy = 0.35;             // gravità
+let explodedCount          = 0;    // totale elementi distrutti
+const STORAGE_KEY = 'SITEBOS_PACHINKO_STATE_V1';
+let explodedGoodCount      = 0;    // emoji buone esplose per danno collaterale
+let initialBombs           = 0;    // totale bombe iniziali generate
+let bumperHits             = 0;    // contatore totale rimbalzi sui bumpers
+let extraSpawnsRequested   = 0;    // quante volte l'utente ha premuto + (Greed Index)
+let mazeReshuffles         = 0;    // quante volte l'utente ha premuto dado 🎲 (Riorganizzazione)
+let ruleImpulsivityClicks  = 0;    // quante volte l'utente ha forzato il lucchetto (Violazioni / Impulsività)
+let sessionStartTime       = Date.now(); // timestamp inizio sessione
+let totalClearedGames      = 0;    // totale partite completate con successo
+let totalAccumulatedPoints = 0;    // totale punti guadagnati
+let toastTimeout           = null;
+
+// ── Persistenza Sicura su Cellulare (LocalStorage + Telegram CloudStorage) ─
+function loadSavedState() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                if (typeof parsed.totalClearedGames === 'number') totalClearedGames = parsed.totalClearedGames;
+                if (typeof parsed.totalAccumulatedPoints === 'number') totalAccumulatedPoints = parsed.totalAccumulatedPoints;
+                if (typeof parsed.ruleImpulsivityClicks === 'number') ruleImpulsivityClicks = parsed.ruleImpulsivityClicks;
+                if (typeof parsed.extraSpawnsRequested === 'number') extraSpawnsRequested = parsed.extraSpawnsRequested;
+                if (typeof parsed.mazeReshuffles === 'number') mazeReshuffles = parsed.mazeReshuffles;
+            }
+        }
+    } catch (e) {}
+
+    // Sincronizzazione con Telegram CloudStorage su mobile
+    if (window.Telegram?.WebApp?.CloudStorage) {
+        try {
+            window.Telegram.WebApp.CloudStorage.getItem(STORAGE_KEY, (err, cloudValue) => {
+                if (!err && cloudValue) {
+                    try {
+                        const parsedCloud = JSON.parse(cloudValue);
+                        if (parsedCloud && typeof parsedCloud === 'object') {
+                            if ((parsedCloud.totalClearedGames || 0) >= totalClearedGames) {
+                                if (typeof parsedCloud.totalClearedGames === 'number') totalClearedGames = parsedCloud.totalClearedGames;
+                                if (typeof parsedCloud.totalAccumulatedPoints === 'number') totalAccumulatedPoints = parsedCloud.totalAccumulatedPoints;
+                                if (typeof parsedCloud.ruleImpulsivityClicks === 'number') ruleImpulsivityClicks = parsedCloud.ruleImpulsivityClicks;
+                                if (typeof parsedCloud.extraSpawnsRequested === 'number') extraSpawnsRequested = parsedCloud.extraSpawnsRequested;
+                                if (typeof parsedCloud.mazeReshuffles === 'number') mazeReshuffles = parsedCloud.mazeReshuffles;
+                                saveState(false);
+                            }
+                        }
+                    } catch (pe) {}
+                }
+            });
+        } catch (ce) {}
+    }
+}
+
+function saveState(syncCloud = true) {
+    try {
+        const payload = (typeof getExtractionPayload === 'function') ? getExtractionPayload() : null;
+        const statePayload = {
+            totalClearedGames,
+            totalAccumulatedPoints,
+            ruleImpulsivityClicks,
+            extraSpawnsRequested,
+            mazeReshuffles,
+            score: payload?.raw_kpis?.score || 0,
+            raw_telemetry: payload?.raw_kpis || {},
+            semantic_intelligence: payload?.semantic_profile || {},
+            semantic_profile: payload?.semantic_profile || {},
+            lastSavedTimestamp: new Date().toISOString()
+        };
+        const jsonStr = JSON.stringify(statePayload);
+        localStorage.setItem(STORAGE_KEY, jsonStr);
+        localStorage.setItem('SITEBOS_PACHINKO_RESCUE_STATE_V1', jsonStr);
+
+        if (syncCloud && window.Telegram?.WebApp?.CloudStorage) {
+            window.Telegram.WebApp.CloudStorage.setItem(STORAGE_KEY, jsonStr, (err) => {
+                if (err) console.warn("CloudStorage sync:", err);
+            });
+        }
+    } catch (e) {
+        console.error("Errore salvataggio pachinko:", e);
+    }
+}
+
+// ── Resize canvas sul container boxato ───────────────────────
+function resize() {
+    const w = container.clientWidth || window.innerWidth || 360;
+    const h = container.clientHeight || (window.innerHeight - 110) || 500;
+    canvas.width  = Math.max(280, w);
+    canvas.height = Math.max(380, h);
+}
+window.addEventListener('resize', () => { resize(); if (bumpers.length === 0) randomizeBumpers(); });
+resize();
+
+// ── Costruttore pallina ──────────────────────────────────────
+function makeBall(x, y, emoji, isBomb) {
+    const W = Math.max(280, canvas.width);
+    const H = Math.max(380, canvas.height);
+    const safeX = Math.max(RADIUS + 5, Math.min(W - RADIUS - 5, x || (W / 2)));
+    const safeY = Math.max(RADIUS + 5, Math.min(H - RADIUS - 5, y || (H / 3)));
+
+    return { 
+        x: safeX, 
+        y: safeY, 
+        vx: (Math.random()-0.5)*3.0, 
+        vy: (Math.random()-0.5)*2.0,
+        emoji, 
+        isBomb, 
+        alive: true, 
+        r: RADIUS,
+        pulseOffset: Math.random() * Math.PI * 2
+    };
+}
+
+// ── POSIZIONAMENTO DEGLI 8 BUMPERS (3 GRANDI, 3 MEDI, 2 PICCOLINI) ──
+function randomizeBumpers() {
+    resize();
+    const W = Math.max(280, canvas.width);
+    const H = Math.max(380, canvas.height);
+    bumpers = [];
+
+    // 8 Bumper di 3 diverse dimensioni: 3 Grandi (r=24), 3 Medi (r=17) e 2 Piccolini (r=12)
+    const sizes = [24, 24, 24, 17, 17, 17, 12, 12];
+    sizes.sort(() => Math.random() - 0.5);
+
+    const minX = 40;
+    const maxX = Math.max(140, W - 40);
+    const minY = 45;
+    const maxY = Math.max(140, H - 115); // Lascia libera la fascia inferiore dove si accumulano le palline
+
+    sizes.forEach(r => {
+        let placed = false;
+        let attempts = 0;
+        let x = 0, y = 0;
+
+        while (!placed && attempts < 90) {
+            attempts++;
+            x = minX + Math.random() * (maxX - minX);
+            y = minY + Math.random() * (maxY - minY);
+
+            let overlapping = false;
+            for (const b of bumpers) {
+                if (Math.hypot(b.x - x, b.y - y) < (b.r + r + 24)) {
+                    overlapping = true;
+                    break;
+                }
+            }
+            if (!overlapping) placed = true;
+        }
+
+        bumpers.push({ x, y, r, hitAnim: 0 });
+    });
+
+    playDiceSound();
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+}
+
+// ── COSTRUZIONE GIOCO / AVVIO PARTITA ────────────────────────
+function buildMaze() {
+    resize();
+    balls = [];
+    particles = [];
+    explodedCount = 0;
+    explodedGoodCount = 0;
+    initialBombs = 0;
+    bumperHits = 0;
+    extraSpawnsRequested = 0;
+    mazeReshuffles = 0;
+    ruleImpulsivityClicks = 0;
+    sessionStartTime = Date.now();
+    gx = 0; gy = 0.35;
+
+    randomizeBumpers();
+    spawnBalls(12);
+    updateHud();
+}
+
+// ── SPAWN PALLINE NEL BOX CENTRALE ───────────────────────────
+function spawnBalls(n, isExtra = false) {
+    resize();
+    const W = Math.max(280, canvas.width);
+    if (isExtra) extraSpawnsRequested++;
+
+    for (let i = 0; i < n; i++) {
+        const isBomb = Math.random() < 0.28;
+        if (isBomb) initialBombs++;
+        const emoji  = isBomb ? BOMB_EMOJI : GOOD_EMOJIS[Math.floor(Math.random()*GOOD_EMOJIS.length)];
+        
+        const x = 40 + Math.random() * (W - 80);
+        const y = 30 + Math.random() * 60;
+        balls.push(makeBall(x, y, emoji, isBomb));
+    }
+    if (isExtra) {
+        playPopSound();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    }
+    updateHud();
+}
+
+// ── SINTETIZZATORE AUDIO PROCEDURALE (ZzFX / Web Audio Engine) ──
+let audioCtx = null;
+function getAudioContext() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+// 1. Suono Bumper Metallico Elastico (Boing/Plink)
+let lastBumperSoundTime = 0;
+function playBumperSound(sizeRatio = 1) {
+    const now = Date.now();
+    if (now - lastBumperSoundTime < 45) return; // Throttling per evitare sovrapposizioni
+    lastBumperSoundTime = now;
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        const baseFreq = 400 / sizeRatio;
+        osc.frequency.setValueAtTime(baseFreq, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.8, ctx.currentTime + 0.035);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 0.6, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.22, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+    } catch (e) {}
+}
+
+// 2. Suono Disinnesco Pulito Bomba (Laser Ping Cristallino)
+function playDefuseSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(620, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1240, ctx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.16);
+    } catch (e) {}
+}
+
+// 3. Suono Esplosione Bomba & Danno Collaterale (Heavy Boom Burst)
+function playExplosionSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(25, ctx.currentTime + 0.32);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.32);
+    } catch (e) {}
+}
+
+// 4. Suono Pop Spawn Nuove Palline
+function playPopSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(280, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(560, ctx.currentTime + 0.06);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.06);
+    } catch (e) {}
+}
+
+// 5. Suono Dado Rimescola Bumpers (Swoosh)
+function playDiceSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(500, ctx.currentTime + 0.05);
+        osc.frequency.linearRampToValueAtTime(250, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+    } catch (e) {}
+}
+
+// 6. Suono Errore Lucchetto Chiuso (Buzz)
+function playBuzzSound() {
+    try {
+        const ctx = getAudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(110, ctx.currentTime);
+        gain.gain.setValueAtTime(0.22, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+    } catch (e) {}
+}
+
+// 7. Suono Vittoria / Riscatto Finale (Fanfara)
+function playVictorySound() {
+    try {
+        const ctx = getAudioContext();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((f, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.08);
+            gain.gain.setValueAtTime(0.22, ctx.currentTime + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.28);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.08);
+            osc.stop(ctx.currentTime + i * 0.08 + 0.28);
+        });
+    } catch (e) {}
+}
+
+// 8. Screen Shake Visivo su Esplosione Danno Collaterale
+function triggerScreenShake() {
+    const el = document.getElementById('canvas-container');
+    if (el) {
+        el.style.transform = `translate(${(Math.random()-0.5)*12}px, ${(Math.random()-0.5)*12}px)`;
+        setTimeout(() => { el.style.transform = 'none'; }, 90);
+    }
+}
+
+// ── CALCOLO PUNTEGGIO FORMULA: Emoji - (bombe - (bombe - emojiesplose)) ──
+function calculateScore() {
+    const aliveGood = balls.filter(b => b.alive && !b.isBomb).length;
+    const penalty = initialBombs - (initialBombs - explodedGoodCount);
+    const score = Math.max(0, aliveGood - penalty);
+    return { aliveGood, penalty, score };
+}
+
+// ── MOTORE PSICOMETRICO SEMANTICO ESSENZIALE (SiTeBoS Engine) ──
+function evaluateSemanticProfile(data) {
+    const tags = new Set();
+    const behavioralDescriptors = [];
+
+    const {
+        patienceScore,
+        collateralRate,
+        extraSpawns,
+        ruleClicks,
+        reshuffles,
+        hitsPerSec,
+        durationSec
+    } = data;
+
+    // ─────────────────────────────────────────────────────────
+    // 1. BISOGNO DI SICUREZZA E CONTROLLO (Certainty & Safety)
+    // ─────────────────────────────────────────────────────────
+    const protectionScore = Math.max(0, 1 - collateralRate) * 40;
+    const riskRefusalScore = (extraSpawns === 0 ? 30 : Math.max(0, 30 - extraSpawns * 10));
+    const complianceScore = (ruleClicks === 0 ? 30 : Math.max(0, 30 - ruleClicks * 10));
+    const certaintyScore = Math.round(protectionScore + riskRefusalScore + complianceScore); // 0 - 100
+
+    if (certaintyScore >= 80) {
+        tags.add("Bisogno Sicurezza Assoluto");
+        tags.add("Avversione Agli Imprevisti");
+        tags.add("Ricerca Garanzie Forti");
+        behavioralDescriptors.push("necessita di controllo totale e azzeramento dei margini di errore");
+    } else if (certaintyScore >= 50) {
+        tags.add("Rischio Calcolato");
+        tags.add("Pragmatismo Operativo");
+        behavioralDescriptors.push("disponibile a tollerare variabilità se compensata da un chiaro valore");
+    } else {
+        tags.add("Alta Tolleranza Rischio");
+        tags.add("Flessibilità Agli Imprevisti");
+        behavioralDescriptors.push("bassa ansia da controllo e apertura a dinamiche non convenzionali");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 2. PROPENSIONE ALL'ABBONDANZA / UPSELL (Greed & Expansion)
+    // ─────────────────────────────────────────────────────────
+    const upsellGreedScore = Math.min(100, extraSpawns * 33);
+    if (extraSpawns >= 3) {
+        tags.add("Massimizzatore Attivo");
+        tags.add("Forte Propensione Upsell");
+        tags.add("Sensibile Agli Add-on");
+        behavioralDescriptors.push("orientato all'abbondanza con spiccata attrazione per opportunità extra");
+    } else if (extraSpawns === 0) {
+        tags.add("Profilo Conservativo");
+        tags.add("Soddisfatto Del Base");
+        behavioralDescriptors.push("orientato alla preservazione delle risorse senza dispersione");
+    } else {
+        tags.add("Calibratore Bilanciato");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 3. PAZIENZA TATTICA & RITMO DECISIONALE
+    // ─────────────────────────────────────────────────────────
+    let communicationStyle = "COLLOQUIALE_PROFESSIONALE";
+    if (patienceScore >= 80) {
+        tags.add("Pazienza Tattica Elevata");
+        tags.add("Focus Analitico");
+        tags.add("Riflessivo");
+        communicationStyle = "FORMALE_STRUTTURATO";
+        behavioralDescriptors.push("capacità di attesa attiva del momento opportuno prima dell'azione");
+    } else if (patienceScore < 50) {
+        tags.add("Alta Urgenza Operativa");
+        tags.add("Bassa Tolleranza Stallo");
+        tags.add("Decisione Rapida");
+        communicationStyle = "SINTETICO_DRITTO_AL_SODO";
+        behavioralDescriptors.push("risolve rapidamente le situazioni accettando margini di perdita");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 4. ADESIONE ALLE REGOLE & COMPLIANCE
+    // ─────────────────────────────────────────────────────────
+    const ruleComplianceScore = Math.max(0, 100 - ruleClicks * 30);
+    if (ruleClicks >= 3) {
+        tags.add("Insofferente Ai Vincoli");
+        tags.add("Forzatore Di Processo");
+        behavioralDescriptors.push("tendenza a testare i limiti del sistema e aggirare i passaggi formali");
+    } else if (ruleClicks === 0) {
+        tags.add("Rigorosa Adesione Regole");
+        tags.add("Compliance Nativa");
+        behavioralDescriptors.push("pieno rispetto delle sequenze stabilite prima di agire");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 5. TENSIONE MOTORIA E STATO DI ALLERTA (Somatic Tension)
+    // ─────────────────────────────────────────────────────────
+    const somaticRelaxationScore = hitsPerSec > 4.2 ? 30 : (hitsPerSec > 2.0 ? 65 : 95);
+    if (hitsPerSec > 4.2) {
+        tags.add("Agitazione Motoria Rilevata");
+        tags.add("Stato Allerta Pre-Visita");
+        behavioralDescriptors.push("micromovimenti nervosi e tensione fisica nell'interazione");
+    } else {
+        tags.add("Stato Rilassato");
+        behavioralDescriptors.push("interazione motoria fluida e distesa");
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // SINTESI ARCHETIPICA
+    // ─────────────────────────────────────────────────────────
+    let primaryArchetype = "PRAGMATICO_EQUILIBRATO";
+    if (certaintyScore >= 80 && extraSpawns >= 3) {
+        primaryArchetype = "MAXIMIZER_STRATEGICO_SICURO";
+    } else if (certaintyScore >= 80) {
+        primaryArchetype = "DIFENSORE_DEL_CAPITALE";
+    } else if (extraSpawns >= 3 && patienceScore < 60) {
+        primaryArchetype = "OPPORTUNISTA_IMPULSIVO";
+    } else if (patienceScore >= 80) {
+        primaryArchetype = "ANALITICO_PERFEZIONISTA";
+    }
+
+    return {
+        primary_archetype: primaryArchetype,
+        communication_style: communicationStyle,
+        
+        // Punteggi Quantitativi Assoluti (0 - 100)
+        metrics_scores: {
+            certainty_and_safety_score: certaintyScore,
+            tactical_patience_score: patienceScore,
+            upsell_greed_score: upsellGreedScore,
+            rule_compliance_score: ruleComplianceScore,
+            somatic_relaxation_score: somaticRelaxationScore
+        },
+        
+        // Tag Semantici Puliti
+        semantic_tags: Array.from(tags),
+        
+        // Descrittori di Comportamento
+        behavioral_descriptors: behavioralDescriptors
+    };
+}
+
+// ── PAYLOAD PSICOMETRICO SCIENTIFICO (Per Reception Gemini Staff) ──
+function getExtractionPayload() {
+    const aliveGood  = balls.filter(b => b.alive && !b.isBomb).length;
+    const aliveBombs = balls.filter(b => b.alive && b.isBomb).length;
+    const defused    = Math.max(0, initialBombs - aliveBombs);
+    const { score }  = calculateScore();
+
+    const elapsedSeconds = Math.max(1, Math.floor((Date.now() - sessionStartTime) / 1000));
+    const mm = String(Math.floor(elapsedSeconds / 60)).padStart(2, '0');
+    const ss = String(elapsedSeconds % 60).padStart(2, '0');
+
+    // Parametri grezzi per il Tagger Semantico
+    const collateralRate = Number((explodedGoodCount / Math.max(1, initialBombs)).toFixed(2));
+    const patienceScore = Math.max(0, Math.min(100, Math.round((1 - (explodedGoodCount / Math.max(1, initialBombs * 1.2))) * 100)));
+    const hitsPerSec = Number((bumperHits / elapsedSeconds).toFixed(1));
+
+    // Valutazione Profilo Semantico Multi-Livello
+    const semanticProfile = evaluateSemanticProfile({
+        patienceScore: patienceScore,
+        collateralRate: collateralRate,
+        extraSpawns: extraSpawnsRequested,
+        ruleClicks: ruleImpulsivityClicks,
+        reshuffles: mazeReshuffles,
+        hitsPerSec: hitsPerSec,
+        durationSec: elapsedSeconds
+    });
+
+    return {
+        session_id: `SITEBOS_SESS_${sessionStartTime}`,
+        game_id: "pachinko_rescue",
+        game_title: "Pachinko Rescue",
+        timestamp: new Date().toISOString(),
+        
+        // Motore Semantico Multi-Livello
+        semantic_profile: semanticProfile,
+
+        // Indicatori Grezzi di Gioco
+        raw_kpis: {
+            score: score,
+            rewards_saved: aliveGood,
+            rewards_lost: explodedGoodCount,
+            bombs_defused: defused,
+            bombs_remaining: aliveBombs,
+            bombs_initial: initialBombs,
+            bumper_hits: bumperHits,
+            hits_per_second: hitsPerSec,
+            extra_spawns_requested: extraSpawnsRequested,
+            maze_reshuffles: mazeReshuffles,
+            rule_violations_attempted: ruleImpulsivityClicks,
+            session_duration_sec: elapsedSeconds,
+            formatted_time: `${mm}:${ss}`
+        },
+        game_status: aliveBombs === 0 ? "AREA_BONIFICATA" : "COMBATTIMENTO_IN_CORSO",
+        formula_applied: "Premi - (Bombe - (Bombe - Persi))"
+    };
+}
+
+// ── HUD & TRASMISSIONE TELEMETRIA LIVE ALLO SCHERMO 2 SEPARATO ──
+function updateHud() {
+    const aliveGood  = balls.filter(b => b.alive && !b.isBomb).length;
+    const aliveBombs = balls.filter(b => b.alive && b.isBomb).length;
+
+    // 1. Header HUD Schermo 1 (Minigioco)
+    const elGood = document.getElementById('good-count');
+    const elBomb = document.getElementById('bomb-count');
+    const elExpl = document.getElementById('exploded-count');
+
+    if (elGood) elGood.textContent = aliveGood;
+    if (elBomb) elBomb.textContent = aliveBombs;
+    if (elExpl) elExpl.textContent = explodedGoodCount;
+
+    // 2. Trasmissione Real-Time allo Schermo 2 (Radar Metriche Hub Esterno) & Persistenza
+    const payload = getExtractionPayload();
+    saveState(false);
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'GAME_TELEMETRY', telemetry: payload }, '*');
+    }
+
+    // 3. Pulsante Riscatta (Schermo 1)
+    const btnClaim  = document.getElementById('btn-claim');
+    const claimIcon = document.getElementById('claim-icon');
+    const claimText = document.getElementById('claim-text');
+
+    if (!btnClaim) return;
+
+    if (aliveBombs === 0 && aliveGood > 0) {
+        btnClaim.className = 'claim-ready';
+        claimIcon.textContent = '✨';
+        claimText.textContent = `RISCATTA PREMIO`;
+    } else if (aliveBombs > 0) {
+        btnClaim.className = 'claim-disabled';
+        claimIcon.textContent = '🔒';
+        claimText.textContent = `DISINNESCA LE BOMBE`;
+    } else {
+        btnClaim.className = 'claim-disabled';
+        claimIcon.textContent = '⚠️';
+        claimText.textContent = `NESSUN PREMIO RIMASTO`;
+    }
+}
+
+// ── TOAST AVVISO ─────────────────────────────────────────────
+function showToast(msg) {
+    const toast = document.getElementById('toast-alert');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        toast.classList.remove('show');
+    }, 2400);
+}
+
+// ── CLICK RISCATTA PREMIO ────────────────────────────────────
+function handleClaimClick() {
+    const aliveGood  = balls.filter(b => b.alive && !b.isBomb).length;
+    const aliveBombs = balls.filter(b => b.alive && b.isBomb).length;
+
+    if (aliveBombs > 0) {
+        ruleImpulsivityClicks++; // Registra tentativo forzato di riscatto a vuoto
+        updateHud();
+        showToast(`⚠️ Elimina prima tutte le ${aliveBombs} bombe in campo!`);
+        playBuzzSound();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        }
+        return;
+    }
+
+    if (aliveGood === 0) {
+        showToast(`⚠️ Nessun premio salvato da riscattare!`);
+        playBuzzSound();
+        return;
+    }
+
+    const { score } = calculateScore();
+    document.getElementById('modal-saved-count').textContent   = `${aliveGood} 😇`;
+    document.getElementById('modal-defused-count').textContent = `${initialBombs} 💣 (perse: ${explodedGoodCount} 💥)`;
+    document.getElementById('modal-reward-points').textContent = `+${score} ${score === 1 ? 'PUNTO' : 'PUNTI'}`;
+
+    document.getElementById('modal-claim').classList.add('show');
+    playVictorySound();
+
+    for (let i = 0; i < 35; i++) {
+        spawnParticles(canvas.width / 2, canvas.height / 2, Math.random() > 0.5 ? '#10b981' : '#f59e0b');
+    }
+
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+}
+
+function confirmClaimReward() {
+    const { score, aliveGood } = calculateScore();
+    totalClearedGames++;
+    totalAccumulatedPoints += score;
+    saveState();
+
+    const payload = getExtractionPayload();
+
+    if (window.parent) {
+        window.parent.postMessage({
+            type: 'MINIGAME_REWARD_CLAIMED',
+            game: 'pachinko_rescue',
+            reward: score,
+            savedCount: aliveGood,
+            explodedGoodCount: explodedGoodCount,
+            initialBombs: initialBombs,
+            telemetry: payload
+        }, '*');
+    }
+
+    document.getElementById('modal-claim').classList.remove('show');
+    buildMaze();
+}
+
+function closeModalAndReplay() {
+    document.getElementById('modal-claim').classList.remove('show');
+    buildMaze();
+}
+
+// ── Particelle ───────────────────────────────────────────────
+function spawnParticles(x, y, color) {
+    for (let i = 0; i < 18; i++) {
+        const angle = Math.random()*Math.PI*2;
+        const speed = 2 + Math.random()*5;
+        particles.push({
+            x, y,
+            vx: Math.cos(angle)*speed,
+            vy: Math.sin(angle)*speed,
+            life: 1, maxLife: 1,
+            color, r: 3 + Math.random()*5
+        });
+    }
+}
+
+// ── ESPLOSIONE / DISINNESCO BOMBA ────────────────────────────
+function tryExplodeBomb(px, py) {
+    let target = null;
+    let bestDist = Infinity;
+
+    balls.forEach(b => {
+        if (!b.alive || !b.isBomb) return;
+        const d = Math.hypot(b.x - px, b.y - py);
+        if (d < RADIUS * 1.8 && d < bestDist) {
+            bestDist = d;
+            target = b;
+        }
+    });
+
+    if (!target) return false;
+
+    const toDestroy = new Set();
+    toDestroy.add(target);
+
+    balls.forEach(b => {
+        if (!b.alive || b === target) return;
+        const d = Math.hypot(b.x - target.x, b.y - target.y);
+        if (d <= CONTACT_DIST) {
+            toDestroy.add(b);
+        }
+    });
+
+    let collateralLost = 0;
+    toDestroy.forEach(b => {
+        b.alive = false;
+        if (!b.isBomb) {
+            explodedGoodCount++;
+            collateralLost++;
+        }
+        const col = b.isBomb ? '#ef4444' : '#10b981';
+        spawnParticles(b.x, b.y, col);
+        explodedCount++;
+    });
+
+    balls = balls.filter(b => b.alive);
+    updateHud();
+
+    // Feedback Audio, Visivo & Haptic Differenziato:
+    if (collateralLost === 0) {
+        // Disinnesco Pulito!
+        playDefuseSound();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    } else {
+        // Danno Collaterale: Esplosione pesante + Screen Shake!
+        playExplosionSound();
+        triggerScreenShake();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+        }
+    }
+
+    return true;
+}
+
+// ── Collisione pallina ↔ Respingente Elastico Dorato (Bumper) ──
+function resolveBumper(ball, bumper) {
+    if (!ball.alive) return;
+    const dx = ball.x - bumper.x;
+    const dy = ball.y - bumper.y;
+    const d  = Math.hypot(dx, dy);
+    const minDist = ball.r + bumper.r;
+
+    if (d < minDist && d > 0) {
+        const overlap = minDist - d;
+        const ex = dx / d, ey = dy / d;
+        ball.x += ex * overlap;
+        ball.y += ey * overlap;
+
+        const dot = ball.vx * ex + ball.vy * ey;
+        const currentSpeed = Math.hypot(ball.vx, ball.vy);
+
+        // Se la pallina è ferma, appoggiata o incastrata a bassa velocità, smorza ed evita il loop infinito
+        if (currentSpeed < 0.65 && dot < 0.2) {
+            ball.vx *= 0.5;
+            ball.vy *= 0.5;
+            return;
+        }
+
+        // Calcola impulso di rimbalzo proporzionale alla velocità effettiva in arrivo
+        const bounceImpulse = Math.max(1.2, Math.abs(dot) * 1.3);
+        ball.vx = ex * bounceImpulse;
+        ball.vy = ey * bounceImpulse;
+
+        bumper.hitAnim = 1.0;
+        bumperHits++; // Registra urto per telemetria
+
+        // Suono Bumper & Vibrazione solo su impatto dinamico reale
+        if (currentSpeed > 0.8) {
+            playBumperSound(bumper.r / 17);
+            
+            for (let i = 0; i < 4; i++) {
+                particles.push({
+                    x: bumper.x + ex * bumper.r,
+                    y: bumper.y + ey * bumper.r,
+                    vx: (Math.random() - 0.5) * 3 + ex * 2,
+                    vy: (Math.random() - 0.5) * 3 + ey * 2,
+                    life: 0.6, maxLife: 0.6,
+                    color: '#f59e0b', r: 3
+                });
+            }
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+        }
+    }
+}
+
+// ── Collisione pallina ↔ pallina ────────────────────────────
+function resolveBalls(a, b) {
+    if (!a.alive || !b.alive) return;
+    const dx = b.x-a.x, dy = b.y-a.y;
+    const d  = Math.hypot(dx, dy);
+    if (d < a.r + b.r && d > 0) {
+        const overlap = (a.r + b.r - d) / 2;
+        const ex = dx/d, ey = dy/d;
+        a.x -= ex*overlap; a.y -= ey*overlap;
+        b.x += ex*overlap; b.y += ey*overlap;
+        const dvx = b.vx-a.vx, dvy = b.vy-a.vy;
+        const imp = (dvx*ex + dvy*ey) * 0.54;
+        if (imp < 0) {
+            a.vx += imp*ex; a.vy += imp*ey;
+            b.vx -= imp*ex; b.vy -= imp*ey;
+        }
+    }
+}
+
+// ── Physics step CON CLAMPING RIGIDO NEL BOX CENTRALE ────────
+function physicStep() {
+    const W = canvas.width, H = canvas.height;
+
+    balls.forEach(b => {
+        if (!b.alive) return;
+
+        b.vx += gx * 0.6;
+        b.vy += gy * 0.6;
+
+        b.vx *= 0.993;
+        b.vy *= 0.993;
+
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // Rimbalzo morbido sui 4 bordi del box centrale con quiete sul fondo
+        if (b.x < b.r)     { b.x = b.r;     b.vx = Math.abs(b.vx)*0.65; }
+        if (b.x > W - b.r) { b.x = W - b.r; b.vx = -Math.abs(b.vx)*0.65; }
+        if (b.y < b.r)     { b.y = b.r;     b.vy = Math.abs(b.vy)*0.65; }
+        if (b.y > H - b.r) { 
+            b.y = H - b.r; 
+            b.vy = -Math.abs(b.vy)*0.35; 
+            b.vx *= 0.92;
+            if (Math.abs(b.vy) < 0.25) b.vy = 0;
+            if (Math.abs(b.vx) < 0.08) b.vx = 0;
+        }
+
+        bumpers.forEach(bm => resolveBumper(b, bm));
+    });
+
+    for (let i=0; i<balls.length; i++) {
+        for (let j=i+1; j<balls.length; j++) {
+            resolveBalls(balls[i], balls[j]);
+        }
+    }
+
+    bumpers.forEach(bm => {
+        if (bm.hitAnim > 0) bm.hitAnim = Math.max(0, bm.hitAnim - 0.04);
+    });
+
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => {
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.vy += 0.15;
+        p.vx *= 0.94;
+        p.vy *= 0.94;
+        p.life -= 0.04;
+        p.r  *= 0.96;
+    });
+}
+
+// ── Draw ────────────────────────────────────────────────────
+function draw(now) {
+    const W = canvas.width, H = canvas.height;
+
+    ctx.clearRect(0, 0, W, H);
+    
+    // SFONDO PULITO CON PATTERN A MICRO-PUNTI MORBIDI
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = 'rgba(203, 213, 225, 0.4)';
+    const dotSpacing = 26;
+    for (let x = 20; x < W; x += dotSpacing) {
+        for (let y = 20; y < H; y += dotSpacing) {
+            ctx.beginPath();
+            ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    // 1. RENDERING DEGLI 8 POP BUMPERS DORATI (3 DIMENSIONI)
+    bumpers.forEach(bm => {
+        ctx.save();
+        const pulseScale = 1 + bm.hitAnim * 0.22;
+
+        if (bm.hitAnim > 0) {
+            ctx.beginPath();
+            ctx.arc(bm.x, bm.y, (bm.r + 9) * pulseScale, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(245, 158, 11, ${bm.hitAnim * 0.45})`;
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(bm.x, bm.y, bm.r * pulseScale, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(bm.x - 4, bm.y - 4, 2, bm.x, bm.y, bm.r);
+        grad.addColorStop(0, '#fef08a');
+        grad.addColorStop(0.5, '#f59e0b');
+        grad.addColorStop(1, '#b45309');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = '#78350f';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(bm.x, bm.y, bm.r * 0.38, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.restore();
+    });
+
+    // 2. PARTICELLE
+    particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+    });
+
+    // 3. PALLINE CON DISTINZIONE PREMI E BOMBE
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+
+    balls.forEach(b => {
+        if (!b.alive) return;
+
+        ctx.save();
+        if (b.isBomb) {
+            const pulse = Math.sin((now * 0.006) + b.pulseOffset) * 0.25 + 0.75;
+            
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r + 6 * pulse, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.25 * pulse})`;
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff1f2';
+            ctx.fill();
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 3.5;
+            ctx.shadowColor = 'rgba(220, 38, 38, 0.55)';
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+        } else {
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 2.8;
+            ctx.shadowColor = 'rgba(16, 185, 129, 0.35)';
+            ctx.shadowBlur = 8;
+            ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.font      = `bold ${b.r * 1.15 * 2}px sans-serif`;
+        ctx.fillStyle = '#000';
+        ctx.fillText(b.emoji, b.x, b.y + 1);
+    });
+}
+
+// ── Loop principale ─────────────────────────────────────────
+let lastTime = 0;
+let lastTimerSec = -1;
+function loop(now) {
+    const dt = now - lastTime;
+    lastTime = now;
+
+    if (dt < 100) {
+        physicStep();
+        draw(now);
+
+        // Streaming continuo della telemetria allo Schermo 2 esterno
+        const elapsedSec = Math.floor((Date.now() - sessionStartTime) / 1000);
+        if (elapsedSec !== lastTimerSec) {
+            lastTimerSec = elapsedSec;
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({ type: 'GAME_TELEMETRY', telemetry: getExtractionPayload() }, '*');
+            }
+        }
+    }
+
+    requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+// ── Input: Click / Tap ───────────────────────────────────────
+function getCanvasPos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches && e.touches.length ? e.touches[0].clientX : (e.clientX !== undefined ? e.clientX : 0);
+    const clientY = e.touches && e.touches.length ? e.touches[0].clientY : (e.clientY !== undefined ? e.clientY : 0);
+    const scaleX = canvas.width / (rect.width || canvas.width || 1);
+    const scaleY = canvas.height / (rect.height || canvas.height || 1);
+    return { 
+        x: (clientX - rect.left) * scaleX, 
+        y: (clientY - rect.top) * scaleY 
+    };
+}
+
+canvas.addEventListener('click',      e => { const p = getCanvasPos(e); tryExplodeBomb(p.x, p.y); });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); const p = getCanvasPos(e); tryExplodeBomb(p.x, p.y); }, { passive: false });
+
+// ── Tilt giroscopio mobile ───────────────────────────────────
+if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', e => {
+        if (e.gamma !== null && e.beta !== null) {
+            gx = Math.max(-1, Math.min(1, e.gamma / 35)) * 0.45;
+            gy = Math.max(-1, Math.min(1, -e.beta  / 35)) * 0.45 + 0.1;
+        }
+    });
+}
+
+// ── PostMessage (D-Pad esterno iframe) ──────────────────────
+window.addEventListener('message', e => {
+    const d = e.data;
+    if (!d || !d.type) return;
+    if (d.type === 'TILT_GRAVITY') {
+        gx = (d.gx || 0) * 0.35;
+        gy = (d.gy !== undefined ? d.gy : -0.6) * 0.35 + 0.1;
+    }
+    if (d.type === 'NEW_MAZE') {
+        mazeReshuffles++;
+        randomizeBumpers();
+        updateHud();
+    }
+    if (d.type === 'SPAWN_BALLS') {
+        spawnBalls(d.count || 4, true);
+    }
+});
+
+// ── Bottoni in-game ─────────────────────────────────────────
+// Il dado 🎲 rimescola la posizione degli 8 bumpers (3 Grandi, 3 Medi, 2 Piccolini)
+document.getElementById('btn-maze').addEventListener('click', () => {
+    mazeReshuffles++;
+    randomizeBumpers();
+    updateHud();
+});
+
+// Il tasto + spara nuove palline (Propensione al rischio / Greed)
+document.getElementById('btn-add').addEventListener('click', () => { 
+    spawnBalls(4, true); 
+});
+
+// ── Avvio ───────────────────────────────────────────────────
+loadSavedState();
+resize();
+buildMaze();
+window.addEventListener('load', () => {
+    resize();
+    if (balls.length === 0) buildMaze();
+});
+</script>
+</body>
+</html>

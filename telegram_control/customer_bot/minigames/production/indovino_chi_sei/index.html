@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Indovino chi sei! | Scopri i tuoi superpoteri e vinci premi</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #f8fafc;
+            overflow: hidden;
+            user-select: none;
+            touch-action: manipulation;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #app-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100vh;
+            padding: 8px 10px;
+            gap: 6px;
+        }
+
+        /* 1. Header HUD Unificato */
+        #game-header {
+            height: 42px;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            shrink-0;
+        }
+
+        .header-title-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-icon-badge {
+            width: 28px;
+            height: 28px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 900;
+            cursor: pointer;
+        }
+        .header-text-title {
+            font-size: 11.5px;
+            font-weight: 900;
+            color: #0f172a;
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+        .header-text-sub {
+            font-size: 8.5px;
+            font-weight: 700;
+            color: #64748b;
+        }
+        .badge-budget {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 900;
+            color: #d97706;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Sub-Header Navigation Tabs */
+        #view-tabs {
+            display: flex;
+            gap: 4px;
+            background: #ffffff;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 3px;
+            shrink-0;
+        }
+        .tab-btn {
+            flex: 1;
+            height: 26px;
+            border-radius: 8px;
+            font-size: 9.5px;
+            font-weight: 800;
+            border: none;
+            background: transparent;
+            color: #64748b;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.15s ease;
+        }
+        .tab-btn.active {
+            background: #ede9fe;
+            color: #6d28d9;
+            font-weight: 900;
+        }
+
+        /* 2. Box Centrale Stage */
+        #main-stage {
+            flex: 1;
+            min-height: 0;
+            width: 100%;
+            background: #ffffff;
+            border: 2.5px solid #94a3b8;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06), inset 0 2px 6px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 10px;
+            gap: 6px;
+        }
+
+        /* ── VISTA 1: HUB DEI 10 CAPITOLI ── */
+        #hub-stage {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            justify-content: space-between;
+            gap: 6px;
+            min-height: 0;
+        }
+
+        .hub-summary-card {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            shrink-0;
+        }
+        .hub-summary-title { font-size: 10.5px; font-weight: 900; color: #0f172a; }
+        .hub-summary-sub   { font-size: 8.5px; font-weight: 700; color: #64748b; }
+        .hub-summary-stat  { font-size: 11px; font-weight: 900; color: #6366f1; font-family: monospace; }
+
+        .hub-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-width: none;
+            padding-right: 1px;
+        }
+        .hub-cards-grid::-webkit-scrollbar { display: none; }
+
+        .module-card {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 14px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+            position: relative;
+            min-height: 64px;
+        }
+        .module-card:active { transform: scale(0.97); }
+        .module-card.completed {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        .module-card.active-set {
+            border-color: #8b5cf6;
+            background: #f5f3ff;
+        }
+        .mod-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+        .mod-card-num {
+            font-size: 8px;
+            font-weight: 900;
+            color: #64748b;
+            text-transform: uppercase;
+        }
+        .mod-card-status-badge {
+            font-size: 7.5px;
+            font-weight: 900;
+            padding: 2px 5px;
+            border-radius: 6px;
+            text-transform: uppercase;
+        }
+        .status-done { background: #dcfce7; color: #15803d; }
+        .status-todo { background: #f1f5f9; color: #64748b; }
+        .status-curr { background: #ede9fe; color: #6d28d9; }
+
+        .mod-card-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.2;
+            margin-bottom: 2px;
+        }
+        .mod-card-footer {
+            font-size: 7.5px;
+            font-weight: 700;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* ── MEGA PULSANTONE FINALE RISCATTO ── */
+        .btn-mega-claim {
+            width: 100%;
+            height: 44px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 900;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            transition: all 0.2s ease;
+            shrink-0;
+        }
+        .btn-mega-claim.locked {
+            background: #e2e8f0;
+            color: #64748b;
+            border: 1.5px solid #cbd5e1;
+            cursor: pointer;
+        }
+        .btn-mega-claim.unlocked {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+        @keyframes pulseGlow {
+            from { transform: scale(1); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); }
+            to   { transform: scale(1.02); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.7); }
+        }
+
+        /* ── VISTA 2: QUIZ STAGE (7 DOMANDE) ── */
+        #quiz-stage {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            justify-content: space-between;
+            gap: 6px;
+            min-height: 0;
+        }
+        .progress-track {
+            width: 100%;
+            height: 5px;
+            background: #f1f5f9;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+            shrink-0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #3b82f6, #06b6d4);
+            border-radius: 6px;
+            transition: width 0.3s ease;
+        }
+        .question-card {
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            shrink-0;
+        }
+        .step-label {
+            font-size: 8.5px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #6366f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+        .question-title {
+            font-size: 11.5px;
+            font-weight: 800;
+            color: #0f172a;
+            line-height: 1.35;
+            margin: 0;
+        }
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+            justify-content: center;
+            min-height: 0;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
+        .options-list::-webkit-scrollbar { display: none; }
+        .btn-opt {
+            width: 100%;
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 8px 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.15s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .btn-opt:active {
+            transform: scale(0.98);
+            border-color: #6366f1;
+            background: #f5f3ff;
+        }
+        .opt-letter {
+            width: 22px;
+            height: 22px;
+            border-radius: 7px;
+            background: linear-gradient(135deg, #8b5cf6, #6366f1);
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            shrink-0;
+        }
+        .opt-text {
+            font-size: 10.5px;
+            font-weight: 700;
+            color: #1e293b;
+            line-height: 1.2;
+        }
+
+        /* ── VISTA 3: SCHEDA "CHI SEI!" (3 STATI: BLOCCATO / ERRORE / SBLOCCATO) ── */
+        #chisei-stage {
+            display: none;
+            flex-direction: column;
+            width: 100%;
+            height: 100%;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            min-height: 0;
+        }
+
+        /* Stato Bloccato (meno di 10 capitoli) */
+        #chisei-locked-view {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 16px;
+            gap: 12px;
+        }
+        .lock-badge-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: 2px dashed #cbd5e1;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+        .lock-title { font-size: 15px; font-weight: 900; color: #0f172a; margin: 0; }
+        .lock-desc  { font-size: 11.5px; color: #64748b; font-weight: 600; line-height: 1.4; max-width: 260px; }
+
+        /* Stato Errore Webhook */
+        #chisei-error-view {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 16px;
+            gap: 12px;
+        }
+        .error-badge-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #fee2e2;
+            border: 2px solid #ef4444;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        /* Stato Sbloccato (10/10 & Webhook Successo) */
+        #chisei-active-content {
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+            min-height: 0;
+        }
+
+        /* Canvas 3D a Sfondo Bianco */
+        .canvas-chisei-wrapper {
+            width: 100%;
+            flex: 1;
+            min-height: 0;
+            background: #ffffff;
+            border-radius: 16px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #chisei-sphere-canvas { width: 100%; height: 100%; display: block; }
+        
+        .badge-archetype-chisei {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
+            padding: 4px 10px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 900;
+            color: #4338ca;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        }
+
+        /* Pill Nodi con Icone Grandi */
+        .dna-nodes-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 3.5px;
+            width: 100%;
+            shrink-0;
+        }
+        .node-pill {
+            background: #ffffff;
+            border: 1.5px solid #cbd5e1;
+            border-radius: 12px;
+            padding: 5px 2px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .node-icon-lg { font-size: 13px; margin-bottom: 1px; }
+        .node-label { font-size: 7.5px; font-weight: 800; color: #64748b; }
+        .node-val { font-size: 10px; font-weight: 900; font-family: monospace; }
+
+        /* Pulsante Scopri Chi Sei */
+        .btn-scopri-chisei {
+            width: 100%;
+            height: 42px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed, #9333ea);
+            color: #ffffff;
+            border: none;
+            border-radius: 14px;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 16px rgba(124, 58, 237, 0.35);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            shrink-0;
+            text-transform: uppercase;
+            animation: pulseGlowChisei 2s infinite alternate;
+        }
+        .btn-scopri-chisei:active {
+            transform: scale(0.97);
+        }
+        @keyframes pulseGlowChisei {
+            from { box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35); transform: scale(1); }
+            to   { box-shadow: 0 6px 22px rgba(147, 51, 234, 0.65); transform: scale(1.015); }
+        }
+
+        /* MODALE SCHEDA COMPLETA 'SCOPRI CHI SEI' */
+        #modal-reveal-profile {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.78);
+            backdrop-filter: blur(8px);
+            z-index: 250;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        #modal-reveal-profile.show {
+            display: flex;
+        }
+        .reveal-profile-card {
+            background: #ffffff;
+            border: 2px solid #e2e8f0;
+            border-radius: 24px;
+            padding: 20px 18px;
+            max-width: 360px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+        }
+        .reveal-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 1.5px solid #f1f5f9;
+            position: relative;
+            shrink-0;
+        }
+        .reveal-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+            border: 1.5px solid #c4b5fd;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            shrink-0;
+        }
+        .reveal-title-box {
+            flex: 1;
+            min-width: 0;
+        }
+        .reveal-subtitle {
+            font-size: 8.5px;
+            font-weight: 800;
+            color: #7c3aed;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+        .reveal-main-title {
+            margin: 2px 0 0 0;
+            font-size: 13px;
+            font-weight: 900;
+            color: #0f172a;
+            line-height: 1.25;
+        }
+        .btn-close-reveal {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: #64748b;
+            font-weight: 800;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            shrink-0;
+        }
+        .btn-close-reveal:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+        }
+        .reveal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 2px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scrollbar-width: none;
+        }
+        .reveal-body::-webkit-scrollbar { display: none; }
+        .reveal-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        .reveal-section-badge {
+            align-self: flex-start;
+            font-size: 8.5px;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+        .reveal-text {
+            font-size: 11.5px;
+            color: #334155;
+            line-height: 1.5;
+            margin: 0;
+        }
+        .reveal-superpowers-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .superpower-pill {
+            background: #fffbeb;
+            border: 1.5px solid #fef3c7;
+            border-left: 3.5px solid #f59e0b;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 11px;
+            color: #78350f;
+            line-height: 1.35;
+            font-weight: 600;
+        }
+        .reveal-tip-box {
+            background: #f0fdf4;
+            border: 1.5px solid #dcfce7;
+            border-left: 3.5px solid #10b981;
+            border-radius: 12px;
+            padding: 10px 12px;
+        }
+        .reveal-footer {
+            padding-top: 12px;
+            border-top: 1.5px solid #f1f5f9;
+            shrink-0;
+        }
+        .btn-reveal-action {
+            width: 100%;
+            height: 42px;
+            border-radius: 14px;
+            background: #0f172a;
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 900;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            letter-spacing: 0.4px;
+            transition: transform 0.1s ease;
+        }
+        .btn-reveal-action:active { transform: scale(0.97); }
+
+        .chisei-actions-row {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+            shrink-0;
+        }
+        .btn-action-quiz {
+            flex: 1;
+            height: 40px;
+            border-radius: 14px;
+            font-size: 11px;
+            font-weight: 900;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            transition: transform 0.1s ease;
+        }
+        .btn-action-quiz:active { transform: scale(0.97); }
+        .btn-continue-mod {
+            background: #ede9fe;
+            color: #6d28d9;
+            border: 1.5px solid #c4b5fd;
+        }
+        .btn-claim-all {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Overlay Scansione AI di Gemini */
+        #scanning-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border-radius: 20px;
+            text-align: center;
+            padding: 20px;
+        }
+        #scanning-overlay.show { display: flex; }
+        .spinner-scan {
+            width: 44px;
+            height: 44px;
+            border: 4px solid #e2e8f0;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Modale Riscatto Capitolo (+50 PT) */
+        #modal-claim {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            z-index: 200;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        #modal-claim.show { display: flex; }
+        .claim-card {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            border-radius: 24px;
+            padding: 22px 18px;
+            max-width: 320px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to   { transform: scale(1); opacity: 1; }
+        }
+        .badge-trophy {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+        }
+        .btn-modal-action {
+            width: 100%;
+            padding: 11px;
+            border-radius: 13px;
+            font-size: 12px;
+            font-weight: 800;
+            border: none;
+            cursor: pointer;
+            margin-top: 6px;
+            transition: transform 0.1s;
+        }
+        .btn-modal-action:active { transform: scale(0.96); }
+        .btn-confirm  { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 6px 18px rgba(16,185,129,0.35); }
+        .btn-next-mod { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; box-shadow: 0 6px 18px rgba(99,102,241,0.35); }
+    </style>
+</head>
+<body>
+
+<div id="app-layout">
+
+    <!-- 1. HEADER HUD UNIFICATO -->
+    <header id="game-header">
+        <div class="header-title-box">
+            <div class="header-icon-badge" onclick="switchView('chisei')" title="Scopri Chi sei!">✨</div>
+            <div>
+                <div id="header-mod-title" class="header-text-title">Indovino chi sei!</div>
+                <div id="header-mod-sub" class="header-text-sub">10 Tappe · +50 PT per Capitolo</div>
+            </div>
+        </div>
+        <div class="badge-budget">
+            <span>🏆</span>
+            <span id="pts-display">+0 PT</span>
+        </div>
+    </header>
+
+    <!-- 2. NAVIGATION SUB-TABS -->
+    <div id="view-tabs">
+        <button id="tab-hub" class="tab-btn active" onclick="switchView('hub')">
+            <span>📋</span>
+            <span>I 10 Capitoli</span>
+        </button>
+        <button id="tab-quiz" class="tab-btn" onclick="switchView('quiz')">
+            <span>✏️</span>
+            <span id="tab-quiz-label">Domande</span>
+        </button>
+        <button id="tab-chisei" class="tab-btn" onclick="switchView('chisei')">
+            <span>✨</span>
+            <span>Chi sei!</span>
+        </button>
+    </div>
+
+    <!-- 3. STAGE CENTRALE DINAMICO -->
+    <main id="main-stage">
+        
+        <!-- OVERLAY ATTESA CHIAMATA WEBHOOK GEMINI -->
+        <div id="scanning-overlay">
+            <div class="spinner-scan"></div>
+            <div id="scanning-title" style="font-size: 13px; font-weight: 900; color: #1e1b4b;">Sto inviando le 70 risposte...</div>
+            <div id="scanning-desc" style="font-size: 10px; color: #64748b; max-width: 240px;">Gemini AI sta analizzando il tuo profilo sul server n8n. Attendere prego...</div>
+        </div>
+
+        <!-- ── VISTA 1: HUB DEI 10 CAPITOLI ── -->
+        <div id="hub-stage">
+            <!-- Summary Banner -->
+            <div class="hub-summary-card">
+                <div>
+                    <div class="hub-summary-title">Il tuo Viaggio in 10 Tappe</div>
+                    <div id="hub-summary-sub" class="hub-summary-sub">Completa tutti i capitoli per sbloccare il premio finale!</div>
+                </div>
+                <div id="hub-summary-stat" class="hub-summary-stat">0 / 10</div>
+            </div>
+
+            <!-- Griglia delle 10 Card -->
+            <div id="hub-cards-grid" class="hub-cards-grid"></div>
+
+            <!-- IL PULSANTONE FINALE RISCATTA PREMIO TOTALE -->
+            <button id="btn-mega-claim" onclick="handleMegaClaimClick()" class="btn-mega-claim locked">
+                <span id="mega-claim-icon">🔒</span>
+                <span id="mega-claim-text">SBLOCCA IL PREMIO FINALE (0/10)</span>
+            </button>
+        </div>
+
+        <!-- ── VISTA 2: QUIZ STAGE (7 DOMANDE) ── -->
+        <div id="quiz-stage">
+            <!-- Avanzamento Domande nel Modulo -->
+            <div class="progress-track">
+                <div id="quiz-progress-bar" class="progress-fill" style="width: 14%;"></div>
+            </div>
+
+            <!-- Scheda Domanda -->
+            <div class="question-card">
+                <div class="step-label">
+                    <span id="quiz-step-label">Domanda 1 di 7</span>
+                    <span id="quiz-badge-target" style="background: #ede9fe; color: #6d28d9; padding: 2px 6px; border-radius: 6px; font-size: 8px; font-weight: 900;">LA TUA SCELTA</span>
+                </div>
+                <h2 id="quiz-question-text" class="question-title">Caricamento domanda...</h2>
+            </div>
+
+            <!-- 4 Opzioni di Risposta -->
+            <div id="quiz-options-container" class="options-list"></div>
+        </div>
+
+        <!-- ── VISTA 3: SCHEDA "CHI SEI!" (3 STATI: BLOCCATO / ERRORE / SBLOCCATO) ── -->
+        <div id="chisei-stage">
+            
+            <!-- STATO A: BLOCCATO SE TEST INCOMPLETO (< 10 MODULI) -->
+            <div id="chisei-locked-view">
+                <div class="lock-badge-icon">🔒</div>
+                <h3 class="lock-title">SCHEDA "CHI SEI!" BLOCCATA</h3>
+                <p id="lock-desc-text" class="lock-desc">
+                    Hai completato 0 di 10 capitoli. Completa tutte le 70 domande per inviare i tuoi dati a Gemini AI e svelare il tuo profilo con +500 Punti!
+                </p>
+                <button onclick="resumeNextIncompleteModule()" class="btn-action-quiz btn-continue-mod" style="width: 220px;">
+                    <span>➡️ CONTINUA IL QUIZ</span>
+                </button>
+            </div>
+
+            <!-- STATO B: ERRORE SE WEBHOOK NON RAGGIUNGIBILE -->
+            <div id="chisei-error-view">
+                <div class="error-badge-icon">⚠️</div>
+                <h3 style="font-size: 14px; font-weight: 900; color: #b91c1c; margin: 0;">ERRORE DI CONNESSIONE</h3>
+                <p id="error-desc-text" style="font-size: 11px; color: #64748b; max-width: 260px; line-height: 1.35;">
+                    Impossibile raggiungere il server n8n per la valutazione di Gemini. Verifica la connessione e riprova.
+                </p>
+                <button onclick="triggerGeminiEvaluation()" class="btn-action-quiz btn-continue-mod" style="width: 200px;">
+                    <span>🔄 RIPROVA VALUTAZIONE</span>
+                </button>
+            </div>
+
+            <!-- STATO C: SBLOCCATO CON SUCCESSO (DATI RICEVUTI DA WEBHOOK) -->
+            <div id="chisei-active-content">
+                <div class="canvas-chisei-wrapper">
+                    <canvas id="chisei-sphere-canvas"></canvas>
+                    <div id="chisei-archetype-badge" class="badge-archetype-chisei">✨ IL TUO PROFILO</div>
+                </div>
+
+                <!-- Griglia dei 5 Tratti Interiori con Icone Grandi -->
+                <div class="dna-nodes-grid">
+                    <div class="node-pill">
+                        <span class="node-icon-lg">🧠</span>
+                        <span class="node-label">Mente</span>
+                        <span id="val-mente" class="node-val" style="color: #0284c7;">0%</span>
+                    </div>
+                    <div class="node-pill">
+                        <span class="node-icon-lg">❤️</span>
+                        <span class="node-label">Cuore</span>
+                        <span id="val-cuore" class="node-val" style="color: #e11d48;">0%</span>
+                    </div>
+                    <div class="node-pill">
+                        <span class="node-icon-lg">⚡</span>
+                        <span class="node-label">Energia</span>
+                        <span id="val-energia" class="node-val" style="color: #d97706;">0%</span>
+                    </div>
+                    <div class="node-pill">
+                        <span class="node-icon-lg">🛡️</span>
+                        <span class="node-label">Guardia</span>
+                        <span id="val-guardia" class="node-val" style="color: #059669;">0%</span>
+                    </div>
+                    <div class="node-pill">
+                        <span class="node-icon-lg">🌊</span>
+                        <span class="node-label">Flusso</span>
+                        <span id="val-flusso" class="node-val" style="color: #4f46e5;">0%</span>
+                    </div>
+                </div>
+
+                <!-- Pulsante Scopri Chi Sei -->
+                <button onclick="openProfileRevealModal()" class="btn-scopri-chisei">
+                    <span>✨ SCOPRI CHI SEI!</span>
+                    <i class="fas fa-sparkles" style="font-size: 13px; color: #fde047;"></i>
+                </button>
+
+                <!-- Azioni -->
+                <div class="chisei-actions-row">
+                    <button onclick="switchView('hub')" class="btn-action-quiz btn-continue-mod">
+                        <span>📋 I 10 Capitoli</span>
+                    </button>
+                    <button onclick="handleFinalDeskClaim()" class="btn-action-quiz btn-claim-all">
+                        <span>🎁 Ritira Premio (+500 PT)</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+<!-- MODALE COMPLETAMENTO CAPITOLO (+50 PT) -->
+<div id="modal-claim">
+    <div class="claim-card">
+        <div class="badge-trophy">🏆</div>
+        <h2 id="modal-mod-title" style="margin:0 0 4px 0; font-size: 18px; font-weight: 900; color: #0f172a;">OTTIMO LAVORO!</h2>
+        <p id="modal-mod-desc" style="margin:0 0 12px 0; font-size: 11.5px; color: #64748b; font-weight: 600;">Hai completato questo capitolo con successo!</p>
+        
+        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 14px; padding: 10px; margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 4px;">
+                <span>Capitolo Concluso:</span>
+                <span id="modal-set-name" style="color: #6366f1; font-weight: 900;">Set 1</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; color: #475569; margin-bottom: 4px;">
+                <span>Il tuo Cammino:</span>
+                <span id="modal-progress-count" style="color: #059669; font-weight: 900;">1 / 10 Fatto</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 900; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 5px; margin-top: 3px;">
+                <span>Punti Vinti:</span>
+                <span style="color: #d97706; font-size: 14px;">+50 PUNTI</span>
+            </div>
+        </div>
+
+        <button id="btn-modal-next" class="btn-modal-action btn-next-mod" onclick="modalNextModuleAction()">➡️ AVANTI AL PROSSIMO</button>
+        <button class="btn-modal-action btn-confirm" onclick="modalViewHubAction()">📋 I 10 CAPITOLI</button>
+    </div>
+</div>
+
+<!-- MODALE SCHEDA COMPLETA 'SCOPRI CHI SEI' -->
+<div id="modal-reveal-profile" onclick="if(event.target===this)closeProfileRevealModal()">
+    <div class="reveal-profile-card">
+        <div class="reveal-header">
+            <div class="reveal-avatar">🧠✨</div>
+            <div class="reveal-title-box">
+                <h2 id="modal-profile-title" class="reveal-main-title">✨ IL TUO PROFILO</h2>
+            </div>
+            <button onclick="closeProfileRevealModal()" class="btn-close-reveal">✕</button>
+        </div>
+
+        <div class="reveal-body">
+            <!-- Il Tuo Ritratto -->
+            <div class="reveal-section">
+                <div class="reveal-section-badge">💡 IL TUO RITRATTO</div>
+                <p id="modal-profile-desc" class="reveal-text">Caricamento del responso...</p>
+            </div>
+
+            <!-- I 3 Superpoteri / Talenti Naturali -->
+            <div id="modal-superpowers-section" class="reveal-section" style="display:none;">
+                <div class="reveal-section-badge" style="background:#fef3c7; color:#b45309; border-color:#fde68a;">💎 I TUOI 3 TALENTI NATURALI</div>
+                <div id="modal-profile-superpowers" class="reveal-superpowers-grid"></div>
+            </div>
+
+            <!-- Il Tuo Stile Con Gli Altri -->
+            <div id="modal-profile-rel-box" class="reveal-section" style="display:none;">
+                <div class="reveal-section-badge" style="background:#ede9fe; color:#6d28d9; border-color:#ddd6fe;">🤝 IL TUO STILE CON GLI ALTRI</div>
+                <p id="modal-profile-rel" class="reveal-text"></p>
+            </div>
+
+            <!-- Consiglio di Evoluzione -->
+            <div id="modal-profile-tip-box" class="reveal-tip-box" style="display:none;">
+                <div style="font-weight: 800; font-size: 11px; color: #047857; margin-bottom: 3px; display:flex; align-items:center; gap:4px;">
+                    <span>🌱 CONSIGLIO DI CRESCITA</span>
+                </div>
+                <p id="modal-profile-tip" style="margin:0; font-size: 11px; color: #065f46; line-height: 1.4; font-weight: 600;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="cx_quiz_softskills.js"></script>
+<script>
+/* ─────────────────────────────────────────────────────────────
+   INDOVINO CHI SEI! — SITEBOS PRODUCTION ENGINE
+   - 10 Tappe x 7 Domande (70 Domande Totali)
+   - Salvataggio totale e progressivo in LocalStorage
+   - Scheda "Chi sei!" bloccata fino a 10/10 moduli completati
+   - Chiamata webhook reale a soft_skill_selector (action: 'customer_evaluation')
+   - Valutazione reale da Gemini AI memorizzata prima dello sblocco
+   ───────────────────────────────────────────────────────────── */
+
+const STORAGE_KEY = 'SITEBOS_DNA_MODULES_STATE_V1';
+const WEBHOOK_EVAL_URL = 'https://prod.workflow.trinai.it/webhook/80d663ea-be4b-4d42-8cc1-05f4ada52ced';
+
+const QUIZ_SETS = (typeof CxQuizEngine !== 'undefined' && CxQuizEngine.getQuizSets) 
+    ? CxQuizEngine.getQuizSets() 
+    : [
+        { id: 'set_1', name: '🧘 Calma & Controllo', questions: [2, 35, 44, 57, 58, 67, 87], targetDim: '🛡️ Autocontrollo' },
+        { id: 'set_2', name: '💰 Scelte & Opportunità', questions: [1, 22, 33, 48, 54, 82, 97], targetDim: '🛡️ Sicurezza & 🧠 Logica' },
+        { id: 'set_3', name: '❤️ Ascolto & Amicizia', questions: [20, 27, 37, 49, 101, 52, 85], targetDim: '❤️ Empatia' },
+        { id: 'set_4', name: '🧠 Curiosità & Idee', questions: [14, 21, 40, 59, 41, 79, 92], targetDim: '🧠 Ragionamento' },
+        { id: 'set_5', name: '🔥 Coraggio & Sogni', questions: [12, 26, 38, 71, 78, 105, 93], targetDim: '⚡ Passione' },
+        { id: 'set_6', name: '🛡️ Lealtà & Valori', questions: [3, 50, 103, 104, 81, 109, 99], targetDim: '❤️ Cuore & 🛡️ Protezione' },
+        { id: 'set_7', name: '🌊 Flessibilità & Gioco', questions: [17, 23, 55, 60, 61, 70, 68], targetDim: '🌊 Spontaneità' },
+        { id: 'set_8', name: '⚡ Carisma & Grinta', questions: [18, 25, 31, 32, 66, 95, 89], targetDim: '⚡ Energia' },
+        { id: 'set_9', name: '🎯 Obiettivi & Precisione', questions: [15, 28, 34, 53, 77, 88, 98], targetDim: '🧠 Mente & 🌊 Metodo' },
+        { id: 'set_10', name: '🌐 L\'Istinto Puro', questions: [9, 30, 51, 62, 64, 75, 91], targetDim: '✨ Mix Completo' }
+    ];
+
+let state = {
+    currentSetIndex: 0,
+    currentQuestionIndex: 0,
+    completedSets: {},        // { set_1: true, ... }
+    earnedBonusPoints: 0,     // +50 PT per capitolo
+    accumulatedScores: { mente: 0, cuore: 0, energia: 0, guardia: 0, flusso: 0 },
+    choiceRationales: [],     // 70 scelte con testi e latenze
+    aiEvaluationResult: null, // Risposta generata da Gemini tramite webhook reale
+    sessionStartTime: Date.now()
+};
+
+let currentView = 'hub';
+let questionStartTimestamp = 0;
+
+// ── Persistenza Sicura su Cellulare (LocalStorage + Telegram CloudStorage) ─
+function loadSavedState() {
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (parsed && typeof parsed === 'object') {
+                state = { ...state, ...parsed };
+            }
+        }
+    } catch (e) {}
+
+    // Fallback/Sync aggiuntivo con Telegram CloudStorage se attivo su smartphone
+    if (window.Telegram?.WebApp?.CloudStorage) {
+        try {
+            window.Telegram.WebApp.CloudStorage.getItem(STORAGE_KEY, (err, cloudValue) => {
+                if (!err && cloudValue) {
+                    try {
+                        const parsedCloud = JSON.parse(cloudValue);
+                        if (parsedCloud && typeof parsedCloud === 'object') {
+                            // Se il CloudStorage contiene dati più recenti, aggiorna lo stato locale
+                            if ((parsedCloud.choiceRationales?.length || 0) >= (state.choiceRationales?.length || 0)) {
+                                state = { ...state, ...parsedCloud };
+                                saveState(false);
+                                if (currentView === 'hub') renderHubCards();
+                                else if (currentView === 'chisei') renderChiseiView();
+                            }
+                        }
+                    } catch (pe) {}
+                }
+            });
+        } catch (ce) {}
+    }
+}
+
+function saveState(syncCloud = true) {
+    try {
+        state.lastSavedTimestamp = new Date().toISOString();
+        const jsonStr = JSON.stringify(state);
+        localStorage.setItem(STORAGE_KEY, jsonStr);
+
+        // Salvataggio permanente nel CloudStorage Telegram dell'utente
+        if (syncCloud && window.Telegram?.WebApp?.CloudStorage) {
+            window.Telegram.WebApp.CloudStorage.setItem(STORAGE_KEY, jsonStr, (err) => {
+                if (err) console.warn("Telegram CloudStorage sync:", err);
+            });
+        }
+    } catch (e) {
+        console.error("Errore salvataggio persistenza:", e);
+    }
+}
+
+// ── Audio Web Audio Semplice ──────────────────────────────────
+let audioCtx = null;
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
+function playPopSound() {
+    try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(480, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(720, ctx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.05);
+    } catch (e) {}
+}
+
+function playFanfareSound() {
+    try {
+        const ctx = getAudioCtx();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((f, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.08);
+            gain.gain.setValueAtTime(0.22, ctx.currentTime + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.28);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.08);
+            osc.stop(ctx.currentTime + i * 0.08 + 0.28);
+        });
+    } catch (e) {}
+}
+
+function playBuzzSound() {
+    try {
+        const ctx = getAudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(120, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(80, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+    } catch (e) {}
+}
+
+// ── Switch Viste ──────────────────────────────────────────────
+function switchView(viewName) {
+    currentView = viewName;
+    
+    document.getElementById('hub-stage').style.display = (viewName === 'hub') ? 'flex' : 'none';
+    document.getElementById('quiz-stage').style.display = (viewName === 'quiz') ? 'flex' : 'none';
+    document.getElementById('chisei-stage').style.display = (viewName === 'chisei') ? 'flex' : 'none';
+
+    document.getElementById('tab-hub').classList.toggle('active', viewName === 'hub');
+    document.getElementById('tab-quiz').classList.toggle('active', viewName === 'quiz');
+    document.getElementById('tab-chisei').classList.toggle('active', viewName === 'chisei');
+
+    if (viewName === 'hub') {
+        renderHubCards();
+    } else if (viewName === 'quiz') {
+        renderQuestion();
+    } else if (viewName === 'chisei') {
+        renderChiseiView();
+    }
+}
+
+// ── Render Hub con 10 Card e Mega Pulsante ─────────────────────
+function renderHubCards() {
+    const grid = document.getElementById('hub-cards-grid');
+    if (!grid) return;
+
+    const completedCount = Object.keys(state.completedSets).length;
+    document.getElementById('hub-summary-stat').textContent = `${completedCount} / 10`;
+    document.getElementById('hub-summary-sub').textContent = `Punti accumulati: +${state.earnedBonusPoints} / 500 PT`;
+    document.getElementById('pts-display').textContent = `+${state.earnedBonusPoints} PT`;
+
+    grid.innerHTML = QUIZ_SETS.map((set, idx) => {
+        const isDone = state.completedSets[set.id];
+        const isCurr = idx === state.currentSetIndex;
+        let cardCls = 'module-card';
+        if (isDone) cardCls += ' completed';
+        if (isCurr && !isDone) cardCls += ' active-set';
+
+        return `
+            <div class="${cardCls}" onclick="startModuleFromHub(${idx})">
+                <div class="mod-card-top">
+                    <span class="mod-card-num">TAPPA ${idx + 1}</span>
+                    <span class="mod-card-status-badge ${isDone ? 'status-done' : (isCurr ? 'status-curr' : 'status-todo')}">
+                        ${isDone ? '✅ FATTO (+50 PT)' : (isCurr ? '⚡ IN CORSO' : 'DA FARE')}
+                    </span>
+                </div>
+                <div class="mod-card-title">${set.name}</div>
+                <div class="mod-card-footer">
+                    <span>${set.targetDim || '7 Scelte'}</span>
+                    <span>${isDone ? '✨' : '➡️ Inizia'}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const megaBtn = document.getElementById('btn-mega-claim');
+    const megaIcon = document.getElementById('mega-claim-icon');
+    const megaText = document.getElementById('mega-claim-text');
+
+    if (completedCount >= 10) {
+        megaBtn.className = 'btn-mega-claim unlocked';
+        megaIcon.textContent = '🎁';
+        megaText.textContent = `SVELA CHI SEI & RITIRA +500 PT!`;
+    } else {
+        megaBtn.className = 'btn-mega-claim locked';
+        megaIcon.textContent = '🔒';
+        megaText.textContent = `SBLOCCA IL PREMIO FINALE (${completedCount}/10)`;
+    }
+}
+
+function startModuleFromHub(setIndex) {
+    state.currentSetIndex = setIndex;
+    state.currentQuestionIndex = 0;
+    saveState();
+    switchView('quiz');
+}
+
+function resumeNextIncompleteModule() {
+    let nextIdx = 0;
+    for (let i = 0; i < QUIZ_SETS.length; i++) {
+        if (!state.completedSets[QUIZ_SETS[i].id]) {
+            nextIdx = i;
+            break;
+        }
+    }
+    state.currentSetIndex = nextIdx;
+    state.currentQuestionIndex = 0;
+    saveState();
+    switchView('quiz');
+}
+
+// ── Click Mega Pulsante Riscatto ─────────────────────────────
+function handleMegaClaimClick() {
+    const completedCount = Object.keys(state.completedSets).length;
+    if (completedCount < 10) {
+        playBuzzSound();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        }
+        alert(`🔒 Ti mancano ancora ${10 - completedCount} capitoli per completare tutte le 70 domande ed inviare i dati a Gemini AI per sbloccare i +500 Punti!`);
+        return;
+    }
+
+    switchView('chisei');
+}
+
+// ── Render Domanda Quiz ──────────────────────────────────────
+function renderQuestion() {
+    const currentSet = QUIZ_SETS[state.currentSetIndex];
+    if (!currentSet) return;
+
+    if (state.currentQuestionIndex >= currentSet.questions.length) {
+        completeCurrentModule();
+        return;
+    }
+
+    const qId = currentSet.questions[state.currentQuestionIndex];
+    const qData = (typeof CxQuizEngine !== 'undefined' && CxQuizEngine.getQuestionData) 
+        ? CxQuizEngine.getQuestionData(qId) 
+        : getFallbackQuestionData(qId);
+
+    document.getElementById('header-mod-title').textContent = `Tappa ${state.currentSetIndex + 1}/10: ${currentSet.name}`;
+    document.getElementById('tab-quiz-label').textContent = `Tappa ${state.currentSetIndex + 1}`;
+    document.getElementById('pts-display').textContent = `+${state.earnedBonusPoints} PT`;
+    
+    document.getElementById('quiz-step-label').textContent = `Domanda ${state.currentQuestionIndex + 1} di ${currentSet.questions.length}`;
+    document.getElementById('quiz-question-text').textContent = qData.scenario || qData.text;
+    document.getElementById('quiz-progress-bar').style.width = `${((state.currentQuestionIndex + 1) / currentSet.questions.length) * 100}%`;
+
+    const container = document.getElementById('quiz-options-container');
+    container.innerHTML = qData.captions.map((caption, i) => `
+        <button onclick="handleOptionSelect(${i})" class="btn-opt">
+            <span class="opt-letter">${String.fromCharCode(65 + i)}</span>
+            <span class="opt-text">${caption}</span>
+        </button>
+    `).join('');
+
+    questionStartTimestamp = performance.now();
+    dispatchTelemetry(false);
+}
+
+// ── Selezione Risposta con Tracciamento Razionale Esteso ───────
+function handleOptionSelect(optionIndex) {
+    const latency = Math.round(performance.now() - questionStartTimestamp);
+    playPopSound();
+
+    const currentSet = QUIZ_SETS[state.currentSetIndex];
+    const qId = currentSet.questions[state.currentQuestionIndex];
+    const qData = (typeof CxQuizEngine !== 'undefined' && CxQuizEngine.getQuestionData) 
+        ? CxQuizEngine.getQuestionData(qId) 
+        : getFallbackQuestionData(qId);
+    const mult = (optionIndex + 1) * 0.25;
+
+    const dimensionImpact = {};
+    Object.keys(qData.scores).forEach(dim => {
+        const delta = Math.round(qData.scores[dim] * mult);
+        dimensionImpact[dim] = delta;
+        state.accumulatedScores[dim] += delta;
+    });
+
+    const selectedOpt = qData.options?.[optionIndex] || {};
+    const rationaleEntry = {
+        module_id: currentSet.id,
+        module_name: currentSet.name,
+        module_index: state.currentSetIndex + 1,
+        question_index: state.currentQuestionIndex + 1,
+        question_id: qId,
+        question_scenario: qData.scenario || qData.text,
+        selected_caption: qData.captions[optionIndex],
+        selected_option_index: optionIndex,
+        selected_option_letter: String.fromCharCode(65 + optionIndex),
+        selected_value: selectedOpt.value || qData.captions[optionIndex],
+        selected_rationale_text: selectedOpt.text || '',
+        instruction_visual: qData.instructions?.[optionIndex] || '',
+        soft_skill: qData.softSkill || '',
+        characteristics: qData.characteristics || '',
+        latency_ms: latency,
+        dimension_impact: dimensionImpact,
+        timestamp: new Date().toISOString()
+    };
+
+    state.choiceRationales.push(rationaleEntry);
+    state.currentQuestionIndex++;
+    saveState();
+
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+
+    renderQuestion();
+}
+
+// ── Fine Capitolo (+50 PT) ───────────────────────────────────
+function completeCurrentModule() {
+    const currentSet = QUIZ_SETS[state.currentSetIndex];
+    const wasAlreadyCompleted = state.completedSets[currentSet.id];
+
+    if (!wasAlreadyCompleted) {
+        state.completedSets[currentSet.id] = true;
+        state.earnedBonusPoints += 50;
+    }
+
+    saveState();
+    playFanfareSound();
+
+    const completedCount = Object.keys(state.completedSets).length;
+    const isAllCompleted = completedCount >= QUIZ_SETS.length;
+
+    if (isAllCompleted) {
+        document.getElementById('modal-mod-title').textContent = "🎉 TUTTI I 10 CAPITOLI FATTI!";
+        document.getElementById('modal-mod-desc').textContent = "Hai risposto a tutte le 70 domande! Ora invia i dati a Gemini AI per svelare Chi sei e ritirare +500 Punti!";
+        document.getElementById('modal-set-name').textContent = "Tappa Finale 10/10";
+        document.getElementById('modal-progress-count').textContent = "10 / 10 (100%)";
+        document.getElementById('btn-modal-next').textContent = "✨ SVELA CHI SEI & RITIRA PREMIO!";
+    } else {
+        document.getElementById('modal-mod-title').textContent = "OTTIMO LAVORO!";
+        document.getElementById('modal-mod-desc').textContent = "Hai completato questo capitolo con successo!";
+        document.getElementById('modal-set-name').textContent = currentSet.name;
+        document.getElementById('modal-progress-count').textContent = `${completedCount} / 10 Fatto`;
+        document.getElementById('btn-modal-next').textContent = "➡️ AVANTI AL PROSSIMO";
+    }
+
+    document.getElementById('modal-claim').classList.add('show');
+
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+
+    dispatchTelemetry(true);
+}
+
+function modalNextModuleAction() {
+    document.getElementById('modal-claim').classList.remove('show');
+    const completedCount = Object.keys(state.completedSets).length;
+
+    // Se tutti i 10 moduli sono completati, apri direttamente la vista Chi sei!
+    if (completedCount >= QUIZ_SETS.length) {
+        switchView('chisei');
+        return;
+    }
+
+    let nextIdx = -1;
+    for (let i = 0; i < QUIZ_SETS.length; i++) {
+        const candidate = (state.currentSetIndex + 1 + i) % QUIZ_SETS.length;
+        if (!state.completedSets[QUIZ_SETS[candidate].id]) {
+            nextIdx = candidate;
+            break;
+        }
+    }
+
+    if (nextIdx === -1) {
+        switchView('chisei');
+        return;
+    }
+
+    state.currentSetIndex = nextIdx;
+    state.currentQuestionIndex = 0;
+    switchView('quiz');
+}
+
+function modalViewHubAction() {
+    document.getElementById('modal-claim').classList.remove('show');
+    switchView('hub');
+}
+
+// ── Render Vista "Chi sei!" Rigorosa (3 Stati Reali) ──────────
+function renderChiseiView() {
+    const completedCount = Object.keys(state.completedSets).length;
+    const lockedView = document.getElementById('chisei-locked-view');
+    const errorView  = document.getElementById('chisei-error-view');
+    const activeView = document.getElementById('chisei-active-content');
+
+    // STATO 1: BLOCCATO SE NON HA FINITO I 10 MODULI
+    if (completedCount < 10) {
+        lockedView.style.display = 'flex';
+        errorView.style.display = 'none';
+        activeView.style.display = 'none';
+        
+        document.getElementById('lock-desc-text').textContent = 
+            `Hai completato ${completedCount} di 10 capitoli (${state.choiceRationales.length}/70 domande). Per comporre la tua costellazione e ricevere la valutazione da Gemini AI devi prima completare tutti i capitoli!`;
+        return;
+    }
+
+    // STATO 2: SE TUTTI I 10 MODULI SONO COMPLETI MA NON ABBIAMO ANCORA LA RISPOSTA DEL WEBHOOK
+    if (!state.aiEvaluationResult) {
+        lockedView.style.display = 'none';
+        errorView.style.display = 'none';
+        activeView.style.display = 'none';
+        
+        // Lancia la chiamata reale al Webhook
+        triggerGeminiEvaluation();
+        return;
+    }
+
+    // STATO 3: SBLOCCATO CON SUCCESSO (DATI RICEVUTI DAL WEBHOOK E SALVATI IN LOCALSTORAGE)
+    lockedView.style.display = 'none';
+    errorView.style.display = 'none';
+    activeView.style.display = 'flex';
+
+    const dna = getNormalizedDnaScores();
+    document.getElementById('val-mente').textContent   = `${dna.mente}%`;
+    document.getElementById('val-cuore').textContent   = `${dna.cuore}%`;
+    document.getElementById('val-energia').textContent = `${dna.energia}%`;
+    document.getElementById('val-guardia').textContent = `${dna.guardia}%`;
+    document.getElementById('val-flusso').textContent  = `${dna.flusso}%`;
+
+    const rawEval = state.aiEvaluationResult;
+    const evalData = rawEval?.evaluation?.evaluation || rawEval?.evaluation || rawEval || {};
+    const upsellData = rawEval?.evaluation?.upsell_intelligence || rawEval?.upsell_intelligence || null;
+    
+    const titleText = evalData.title || evalData.archetype || evalData.primary_archetype || "✨ IL TUO PROFILO";
+    const descText = evalData.description || evalData.summary || evalData.ai_rationale || evalData.text || "Profilo in elaborazione...";
+
+    document.getElementById('chisei-archetype-badge').textContent = titleText;
+    
+    // Popolamento Modale Dettagliata 'Scopri Chi Sei'
+    const elModTitle = document.getElementById('modal-profile-title');
+    const elModDesc  = document.getElementById('modal-profile-desc');
+    const elModSpSec = document.getElementById('modal-superpowers-section');
+    const elModSpGrid = document.getElementById('modal-profile-superpowers');
+    const elModRelBox = document.getElementById('modal-profile-rel-box');
+    const elModRel   = document.getElementById('modal-profile-rel');
+    const elModTipBox = document.getElementById('modal-profile-tip-box');
+    const elModTip   = document.getElementById('modal-profile-tip');
+
+    if (elModTitle) elModTitle.textContent = titleText;
+    if (elModDesc)  elModDesc.textContent  = descText;
+
+    if (elModSpGrid && Array.isArray(evalData.superpoteri) && evalData.superpoteri.length > 0) {
+        elModSpGrid.innerHTML = evalData.superpoteri.map(p => `
+            <div class="superpower-pill">${p}</div>
+        `).join('');
+        if (elModSpSec) elModSpSec.style.display = 'flex';
+    } else if (elModSpSec) {
+        elModSpSec.style.display = 'none';
+    }
+
+    if (elModRel && evalData.stile_relazionale) {
+        elModRel.textContent = evalData.stile_relazionale;
+        if (elModRelBox) elModRelBox.style.display = 'flex';
+    } else if (elModRelBox) {
+        elModRelBox.style.display = 'none';
+    }
+
+    if (elModTip && evalData.consiglio_evoluzione) {
+        elModTip.textContent = evalData.consiglio_evoluzione;
+        if (elModTipBox) elModTipBox.style.display = 'block';
+    } else if (elModTipBox) {
+        elModTipBox.style.display = 'none';
+    }
+
+    initChiseiThreeJsScene(dna);
+    dispatchTelemetry(false);
+}
+
+// ── Gestione Modale Scheda Completa 'Scopri Chi Sei' ───────────
+function openProfileRevealModal() {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    }
+    const modal = document.getElementById('modal-reveal-profile');
+    if (modal) modal.classList.add('show');
+}
+
+function closeProfileRevealModal() {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+    const modal = document.getElementById('modal-reveal-profile');
+    if (modal) modal.classList.remove('show');
+}
+
+// ── Chiamata Reale al Webhook (action: 'customer_evaluation') ─
+async function triggerGeminiEvaluation() {
+    const overlay = document.getElementById('scanning-overlay');
+    const lockedView = document.getElementById('chisei-locked-view');
+    const errorView  = document.getElementById('chisei-error-view');
+    const activeView = document.getElementById('chisei-active-content');
+
+    overlay.classList.add('show');
+    lockedView.style.display = 'none';
+    errorView.style.display = 'none';
+    activeView.style.display = 'none';
+
+    const dna = getNormalizedDnaScores();
+    const facets = computeCharacterFacets(dna);
+
+    const payload = {
+        action: "customer_evaluation",
+        game_id: "dna_quiz_sphere",
+        total_questions: 70,
+        total_modules: 10,
+        completed_modules_count: Object.keys(state.completedSets).length,
+        accumulated_scores: state.accumulatedScores,
+        normalized_dna_scores: dna,
+        character_facets: facets,
+        choice_rationales: state.choiceRationales,
+        timestamp: new Date().toISOString()
+    };
+
+    try {
+        const response = await fetch(WEBHOOK_EVAL_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server ha risposto con codice di stato: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data) {
+            throw new Error("Risposta vuota ricevuta dal server.");
+        }
+
+        // Estrazione flessibile del formato di risposta
+        const evalPayload = data.evaluation || data.ai_evaluation || data.response || data.output || data;
+        state.aiEvaluationResult = evalPayload;
+        saveState();
+
+        overlay.classList.remove('show');
+        renderChiseiView();
+        playFanfareSound();
+
+    } catch (err) {
+        console.error("Errore chiamata Webhook n8n:", err);
+        overlay.classList.remove('show');
+        
+        // Mostra la schermata di errore reale: NON sblocca nulla senza risposta
+        lockedView.style.display = 'none';
+        activeView.style.display = 'none';
+        errorView.style.display = 'flex';
+        
+        document.getElementById('error-desc-text').textContent = 
+            `Errore di comunicazione col webhook n8n (${err.message || 'Server non raggiungibile'}). Nessun dato fittizio generato. Riprova per ricevere la valutazione reale di Gemini.`;
+        
+        playBuzzSound();
+    }
+}
+
+// ── Calcolo Sfaccettature del Carattere ───────────────────────
+function computeCharacterFacets(dna) {
+    return {
+        strategia_prudente: Math.round((dna.mente + dna.guardia) / 2),
+        spirito_innovativo: Math.round((dna.energia + dna.flusso) / 2),
+        cuore_leale: Math.round((dna.cuore + dna.guardia) / 2),
+        leadership_attiva: Math.round((dna.mente + dna.energia) / 2),
+        armonia_creativa: Math.round((dna.cuore + dna.flusso) / 2),
+        resilienza_positiva: Math.round((dna.guardia + dna.flusso) / 2)
+    };
+}
+
+// ── Riscatto Finale alla Desk Board ──────────────────────────
+function handleFinalDeskClaim() {
+    playFanfareSound();
+    dispatchTelemetry(true);
+    alert(`🎉 Complimenti!\nHai completato tutte le 70 domande e sincronizzato il tuo profilo "Chi sei!" con la reception!\nI tuoi +${state.earnedBonusPoints} Punti sono stati accreditati.`);
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+}
+
+// ── Three.js Scene a Sfondo Bianco con Icone sui Nodi ─────────
+let chiseiRenderer, chiseiScene, chiseiCamera, chiseiGroup;
+function initChiseiThreeJsScene(dna) {
+    const canvas = document.getElementById('chisei-sphere-canvas');
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    if (chiseiRenderer) chiseiRenderer.dispose();
+
+    chiseiRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    chiseiRenderer.setSize(canvas.clientWidth, canvas.clientHeight);
+    chiseiRenderer.setClearColor(0xffffff, 1);
+
+    chiseiScene = new THREE.Scene();
+    chiseiCamera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+    chiseiCamera.position.z = 3.6;
+
+    chiseiGroup = new THREE.Group();
+    chiseiScene.add(chiseiGroup);
+
+    const wireGeom = new THREE.IcosahedronGeometry(1.2, 1);
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0xc7d2fe, wireframe: true, transparent: true, opacity: 0.65 });
+    const wireMesh = new THREE.Mesh(wireGeom, wireMat);
+    chiseiGroup.add(wireMesh);
+
+    const nodes = [
+        { name: 'Mente',   icon: '🧠', pos: [0, 1.15, 0],        color: '#0284c7', score: dna.mente },
+        { name: 'Energia', icon: '⚡', pos: [1.1, 0.35, 0],     color: '#d97706', score: dna.energia },
+        { name: 'Guardia', icon: '🛡️', pos: [-1.1, 0.35, 0],    color: '#059669', score: dna.guardia },
+        { name: 'Cuore',   icon: '❤️', pos: [0.65, -0.95, 0.4],  color: '#e11d48', score: dna.cuore },
+        { name: 'Flusso',  icon: '🌊', pos: [-0.65, -0.95, -0.4], color: '#4f46e5', score: dna.flusso }
+    ];
+
+    nodes.forEach(n => {
+        const texCanvas = document.createElement('canvas');
+        texCanvas.width = 128;
+        texCanvas.height = 128;
+        const ctx = texCanvas.getContext('2d');
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(64, 64, 56, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 8;
+        ctx.strokeStyle = n.color;
+        ctx.stroke();
+
+        ctx.font = '54px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(n.icon, 64, 66);
+
+        const tex = new THREE.CanvasTexture(texCanvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: tex });
+        const sprite = new THREE.Sprite(spriteMat);
+        
+        const scale = 0.38 + (n.score / 100) * 0.22;
+        sprite.scale.set(scale, scale, 1);
+        sprite.position.set(...n.pos);
+        chiseiGroup.add(sprite);
+    });
+
+    for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+            const lineGeom = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(...nodes[i].pos),
+                new THREE.Vector3(...nodes[j].pos)
+            ]);
+            const lineMat = new THREE.LineBasicMaterial({ color: 0x818cf8, transparent: true, opacity: 0.35 });
+            const line = new THREE.Line(lineGeom, lineMat);
+            chiseiGroup.add(line);
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        chiseiGroup.rotation.y += 0.007;
+        chiseiGroup.rotation.x += 0.003;
+        chiseiRenderer.render(chiseiScene, chiseiCamera);
+    }
+    animate();
+}
+
+function getNormalizedDnaScores() {
+    const total = Object.values(state.accumulatedScores).reduce((a, b) => a + b, 0) || 1;
+    return {
+        mente: Math.min(100, Math.round((state.accumulatedScores.mente / total) * 100 * 2.5)),
+        cuore: Math.min(100, Math.round((state.accumulatedScores.cuore / total) * 100 * 2.5)),
+        energia: Math.min(100, Math.round((state.accumulatedScores.energia / total) * 100 * 2.5)),
+        guardia: Math.min(100, Math.round((state.accumulatedScores.guardia / total) * 100 * 2.5)),
+        flusso: Math.min(100, Math.round((state.accumulatedScores.flusso / total) * 100 * 2.5))
+    };
+}
+
+// ── Dispatch Telemetria NoSQL ────────────────────────────────
+function dispatchTelemetry(isRewardClaim = false) {
+    const dna = getNormalizedDnaScores();
+    const elapsedSec = Math.max(1, Math.floor((Date.now() - state.sessionStartTime) / 1000));
+    const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+    const ss = String(elapsedSec % 60).padStart(2, '0');
+    
+    const latencies = state.choiceRationales.map(r => r.latency_ms);
+    const avgLat = latencies.length > 0 ? Math.round(latencies.reduce((a,b)=>a+b, 0) / latencies.length) : 3000;
+
+    const payload = {
+        session_id: `SITEBOS_CHISEI_${state.sessionStartTime}`,
+        game_id: "dna_quiz_sphere",
+        game_title: "Indovino chi sei!",
+        timestamp: new Date().toISOString(),
+        character_facets: computeCharacterFacets(dna),
+        choice_rationales: state.choiceRationales,
+        ai_evaluation: state.aiEvaluationResult?.evaluation?.evaluation || state.aiEvaluationResult?.evaluation || state.aiEvaluationResult,
+        upsell_intelligence: state.aiEvaluationResult?.evaluation?.upsell_intelligence || state.aiEvaluationResult?.upsell_intelligence || null,
+        raw_telemetry: {
+            total_modules: QUIZ_SETS.length,
+            completed_modules_count: Object.keys(state.completedSets).length,
+            completed_modules_list: Object.keys(state.completedSets),
+            total_questions_answered: state.choiceRationales.length,
+            total_bonus_points: state.earnedBonusPoints,
+            average_latency_ms: avgLat,
+            normalized_dna_scores: dna,
+            session_duration_sec: elapsedSec,
+            formatted_time: `${mm}:${ss}`,
+            game_status: isRewardClaim ? "PREMIO_RISCATTATO" : (state.aiEvaluationResult ? "VALUTAZIONE_RICEVUTA" : "IN_PROGRESS")
+        }
+    };
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: isRewardClaim ? 'MINIGAME_REWARD_CLAIMED' : 'GAME_TELEMETRY',
+            game: 'indovino_chi_sei',
+            telemetry: payload,
+            reward: state.earnedBonusPoints
+        }, '*');
+    }
+}
+
+function getFallbackQuestionData(qId) {
+    return { scenario: `Domanda #${qId}`, captions: ["Opzione A", "Opzione B", "Opzione C", "Opzione D"], options: [], scores: { guardia: 10, mente: 10, cuore: 10, energia: 10, flusso: 10 } };
+}
+
+// ── Avvio Applicazione ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    loadSavedState();
+    switchView('hub');
+    dispatchTelemetry(false);
+});
+</script>
+</body>
+</html>

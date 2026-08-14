@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emoji Space Shooter | SiteBoS Gamification Suite</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #090d16;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            color: #0f172a;
+        }
+
+        /* Canvas & Banner */
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        #emotional-damage-banner {
+            position: absolute;
+            top: 50px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            background: #dc2626;
+            color: #ffffff;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 900;
+            font-size: 12px;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 24px rgba(220, 38, 38, 0.6);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s ease;
+            white-space: nowrap;
+            z-index: 30;
+        }
+        #emotional-damage-banner.show {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+        }
+        #modal-claim.show { display: flex; }
+        @keyframes popIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop { animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-900 flex flex-col h-screen overflow-hidden">
+
+<!-- ── 1. SCHERMATA INIZIALE IN STILE SITEBOS (BIANCO E NERO) ── -->
+<div id="screen-landing" class="fixed inset-0 z-50 bg-white flex flex-col justify-between p-4 overflow-y-auto">
+    <!-- Top Bar Brand SiteBoS -->
+    <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl px-4 py-2.5 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2 text-xs font-black tracking-wide text-slate-900">
+            <i class="fa-solid fa-rocket text-slate-900"></i>
+            <span>SITEBOS GAMING</span>
+        </div>
+        <span class="bg-slate-900 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+            V4.2 ARENA
+        </span>
+    </div>
+
+    <!-- Hero Title & Rules Badge -->
+    <div class="text-center my-3">
+        <div class="text-3xl mb-1.5">🛸✨</div>
+        <h1 class="text-xl font-black tracking-tight text-slate-950 uppercase">Emoji Space Shooter</h1>
+        <div class="text-xs font-black text-rose-600 uppercase mt-1 tracking-wider">
+            ALLE EMOJI NON SI SPARA!
+        </div>
+        <div class="text-[10.5px] font-bold text-emerald-600 mt-0.5 tracking-wide">
+            +1 PUNTO PER OGNI DECISIONE PRESA O LASCIATA
+        </div>
+    </div>
+
+    <!-- Tabella Regole Emozionali Stile Bianco e Nero SiteBoS -->
+    <div class="bg-white border-2 border-slate-200 rounded-2xl p-3.5 shadow-md">
+        <div class="flex justify-between items-center bg-slate-900 border border-slate-900 rounded-xl px-3 py-2 text-[9.5px] font-black uppercase tracking-wider mb-2.5 text-white">
+            <span class="flex-1 text-left text-sky-300 font-black">💥 CI SBATTI</span>
+            <span class="w-12 text-center text-slate-300 font-black">EMOJI</span>
+            <span class="flex-1 text-right text-sky-300 font-black">➡️ FAI PASSARE</span>
+        </div>
+
+        <!-- RIGA 1: VERDE -->
+        <div class="bg-slate-50 border-2 border-slate-200 border-l-4 border-l-emerald-500 rounded-xl p-2.5 mb-2 flex items-center justify-between gap-2 shadow-sm">
+            <div class="flex-1 flex flex-col gap-0.5 text-left text-[10.5px] font-bold leading-tight">
+                <span class="text-emerald-700">+Vita (+25% Scudo)</span>
+                <span class="text-emerald-700">+10s Tempo</span>
+                <span class="text-[9px] text-slate-500 font-semibold">Rallenta Sparo</span>
+            </div>
+            <div class="w-10 text-center text-2xl select-none">🟢</div>
+            <div class="flex-1 flex flex-col gap-0.5 text-right text-[10.5px] font-bold leading-tight">
+                <span class="text-rose-600">-50% Tempo</span>
+            </div>
+        </div>
+
+        <!-- RIGA 2: BLU -->
+        <div class="bg-slate-50 border-2 border-slate-200 border-l-4 border-l-sky-500 rounded-xl p-2.5 mb-2 flex items-center justify-between gap-2 shadow-sm">
+            <div class="flex-1 flex flex-col gap-0.5 text-left text-[10.5px] font-bold leading-tight">
+                <span class="text-sky-700">Rallenta Movimento</span>
+                <span class="text-[9px] text-slate-500 font-semibold">Rallenta Sparo</span>
+            </div>
+            <div class="w-10 text-center text-2xl select-none">🔵</div>
+            <div class="flex-1 flex flex-col gap-0.5 text-right text-[10.5px] font-bold leading-tight">
+                <span class="text-sky-700">Velocità Sparo 2X</span>
+                <span class="text-rose-600">-10% Scudo</span>
+            </div>
+        </div>
+
+        <!-- RIGA 3: ROSSA -->
+        <div class="bg-slate-50 border-2 border-slate-200 border-l-4 border-l-rose-500 rounded-xl p-2.5 mb-2.5 flex items-center justify-between gap-2 shadow-sm">
+            <div class="flex-1 flex flex-col gap-0.5 text-left text-[10.5px] font-bold leading-tight">
+                <span class="text-rose-600">Emotional Damage</span>
+                <span class="text-rose-600">3X Velocità Sparo</span>
+                <span class="text-[9px] text-slate-500 font-semibold">-20% Scudo</span>
+            </div>
+            <div class="w-10 text-center text-2xl select-none">🔴</div>
+            <div class="flex-1 flex flex-col gap-0.5 text-right text-[10.5px] font-bold leading-tight">
+                <span class="text-rose-600">-10s Tempo</span>
+                <span class="text-sky-700">Aumenta Movimento</span>
+            </div>
+        </div>
+
+        <div class="text-[10px] text-slate-600 text-center font-semibold mt-1">
+            <i class="fa-solid fa-meteor text-amber-500 mr-1"></i> I Laser distruggono solo gli asteroidi per liberare la rotta!
+        </div>
+    </div>
+
+    <!-- Bottom CTA Button Stile SiteBoS Nero/Bianco -->
+    <div class="mt-3">
+        <button onclick="startGameFromApp()" class="w-full h-12 bg-slate-900 hover:bg-black active:scale-[0.98] transition-all text-white text-xs font-black tracking-wider uppercase rounded-xl shadow-lg flex items-center justify-center gap-2.5 border-2 border-slate-900 cursor-pointer">
+            <i class="fa-solid fa-rocket text-sm text-sky-400"></i>
+            <span>INIZIA IL VOLO</span>
+            <i class="fa-solid fa-rocket text-sm text-sky-400"></i>
+        </button>
+    </div>
+</div>
+
+<!-- ── 2. SCHERMATA GAMEPLAY A TUTTO SCHERMO CON HUD AI 4 ANGOLI ── -->
+<div id="screen-game" class="relative w-full h-screen bg-slate-950 overflow-hidden">
+    <!-- Box Centrale Canvas a Tutto Schermo -->
+    <div id="canvas-container" class="w-full h-full relative cursor-grab active:cursor-grabbing">
+        <div id="emotional-damage-banner">💔 EMOTIONAL DAMAGE!</div>
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- ── HUD 4 ANGOLI DELLO SCHERMO ── -->
+        
+        <!-- 1. Angolo Top-Left: DECISIONI / PUNTI -->
+        <div class="absolute top-3 left-3 z-20 bg-slate-900/85 border border-slate-700/80 backdrop-blur-md rounded-2xl px-3 py-1.5 shadow-lg flex items-center gap-2 pointer-events-none">
+            <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+            <div>
+                <div class="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none">PUNTI</div>
+                <div id="ui-pts" class="text-sm font-black text-emerald-400 font-mono leading-tight">0 PT</div>
+            </div>
+        </div>
+
+
+        <!-- 3. Angolo Top-Right: COUNTDOWN TEMPO -->
+        <div class="absolute top-3 right-3 z-20 bg-slate-900/85 border border-slate-700/80 backdrop-blur-md rounded-2xl px-3 py-1.5 shadow-lg flex items-center gap-2 pointer-events-none text-right">
+            <div>
+                <div class="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none">TEMPO</div>
+                <div id="ui-time" class="text-sm font-black text-rose-500 font-mono leading-tight">01:00</div>
+            </div>
+            <div class="w-2 h-2 rounded-full bg-rose-500"></div>
+        </div>
+
+        <!-- 4. Angolo Bottom-Left: SCUDO DEFLETTORE -->
+        <div class="absolute bottom-3 left-3 z-20 bg-slate-900/85 border border-slate-700/80 backdrop-blur-md rounded-2xl px-3 py-1.5 shadow-lg flex items-center gap-2.5 pointer-events-none">
+            <i class="fa-solid fa-shield-halved text-sky-400 text-sm"></i>
+            <div>
+                <div class="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none">SCUDO</div>
+                <div id="ui-shield" class="text-sm font-black text-sky-400 font-mono leading-tight">100%</div>
+            </div>
+        </div>
+
+        <!-- 5. Angolo Bottom-Right: CADENZA DI FUOCO -->
+        <div class="absolute bottom-3 right-3 z-20 bg-slate-900/85 border border-slate-700/80 backdrop-blur-md rounded-2xl px-3 py-1.5 shadow-lg flex items-center gap-2.5 pointer-events-none text-right">
+            <div>
+                <div class="text-[8.5px] font-black text-slate-400 uppercase tracking-widest leading-none">FUOCO</div>
+                <div id="ui-mode" class="text-sm font-black text-amber-400 font-mono leading-tight">1.0X</div>
+            </div>
+            <i class="fa-solid fa-bolt text-amber-400 text-sm"></i>
+        </div>
+    </div>
+</div>
+
+<!-- ── 3. MODALE RISCATTO PREMIO & GAME OVER ── -->
+<div id="modal-claim" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden items-center justify-center p-4">
+    <div class="bg-white border-2 border-slate-200 rounded-3xl p-6 max-w-[320px] w-full text-center shadow-2xl animate-pop text-slate-900">
+        <div id="modal-icon" class="text-4xl mb-2">🧠✨</div>
+        <h2 id="modal-title" class="m-0 text-lg font-black text-slate-900">SESSIONE CONCLUSA!</h2>
+        <p id="modal-desc" class="mt-1 mb-4 text-xs text-slate-500 font-semibold">Hai navigato le correnti emotive spaziali trasformandole in valore e focus!</p>
+        
+        <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4 text-left">
+            <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                <span>Decisioni Totali:</span>
+                <span id="modal-score-count" class="text-emerald-600 font-black">0 DECISIONI</span>
+            </div>
+            <div class="flex justify-between text-sm font-black text-slate-900 border-t border-dashed border-slate-300 pt-2">
+                <span>Premio Portafoglio:</span>
+                <span id="modal-reward-points" class="text-amber-600 text-base font-black">+0 PUNTI</span>
+            </div>
+        </div>
+
+        <button onclick="closeClaimModal()" class="w-full h-11 bg-slate-900 hover:bg-black text-white text-xs font-black rounded-xl border-none cursor-pointer active:scale-95 transition-all shadow-md">
+            CONTINUA A VOLARE
+        </button>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+/* ─────────────────────────────────────────────────────────────
+   EMOJI SPACE SHOOTER — REGOLAMENTO ESATTO:
+   - ✨ Punteggio: +1 Punto Decisione per ogni interazione
+   - 🛡️ Scudo a 0% = DISTRUZIONE / GAME OVER IMMEDIATO!
+   - 🪨 Asteroidi Fitti: Fino a 16 rocce contemporanee per sfruttare il fuoco 3X!
+   - 🟢 VERDE:
+       • Ci Sbatti:   +Vita (+25% Scudo), +10s Tempo, Rallenta Sparo
+       • Fai Passare: -50% Tempo
+   - 🔵 BLU:
+       • Ci Sbatti:   Rallenta Movimento & Sparo (0.5X)
+       • Fai Passare: Velocità Sparo 2X, -10% Scudo
+   - 🔴 ROSSO:
+       • Ci Sbatti:   Emotional Damage, 3X Velocità Sparo, -20% Scudo
+       • Fai Passare: -10s Tempo, Aumenta Movimento (1.6X)
+   ───────────────────────────────────────────────────────────── */
+
+const STORAGE_KEY = 'SITEBOS_SPACE_SHOOTER_STATE_V1';
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('canvas-container');
+const elDamageBanner = document.getElementById('emotional-damage-banner');
+const screenLanding = document.getElementById('screen-landing');
+
+// Audio Synthesizer
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) {
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioClass) audioCtx = new AudioClass();
+    }
+}
+function playSoftLaser() {
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(560, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, audioCtx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.028, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+    } catch(e){}
+}
+function playExplodeSound() {
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(130, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    } catch(e){}
+}
+function playShieldHitSound() {
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(340, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch(e){}
+}
+function playChimeSound(freq = 680) {
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(freq * 1.5, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.09, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch(e){}
+}
+function playEmotionalDamageSound() {
+    if (!audioCtx) return;
+    try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(240, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+    } catch(e){}
+}
+
+function triggerEmotionalDamageBanner(text = '💔 EMOTIONAL DAMAGE!') {
+    if (!elDamageBanner) return;
+    elDamageBanner.textContent = text;
+    elDamageBanner.classList.add('show');
+    playEmotionalDamageSound();
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+    }
+    setTimeout(() => {
+        elDamageBanner.classList.remove('show');
+    }, 1400);
+}
+
+// Stato Gioco
+let width = 360, height = 560;
+let score = 0;
+let shotsFired = 0;
+let shotsHit = 0;
+let shieldHits = 0;
+
+// Metriche Emozionali
+let greenTaken = 0;
+let greenPassed = 0;
+let blueTaken = 0;
+let bluePassed = 0;
+let redTaken = 0;
+let redPassed = 0;
+
+// Countdown Timer (60s)
+let countdownSeconds = 60;
+let lastCountdownTick = Date.now();
+let isGameOver = false;
+let isGameRunning = false;
+
+// Velocità Sparo & Movimento Dinamica
+let baseShootInterval = 135;
+let currentShootInterval = 135;
+let fireRateMultiplier = 1.0;
+let moveSpeedMultiplier = 1.0;
+let fireRateTimer = 0;
+let lastShootTime = 0;
+
+const ship = {
+    x: 180,
+    y: 480,
+    w: 34,
+    h: 44,
+    vx: 0,
+    vy: 0,
+    tilt: 0,
+    targetX: 180,
+    targetY: 480,
+    shield: 100,
+    shieldFlash: 0
+};
+
+// Vettori di gioco
+const stars = [];
+const bullets = [];
+const asteroids = [];
+const emojis = [];
+const particles = [];
+const floatingTexts = [];
+
+// Palette Emoji
+const EMOJI_SETS = {
+    green: ['😄', '🤩', '😍', '🤑', '✨'],
+    blue:  ['😎', '🥶', '⚡', '😌', '🧘'],
+    red:   ['😡', '🤬', '😈', '💥', '🔥']
+};
+
+function initStars() {
+    stars.length = 0;
+    for (let i = 0; i < 120; i++) {
+        stars.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            size: Math.random() * 1.8 + 0.5,
+            speed: Math.random() * 2.6 + 1.2,
+            alpha: Math.random() * 0.7 + 0.3
+        });
+    }
+}
+
+// 🪨 Asteroidi Fitti (Massimo 16 contemporanei per sfruttare il 3X di fuoco!)
+function spawnAsteroid() {
+    if (!isGameRunning || asteroids.length >= 16) return;
+    const r = Math.random() * 18 + 12;
+    const numPts = 8;
+    const pts = [];
+    for (let i = 0; i < numPts; i++) {
+        const a = (i / numPts) * Math.PI * 2;
+        const dist = r * (0.75 + Math.random() * 0.45);
+        pts.push({ x: Math.cos(a) * dist, y: Math.sin(a) * dist });
+    }
+    asteroids.push({
+        x: Math.random() * (width - 40) + 20,
+        y: -35 - Math.random() * 80,
+        radius: r,
+        points: pts,
+        vx: (Math.random() - 0.5) * 0.9,
+        vy: Math.random() * 1.8 + 1.2,
+        angle: Math.random() * Math.PI * 2,
+        vRot: (Math.random() - 0.5) * 0.05,
+        hp: r > 22 ? 3 : (r > 16 ? 2 : 1),
+        hitCooldown: 0
+    });
+}
+
+function spawnEmoji() {
+    if (!isGameRunning || emojis.length >= 6) return;
+    const randType = Math.random();
+    let type = 'green';
+    let color = '#10b981';
+
+    if (randType < 0.38) {
+        type = 'green';
+        color = '#10b981';
+    } else if (randType < 0.70) {
+        type = 'blue';
+        color = '#38bdf8';
+    } else {
+        type = 'red';
+        color = '#f43f5e';
+    }
+
+    const set = EMOJI_SETS[type];
+    const char = set[Math.floor(Math.random() * set.length)];
+
+    emojis.push({
+        x: Math.random() * (width - 60) + 30,
+        y: -30 - Math.random() * 40,
+        type: type,
+        char: char,
+        color: color,
+        radius: 20,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: Math.random() * 1.4 + 1.6,
+        pulse: 0
+    });
+}
+
+function resizeCanvas() {
+    width = container.clientWidth || window.innerWidth || 360;
+    height = container.clientHeight || window.innerHeight || 560;
+    canvas.width = width;
+    canvas.height = height;
+    if (ship.x === 180 && ship.y === 480) {
+        ship.x = width / 2;
+        ship.y = height - 90;
+        ship.targetX = ship.x;
+        ship.targetY = ship.y;
+    }
+    initStars();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// Input Pointer
+let isPointerDown = false;
+const touchOffset = 50;
+
+function handlePointer(clientX, clientY) {
+    if (!isGameRunning) return;
+    initAudio();
+    const rect = canvas.getBoundingClientRect();
+    const px = clientX - rect.left;
+    const py = clientY - rect.top;
+
+    ship.targetX = Math.max(20, Math.min(width - 20, px));
+    ship.targetY = Math.max(40, Math.min(height - 40, py - touchOffset));
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+    isPointerDown = true;
+    handlePointer(e.clientX, e.clientY);
+});
+canvas.addEventListener('pointermove', (e) => {
+    if (isPointerDown || e.buttons > 0) {
+        handlePointer(e.clientX, e.clientY);
+    }
+});
+window.addEventListener('pointerup', () => { isPointerDown = false; });
+window.addEventListener('pointercancel', () => { isPointerDown = false; });
+
+const keys = {};
+window.addEventListener('keydown', (e) => {
+    if (!isGameRunning) return;
+    initAudio();
+    keys[e.code] = true;
+});
+window.addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+});
+
+function fireLaser() {
+    if (!isGameRunning) return;
+    shotsFired += 2;
+    playSoftLaser();
+    bullets.push({ x: ship.x - 10, y: ship.y - 18, vy: -14 });
+    bullets.push({ x: ship.x + 10, y: ship.y - 18, vy: -14 });
+    dispatchTelemetry();
+}
+
+function createExplosion(x, y, color = '#f97316', count = 18) {
+    for (let i = 0; i < count; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 4.5 + 1.5;
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(a) * spd,
+            vy: Math.sin(a) * spd,
+            radius: Math.random() * 3 + 1.5,
+            color: color,
+            alpha: 1,
+            decay: Math.random() * 0.03 + 0.02
+        });
+    }
+}
+
+// 💀 GAME OVER su Scudo a 0%
+function triggerShipDestroyed() {
+    isGameOver = true;
+    isGameRunning = false;
+    createExplosion(ship.x, ship.y, '#ef4444', 36);
+    createExplosion(ship.x, ship.y, '#f97316', 24);
+    triggerEmotionalDamageBanner('💥 NAVE DISTRUTTA! SCUDO A 0%');
+    
+    setTimeout(() => {
+        const modal = document.getElementById('modal-claim');
+        const elIcon = document.getElementById('modal-icon');
+        const elTitle = document.getElementById('modal-title');
+        const elDesc = document.getElementById('modal-desc');
+        const elScore = document.getElementById('modal-score-count');
+
+        if (elIcon) elIcon.textContent = '💥🛸';
+        if (elTitle) elTitle.textContent = 'NAVE DISTRUTTA!';
+        if (elDesc) elDesc.textContent = 'Il tuo scudo deflettore ha ceduto. Ottima navigazione e prontezza!';
+        if (elScore) elScore.textContent = `${score} DECISIONI`;
+        const elReward = document.getElementById('modal-reward-points');
+        if (elReward) elReward.textContent = `+${score} PUNTI`;
+        if (modal) modal.classList.add('show');
+        
+        dispatchTelemetry(true);
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+        }
+    }, 700);
+}
+
+// Loop di Gioco Principale
+function gameLoop() {
+    if (isGameOver) {
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
+    const now = Date.now();
+
+    // 1. Countdown Timer
+    if (isGameRunning && now - lastCountdownTick >= 1000) {
+        lastCountdownTick = now;
+        countdownSeconds--;
+        if (countdownSeconds <= 0) {
+            countdownSeconds = 0;
+            isGameOver = true;
+            isGameRunning = false;
+            claimReward();
+        }
+    }
+
+    // 2. Controllo Scudo a 0% -> Morte / Game Over
+    if (isGameRunning && ship.shield <= 0) {
+        ship.shield = 0;
+        triggerShipDestroyed();
+        return;
+    }
+
+    // 3. Timer Modificatore Velocità Sparo & Movimento
+    if (fireRateTimer > 0) {
+        fireRateTimer -= (1/60);
+        currentShootInterval = Math.round(baseShootInterval / fireRateMultiplier);
+        if (fireRateTimer <= 0) {
+            fireRateMultiplier = 1.0;
+            moveSpeedMultiplier = 1.0;
+            currentShootInterval = baseShootInterval;
+        }
+    } else {
+        fireRateMultiplier = 1.0;
+        moveSpeedMultiplier = 1.0;
+        currentShootInterval = baseShootInterval;
+    }
+
+    // 4. Movimento Nave
+    if (isGameRunning) {
+        const moveStep = 6 * moveSpeedMultiplier;
+        if (keys['ArrowLeft'] || keys['KeyA']) ship.targetX -= moveStep;
+        if (keys['ArrowRight'] || keys['KeyD']) ship.targetX += moveStep;
+        if (keys['ArrowUp'] || keys['KeyW']) ship.targetY -= moveStep;
+        if (keys['ArrowDown'] || keys['KeyS']) ship.targetY += moveStep;
+
+        ship.targetX = Math.max(22, Math.min(width - 22, ship.targetX));
+        ship.targetY = Math.max(40, Math.min(height - 40, ship.targetY));
+
+        const dx = ship.targetX - ship.x;
+        const dy = ship.targetY - ship.y;
+        const lerpFactor = 0.28 * moveSpeedMultiplier;
+        ship.vx = dx * lerpFactor;
+        ship.vy = dy * lerpFactor;
+        ship.x += ship.vx;
+        ship.y += ship.vy;
+        ship.tilt = Math.max(-0.35, Math.min(0.35, ship.vx * 0.04));
+
+        if (ship.shield < 100 && ship.shield > 0) {
+            ship.shield = Math.min(100, ship.shield + 0.03);
+        }
+
+        // Sparo Continuo
+        if (now - lastShootTime >= currentShootInterval) {
+            lastShootTime = now;
+            fireLaser();
+        }
+    }
+
+    // 5. Aggiornamento Stelle
+    for (let s of stars) {
+        s.y += s.speed;
+        if (s.y > height) {
+            s.y = 0;
+            s.x = Math.random() * width;
+        }
+    }
+
+    // 6. Collisioni Laser -> SOLO Asteroidi (Spari distruggono rocce a raffica)
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.y += b.vy;
+        if (b.y < -20) {
+            bullets.splice(i, 1);
+            continue;
+        }
+
+        // Asteroidi
+        for (let j = asteroids.length - 1; j >= 0; j--) {
+            const a = asteroids[j];
+            if (Math.hypot(b.x - a.x, b.y - a.y) < a.radius + 6) {
+                shotsHit++;
+                bullets.splice(i, 1);
+                a.hp--;
+                if (a.hp <= 0) {
+                    playExplodeSound();
+                    createExplosion(a.x, a.y, '#f97316', 16);
+                    asteroids.splice(j, 1);
+                } else {
+                    createExplosion(b.x, b.y, '#38bdf8', 6);
+                }
+                break;
+            }
+        }
+    }
+
+    // 7. Aggiornamento Emoji (Ci sbatti con la nave o le fai passare)
+    if (Math.random() < 0.028) spawnEmoji();
+
+    for (let i = emojis.length - 1; i >= 0; i--) {
+        const em = emojis[i];
+        em.y += em.vy;
+        em.x += em.vx;
+        em.pulse += 0.08;
+
+        // Collisione Nave <-> Emoji
+        const dist = Math.hypot(ship.x - em.x, ship.y - em.y);
+        if (dist < em.radius + 22) {
+            createExplosion(em.x, em.y, em.color, 16);
+
+            if (em.type === 'green') {
+                // 🟢 CI SBATTI: +1 Punto Decisione, +Vita (+25% Scudo), +10s Tempo, Rallenta Sparo (0.6X)
+                greenTaken++;
+                score += 1;
+                ship.shield = Math.min(100, ship.shield + 25);
+                ship.shieldFlash = 1.0;
+                countdownSeconds += 10;
+                fireRateMultiplier = 0.6;
+                fireRateTimer = 6;
+                playChimeSound(680);
+                floatingTexts.push({ x: em.x, y: em.y, text: '+1 PT | +VITA & +TEMPO! 🟢', color: '#10b981', alpha: 1 });
+            } else if (em.type === 'blue') {
+                // 🔵 CI SBATTI: +1 Punto Decisione, Rallenta Movimento & Sparo (0.5X)
+                blueTaken++;
+                score += 1;
+                fireRateMultiplier = 0.5;
+                moveSpeedMultiplier = 0.5;
+                fireRateTimer = 6;
+                playChimeSound(580);
+                floatingTexts.push({ x: em.x, y: em.y, text: '+1 PT | RALLENTA 🔵', color: '#38bdf8', alpha: 1 });
+            } else if (em.type === 'red') {
+                // 🔴 CI SBATTI: +1 Punto Decisione, 💔 EMOTIONAL DAMAGE! 3X Velocità Sparo ma -20% Scudo!
+                redTaken++;
+                score += 1;
+                fireRateMultiplier = 3.0;
+                fireRateTimer = 6;
+                ship.shield = Math.max(0, Math.round(ship.shield - 20));
+                ship.shieldFlash = 1.0;
+                triggerEmotionalDamageBanner('💔 EMOTIONAL DAMAGE! 3X Fuoco ma -20% Scudo');
+                floatingTexts.push({ x: ship.x, y: ship.y - 30, text: '+1 PT | 💔 DAMAGE 3X! 🔴', color: '#f43f5e', alpha: 1 });
+            }
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+
+            emojis.splice(i, 1);
+            dispatchTelemetry();
+            continue;
+        }
+
+        // Emoji che OLTREPASSA lo schermo (Se non la prendi / la fai passare)
+        if (em.y > height + 40) {
+            if (em.type === 'green') {
+                // 🟢 FAI PASSARE: +1 Punto Decisione, -50% TEMPO!
+                greenPassed++;
+                score += 1;
+                countdownSeconds = Math.max(1, Math.round(countdownSeconds * 0.5));
+                playEmotionalDamageSound();
+                floatingTexts.push({ x: em.x, y: height - 60, text: '+1 PT | 🟢 -50% TEMPO', color: '#10b981', alpha: 1 });
+                dispatchTelemetry();
+            } else if (em.type === 'blue') {
+                // 🔵 FAI PASSARE: +1 Punto Decisione, ⚡ VELOCITÀ DI SPARO 2X MA -10% SCUDO!
+                bluePassed++;
+                score += 1;
+                fireRateMultiplier = 2.0;
+                fireRateTimer = 6;
+                ship.shield = Math.max(0, Math.round(ship.shield - 10));
+                ship.shieldFlash = 0.8;
+                playChimeSound(920);
+                floatingTexts.push({ x: em.x, y: height - 60, text: '+1 PT | ⚡ SPARO 2X (-10% Scudo) 🔵', color: '#38bdf8', alpha: 1 });
+                dispatchTelemetry();
+            } else if (em.type === 'red') {
+                // 🔴 FAI PASSARE: +1 Punto Decisione, -10s COUNTDOWN TEMPO MA AUMENTA MOVIMENTO!
+                redPassed++;
+                score += 1;
+                countdownSeconds = Math.max(0, countdownSeconds - 10);
+                moveSpeedMultiplier = 1.6;
+                fireRateTimer = 6;
+                playEmotionalDamageSound();
+                floatingTexts.push({ x: em.x, y: height - 60, text: '+1 PT | 🔴 -10s TEMPO | ⚡ +MOVIMENTO', color: '#f43f5e', alpha: 1 });
+                dispatchTelemetry();
+            }
+
+            emojis.splice(i, 1);
+        }
+    }
+
+    // 8. 🪨 Asteroidi Fitti & Spawns Frequenti (Tanti asteroidi per giustificare il 3X!)
+    if (Math.random() < 0.085) spawnAsteroid();
+    if (Math.random() < 0.03) spawnAsteroid(); // Ondata doppia simultanea
+
+    for (let i = asteroids.length - 1; i >= 0; i--) {
+        const a = asteroids[i];
+        a.x += a.vx;
+        a.y += a.vy;
+        a.angle += a.vRot;
+        if (a.hitCooldown > 0) a.hitCooldown--;
+
+        const shipDist = Math.hypot(ship.x - a.x, ship.y - a.y);
+        if (shipDist < a.radius + 20 && a.hitCooldown === 0) {
+            shieldHits++;
+            a.hitCooldown = 25;
+            ship.shieldFlash = 1.0;
+            ship.shield = Math.max(0, Math.round(ship.shield - 15));
+
+            playShieldHitSound();
+            createExplosion((ship.x + a.x) / 2, (ship.y + a.y) / 2, '#38bdf8', 16);
+            a.vy = -Math.abs(a.vy) * 1.6;
+            a.vx = (a.x - ship.x) * 0.18;
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+
+            floatingTexts.push({ x: ship.x, y: ship.y - 30, text: '-15% SCUDO', alpha: 1, color: '#f43f5e' });
+            dispatchTelemetry();
+        }
+
+        if (a.y > height + 40 || a.y < -120) {
+            asteroids.splice(i, 1);
+        }
+    }
+
+    // 9. Particelle & Testi
+    for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.alpha -= p.decay;
+        if (p.alpha <= 0) particles.splice(i, 1);
+    }
+
+    for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y -= 1.3;
+        ft.alpha -= 0.022;
+        if (ft.alpha <= 0) floatingTexts.splice(i, 1);
+    }
+
+    // ── RENDER ──────────────────────────────────────────────────
+    ctx.clearRect(0, 0, width, height);
+
+    // Stelle
+    for (let s of stars) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha})`;
+        ctx.fillRect(s.x, s.y, s.size, s.size * 2);
+    }
+
+    // Asteroidi (Rocce con venature e bordi definiti)
+    for (let a of asteroids) {
+        ctx.save();
+        ctx.translate(a.x, a.y);
+        ctx.rotate(a.angle);
+        ctx.beginPath();
+        for (let k = 0; k < a.points.length; k++) {
+            const p = a.points[k];
+            if (k === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = a.hp > 2 ? '#451a03' : (a.hp > 1 ? '#78350f' : '#92400e');
+        ctx.fill();
+        ctx.strokeStyle = '#d97706';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+        ctx.restore();
+    }
+
+    // Emoji Emozionali
+    for (let em of emojis) {
+        ctx.save();
+        ctx.translate(em.x, em.y);
+        const glowScale = 1 + Math.sin(em.pulse) * 0.16;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, em.radius * glowScale, 0, Math.PI * 2);
+        ctx.fillStyle = em.type === 'green' ? 'rgba(16, 185, 129, 0.25)' : (em.type === 'blue' ? 'rgba(56, 189, 248, 0.25)' : 'rgba(244, 63, 94, 0.25)');
+        ctx.fill();
+        ctx.strokeStyle = em.color;
+        ctx.lineWidth = 1.6;
+        ctx.stroke();
+
+        ctx.font = '24px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(em.char, 0, 1);
+        ctx.restore();
+    }
+
+    // Laser
+    for (let b of bullets) {
+        ctx.fillStyle = fireRateMultiplier > 1 ? (fireRateMultiplier >= 3 ? '#ef4444' : '#38bdf8') : '#facc15';
+        ctx.fillRect(b.x - 2, b.y - 8, 4, 16);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(b.x - 1, b.y - 6, 2, 12);
+    }
+
+    // Particelle
+    for (let p of particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    // Astronave
+    ctx.save();
+    ctx.translate(ship.x, ship.y);
+    ctx.rotate(ship.tilt);
+
+    // Bolla Scudo
+    if (ship.shieldFlash > 0.02) {
+        ctx.save();
+        ctx.globalAlpha = ship.shieldFlash;
+        ctx.strokeStyle = fireRateMultiplier >= 3 ? '#ef4444' : '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = fireRateMultiplier >= 3 ? '#ef4444' : '#38bdf8';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.arc(0, 0, 32, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = fireRateMultiplier >= 3 ? 'rgba(239, 68, 68, 0.25)' : 'rgba(56, 189, 248, 0.2)';
+        ctx.fill();
+        ctx.restore();
+        ship.shieldFlash -= 0.04;
+    }
+
+    // Fiamma Propulsore
+    ctx.fillStyle = fireRateMultiplier >= 3 ? '#dc2626' : (Math.random() > 0.5 ? '#f97316' : '#eab308');
+    ctx.beginPath();
+    ctx.moveTo(-6, 18);
+    ctx.lineTo(6, 18);
+    ctx.lineTo(0, (fireRateMultiplier >= 3 ? 42 : 32) + Math.random() * 8);
+    ctx.closePath();
+    ctx.fill();
+
+    // Scafo
+    ctx.fillStyle = fireRateMultiplier >= 3 ? '#dc2626' : (fireRateMultiplier > 1 ? '#0284c7' : '#06b6d4');
+    ctx.beginPath();
+    ctx.moveTo(0, -22);
+    ctx.lineTo(16, 18);
+    ctx.lineTo(0, 10);
+    ctx.lineTo(-16, 18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Ali
+    ctx.fillStyle = fireRateMultiplier >= 3 ? '#facc15' : '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(12, 10);
+    ctx.lineTo(20, 18);
+    ctx.lineTo(12, 18);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(-12, 10);
+    ctx.lineTo(-20, 18);
+    ctx.lineTo(-12, 18);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cabina
+    ctx.fillStyle = '#1e3a8a';
+    ctx.beginPath();
+    ctx.ellipse(0, -4, 4, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.restore();
+
+    // Testi Flottanti
+    for (let ft of floatingTexts) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.alpha);
+        ctx.font = '900 13.5px monospace';
+        ctx.fillStyle = ft.color || '#facc15';
+        ctx.fillText(ft.text, ft.x - 24, ft.y);
+        ctx.restore();
+    }
+
+    // ── AGGIORNAMENTO HUD NEI 4 ANGOLI ──
+    const elPts = document.getElementById('ui-pts');
+    const elMode = document.getElementById('ui-mode');
+    const elShield = document.getElementById('ui-shield');
+    const elTime = document.getElementById('ui-time');
+
+    if (elPts) elPts.textContent = `${score} PT`;
+    if (elMode) {
+        if (fireRateMultiplier >= 3) {
+            elMode.textContent = `3.0X FURIA (${Math.ceil(fireRateTimer)}s)`;
+            elMode.style.color = '#ef4444';
+        } else if (fireRateMultiplier > 1) {
+            elMode.textContent = `2.0X (${Math.ceil(fireRateTimer)}s)`;
+            elMode.style.color = '#38bdf8';
+        } else if (fireRateMultiplier < 1) {
+            elMode.textContent = `0.5X (${Math.ceil(fireRateTimer)}s)`;
+            elMode.style.color = '#eab308';
+        } else {
+            elMode.textContent = '1.0X';
+            elMode.style.color = '#fbbf24';
+        }
+    }
+    if (elShield) {
+        const shVal = Math.round(ship.shield);
+        elShield.textContent = `${shVal}%`;
+        elShield.style.color = shVal > 60 ? '#38bdf8' : (shVal > 25 ? '#f59e0b' : '#ef4444');
+    }
+    if (elTime) {
+        const mm = Math.floor(countdownSeconds / 60).toString().padStart(2, '0');
+        const ss = (countdownSeconds % 60).toString().padStart(2, '0');
+        elTime.textContent = `${mm}:${ss}`;
+        elTime.style.color = countdownSeconds <= 15 ? '#ef4444' : '#f43f5e';
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Telemetria Semantica verso il Radar
+function dispatchTelemetry(isRewardClaim = false) {
+    const currentShield = Math.round(ship.shield);
+    const isShipDestroyed = currentShield <= 0;
+
+    // Formule Matematiche Ufficiali (0-100)
+    const safetyScore = Math.max(0, Math.min(100, Math.round(currentShield * 0.5 + (greenTaken * 8) - (redTaken * 12) - (bluePassed * 5))));
+    const upsellGreedScore = Math.min(100, Math.round((redTaken * 20) + (bluePassed * 15) + (score * 1.2)));
+    const patienceScore = Math.max(0, Math.min(100, Math.round(100 - (redTaken * 15) - (shieldHits * 8) + (greenTaken * 5))));
+    const complianceScore = isShipDestroyed ? Math.max(30, Math.round(score * 1.5)) : Math.min(100, 70 + Math.round(currentShield * 0.3));
+    const somaticRelaxScore = Math.max(20, Math.min(100, Math.round(70 + (greenTaken * 6) - (redTaken * 10) - (shieldHits * 6))));
+
+    // Sintesi Archetipica
+    let primaryArchetype = 'SCHIVATORE_EVASIVO';
+    let commStyle = 'ACCOGLIENTE_EMPATICO';
+    let behavioralDesc = ['bassa assertività iniziale, approccio accogliente ed empatico per metterlo a proprio agio'];
+
+    if (redTaken >= 2) {
+        primaryArchetype = 'BERSERK_OVERCLOCK_SEEKER';
+        commStyle = 'SINTETICO_DRITTO_AL_SODO';
+        behavioralDesc = [
+            'accetta attivamente danni allo scudo per massimizzare la cadenza di fuoco',
+            'orientamento all\'azione rapida e al superamento aggressivo degli ostacoli',
+            'bassa avversione alle perdite contingenti a fronte di grandi moltiplicatori'
+        ];
+    } else if (bluePassed >= 2) {
+        primaryArchetype = 'CALCOLATORE_DI_POTENZA';
+        commStyle = 'PRAGMATICO_ANALITICO';
+        behavioralDesc = [
+            'fa passare le correnti blu per attivare il 2X e bilancia lo scudo con il verde',
+            'orientato all\'efficienza e all\'ottimizzazione costi/benefici'
+        ];
+    } else if (greenTaken >= 2) {
+        primaryArchetype = 'DIFENSORE_DELLO_SCUDO';
+        commStyle = 'TRASPARENTE_RASSICURANTE';
+        behavioralDesc = [
+            'raccoglie costantemente il verde, mantiene lo scudo alto ed evita rischi',
+            'richiede rassicurazioni, trasparenza e formule garantite'
+        ];
+    }
+
+    const payload = {
+        session_id: 'SITEBOS_SPACE_' + Date.now(),
+        game_id: 'space_shooter_arena',
+        game_title: 'Emoji Space Shooter',
+        timestamp: new Date().toISOString(),
+        semantic_intelligence: {
+            primary_archetype: primaryArchetype,
+            communication_style: commStyle,
+            metrics_scores: {
+                certainty_and_safety_score: safetyScore,
+                tactical_patience_score: patienceScore,
+                upsell_greed_score: upsellGreedScore,
+                rule_compliance_score: complianceScore,
+                somatic_relaxation_score: somaticRelaxScore
+            },
+            semantic_tags: [
+                redTaken >= 2 ? 'Propensione Al Rischio Estremo' : 'Controllo Rischio',
+                upsellGreedScore > 60 ? 'Massimizzatore Di Prestazioni' : 'Prestazioni Standard',
+                redTaken >= 2 ? 'Overclock Seeker' : (bluePassed >= 2 ? 'Calcolatore 2X' : 'Pilota Regolare'),
+                `Decisioni Totali: ${score}`,
+                isShipDestroyed ? 'Nave Distrutta' : 'Nave Sopravvissuta'
+            ],
+            behavioral_descriptors: behavioralDesc
+        },
+        raw_telemetry: {
+            decisions_total_score: score,
+            current_shield_pct: currentShield,
+            green_emojis: { taken: greenTaken, passed: greenPassed },
+            blue_emojis:  { taken: blueTaken, passed: bluePassed },
+            red_emojis:   { taken: redTaken, passed: redPassed },
+            asteroid_shield_hits: shieldHits,
+            session_duration_sec: 60 - countdownSeconds,
+            ship_survived: !isShipDestroyed
+        }
+    };
+
+    saveState(payload);
+
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({
+            type: isRewardClaim ? 'MINIGAME_REWARD_CLAIMED' : 'GAME_TELEMETRY',
+            game: 'space_arena',
+            telemetry: payload,
+            reward: score
+        }, '*');
+    }
+}
+
+function saveState(payload) {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+        if (window.Telegram?.WebApp?.CloudStorage) {
+            window.Telegram.WebApp.CloudStorage.setItem(STORAGE_KEY, JSON.stringify(payload), () => {});
+        }
+    } catch(e){}
+}
+
+function startGameFromApp() {
+    initAudio();
+    if (screenLanding) screenLanding.classList.add('hidden');
+    isGameRunning = true;
+    lastCountdownTick = Date.now();
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    }
+    dispatchTelemetry();
+}
+
+function showAppLanding() {
+    if (screenLanding) screenLanding.classList.remove('hidden');
+    isGameRunning = false;
+}
+
+function resetGame() {
+    score = 0;
+    shotsFired = 0;
+    shotsHit = 0;
+    shieldHits = 0;
+    greenTaken = 0;
+    greenPassed = 0;
+    blueTaken = 0;
+    bluePassed = 0;
+    redTaken = 0;
+    redPassed = 0;
+    countdownSeconds = 60;
+    fireRateMultiplier = 1.0;
+    moveSpeedMultiplier = 1.0;
+    currentShootInterval = baseShootInterval;
+    fireRateTimer = 0;
+    isGameOver = false;
+    isGameRunning = true;
+    lastCountdownTick = Date.now();
+    asteroids.length = 0;
+    emojis.length = 0;
+    bullets.length = 0;
+    particles.length = 0;
+    ship.x = width / 2;
+    ship.y = height - 90;
+    ship.targetX = ship.x;
+    ship.targetY = ship.y;
+    ship.shield = 100;
+    ship.shieldFlash = 0;
+    dispatchTelemetry();
+}
+
+function claimReward() {
+    const modal = document.getElementById('modal-claim');
+    const elIcon = document.getElementById('modal-icon');
+    const elTitle = document.getElementById('modal-title');
+    const elDesc = document.getElementById('modal-desc');
+    const elScore = document.getElementById('modal-score-count');
+    const elReward = document.getElementById('modal-reward-points');
+
+    if (elIcon) elIcon.textContent = '🧠✨';
+    if (elTitle) elTitle.textContent = 'SESSIONE CONCLUSA!';
+    if (elDesc) elDesc.textContent = 'Hai navigato le correnti emotive spaziali trasformandole in valore e focus!';
+    if (elScore) elScore.textContent = `${score} DECISIONI`;
+    if (elReward) elReward.textContent = `+${score} PUNTI`;
+    if (modal) modal.classList.add('show');
+    
+    dispatchTelemetry(true);
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+}
+
+function closeClaimModal() {
+    const modal = document.getElementById('modal-claim');
+    if (modal) modal.classList.remove('show');
+    resetGame();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
+    resizeCanvas();
+    requestAnimationFrame(gameLoop);
+});
+</script>
+</body>
+</html>
