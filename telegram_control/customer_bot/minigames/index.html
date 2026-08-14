@@ -118,15 +118,17 @@
             <div>
                 <div class="flex items-center gap-2">
                     <h1 class="text-sm font-black uppercase tracking-wider text-slate-900 m-0">Arcade Hub</h1>
-                    <span class="text-[9px] font-extrabold bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5 rounded-full">17 GIOCHI</span>
+                    <span class="text-[9px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 rounded-full">4 GIOCHI LIVE</span>
                 </div>
                 <p class="text-[10px] text-slate-500 font-medium m-0">Gamification Suite &amp; Telemetria SiteBoS</p>
             </div>
         </div>
         <div class="flex flex-col items-end">
-            <span id="user-pts" class="text-xs font-black bg-slate-100 text-slate-900 border border-slate-200 px-3 py-1 rounded-xl shadow-sm flex items-center gap-1.5">
-                <i class="fas fa-coins text-amber-500 text-[10px]"></i> 250 PT
-            </span>
+            <button onclick="openProfileTelemetryModal()" id="user-pts-btn" title="Visualizza Profilo Psicometrico & Wallet" class="text-xs font-black bg-slate-900 text-white border border-slate-800 px-3 py-1.5 rounded-xl shadow-md flex items-center gap-1.5 hover:bg-black transition active:scale-95 cursor-pointer">
+                <i class="fas fa-coins text-amber-400 text-xs"></i> 
+                <span id="user-pts">250 PT</span>
+                <span class="text-[8px] bg-amber-500 text-slate-950 px-1.5 py-0.5 rounded font-black tracking-wider uppercase">PROFILO</span>
+            </button>
         </div>
     </header>
 
@@ -448,8 +450,48 @@
         </div>
     </div>
 
+    <!-- MODALE PROFILO PSICOMETRICO & WALLET (ACCESSIBILE DA CELLULARE CLICCANDO SUI PUNTI) -->
+    <div id="modal-mobile-profile" class="fixed inset-0 z-[65] bg-slate-950/85 backdrop-blur-md hidden flex-col items-center justify-center p-2.5 sm:p-5 overflow-y-auto animate-fade-in">
+        <div class="w-full max-w-md bg-white border-2 border-slate-300 rounded-[28px] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
+            
+            <!-- Header Modale Profilo -->
+            <div class="p-3.5 sm:p-4 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-base font-black shadow">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-wider text-white m-0">Profilo Psicometrico Live</h3>
+                        <p class="text-[9px] text-amber-400 font-mono font-bold m-0">Storage Consolidato 4 Giochi</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="profile-modal-wallet" class="text-xs font-mono font-black bg-amber-500 text-slate-950 px-2.5 py-1 rounded-xl shadow-sm">250 PT</span>
+                    <button onclick="closeProfileTelemetryModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-rose-600 text-white flex items-center justify-center font-bold transition active:scale-95">
+                        <i class="fas fa-xmark text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body Scorrevole con i 4 Giochi e Razionali Psicometrici -->
+            <div class="flex-1 p-3 overflow-y-auto space-y-2.5 bg-slate-100 text-slate-900" id="modal-mobile-profile-body">
+                <!-- Popolato dinamicamente da openProfileTelemetryModal() -->
+            </div>
+
+            <!-- Footer Azioni -->
+            <div class="p-3 bg-white border-t border-slate-200 flex items-center gap-2 shrink-0">
+                <button onclick="openJsonOverlay()" class="flex-1 py-2.5 bg-slate-900 hover:bg-black text-sky-400 font-black text-xs uppercase tracking-wider rounded-xl transition shadow flex items-center justify-center gap-2 active:scale-95 cursor-pointer">
+                    <i class="fas fa-code"></i> ISPEZIONA NoSQL
+                </button>
+                <button onclick="closeProfileTelemetryModal()" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black text-xs uppercase tracking-wider rounded-xl transition active:scale-95 cursor-pointer">
+                    CHIUDI
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- DEDICATED FULL-SCREEN OVERLAY PER IL PAYLOAD NoSQL COMPLETO -->
-    <div id="modal-json-overlay" class="fixed inset-0 z-[60] bg-slate-950/90 backdrop-blur-lg hidden flex-col items-center justify-center p-3 sm:p-6 transition-all duration-300">
+    <div id="modal-json-overlay" class="fixed inset-0 z-[70] bg-slate-950/90 backdrop-blur-lg hidden flex-col items-center justify-center p-3 sm:p-6 transition-all duration-300">
         <div class="w-full max-w-4xl h-[88vh] bg-slate-900 border-2 border-sky-500/40 rounded-[28px] shadow-2xl flex flex-col overflow-hidden">
             <!-- Header Overlay -->
             <div class="flex items-center justify-between bg-slate-950 px-5 py-3.5 border-b border-slate-800 shrink-0">
@@ -856,6 +898,45 @@
             document.getElementById('game-iframe').src = "about:blank";
         }
 
+        function openProfileTelemetryModal() {
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            
+            // Sincronizza radar e storage prima di renderizzare
+            syncRadarFromStorage();
+
+            const st = document.getElementById('telemetry-station');
+            const targetBody = document.getElementById('modal-mobile-profile-body');
+            const walletBadge = document.getElementById('profile-modal-wallet');
+
+            if (walletBadge) walletBadge.textContent = `${userWallet.total_points} PT`;
+
+            if (st && targetBody) {
+                // Clona i 4 blocchi dal radar desktop aggiornato (escludendo l'header duplicato e il bottone json che sta già nel footer)
+                const clone = st.cloneNode(true);
+                const firstChild = clone.querySelector(':scope > div:first-child');
+                const lastBtn = clone.querySelector(':scope > button:last-child');
+                if (firstChild) firstChild.remove();
+                if (lastBtn) lastBtn.remove();
+                
+                targetBody.innerHTML = clone.innerHTML;
+            }
+
+            const modal = document.getElementById('modal-mobile-profile');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeProfileTelemetryModal() {
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            const modal = document.getElementById('modal-mobile-profile');
+            if (modal) {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }
+        }
+
         function openJsonOverlay() {
             if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
             const overlay = document.getElementById('modal-json-overlay');
@@ -940,11 +1021,15 @@
         function updateWalletUI() {
             const elPts = document.getElementById('user-pts');
             if (elPts) {
-                elPts.innerHTML = `<i class="fas fa-coins text-amber-500 text-[10px]"></i> ${userWallet.total_points} PT`;
+                elPts.innerHTML = `<i class="fas fa-coins text-amber-400 text-[10px]"></i> ${userWallet.total_points} PT`;
             }
             const elBadge = document.getElementById('hub-total-wallet-badge');
             if (elBadge) {
                 elBadge.textContent = `${userWallet.total_points} PT`;
+            }
+            const elProfileBadge = document.getElementById('profile-modal-wallet');
+            if (elProfileBadge) {
+                elProfileBadge.textContent = `${userWallet.total_points} PT`;
             }
         }
 
