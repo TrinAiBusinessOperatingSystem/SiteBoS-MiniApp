@@ -1,0 +1,2063 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Pizza Boy & Friend 3D | SiteBoS Gamification Suite</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Three.js (r128) CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            gold: '#f59e0b',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            rose: '#f43f5e',
+                            dark: '#090d16',
+                            card: '#111827'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #090d16;
+            color: #f8fafc;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+        }
+
+        #canvas3d {
+            display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* HUD Glassmorphism */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .glass-btn {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-btn:active {
+            transform: scale(0.92);
+            filter: brightness(1.2);
+        }
+
+        /* Touch Pedals & Controls */
+        .pedal-btn {
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .pedal-btn.active {
+            transform: scale(0.94);
+            filter: brightness(1.3) drop-shadow(0 0 16px rgba(6, 182, 212, 0.6));
+        }
+
+        /* Floating Hearts Animation */
+        @keyframes floatHeart {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+            100% { transform: translateY(-70px) scale(1.4); opacity: 0; }
+        }
+        .floating-heart {
+            position: absolute;
+            animation: floatHeart 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 45;
+        }
+
+        /* Pulse glow */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 28px rgba(245, 158, 11, 0.85); }
+        }
+        .animate-pulse-glow {
+            animation: pulseGlow 1.8s infinite;
+        }
+
+        /* Rotate Screen Banner on Portrait */
+        @media (orientation: portrait) and (max-height: 900px) {
+            #rotate-tip {
+                display: flex !important;
+            }
+        }
+
+        /* Custom Scrollbar for Briefing Modal */
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 flex flex-col h-screen overflow-hidden">
+
+    <!-- ── ROTATE TIP OVERLAY (Informazione di orientamento orizzontale) ── -->
+    <div id="rotate-tip" class="hidden fixed top-3 left-1/2 -translate-x-1/2 z-40 bg-slate-900/90 border border-amber-500/40 text-amber-300 text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-lg items-center gap-2 backdrop-blur-md transition-all">
+        <i class="fa-solid fa-mobile-screen-button rotate-90 text-xs text-amber-400"></i>
+        <span>Esperienza ottimizzata in orizzontale (Landscape)</span>
+        <button onclick="document.getElementById('rotate-tip').remove()" class="text-slate-400 hover:text-white ml-1">✕</button>
+    </div>
+
+    <!-- ── 3D CANVAS VIEWPORT ── -->
+    <div id="game-viewport" class="relative flex-1 w-full h-full overflow-hidden">
+        
+        <!-- ── SCHERMATA LANDING / BRIEFING (SiteBoS Dark Edition) ── -->
+        <div id="screen-landing" class="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-3xl mb-3 shadow-lg animate-bounce">
+                🍕
+            </div>
+            <h2 class="text-2xl font-black text-amber-400 uppercase tracking-wider mb-1">Pizza Boy & Friend 3D</h2>
+            <p class="text-xs text-slate-400 max-w-xs mb-6 leading-relaxed">
+                Sei in sella con il tuo fedele amico a quattro zampe.<br>
+                Consegna la pizza calda e integra a destinazione. Ascolta il cane quando ti avvisa degli ostacoli e accarezzalo!
+            </p>
+            <div class="grid grid-cols-2 gap-2 max-w-xs w-full mb-6 text-[10.5px] text-left text-slate-300 font-medium">
+                <div class="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
+                    <span class="text-amber-400 font-black block">🚀 VELOCITÀ</span>
+                    <span>Andare a tavoletta disperde calore e crea vibrazioni!</span>
+                </div>
+                <div class="bg-slate-900/80 border border-slate-800 p-2.5 rounded-xl">
+                    <span class="text-emerald-400 font-black block">🐕 FEDELE CANE</span>
+                    <span>Ti avvisa prima degli ostacoli: accarezzalo!</span>
+                </div>
+            </div>
+            <button id="btn-start-game" class="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs uppercase tracking-widest rounded-2xl shadow-2xl active:scale-95 transition flex items-center gap-2 border border-amber-400/50 cursor-pointer">
+                <i class="fa-solid fa-motorcycle"></i>
+                <span>PARTI ORA!</span>
+            </button>
+        </div>
+
+        <canvas id="canvas3d"></canvas>
+
+        <!-- ── IN-GAME COCKPIT HUD (Sovraimpresso durante la guida) ── -->
+        <div id="hud-overlay" class="hidden absolute inset-0 z-20 pointer-events-none flex flex-col justify-between p-2 sm:p-4">
+            
+            <!-- TOP BAR HUD -->
+            <div class="flex items-center justify-between w-full pointer-events-auto gap-2">
+                <!-- Brand & Distance Progress -->
+                <div class="glass-panel rounded-2xl px-3 py-1.5 flex items-center gap-3 shadow-lg">
+                    <div class="flex items-center gap-1.5 text-xs font-black text-amber-400">
+                        <i class="fa-solid fa-pizza-slice"></i>
+                        <span class="tracking-wider uppercase">Pizza Boy & Friend</span>
+                    </div>
+                    <!-- Distance Bar with Milestones -->
+                    <div class="relative flex items-center">
+                        <div class="w-24 sm:w-36 bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+                            <div id="hud-dist-bar" class="bg-gradient-to-r from-cyan-400 to-emerald-400 h-full w-0 transition-all duration-100"></div>
+                        </div>
+                        <div class="absolute inset-0 flex justify-between px-1 pointer-events-none">
+                            <div class="w-1 h-2 bg-slate-600 rounded-full"></div>
+                            <div class="w-1 h-2 bg-slate-600 rounded-full"></div>
+                            <div class="w-1 h-2 bg-slate-600 rounded-full"></div>
+                        </div>
+                    </div>
+                    <span id="hud-dist-val" class="text-[11px] font-mono font-bold text-slate-300">0 / 850m</span>
+                </div>
+
+                <!-- Pizza Health & Temp Status -->
+                <div class="flex items-center gap-2">
+                    <!-- Tachimetro -->
+                    <div class="glass-panel rounded-2xl px-2 py-1.5 flex items-center gap-1.5 shadow-lg">
+                        <i class="fa-solid fa-gauge-high text-cyan-400 text-xs"></i>
+                        <span id="hud-speed-val" class="text-xs font-black text-cyan-400 font-mono">0</span>
+                        <span class="text-[8px] text-slate-400 font-bold">km/h</span>
+                    </div>
+
+                    <!-- Mozzarella Integrity -->
+                    <div class="glass-panel rounded-2xl px-2.5 py-1.5 flex items-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase leading-none">Integrità</span>
+                            <span id="hud-integrity-val" class="text-xs font-black text-emerald-400 font-mono">100%</span>
+                        </div>
+                    </div>
+
+                    <!-- Pizza Temp -->
+                    <div class="glass-panel rounded-2xl px-2.5 py-1.5 flex items-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-fire-flame-curved text-rose-400 text-xs animate-pulse"></i>
+                        <div class="flex flex-col">
+                            <span class="text-[9px] text-slate-400 font-bold uppercase leading-none">Termica</span>
+                            <span id="hud-temp-val" class="text-xs font-black text-rose-400 font-mono">90°C</span>
+                        </div>
+                    </div>
+
+                    <!-- Audio & Pause Buttons -->
+                    <button id="btn-toggle-sound" class="glass-btn rounded-xl w-8 h-8 flex items-center justify-center text-slate-200 text-xs cursor-pointer">
+                        <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <button id="btn-toggle-pause" class="glass-btn rounded-xl w-8 h-8 flex items-center justify-center text-slate-200 text-xs cursor-pointer">
+                        <i id="pause-icon" class="fa-solid fa-pause"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- CENTER NOTIFICATIONS (Dog Alert & VIP Banner) -->
+            <div class="flex flex-col items-center justify-center gap-2 pointer-events-none">
+                <!-- Dog Alert Bubble -->
+                <div id="dog-alert-bubble" class="hidden pointer-events-auto glass-panel border border-amber-500/50 bg-slate-900/90 text-amber-300 text-xs font-black px-4 py-2 rounded-2xl shadow-xl flex items-center gap-2.5 transform scale-95 transition-all">
+                    <span class="text-lg">🐕</span>
+                    <span id="dog-alert-text">Bau! Attento all'ostacolo!</span>
+                </div>
+
+                <!-- Flash VIP Call Banner with Countdown Bar -->
+                <div id="vip-flash-banner" class="hidden pointer-events-auto glass-panel border-2 border-amber-400 bg-amber-950/90 text-amber-100 p-3 rounded-2xl shadow-2xl flex flex-col gap-2 max-w-sm">
+                    <div class="flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-9 h-9 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-lg shadow">
+                                <i class="fa-solid fa-walkie-talkie"></i>
+                            </div>
+                            <div>
+                                <div class="text-[10px] font-black text-amber-300 uppercase tracking-wide">Chiamata CB Radio VIP (+50€)</div>
+                                <div id="vip-name" class="text-xs font-bold text-white">Ordine Urgente Flash</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button id="btn-vip-accept" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs px-2.5 py-1.5 rounded-xl shadow cursor-pointer active:scale-95 transition">SI (Y)</button>
+                            <button id="btn-vip-decline" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs px-2 py-1.5 rounded-xl border border-slate-700 cursor-pointer active:scale-95 transition">NO</button>
+                        </div>
+                    </div>
+                    <!-- Countdown Bar -->
+                    <div class="w-full bg-slate-900 rounded-full h-1 overflow-hidden border border-amber-500/30">
+                        <div id="vip-countdown-fill" class="bg-amber-400 h-full w-full transition-all duration-75"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM TOUCH CONTROLS (Ergonomia mobile a due pollici per orizzontale) -->
+            <div class="flex items-end justify-between w-full pointer-events-auto pb-1">
+                
+                <!-- LEFT CONTROLS: Sterzo & Clacson -->
+                <div class="flex items-center gap-2.5">
+                    <!-- Sterzo Sinistra -->
+                    <button id="btn-steer-left" class="pedal-btn glass-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center text-slate-100 shadow-xl border border-slate-600">
+                        <i class="fa-solid fa-arrow-left text-lg"></i>
+                        <span class="text-[9px] font-black uppercase text-slate-400">SX (A)</span>
+                    </button>
+                    <!-- Sterzo Destra -->
+                    <button id="btn-steer-right" class="pedal-btn glass-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center text-slate-100 shadow-xl border border-slate-600">
+                        <i class="fa-solid fa-arrow-right text-lg"></i>
+                        <span class="text-[9px] font-black uppercase text-slate-400">DX (D)</span>
+                    </button>
+                    <!-- Clacson -->
+                    <button id="btn-horn" class="pedal-btn glass-btn w-11 h-11 sm:w-13 sm:h-13 rounded-xl flex items-center justify-center text-amber-400 shadow-lg border border-amber-500/30">
+                        <i class="fa-solid fa-bullhorn text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- CENTER TELEMETRY: Tachimetro & Compagno Cane -->
+                <div class="flex items-center gap-2 glass-panel px-3 py-1.5 rounded-2xl shadow-lg border border-slate-700">
+                    <div class="text-center">
+                        <span id="hud-speed-val" class="text-lg sm:text-xl font-black font-mono text-cyan-400">0</span>
+                        <span class="text-[9px] block text-slate-400 uppercase font-bold leading-none">km/h</span>
+                    </div>
+                    <div class="h-6 w-[1px] bg-slate-700 mx-1"></div>
+                    <!-- Accarezza Cane Button -->
+                    <button id="btn-pet-dog" class="pedal-btn flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white rounded-xl text-xs font-black shadow-md border border-rose-400/40">
+                        <span>🐕 Carezza</span>
+                        <i class="fa-solid fa-heart text-xs text-rose-200"></i>
+                    </button>
+                </div>
+
+                <!-- RIGHT CONTROLS: Freno & Acceleratore -->
+                <div class="flex items-center gap-2.5">
+                    <!-- Freno / Stop -->
+                    <button id="btn-brake" class="pedal-btn glass-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center text-rose-400 shadow-xl border border-rose-500/40 bg-rose-950/40">
+                        <i class="fa-solid fa-hand text-lg"></i>
+                        <span class="text-[9px] font-black uppercase text-rose-300">Freno (S)</span>
+                    </button>
+                    <!-- Gas / Acceleratore -->
+                    <button id="btn-throttle" class="pedal-btn glass-btn w-16 h-16 sm:w-18 sm:h-18 rounded-2xl flex flex-col items-center justify-center text-emerald-300 shadow-2xl border-2 border-emerald-400 bg-emerald-950/60">
+                        <i class="fa-solid fa-gauge-high text-xl text-emerald-400"></i>
+                        <span class="text-[9.5px] font-black uppercase text-emerald-300">GAS (W)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 2. MODALE RIEPILOGO PARTITA & RADAR ── -->
+    <div id="modal-dossier" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-4xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+            
+            <!-- HEADER DOSSIER -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 border-b border-slate-800 p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                            <i class="fa-solid fa-trophy text-[10px]"></i>
+                            Riepilogo Missione 3D
+                        </span>
+                        <span id="dossier-session-id" class="text-xs text-slate-400 font-mono">ID: PIZZA_3D_84920</span>
+                    </div>
+                    <h2 id="dossier-archetype-title" class="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                        <span>Massimizzatore Entusiasta</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Stile Comunicativo: <span id="dossier-comm-style" class="text-cyan-400 font-semibold">DINAMICO_CALOROSO</span>
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-claim-voucher-open" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black rounded-xl shadow-lg flex items-center gap-1.5">
+                        <i class="fa-solid fa-gift"></i>
+                        <span>Riscatta Voucher</span>
+                    </button>
+                    <button id="btn-copy-json" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 flex items-center gap-1.5 transition-colors">
+                        <i class="fa-regular fa-copy"></i>
+                        <span id="btn-copy-json-label">JSON</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SUBTABS NAV -->
+            <div class="flex border-b border-slate-800 bg-slate-950/60 px-4 sm:px-6">
+                <button id="tab-btn-briefing" class="tab-btn py-3 px-4 text-xs font-bold border-b-2 border-cyan-400 text-cyan-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-sparkles text-xs"></i>
+                    <span>Briefing Reception</span>
+                </button>
+                <button id="tab-btn-simulator" class="tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-comments text-xs"></i>
+                    <span>Simulatore Staff</span>
+                </button>
+                <button id="tab-btn-telemetry" class="tab-btn py-3 px-4 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-line text-xs"></i>
+                    <span>Telemetria Completa</span>
+                </button>
+            </div>
+
+            <!-- TAB 1: BRIEFING & RADAR -->
+            <div id="tab-content-briefing" class="tab-content p-4 sm:p-6 overflow-y-auto flex-1 space-y-4">
+                
+                <!-- RADAR & VECTORS GRID -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center bg-slate-950/50 p-4 rounded-2xl border border-slate-800">
+                    <!-- Canvas Radar Chart -->
+                    <div class="flex flex-col items-center justify-center">
+                        <canvas id="radar-canvas" width="280" height="250" class="max-w-full"></canvas>
+                        <span class="text-[10px] text-slate-400 font-semibold mt-1">Matrice dei 5 Vettori Biometrici</span>
+                    </div>
+
+                    <!-- Vector Bars Breakdown -->
+                    <div class="space-y-2.5 text-xs">
+                        <div>
+                            <div class="flex justify-between font-bold mb-1">
+                                <span class="text-slate-300">Perfezionismo & Qualità</span>
+                                <span id="val-perfectionism" class="text-amber-400 font-mono">85/100</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="bar-perfectionism" class="bg-amber-400 h-full w-[85%]"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between font-bold mb-1">
+                                <span class="text-slate-300">Espansione / Greed & Upsell</span>
+                                <span id="val-greed" class="text-rose-400 font-mono">70/100</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="bar-greed" class="bg-rose-400 h-full w-[70%]"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between font-bold mb-1">
+                                <span class="text-slate-300">Empatia Relazionale (Cane)</span>
+                                <span id="val-empathy" class="text-pink-400 font-mono">90/100</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="bar-empathy" class="bg-pink-400 h-full w-[90%]"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between font-bold mb-1">
+                                <span class="text-slate-300">Compliance & Regole</span>
+                                <span id="val-compliance" class="text-emerald-400 font-mono">95/100</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="bar-compliance" class="bg-emerald-400 h-full w-[95%]"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between font-bold mb-1">
+                                <span class="text-slate-300">Calma Somatica (Anti-Ansia)</span>
+                                <span id="val-calm" class="text-cyan-400 font-mono">80/100</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                                <div id="bar-calm" class="bg-cyan-400 h-full w-[80%]"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DIRETTIVE DESK RECEPTION (Le 4 Regole Auree) -->
+                <div>
+                    <h3 class="text-xs font-black text-slate-400 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-check text-cyan-400"></i>
+                        Direttive Operative di Accoglienza per il Personale
+                    </h3>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[11px] font-black text-cyan-300 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fa-regular fa-smile"></i> 1. Accoglienza in Sede
+                            </div>
+                            <p id="directive-accoglienza" class="text-xs text-slate-300 leading-snug">
+                                Accogliere con sorriso caloroso, contatto visivo diretto e chiamando il cliente per nome.
+                            </p>
+                        </div>
+
+                        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[11px] font-black text-amber-300 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-gem"></i> 2. Proposta Commerciale
+                            </div>
+                            <p id="directive-proposta" class="text-xs text-slate-300 leading-snug">
+                                Presentare subito il pacchetto All-Inclusive Top di Gamma evidenziando l'eccellenza e il valore aggiunto.
+                            </p>
+                        </div>
+
+                        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[11px] font-black text-indigo-300 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fa-regular fa-file-lines"></i> 3. Gestione Modulistica
+                            </div>
+                            <p id="directive-modulistica" class="text-xs text-slate-300 leading-snug">
+                                Pre-compilare digitalmente l'anagrafica sul tablet; richiedere solo la firma rapida evitando moduli cartacei a mano.
+                            </p>
+                        </div>
+
+                        <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                            <div class="text-[11px] font-black text-emerald-300 uppercase mb-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-doctor"></i> 4. Tono dello Staff
+                            </div>
+                            <p id="directive-tono" class="text-xs text-slate-300 leading-snug">
+                                Tono sicuro, disteso, orientato agli obiettivi ed estremamente professionale.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SCRIPT DI APERTURA SUGGERITO -->
+                <div class="bg-indigo-950/40 border border-indigo-500/30 rounded-2xl p-3.5 flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-quote-left text-sm"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-[11px] font-bold text-indigo-300 uppercase mb-0.5">Script di Apertura Consigliato</div>
+                        <p id="dossier-opening-script" class="text-xs text-slate-200 italic font-serif">
+                            "Buongiorno e benvenuto! Abbiamo già preparato tutto in sala per dedicarle la massima cura. Si accomodi pure, è un piacere averla qui."
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: SIMULATORE RECEPTION STAFF -->
+            <div id="tab-content-simulator" class="tab-content hidden p-4 sm:p-6 overflow-y-auto flex-1 flex flex-col justify-between space-y-3">
+                <div class="text-xs text-slate-400 flex items-center justify-between pb-2 border-b border-slate-800">
+                    <span>Metti alla prova l'accoglienza simulando la conversazione con questo cliente:</span>
+                    <button id="btn-sim-reset" class="text-[11px] text-cyan-400 hover:underline">Riavvia chat</button>
+                </div>
+
+                <!-- Chat message history -->
+                <div id="sim-chat-box" class="flex-1 space-y-3 overflow-y-auto max-h-[360px] p-2 bg-slate-950/60 rounded-2xl border border-slate-800">
+                    <!-- Dynamic chat bubbles -->
+                </div>
+
+                <!-- Chat Input bar -->
+                <div class="flex items-center gap-2 pt-2">
+                    <input id="sim-input-text" type="text" placeholder="Scrivi la tua frase di accoglienza..." class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-400">
+                    <button id="btn-sim-send" class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs px-4 py-2.5 rounded-xl shadow flex items-center gap-1.5">
+                        <span>Invia</span>
+                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 3: TELEMETRIA COMPLETA -->
+            <div id="tab-content-telemetry" class="tab-content hidden p-4 sm:p-6 overflow-y-auto flex-1 space-y-3 text-xs">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 font-mono">
+                    <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block font-sans">Distanza Totale</span>
+                        <span id="telem-dist" class="text-sm font-bold text-white">850 m</span>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block font-sans">Tempo di Corsa</span>
+                        <span id="telem-time" class="text-sm font-bold text-white">48.2 s</span>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block font-sans">Temperatura Finale</span>
+                        <span id="telem-temp" class="text-sm font-bold text-rose-400">82.5 °C</span>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block font-sans">Integrità Mozzarella</span>
+                        <span id="telem-integrity" class="text-sm font-bold text-emerald-400">94 %</span>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block font-sans">Carezze al Cane</span>
+                        <span id="telem-pets" class="text-sm font-bold text-pink-400">4</span>
+                    </div>
+                    <div class="bg-slate-950/60 border border-slate-800 p-3 rounded-xl">
+                        <span class="text-slate-500 text-[10px] block font-sans">Ordini VIP Accettati</span>
+                        <span id="telem-vip" class="text-sm font-bold text-amber-400">2 / 2</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER MODAL ACTIONS -->
+            <div class="bg-slate-950 border-t border-slate-800 p-3 sm:p-4 flex items-center justify-between">
+                <button id="btn-play-again" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Gioca di Nuovo</span>
+                </button>
+                <button id="btn-close-dossier" class="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-black rounded-xl shadow-lg">
+                    <span>Chiudi Dossier</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 3. MODALE RISCATTO VOUCHER SCONTO SITEBOS ── -->
+    <div id="modal-voucher" class="hidden fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4">
+        <div class="bg-white text-slate-900 rounded-3xl w-full max-w-sm p-5 shadow-2xl border border-slate-200 text-center relative animate-pop">
+            
+            <button id="btn-close-voucher" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">✕</button>
+
+            <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-2xl mx-auto mb-2 shadow-inner">
+                <i class="fa-solid fa-award"></i>
+            </div>
+
+            <div class="text-[10px] font-black text-amber-600 uppercase tracking-wider mb-0.5">SiteBoS Gamification Reward</div>
+            <h3 class="text-xl font-black text-slate-950">Buono Sconto 15%</h3>
+            <p class="text-xs text-slate-500 mt-1 mb-4">
+                Complimenti per l'alta integrità del servizio! Mostra questo voucher al desk per applicare il vantaggio.
+            </p>
+
+            <!-- Voucher Code Box -->
+            <div class="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-3.5 mb-4">
+                <span class="text-[10px] text-slate-400 uppercase font-bold block mb-1">Codice Coupon Univoco</span>
+                <span id="voucher-code-val" class="text-lg font-black font-mono tracking-widest text-slate-900">SITEBOS-PIZZA-8492</span>
+            </div>
+
+            <button id="btn-copy-voucher-code" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-regular fa-copy"></i>
+                <span id="btn-copy-voucher-label">Copia Codice Voucher</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ── JAVASCRIPT GAME ENGINE & PSYCHOMETRIC LOGIC ── -->
+    <script>
+        // ── 1. TELEGRAM WEBAPP INITIALIZATION ──
+        if (window.Telegram?.WebApp) {
+            try {
+                window.Telegram.WebApp.ready();
+                window.Telegram.WebApp.expand();
+            } catch (e) {
+                console.log("Telegram TWA init:", e);
+            }
+        }
+
+        function triggerHaptic(type = 'medium') {
+            try {
+                if (window.Telegram?.WebApp?.HapticFeedback) {
+                    if (type === 'success' || type === 'warning' || type === 'error') {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred(type);
+                    } else {
+                        window.Telegram.WebApp.HapticFeedback.impactOccurred(type);
+                    }
+                }
+            } catch (e) { /* ignore */ }
+        }
+
+        // ── 2. WEBAUDIO PROCEDURAL SOUND SYNTHESIZER ──
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.engineOsc = null;
+                this.engineGain = null;
+                this.engineFilter = null;
+                this.isMuted = false;
+                this.isRunning = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            startEngine() {
+                this.init();
+                if (!this.ctx || this.isRunning) return;
+                try {
+                    this.isRunning = true;
+                    this.engineOsc = this.ctx.createOscillator();
+                    this.engineOsc.type = 'sawtooth';
+                    this.engineOsc.frequency.setValueAtTime(45, this.ctx.currentTime);
+
+                    this.engineFilter = this.ctx.createBiquadFilter();
+                    this.engineFilter.type = 'lowpass';
+                    this.engineFilter.frequency.setValueAtTime(250, this.ctx.currentTime);
+
+                    this.engineGain = this.ctx.createGain();
+                    this.engineGain.gain.setValueAtTime(this.isMuted ? 0 : 0.08, this.ctx.currentTime);
+
+                    this.engineOsc.connect(this.engineFilter);
+                    this.engineFilter.connect(this.engineGain);
+                    this.engineGain.connect(this.ctx.destination);
+                    this.engineOsc.start();
+                } catch (e) {
+                    console.warn("Audio start:", e);
+                }
+            }
+
+            updateEngine(speedKmH, isBraking) {
+                if (!this.ctx || !this.engineOsc || !this.engineFilter || !this.engineGain || this.isMuted) return;
+                const targetFreq = 45 + (speedKmH * 1.8) + (isBraking ? -10 : 0);
+                const targetFilter = 250 + (speedKmH * 6);
+                const targetGain = 0.06 + (speedKmH / 100) * 0.08;
+
+                this.engineOsc.frequency.setTargetAtTime(Math.max(35, targetFreq), this.ctx.currentTime, 0.1);
+                this.engineFilter.frequency.setTargetAtTime(targetFilter, this.ctx.currentTime, 0.1);
+                this.engineGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.1);
+            }
+
+            playHorn() {
+                this.init();
+                if (!this.ctx || this.isMuted) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(420, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.26);
+            }
+
+            playDogBark() {
+                this.init();
+                if (!this.ctx || this.isMuted) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(580, now + 0.05);
+                osc.frequency.exponentialRampToValueAtTime(260, now + 0.18);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.22);
+            }
+
+            playDogHappy() {
+                this.init();
+                if (!this.ctx || this.isMuted) return;
+                const now = this.ctx.currentTime;
+                [520, 680, 840].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                    gain.gain.setValueAtTime(0.12, now + i * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.08);
+                    osc.stop(now + i * 0.08 + 0.16);
+                });
+            }
+
+            playMozzarellaSquish() {
+                this.init();
+                if (!this.ctx || this.isMuted) return;
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(60, now + 0.15);
+                gain.gain.setValueAtTime(0.12, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.2);
+            }
+
+            playVictory() {
+                this.init();
+                if (!this.ctx || this.isMuted) return;
+                const now = this.ctx.currentTime;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + i * 0.12);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.6);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + i * 0.12);
+                    osc.stop(now + i * 0.12 + 0.7);
+                });
+            }
+
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                if (this.engineGain) {
+                    this.engineGain.gain.setValueAtTime(this.isMuted ? 0 : 0.08, this.ctx?.currentTime || 0);
+                }
+                return this.isMuted;
+            }
+
+            stopAll() {
+                if (this.engineOsc) {
+                    try { this.engineOsc.stop(); } catch(e) {}
+                    this.engineOsc = null;
+                }
+                this.isRunning = false;
+            }
+        }
+        const sounds = new SoundEngine();
+
+        // ── 3. STATE & TELEMETRY MODELS ──
+        const gameState = {
+            isPlaying: false,
+            isPaused: false,
+            currentSteer: 0,
+            isThrottle: false,
+            isBraking: false,
+            petTrigger: false,
+            targetDistance: 850
+        };
+
+        const telemetry = {
+            pizzaIntegrity: 100,
+            pizzaTemp: 90,
+            initialTemp: 90,
+            overGEvents: 0,
+            vipAccepted: 0,
+            vipOffersTotal: 0,
+            nearMissCount: 0,
+            dogPetCount: 0,
+            dogStressSeconds: 0,
+            ignoredDogAlerts: 0,
+            redLightsCrossed: 0,
+            sidewalkSeconds: 0,
+            microCorrections: 0,
+            totalRideTimeSec: 0,
+            distanceTraveled: 0,
+            currentSpeed: 0,
+            destinationReached: false
+        };
+
+        const bikePhysics = {
+            x: 0,
+            z: 0,
+            speed: 0,
+            targetSpeed: 0,
+            rollAngle: 0,
+            pitchAngle: 0,
+            gForce: 0,
+            prevSteer: 0,
+            lastVIPTime: 0,
+            isPetting: false,
+            petProgress: 0,
+            hasAlerted: false
+        };
+
+        // ── 4. THREE.JS 3D VOXEL WORLD INITIALIZATION ──
+        let scene, camera, renderer, animationFrameId;
+        let speedNeedle, gNeedle, cbLed, dogHead, leftEar, rightEar, gloveHand, cloudGroup;
+        const obstacleList = [];
+        const roadWidth = 11;
+        const sidewalkWidth = 4.5;
+
+        function init3DWorld() {
+            const container = document.getElementById('game-viewport');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // ── ATMOSFERA NOTTURNA CYBERPUNK HIGH-END ──
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x060913);
+            scene.fog = new THREE.FogExp2(0x070c18, 0.0075);
+
+            camera = new THREE.PerspectiveCamera(65, width / height, 0.1, 450);
+            camera.position.set(0, 1.4, 0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('canvas3d'), antialias: true, powerPreference: 'high-performance' });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.35;
+
+            // Luci Notturne: Luce Lunare Ciano + Luce Ambientale
+            const ambient = new THREE.HemisphereLight(0x38bdf8, 0x020617, 1.6);
+            scene.add(ambient);
+
+            const moonLight = new THREE.DirectionalLight(0x60a5fa, 1.8);
+            moonLight.position.set(-40, 70, -20);
+            scene.add(moonLight);
+
+            // Nuvole Notturne Retroilluminate
+            cloudGroup = new THREE.Group();
+            const cloudMat = new THREE.MeshBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.6 });
+            for (let i = 0; i < 28; i++) {
+                const cloud = new THREE.Mesh(new THREE.BoxGeometry(22 + Math.random() * 25, 3.5, 25 + Math.random() * 25), cloudMat);
+                cloud.position.set((Math.random() - 0.5) * 260, 42 + (i % 5) * 4, -i * 32);
+                cloudGroup.add(cloud);
+            }
+            scene.add(cloudGroup);
+
+            // ── ASFALTO NOTTURNO BAGNATO CON RIFLESSI & STRISCE NEON ──
+            const worldLength = 1600;
+            const worldCenterZ = -700;
+
+            const roadGeo = new THREE.PlaneGeometry(roadWidth, worldLength);
+            const roadMat = new THREE.MeshStandardMaterial({ 
+                color: 0x0f141d, 
+                roughness: 0.22, 
+                metalness: 0.75 
+            });
+            const road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(0, 0, worldCenterZ);
+            scene.add(road);
+
+            // Striscia Centrale Continua & Tratteggiata Giallo Ambra Neon
+            const stripeGroup = new THREE.Group();
+            for (let i = 0; i < 130; i++) {
+                const stripe = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.35, 0.06, 4.5), 
+                    new THREE.MeshBasicMaterial({ color: 0xfbbf24 })
+                );
+                stripe.position.set(0, 0.04, 15 - i * 11);
+                stripeGroup.add(stripe);
+            }
+            scene.add(stripeGroup);
+
+            // Cordoli Laterali Riflettenti Neon Ciano & Magenta
+            const curbMatLeft = new THREE.MeshBasicMaterial({ color: 0x06b6d4 });
+            const curbMatRight = new THREE.MeshBasicMaterial({ color: 0xf43f5e });
+
+            const leftCurb = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, worldLength), curbMatLeft);
+            leftCurb.position.set(-(roadWidth / 2 + 0.15), 0.06, worldCenterZ);
+            scene.add(leftCurb);
+
+            const rightCurb = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, worldLength), curbMatRight);
+            rightCurb.position.set((roadWidth / 2 + 0.15), 0.06, worldCenterZ);
+            scene.add(rightCurb);
+
+            // Marciapiedi Notturni in Cemento Scuro
+            const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.3 });
+            const leftSidewalk = new THREE.Mesh(new THREE.BoxGeometry(sidewalkWidth, 0.25, worldLength), sidewalkMat);
+            leftSidewalk.position.set(-(roadWidth / 2 + sidewalkWidth / 2 + 0.3), 0.12, worldCenterZ);
+            scene.add(leftSidewalk);
+
+            const rightSidewalk = new THREE.Mesh(new THREE.BoxGeometry(sidewalkWidth, 0.25, worldLength), sidewalkMat);
+            rightSidewalk.position.set((roadWidth / 2 + sidewalkWidth / 2 + 0.3), 0.12, worldCenterZ);
+            scene.add(rightSidewalk);
+
+            // ── GRATTACIELI NOTTURNI CON FINESTRE NEON & INSEGNE LUMINOSE ──
+            const worldDecor = new THREE.Group();
+            const bldgColors = [0x0b0f19, 0x111827, 0x0f172a, 0x1e1b4b, 0x172554];
+            const neonWindowMats = [
+                new THREE.MeshBasicMaterial({ color: 0x38bdf8 }), // Ciano
+                new THREE.MeshBasicMaterial({ color: 0xfbbf24 }), // Ambra
+                new THREE.MeshBasicMaterial({ color: 0xf43f5e }), // Magenta
+                new THREE.MeshBasicMaterial({ color: 0xa855f7 })  // Viola
+            ];
+
+            for (let i = 0; i < 70; i++) {
+                const zPos = 20 - i * 22;
+                const bHeight = 16 + (i % 5) * 6; // Grattacieli imponenti
+                const bWidth = 9 + (i % 3) * 3;
+                const bMat = new THREE.MeshStandardMaterial({ 
+                    color: bldgColors[i % bldgColors.length], 
+                    roughness: 0.5, 
+                    metalness: 0.6 
+                });
+
+                // Grattacielo Sinistro
+                const leftB = new THREE.Mesh(new THREE.BoxGeometry(bWidth, bHeight, 16), bMat);
+                leftB.position.set(-(roadWidth / 2 + sidewalkWidth + bWidth / 2 + 1), bHeight / 2, zPos);
+                worldDecor.add(leftB);
+
+                // Finestre Illuminate Grattacielo Sinistro
+                for (let wy = 3; wy < bHeight - 2; wy += 3.5) {
+                    for (let wz = -5; wz <= 5; wz += 3.5) {
+                        if (Math.random() > 0.35) {
+                            const win = new THREE.Mesh(
+                                new THREE.BoxGeometry(1.5, 1.8, 0.1), 
+                                neonWindowMats[(i + Math.floor(wy)) % neonWindowMats.length]
+                            );
+                            win.position.set(-(roadWidth / 2 + sidewalkWidth + 0.9), wy, zPos + wz);
+                            win.rotation.y = Math.PI / 2;
+                            worldDecor.add(win);
+                        }
+                    }
+                }
+
+                // Insegna Neon sul Tetto (ogni 4 palazzi)
+                if (i % 4 === 0) {
+                    const sign = new THREE.Mesh(
+                        new THREE.BoxGeometry(bWidth * 0.7, 2.2, 0.4),
+                        new THREE.MeshBasicMaterial({ color: (i % 8 === 0) ? 0xf59e0b : 0x06b6d4 })
+                    );
+                    sign.position.set(-(roadWidth / 2 + sidewalkWidth + bWidth / 2 + 1), bHeight + 1.2, zPos);
+                    worldDecor.add(sign);
+                }
+
+                // Grattacielo Destro
+                const rightB = new THREE.Mesh(new THREE.BoxGeometry(bWidth, bHeight, 16), bMat);
+                rightB.position.set((roadWidth / 2 + sidewalkWidth + bWidth / 2 + 1), bHeight / 2, zPos);
+                worldDecor.add(rightB);
+
+                // Finestre Illuminate Grattacielo Destro
+                for (let wy = 3; wy < bHeight - 2; wy += 3.5) {
+                    for (let wz = -5; wz <= 5; wz += 3.5) {
+                        if (Math.random() > 0.35) {
+                            const win = new THREE.Mesh(
+                                new THREE.BoxGeometry(1.5, 1.8, 0.1), 
+                                neonWindowMats[(i * 2 + Math.floor(wy)) % neonWindowMats.length]
+                            );
+                            win.position.set((roadWidth / 2 + sidewalkWidth + 0.9), wy, zPos + wz);
+                            win.rotation.y = -Math.PI / 2;
+                            worldDecor.add(win);
+                        }
+                    }
+                }
+
+                // Lampioni Notturni a Collo d'Oca con Lanterna Ambra/Ciano
+                if (i % 2 === 0) {
+                    const lamp = new THREE.Group();
+                    const post = new THREE.Mesh(new THREE.BoxGeometry(0.2, 5.2, 0.2), new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8 }));
+                    post.position.set(0, 2.6, 0);
+                    lamp.add(post);
+
+                    const arm = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.15, 0.15), new THREE.MeshStandardMaterial({ color: 0x334155 }));
+                    arm.position.set(-0.5, 5.2, 0);
+                    lamp.add(arm);
+
+                    const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.3, 0.4), new THREE.MeshBasicMaterial({ color: 0xffedd5 }));
+                    bulb.position.set(-1.0, 5.1, 0);
+                    lamp.add(bulb);
+
+                    lamp.position.set((roadWidth / 2 + 0.8), 0, zPos);
+                    worldDecor.add(lamp);
+                }
+            }
+
+            // 🏁 FINISH LINE DESTINATION ARCH (A 850m) CON LUCI NEON
+            const finishGroup = new THREE.Group();
+            const finishArch = new THREE.Mesh(new THREE.BoxGeometry(roadWidth + 3, 1.4, 1.4), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+            finishArch.position.set(0, 6.2, 0);
+            finishGroup.add(finishArch);
+
+            const finishBanner = new THREE.Mesh(new THREE.BoxGeometry(roadWidth, 2.2, 0.3), new THREE.MeshBasicMaterial({ color: 0x10b981 }));
+            finishBanner.position.set(0, 4.6, 0);
+            finishGroup.add(finishBanner);
+
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9 });
+            const pLeft = new THREE.Mesh(new THREE.BoxGeometry(1.2, 7.0, 1.2), pillarMat);
+            pLeft.position.set(-(roadWidth / 2 + 1.0), 3.5, 0);
+            finishGroup.add(pLeft);
+
+            const pRight = new THREE.Mesh(new THREE.BoxGeometry(1.2, 7.0, 1.2), pillarMat);
+            pRight.position.set((roadWidth / 2 + 1.0), 3.5, 0);
+            finishGroup.add(pRight);
+
+            finishGroup.position.set(0, 0, -850);
+            worldDecor.add(finishGroup);
+
+            scene.add(worldDecor);
+
+            // ── OSTACOLI LUNGO IL PERCORSO CON MODELLI 3D SAGOMATI ──
+            for (let i = 1; i <= 28; i++) {
+                const zPos = -i * 28 - 20;
+                const typeRand = i % 4;
+                if (typeRand === 0) {
+                    // Portale Semaforo Urbano
+                    const gantry = new THREE.Group();
+                    const arch = new THREE.Mesh(new THREE.BoxGeometry(roadWidth + 2, 0.6, 0.6), new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 }));
+                    arch.position.set(0, 5.2, 0);
+                    gantry.add(arch);
+
+                    const postL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+                    postL.position.set(-(roadWidth / 2 + 0.8), 2.6, 0);
+                    gantry.add(postL);
+
+                    const postR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+                    postR.position.set((roadWidth / 2 + 0.8), 2.6, 0);
+                    gantry.add(postR);
+
+                    // Lanterna Semaforo Rossa Pulsante
+                    const semBox = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.4), new THREE.MeshStandardMaterial({ color: 0x020617 }));
+                    semBox.position.set(0, 5.2, 0.3);
+                    gantry.add(semBox);
+
+                    const redLamp = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.2, 16), new THREE.MeshBasicMaterial({ color: 0xff0055 }));
+                    redLamp.rotation.x = Math.PI / 2;
+                    redLamp.position.set(0, 5.4, 0.52);
+                    gantry.add(redLamp);
+
+                    gantry.position.set(0, 0, zPos);
+                    scene.add(gantry);
+                    obstacleList.push({ mesh: gantry, x: 0, z: zPos, type: 'trafficLight', hitRadius: 5, passed: false });
+
+                } else if (typeRand === 1) {
+                    // 🚗 AUTO / TAXI NOTTURNO SAGOMATO CON 4 RUOTE E FARI
+                    const car = new THREE.Group();
+                    const isTaxi = (i % 2 === 0);
+                    const carColor = isTaxi ? 0xf59e0b : 0x2563eb;
+
+                    // Telaio e Carrozzeria
+                    const chassis = new THREE.Mesh(
+                        new THREE.BoxGeometry(2.2, 0.7, 4.4), 
+                        new THREE.MeshStandardMaterial({ color: carColor, metalness: 0.6, roughness: 0.3 })
+                    );
+                    chassis.position.set(0, 0.65, 0);
+                    car.add(chassis);
+
+                    // Cabina e Parabrezza
+                    const cabin = new THREE.Mesh(
+                        new THREE.BoxGeometry(1.8, 0.75, 2.4), 
+                        new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9, roughness: 0.1 })
+                    );
+                    cabin.position.set(0, 1.25, -0.2);
+                    car.add(cabin);
+
+                    // Insegna Taxi sul tetto
+                    if (isTaxi) {
+                        const taxiSign = new THREE.Mesh(
+                            new THREE.BoxGeometry(0.8, 0.25, 0.35),
+                            new THREE.MeshBasicMaterial({ color: 0xfef08a })
+                        );
+                        taxiSign.position.set(0, 1.72, -0.2);
+                        car.add(taxiSign);
+                    }
+
+                    // 4 Ruote con Cerchi
+                    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8 });
+                    const rimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9 });
+                    const wheelPositions = [
+                        [-1.15, 0.4, 1.3], [1.15, 0.4, 1.3],
+                        [-1.15, 0.4, -1.3], [1.15, 0.4, -1.3]
+                    ];
+                    wheelPositions.forEach(([wx, wy, wz]) => {
+                        const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16), wheelMat);
+                        wheel.rotation.z = Math.PI / 2;
+                        wheel.position.set(wx, wy, wz);
+                        car.add(wheel);
+
+                        const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.32, 12), rimMat);
+                        rim.rotation.z = Math.PI / 2;
+                        rim.position.set(wx, wy, wz);
+                        car.add(rim);
+                    });
+
+                    // Fari Anteriori Bianchi LED
+                    const headL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+                    headL.position.set(-0.75, 0.7, -2.22);
+                    car.add(headL);
+                    const headR = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+                    headR.position.set(0.75, 0.7, -2.22);
+                    car.add(headR);
+
+                    // Fari Posteriori Rossi
+                    const tailL = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.1), new THREE.MeshBasicMaterial({ color: 0xff0033 }));
+                    tailL.position.set(-0.75, 0.7, 2.22);
+                    car.add(tailL);
+                    const tailR = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.1), new THREE.MeshBasicMaterial({ color: 0xff0033 }));
+                    tailR.position.set(0.75, 0.7, 2.22);
+                    car.add(tailR);
+
+                    const laneX = (i % 2 === 0) ? 2.6 : -2.6;
+                    car.position.set(laneX, 0, zPos);
+                    scene.add(car);
+                    obstacleList.push({ mesh: car, x: laneX, z: zPos, type: 'van', hitRadius: 2.3, passed: false });
+
+                } else if (typeRand === 2) {
+                    // 🚶 PEDONE URBANO 3D SAGOMATO CON ANIMAZIONE GAMBE & BRACCIA
+                    const ped = new THREE.Group();
+
+                    // Testa con Cappellino
+                    const pHead = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), new THREE.MeshLambertMaterial({ color: 0xfbbf24 }));
+                    pHead.position.set(0, 1.85, 0);
+                    ped.add(pHead);
+
+                    const pCap = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.15, 0.55), new THREE.MeshLambertMaterial({ color: 0xf43f5e }));
+                    pCap.position.set(0, 2.05, 0.05);
+                    ped.add(pCap);
+
+                    // Busto / Giacca
+                    const pTorso = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.85, 0.45), new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.7 }));
+                    pTorso.position.set(0, 1.25, 0);
+                    ped.add(pTorso);
+
+                    // Braccia
+                    const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.7, 0.18), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+                    armL.position.set(-0.42, 1.2, 0);
+                    ped.add(armL);
+                    const armR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.7, 0.18), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+                    armR.position.set(0.42, 1.2, 0);
+                    ped.add(armR);
+
+                    // Gambe (animate in loop)
+                    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+                    const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.22), legMat);
+                    legL.position.set(-0.18, 0.45, 0);
+                    ped.add(legL);
+                    const legR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.85, 0.22), legMat);
+                    legR.position.set(0.18, 0.45, 0);
+                    ped.add(legR);
+
+                    const pedX = (i % 2 === 0) ? 3.3 : -3.3;
+                    ped.position.set(pedX, 0, zPos);
+                    scene.add(ped);
+                    obstacleList.push({ 
+                        mesh: ped, 
+                        legL: legL, 
+                        legR: legR, 
+                        armL: armL, 
+                        armR: armR, 
+                        x: pedX, 
+                        z: zPos, 
+                        type: 'villager', 
+                        hitRadius: 1.6, 
+                        passed: false 
+                    });
+
+                } else {
+                    // Barriere Stradali di Cantiere con Strisce di Avviso
+                    const crate = new THREE.Group();
+                    const bMain = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.1, 0.5), new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5 }));
+                    bMain.position.set(0, 0.55, 0);
+                    crate.add(bMain);
+
+                    // Strisce nere di cantiere
+                    const stripeB = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.25, 0.52), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+                    stripeB.position.set(0, 0.55, 0);
+                    crate.add(stripeB);
+
+                    const cX = (i % 2 === 0) ? -2.2 : 2.2;
+                    crate.position.set(cX, 0, zPos);
+                    scene.add(crate);
+                    obstacleList.push({ mesh: crate, x: cX, z: zPos, type: 'crate', hitRadius: 1.7, passed: false });
+                }
+            }
+
+            // ── COCKPIT IN PRIMA PERSONA (ATTACCATO ALLA CAMERA!) ──
+            const cockpit = new THREE.Group();
+            // Posizionato direttamente nel campo visivo davanti alla camera
+            cockpit.position.set(0, -0.32, -0.68);
+
+            // Faro Anteriore SpotLight Reale che illumina l'asfalto
+            const headlight = new THREE.SpotLight(0xfffbeb, 4.5, 95, Math.PI / 5, 0.35, 1.2);
+            headlight.position.set(0, 0, 0);
+            headlight.target.position.set(0, -0.5, -45);
+            cockpit.add(headlight);
+            cockpit.add(headlight.target);
+
+            // Manubrio Cromato Orizzontale
+            const bar = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.035, 0.035, 1.15, 16), 
+                new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 })
+            );
+            bar.rotation.z = Math.PI / 2;
+            bar.position.set(0, -0.05, 0);
+            cockpit.add(bar);
+
+            // Manopole Sinistra e Destra in Gomma Nera
+            const gripMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.9 });
+            const gripL = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 16), gripMat);
+            gripL.rotation.z = Math.PI / 2;
+            gripL.position.set(-0.48, -0.05, 0);
+            cockpit.add(gripL);
+
+            const gripR = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 16), gripMat);
+            gripR.rotation.z = Math.PI / 2;
+            gripR.position.set(0.48, -0.05, 0);
+            cockpit.add(gripR);
+
+            // Leve Freno Metalliche
+            const leverMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 });
+            const leverL = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.02, 0.04), leverMat);
+            leverL.position.set(-0.42, -0.03, -0.06);
+            cockpit.add(leverL);
+
+            const leverR = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.02, 0.04), leverMat);
+            leverR.position.set(0.42, -0.03, -0.06);
+            cockpit.add(leverR);
+
+            // Specchietti Retrovisori
+            const mirrorMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            const mirrorL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 16), mirrorMat);
+            mirrorL.rotation.x = Math.PI / 2;
+            mirrorL.position.set(-0.58, 0.08, -0.05);
+            cockpit.add(mirrorL);
+
+            const mirrorR = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 16), mirrorMat);
+            mirrorR.rotation.x = Math.PI / 2;
+            mirrorR.position.set(0.58, 0.08, -0.05);
+            cockpit.add(mirrorR);
+
+            // Cruscotto Digitale
+            const dash = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.25, 0.12), new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 }));
+            dash.position.set(0, -0.02, -0.06);
+            dash.rotation.x = -0.35;
+            cockpit.add(dash);
+
+            // Tachimetro e G-Meter Neon
+            const dialMat = new THREE.MeshBasicMaterial({ color: 0x020617 });
+            const sDial = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.02), dialMat);
+            sDial.position.set(-0.11, -0.01, 0.01);
+            sDial.rotation.x = -0.35;
+            cockpit.add(sDial);
+
+            speedNeedle = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.065, 0.01), new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+            speedNeedle.position.set(-0.11, -0.01, 0.02);
+            cockpit.add(speedNeedle);
+
+            const gDial = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.14, 0.02), dialMat);
+            gDial.position.set(0.11, -0.01, 0.01);
+            gDial.rotation.x = -0.35;
+            cockpit.add(gDial);
+
+            gNeedle = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.065, 0.01), new THREE.MeshBasicMaterial({ color: 0xff0055 }));
+            gNeedle.position.set(0.11, -0.01, 0.02);
+            cockpit.add(gNeedle);
+
+            // CB Radio Box & LED
+            const cbBox = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.05), new THREE.MeshLambertMaterial({ color: 0xb91c1c }));
+            cbBox.position.set(0, -0.12, -0.02);
+            cockpit.add(cbBox);
+
+            cbLed = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.028, 0.01), new THREE.MeshBasicMaterial({ color: 0xfbbf24 }));
+            cbLed.position.set(0.035, -0.11, 0.01);
+            cockpit.add(cbLed);
+
+            // ── 🖐️ MANI E BRACCIA IN PRIMA PERSONA (FIRST-PERSON PILOT ARMS) ──
+            const armMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.6 }); // Giacca pelle nera/blu
+            const gloveMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 }); // Guanti da moto
+
+            // Braccio Sinistro
+            const leftArmGroup = new THREE.Group();
+            const armLMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.65, 16), armMat);
+            armLMesh.rotation.x = Math.PI / 4;
+            armLMesh.rotation.z = -Math.PI / 8;
+            armLMesh.position.set(-0.38, -0.28, 0.25);
+            leftArmGroup.add(armLMesh);
+
+            // Mano / Guanto Sinistro sul Manubrio
+            const handL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.11, 0.14), gloveMat);
+            handL.position.set(-0.48, -0.05, 0);
+            leftArmGroup.add(handL);
+            cockpit.add(leftArmGroup);
+
+            // Braccio Destro
+            const rightArmGroup = new THREE.Group();
+            const armRMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.09, 0.65, 16), armMat);
+            armRMesh.rotation.x = Math.PI / 4;
+            armRMesh.rotation.z = Math.PI / 8;
+            armRMesh.position.set(0.38, -0.28, 0.25);
+            rightArmGroup.add(armRMesh);
+
+            // Mano / Guanto Destro sul Manubrio (Acceleratore)
+            const handR = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.11, 0.14), gloveMat);
+            handR.position.set(0.48, -0.05, 0);
+            rightArmGroup.add(handR);
+            cockpit.add(rightArmGroup);
+
+            // ── 🐕 FEDELE CANE COMPANION 3D NEL SIDECAR (BEN VISIBILE A SINISTRA!) ──
+            const dogGroup = new THREE.Group();
+            dogGroup.position.set(-0.44, -0.08, -0.05);
+
+            // Cesto Sidecar
+            const basket = new THREE.Mesh(
+                new THREE.BoxGeometry(0.38, 0.28, 0.38), 
+                new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 })
+            );
+            dogGroup.add(basket);
+
+            // Collare Rosso Brillante
+            const collar = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.22), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+            collar.position.set(0, 0.14, 0);
+            dogGroup.add(collar);
+
+            // Medaglietta dorata
+            const medal = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.01, 12), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+            medal.position.set(0, 0.12, 0.12);
+            dogGroup.add(medal);
+
+            // Testa Cane Morbida
+            dogHead = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.24, 0.24), new THREE.MeshLambertMaterial({ color: 0xe2d5c3 }));
+            dogHead.position.set(0, 0.26, 0);
+            dogGroup.add(dogHead);
+
+            // Muso Cane, Nasino & Lingua
+            const dogSnout = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.11, 0.15), new THREE.MeshLambertMaterial({ color: 0xf5ebe0 }));
+            dogSnout.position.set(0, 0.23, 0.15);
+            dogGroup.add(dogSnout);
+
+            const dogNose = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.05), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+            dogNose.position.set(0, 0.27, 0.23);
+            dogGroup.add(dogNose);
+
+            const dogTongue = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.02, 0.10), new THREE.MeshBasicMaterial({ color: 0xf43f5e }));
+            dogTongue.position.set(0, 0.18, 0.20);
+            dogTongue.rotation.x = 0.25;
+            dogGroup.add(dogTongue);
+
+            // Orecchie a punta (animate col vento)
+            const earMat = new THREE.MeshLambertMaterial({ color: 0x9a8c73 });
+            leftEar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.06), earMat);
+            leftEar.position.set(-0.10, 0.40, -0.02);
+            dogGroup.add(leftEar);
+
+            rightEar = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.06), earMat);
+            rightEar.position.set(0.10, 0.40, -0.02);
+            dogGroup.add(rightEar);
+
+            // Occhialoni da Aviatore con Lenti Ciano Neon Specchiate
+            const goggleFrame = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.08, 0.04), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+            goggleFrame.position.set(0, 0.28, 0.13);
+            dogGroup.add(goggleFrame);
+
+            const goggleLens = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.06, 0.05), new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+            goggleLens.position.set(0, 0.28, 0.14);
+            dogGroup.add(goggleLens);
+
+            cockpit.add(dogGroup);
+
+            // Mano Carezza Pilot (quando tocca 🐕 Carezza)
+            gloveHand = leftArmGroup;
+
+            // ATTACCA IL COCKPIT ALLA CAMERA E LA CAMERA ALLA SCENA!
+            camera.add(cockpit);
+            scene.add(camera);
+
+            window.addEventListener('resize', () => {
+                const w = container.clientWidth;
+                const h = container.clientHeight;
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                renderer.setSize(w, h);
+            });
+        }
+
+        // ── 5. MAIN ANIMATION & PHYSICS GAME LOOP ──
+        let lastTime = performance.now();
+
+        function gameLoop(time) {
+            animationFrameId = requestAnimationFrame(gameLoop);
+            const delta = Math.min((time - lastTime) / 1000, 0.1);
+            lastTime = time;
+
+            if (!gameState.isPlaying || gameState.isPaused) {
+                if (renderer && scene && camera) renderer.render(scene, camera);
+                return;
+            }
+
+            // 1. Movement & Speed
+            telemetry.totalRideTimeSec += delta;
+            const speedMs = (bikePhysics.speed * 1000) / 3600;
+            const stepDist = speedMs * delta;
+            bikePhysics.z -= stepDist;
+            telemetry.distanceTraveled = Math.min(gameState.targetDistance, telemetry.distanceTraveled + stepDist);
+            telemetry.currentSpeed = Math.round(bikePhysics.speed);
+
+            // Target check
+            if (telemetry.distanceTraveled >= gameState.targetDistance && !telemetry.destinationReached) {
+                finishMission();
+                return;
+            }
+
+            // 2. Throttle & Brake
+            if (gameState.isThrottle) {
+                bikePhysics.targetSpeed = 78;
+            } else if (gameState.isBraking) {
+                bikePhysics.targetSpeed = 0;
+            } else {
+                bikePhysics.targetSpeed = 26;
+            }
+
+            const accel = gameState.isBraking ? 75 : 35;
+            bikePhysics.speed = THREE.MathUtils.damp(bikePhysics.speed, bikePhysics.targetSpeed, accel * 0.1, delta);
+            sounds.updateEngine(bikePhysics.speed, gameState.isBraking);
+
+            // 3. Steering & Jitter
+            const steerDelta = gameState.currentSteer - bikePhysics.prevSteer;
+            bikePhysics.prevSteer = gameState.currentSteer;
+            if (Math.abs(steerDelta) > 0.08) telemetry.microCorrections++;
+
+            bikePhysics.x += gameState.currentSteer * (bikePhysics.speed / 60) * 12 * delta;
+            bikePhysics.x = THREE.MathUtils.clamp(bikePhysics.x, -7.5, 7.5);
+
+            // 4. G-Force & Mozzarella Physics
+            const rawG = Math.abs(gameState.currentSteer) * (bikePhysics.speed / 45);
+            bikePhysics.gForce = THREE.MathUtils.damp(bikePhysics.gForce, rawG, 8, delta);
+
+            if (bikePhysics.gForce > 1.25 && bikePhysics.speed > 35) {
+                telemetry.overGEvents++;
+                telemetry.pizzaIntegrity = Math.max(0, telemetry.pizzaIntegrity - (bikePhysics.gForce * 1.5 * delta * 12));
+                sounds.playMozzarellaSquish();
+                triggerHaptic('warning');
+            }
+
+            // 5. Thermal & High Speed Vibration Decay (Trade-Off Bilanciato)
+            const coolingRate = bikePhysics.speed < 20 ? 0.35 : (bikePhysics.speed > 65 ? 0.45 : 0.12);
+            telemetry.pizzaTemp = Math.max(40, telemetry.pizzaTemp - (coolingRate * delta));
+
+            // Vibrazione ad altissima velocità (>65 km/h) logora l'integrità della mozzarella
+            if (bikePhysics.speed > 65) {
+                telemetry.pizzaIntegrity = Math.max(0, telemetry.pizzaIntegrity - (0.025 * delta * 60));
+            }
+
+            // 6. Sidewalk Check
+            if (Math.abs(bikePhysics.x) > (roadWidth / 2 - 0.5)) {
+                telemetry.sidewalkSeconds += delta;
+            }
+
+            // 7. Obstacle & Dog Proximity
+            let closestObs = null;
+            let closestDist = Infinity;
+
+            for (const obs of obstacleList) {
+                // Animazione camminata pedoni
+                if (obs.type === 'villager' && obs.legL && obs.legR) {
+                    const legAngle = Math.sin(time * 0.007 + obs.z) * 0.5;
+                    obs.legL.rotation.x = legAngle;
+                    obs.legR.rotation.x = -legAngle;
+                    obs.armL.rotation.x = -legAngle;
+                    obs.armR.rotation.x = legAngle;
+                }
+
+                const dz = obs.z - bikePhysics.z;
+                if (dz < 0 && dz > -65) {
+                    const absDist = Math.abs(dz);
+                    if (absDist < closestDist) {
+                        closestDist = absDist;
+                        closestObs = obs;
+                    }
+                    if (absDist < 6 && Math.abs(bikePhysics.x - obs.x) < (obs.hitRadius + 0.8) && !obs.passed) {
+                        telemetry.nearMissCount++;
+                        obs.passed = true;
+                        triggerHaptic('medium');
+                    }
+                    if (obs.type === 'trafficLight' && absDist < 3 && !obs.passed) {
+                        if (bikePhysics.speed > 25) telemetry.redLightsCrossed++;
+                        obs.passed = true;
+                    }
+                }
+            }
+
+            const dogBubble = document.getElementById('dog-alert-bubble');
+            if (closestObs && closestDist < 35 && closestDist > 8) {
+                if (!bikePhysics.hasAlerted) {
+                    bikePhysics.hasAlerted = true;
+                    sounds.playDogBark();
+                    dogBubble.classList.remove('hidden');
+                    document.getElementById('dog-alert-text').innerText = closestObs.type === 'villager' ? 'Bau! Pedone in vista!' : 'Bau! Ostacolo in vista!';
+                }
+                if (bikePhysics.speed > 60 && closestDist < 20) {
+                    telemetry.dogStressSeconds += delta;
+                }
+            } else {
+                bikePhysics.hasAlerted = false;
+                dogBubble.classList.add('hidden');
+            }
+
+            // 8. Petting Mechanic: Il braccio sinistro si allunga verso il cane
+            if (bikePhysics.isPetting) {
+                bikePhysics.petProgress += delta * 2.5;
+                const petSin = Math.sin(bikePhysics.petProgress * Math.PI);
+                gloveHand.position.set(-0.06 * petSin, 0.15 * petSin, -0.08 * petSin);
+                gloveHand.rotation.z = -0.3 * petSin;
+                dogHead.rotation.z = Math.sin(bikePhysics.petProgress * Math.PI * 6) * 0.15;
+                if (bikePhysics.petProgress >= 1) {
+                    bikePhysics.isPetting = false;
+                    gloveHand.position.set(0, 0, 0);
+                    gloveHand.rotation.z = 0;
+                    dogHead.rotation.z = 0;
+                }
+            }
+
+            // 9. CB Radio VIP Orders with Countdown Bar
+            if (time - bikePhysics.lastVIPTime > 26000 && telemetry.distanceTraveled < (gameState.targetDistance - 200) && !bikePhysics.isVipActive) {
+                bikePhysics.lastVIPTime = time;
+                bikePhysics.isVipActive = true;
+                bikePhysics.vipTimer = 5.0; // 5 secondi per decidere
+                telemetry.vipOffersTotal++;
+                document.getElementById('vip-flash-banner').classList.remove('hidden');
+            }
+
+            if (bikePhysics.isVipActive) {
+                bikePhysics.vipTimer -= delta;
+                const fillPercent = Math.max(0, (bikePhysics.vipTimer / 5.0) * 100);
+                const elFill = document.getElementById('vip-countdown-fill');
+                if (elFill) elFill.style.width = `${fillPercent}%`;
+
+                if (bikePhysics.vipTimer <= 0) {
+                    bikePhysics.isVipActive = false;
+                    document.getElementById('vip-flash-banner').classList.add('hidden');
+                }
+            }
+
+            // 10. Update Camera, FOV Dinamico & Needles
+            camera.position.x = THREE.MathUtils.damp(camera.position.x, bikePhysics.x, 12, delta);
+            camera.position.z = bikePhysics.z;
+
+            // FOV dinamico: sensazione di velocità e profondità notturna
+            camera.fov = 65 + (bikePhysics.speed / 80) * 10;
+            camera.updateProjectionMatrix();
+
+            bikePhysics.rollAngle = THREE.MathUtils.damp(bikePhysics.rollAngle, -gameState.currentSteer * 0.30, 8, delta);
+            camera.rotation.z = bikePhysics.rollAngle;
+
+            const targetPitch = gameState.isBraking ? -0.04 : (gameState.isThrottle ? 0.03 : 0);
+            bikePhysics.pitchAngle = THREE.MathUtils.damp(bikePhysics.pitchAngle, targetPitch, 10, delta);
+            camera.rotation.x = bikePhysics.pitchAngle;
+
+            const speedAngle = (bikePhysics.speed / 100) * (Math.PI * 1.3) - (Math.PI * 0.65);
+            speedNeedle.rotation.z = -speedAngle;
+
+            const gAngle = (bikePhysics.gForce / 2.0) * (Math.PI * 0.8) * (gameState.currentSteer >= 0 ? -1 : 1);
+            gNeedle.rotation.z = gAngle;
+
+            cbLed.visible = Math.sin(time * 0.01) > 0;
+            
+            // Animazione orecchie cane: sventolano forte col vento e tremano se c'è ostacolo
+            if (bikePhysics.hasAlerted) {
+                leftEar.rotation.z = Math.sin(time * 0.04) * 0.45;
+                rightEar.rotation.z = -Math.sin(time * 0.04) * 0.45;
+            } else {
+                leftEar.rotation.z = 0;
+                rightEar.rotation.z = 0;
+            }
+            leftEar.rotation.x = (bikePhysics.speed / 80) * 0.6 + Math.sin(time * 0.02) * 0.12;
+            rightEar.rotation.x = (bikePhysics.speed / 80) * 0.6 + Math.sin(time * 0.02 + 1) * 0.12;
+            cloudGroup.position.z = bikePhysics.z;
+
+            updateHUD();
+            renderer.render(scene, camera);
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-dist-bar').style.width = `${(telemetry.distanceTraveled / gameState.targetDistance) * 100}%`;
+            document.getElementById('hud-dist-val').innerText = `${Math.round(telemetry.distanceTraveled)} / ${gameState.targetDistance}m`;
+            document.getElementById('hud-integrity-val').innerText = `${Math.round(telemetry.pizzaIntegrity)}%`;
+            document.getElementById('hud-temp-val').innerText = `${Math.round(telemetry.pizzaTemp)}°C`;
+            document.getElementById('hud-speed-val').innerText = `${telemetry.currentSpeed}`;
+        }
+
+        // ── 6. PSYCHOMETRIC SYNTHESIS & RADAR ──
+        function calculateVectors() {
+            const pG = telemetry.overGEvents * 4;
+            const therm = (telemetry.pizzaTemp / telemetry.initialTemp) * 100;
+            const perfectionism = Math.round(Math.max(0, Math.min(100, (telemetry.pizzaIntegrity * 0.6) + (therm * 0.4) - pG)));
+
+            const greed = Math.round(Math.min(100, Math.max(0, (telemetry.vipAccepted * 35) + (telemetry.nearMissCount * 8))));
+
+            const rideTime = Math.max(1, telemetry.totalRideTimeSec);
+            const stressRatio = Math.min(1, telemetry.dogStressSeconds / rideTime);
+            const empathy = Math.round(Math.max(0, Math.min(100, (telemetry.dogPetCount * 20) + (1 - stressRatio) * 40 - (telemetry.ignoredDogAlerts * 15))));
+
+            const infractions = (telemetry.redLightsCrossed * 10) + (telemetry.sidewalkSeconds * 8);
+            const compliance = Math.round(Math.max(0, 100 - infractions));
+
+            const jitter = (telemetry.microCorrections * 10) / rideTime;
+            let calm = 95;
+            if (jitter > 3.5) calm = 30;
+            else if (jitter > 1.8) calm = 65;
+
+            return { perfectionism, greed, empathy, compliance, calm };
+        }
+
+        function drawRadarChart(vectors) {
+            const canvas = document.getElementById('radar-canvas');
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+            const radius = 80;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const labels = ['Perfezione', 'Greed', 'Empatia', 'Compliance', 'Calma'];
+            const values = [vectors.perfectionism, vectors.greed, vectors.empathy, vectors.compliance, vectors.calm];
+            const numAxes = 5;
+
+            // Draw concentric web rings
+            ctx.strokeStyle = 'rgba(100, 116, 139, 0.3)';
+            ctx.lineWidth = 1;
+            for (let r = 0.25; r <= 1.0; r += 0.25) {
+                ctx.beginPath();
+                for (let i = 0; i < numAxes; i++) {
+                    const angle = (Math.PI * 2 / numAxes) * i - Math.PI / 2;
+                    const x = cx + Math.cos(angle) * radius * r;
+                    const y = cy + Math.sin(angle) * radius * r;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            // Draw axes
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px Plus Jakarta Sans, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i < numAxes; i++) {
+                const angle = (Math.PI * 2 / numAxes) * i - Math.PI / 2;
+                const x = cx + Math.cos(angle) * radius;
+                const y = cy + Math.sin(angle) * radius;
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+
+                const lx = cx + Math.cos(angle) * (radius + 20);
+                const ly = cy + Math.sin(angle) * (radius + 20);
+                ctx.fillText(labels[i], lx, ly);
+            }
+
+            // Draw polygon shape
+            ctx.beginPath();
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.35)';
+            ctx.strokeStyle = '#06b6d4';
+            ctx.lineWidth = 2.5;
+
+            for (let i = 0; i < numAxes; i++) {
+                const angle = (Math.PI * 2 / numAxes) * i - Math.PI / 2;
+                const valRatio = values[i] / 100;
+                const x = cx + Math.cos(angle) * radius * valRatio;
+                const y = cy + Math.sin(angle) * radius * valRatio;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw vertices
+            ctx.fillStyle = '#f59e0b';
+            for (let i = 0; i < numAxes; i++) {
+                const angle = (Math.PI * 2 / numAxes) * i - Math.PI / 2;
+                const valRatio = values[i] / 100;
+                const x = cx + Math.cos(angle) * radius * valRatio;
+                const y = cy + Math.sin(angle) * radius * valRatio;
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function finishMission() {
+            telemetry.destinationReached = true;
+            gameState.isPlaying = false;
+            sounds.stopAll();
+            sounds.playVictory();
+            triggerHaptic('success');
+
+            try {
+                confetti({
+                    particleCount: 100,
+                    spread: 80,
+                    origin: { y: 0.6 },
+                    colors: ['#06b6d4', '#f59e0b', '#ec4899', '#10b981']
+                });
+            } catch (e) {}
+
+            const v = calculateVectors();
+
+            // Archetype synthesis
+            let archTitle = 'Massimizzatore Entusiasta';
+            let commStyle = 'DINAMICO_CALOROSO';
+            let acc = 'Accogliere con sorriso caloroso, contatto visivo diretto e tono energico.';
+            let prop = 'Presentare subito il pacchetto All-Inclusive Top di Gamma.';
+            let script = '"Buongiorno e benvenuto! Abbiamo già preparato tutto in sala per dedicarle la massima cura. Si accomodi pure!"';
+
+            if (v.perfectionism >= 80 && v.compliance >= 70) {
+                archTitle = 'Perfezionista Meticoloso';
+                commStyle = 'STRUTTURATO_ACCURATO';
+                acc = 'Accoglienza sobria, puntualità svizzera e precisione sui tempi.';
+                prop = 'Spiegare nel dettaglio il protocollo clinico/tecnico e gli standard di qualità.';
+                script = '"Buongiorno! Tutto procede regolarmente secondo i tempi previsti. Ecco il riepilogo dettagliato del nostro appuntamento."';
+            } else if (v.compliance < 50 && v.greed >= 55) {
+                archTitle = 'Pragmatico Veloce';
+                commStyle = 'RAPIDO_RISULTATI';
+                acc = 'Evitare convenevoli prolungati, andare dritti al sodo.';
+                prop = 'Proporre soluzioni veloci che fanno risparmiare tempo prezioso.';
+                script = '"Buongiorno! La sua pratica è già interamente pre-compilata: le chiedo solo una firma rapida per iniziare subito."';
+            }
+
+            document.getElementById('dossier-archetype-title').innerText = archTitle;
+            document.getElementById('dossier-comm-style').innerText = commStyle;
+            document.getElementById('directive-accoglienza').innerText = acc;
+            document.getElementById('directive-proposta').innerText = prop;
+            document.getElementById('dossier-opening-script').innerText = script;
+
+            // Fill bars
+            document.getElementById('val-perfectionism').innerText = `${v.perfectionism}/100`;
+            document.getElementById('bar-perfectionism').style.width = `${v.perfectionism}%`;
+
+            document.getElementById('val-greed').innerText = `${v.greed}/100`;
+            document.getElementById('bar-greed').style.width = `${v.greed}%`;
+
+            document.getElementById('val-empathy').innerText = `${v.empathy}/100`;
+            document.getElementById('bar-empathy').style.width = `${v.empathy}%`;
+
+            document.getElementById('val-compliance').innerText = `${v.compliance}/100`;
+            document.getElementById('bar-compliance').style.width = `${v.compliance}%`;
+
+            document.getElementById('val-calm').innerText = `${v.calm}/100`;
+            document.getElementById('bar-calm').style.width = `${v.calm}%`;
+
+            // Telemetry tab
+            document.getElementById('telem-dist').innerText = `${Math.round(telemetry.distanceTraveled)} m`;
+            document.getElementById('telem-time').innerText = `${telemetry.totalRideTimeSec.toFixed(1)} s`;
+            document.getElementById('telem-temp').innerText = `${telemetry.pizzaTemp.toFixed(1)} °C`;
+            document.getElementById('telem-integrity').innerText = `${Math.round(telemetry.pizzaIntegrity)} %`;
+            document.getElementById('telem-pets').innerText = `${telemetry.dogPetCount}`;
+            document.getElementById('telem-vip').innerText = `${telemetry.vipAccepted} / ${telemetry.vipOffersTotal}`;
+
+            // Initialize Simulator Chat
+            initSimChat(archTitle, acc);
+
+            // Save Telemetry State to LocalStorage & CloudStorage
+            try {
+                const pizzaPayload = {
+                    telemetry,
+                    vectors: v,
+                    archetype: archTitle,
+                    commStyle,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('SITEBOS_PIZZA_NOCTURNA_V1', JSON.stringify(pizzaPayload));
+                if (window.Telegram?.WebApp?.CloudStorage) {
+                    window.Telegram.WebApp.CloudStorage.setItem('SITEBOS_PIZZA_NOCTURNA_V1', JSON.stringify(pizzaPayload), () => {});
+                }
+            } catch (e) {}
+
+            // Show Dossier Modal
+            document.getElementById('hud-overlay').classList.add('hidden');
+            document.getElementById('modal-dossier').classList.remove('hidden');
+            drawRadarChart(v);
+        }
+
+        // ── 7. SIMULATOR ROLEPLAY CHAT LOGIC ──
+        function initSimChat(archTitle, accDirective) {
+            const chatBox = document.getElementById('sim-chat-box');
+            chatBox.innerHTML = `
+                <div class="bg-indigo-950/40 border border-indigo-500/20 p-2.5 rounded-xl text-indigo-300 text-[11px] mb-2">
+                    <i class="fa-solid fa-lightbulb mr-1"></i> Archetipo: <strong>${archTitle}</strong>. Direttiva: <em>"${accDirective}"</em>
+                </div>
+                <div class="flex items-start gap-2">
+                    <div class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs font-bold shrink-0">👤</div>
+                    <div class="bg-slate-800 p-2.5 rounded-2xl rounded-tl-sm text-xs text-slate-200">
+                        Buonasera! Sono arrivato per il mio appuntamento. Il posto è molto carino!
+                    </div>
+                </div>
+            `;
+        }
+
+        document.getElementById('btn-sim-send').addEventListener('click', sendSimMessage);
+        document.getElementById('sim-input-text').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendSimMessage();
+        });
+
+        function sendSimMessage() {
+            const input = document.getElementById('sim-input-text');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const chatBox = document.getElementById('sim-chat-box');
+            chatBox.innerHTML += `
+                <div class="flex items-start justify-end gap-2">
+                    <div class="bg-cyan-600 p-2.5 rounded-2xl rounded-tr-sm text-xs text-white font-medium max-w-[80%]">
+                        ${text}
+                    </div>
+                    <div class="w-7 h-7 rounded-lg bg-cyan-500 text-slate-950 flex items-center justify-center text-xs font-bold shrink-0">👔</div>
+                </div>
+            `;
+            input.value = '';
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            setTimeout(() => {
+                chatBox.innerHTML += `
+                    <div class="flex items-start gap-2">
+                        <div class="w-7 h-7 rounded-lg bg-slate-800 text-slate-300 flex items-center justify-center text-xs font-bold shrink-0">👤</div>
+                        <div class="bg-slate-800 p-2.5 rounded-2xl rounded-tl-sm text-xs text-slate-200">
+                            Molte grazie per la gentilezza! Mi accomodo subito allora, perfetto.
+                        </div>
+                    </div>
+                    <div class="bg-emerald-950/40 border border-emerald-500/30 p-2 rounded-xl text-emerald-300 text-[10.5px]">
+                        <i class="fa-solid fa-circle-check mr-1"></i> <strong>Feedback Coach:</strong> Ottimo aggancio empatico, hai ridotto l'ansia iniziale e creato sintonia immediata.
+                    </div>
+                `;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            }, 600);
+        }
+
+        document.getElementById('btn-sim-reset').addEventListener('click', () => {
+            initSimChat('Massimizzatore', 'Sorriso e calore');
+        });
+
+        // ── 8. CONTROLS, EVENTS & INTERACTIONS ──
+        function petDog() {
+            telemetry.dogPetCount++;
+            bikePhysics.isPetting = true;
+            bikePhysics.petProgress = 0;
+            sounds.playDogHappy();
+            triggerHaptic('medium');
+
+            // Spawn floating heart
+            const heart = document.createElement('div');
+            heart.className = 'floating-heart text-2xl text-rose-500';
+            heart.innerHTML = '❤️';
+            heart.style.left = '35%';
+            heart.style.bottom = '25%';
+            document.getElementById('hud-overlay').appendChild(heart);
+            setTimeout(() => heart.remove(), 1000);
+        }
+
+        // START GAME
+        document.getElementById('btn-start-game').addEventListener('click', () => {
+            document.getElementById('screen-landing').classList.add('hidden');
+            document.getElementById('hud-overlay').classList.remove('hidden');
+            sounds.startEngine();
+            gameState.isPlaying = true;
+            gameState.isPaused = false;
+        });
+
+        // TOUCH PEDALS & BUTTONS
+        const bindTouchBtn = (btnId, onDown, onUp) => {
+            const btn = document.getElementById(btnId);
+            btn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                btn.classList.add('active');
+                onDown();
+            });
+            const handleRelease = (e) => {
+                e.preventDefault();
+                btn.classList.remove('active');
+                onUp();
+            };
+            btn.addEventListener('pointerup', handleRelease);
+            btn.addEventListener('pointercancel', handleRelease);
+            btn.addEventListener('pointerleave', handleRelease);
+        };
+
+        bindTouchBtn('btn-steer-left', () => gameState.currentSteer = -1, () => gameState.currentSteer = 0);
+        bindTouchBtn('btn-steer-right', () => gameState.currentSteer = 1, () => gameState.currentSteer = 0);
+        bindTouchBtn('btn-throttle', () => gameState.isThrottle = true, () => gameState.isThrottle = false);
+        bindTouchBtn('btn-brake', () => gameState.isBraking = true, () => gameState.isBraking = false);
+        document.getElementById('btn-horn').addEventListener('click', () => sounds.playHorn());
+        document.getElementById('btn-pet-dog').addEventListener('click', petDog);
+
+        // SOUND & PAUSE TOGGLES
+        document.getElementById('btn-toggle-sound').addEventListener('click', () => {
+            const isMuted = sounds.toggleMute();
+            document.getElementById('sound-icon').className = isMuted ? 'fa-solid fa-volume-xmark text-rose-400' : 'fa-solid fa-volume-high';
+        });
+
+        document.getElementById('btn-toggle-pause').addEventListener('click', () => {
+            gameState.isPaused = !gameState.isPaused;
+            document.getElementById('pause-icon').className = gameState.isPaused ? 'fa-solid fa-play text-emerald-400' : 'fa-solid fa-pause';
+        });
+
+        // VIP BUTTONS
+        document.getElementById('btn-vip-accept').addEventListener('click', () => {
+            bikePhysics.isVipActive = false;
+            telemetry.vipAccepted++;
+            document.getElementById('vip-flash-banner').classList.add('hidden');
+            triggerHaptic('success');
+        });
+        document.getElementById('btn-vip-decline').addEventListener('click', () => {
+            bikePhysics.isVipActive = false;
+            document.getElementById('vip-flash-banner').classList.add('hidden');
+        });
+
+        // KEYBOARD LISTENERS (WASD / Arrows)
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            switch(e.key.toLowerCase()) {
+                case 'arrowleft': case 'a': gameState.currentSteer = -1; break;
+                case 'arrowright': case 'd': gameState.currentSteer = 1; break;
+                case 'arrowup': case 'w': gameState.isThrottle = true; break;
+                case 'arrowdown': case 's': case ' ': gameState.isBraking = true; break;
+                case 'e': case 'p': petDog(); break;
+                case 'h': sounds.playHorn(); break;
+                case 'y': case '1': 
+                    bikePhysics.isVipActive = false;
+                    telemetry.vipAccepted++; 
+                    document.getElementById('vip-flash-banner').classList.add('hidden'); 
+                    break;
+                case 'n': case '2': 
+                    bikePhysics.isVipActive = false;
+                    document.getElementById('vip-flash-banner').classList.add('hidden'); 
+                    break;
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            switch(e.key.toLowerCase()) {
+                case 'arrowleft': case 'a':
+                case 'arrowright': case 'd': gameState.currentSteer = 0; break;
+                case 'arrowup': case 'w': gameState.isThrottle = false; break;
+                case 'arrowdown': case 's': case ' ': gameState.isBraking = false; break;
+            }
+        });
+
+        // TAB SWITCHING IN DOSSIER
+        const tabs = [
+            { btn: 'tab-btn-briefing', content: 'tab-content-briefing' },
+            { btn: 'tab-btn-simulator', content: 'tab-content-simulator' },
+            { btn: 'tab-btn-telemetry', content: 'tab-content-telemetry' }
+        ];
+
+        tabs.forEach(t => {
+            document.getElementById(t.btn).addEventListener('click', () => {
+                tabs.forEach(o => {
+                    document.getElementById(o.btn).classList.remove('border-cyan-400', 'text-cyan-400');
+                    document.getElementById(o.btn).classList.add('border-transparent', 'text-slate-400');
+                    document.getElementById(o.content).classList.add('hidden');
+                });
+                document.getElementById(t.btn).classList.remove('border-transparent', 'text-slate-400');
+                document.getElementById(t.btn).classList.add('border-cyan-400', 'text-cyan-400');
+                document.getElementById(t.content).classList.remove('hidden');
+            });
+        });
+
+        // COPY JSON BUTTON
+        document.getElementById('btn-copy-json').addEventListener('click', () => {
+            const v = calculateVectors();
+            const dossier = {
+                session_id: document.getElementById('dossier-session-id').innerText,
+                telemetry,
+                vectors: v,
+                archetype: document.getElementById('dossier-archetype-title').innerText
+            };
+            navigator.clipboard.writeText(JSON.stringify(dossier, null, 2));
+            document.getElementById('btn-copy-json-label').innerText = 'Copiato!';
+            setTimeout(() => document.getElementById('btn-copy-json-label').innerText = 'JSON', 2000);
+        });
+
+        // VOUCHER MODAL TRIGGERS
+        document.getElementById('btn-claim-voucher-open').addEventListener('click', () => {
+            document.getElementById('modal-voucher').classList.remove('hidden');
+        });
+        document.getElementById('btn-close-voucher').addEventListener('click', () => {
+            document.getElementById('modal-voucher').classList.add('hidden');
+        });
+        document.getElementById('btn-copy-voucher-code').addEventListener('click', () => {
+            const code = document.getElementById('voucher-code-val').innerText;
+            navigator.clipboard.writeText(code);
+            document.getElementById('btn-copy-voucher-label').innerText = 'Codice Copiato nel Wallet!';
+            triggerHaptic('success');
+            setTimeout(() => document.getElementById('btn-copy-voucher-label').innerText = 'Copia Codice Voucher', 2500);
+        });
+
+        document.getElementById('btn-close-dossier').addEventListener('click', () => {
+            document.getElementById('modal-dossier').classList.add('hidden');
+            document.getElementById('screen-landing').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-play-again').addEventListener('click', () => {
+            document.getElementById('modal-dossier').classList.add('hidden');
+            // Reset state
+            telemetry.pizzaIntegrity = 100;
+            telemetry.pizzaTemp = 90;
+            telemetry.distanceTraveled = 0;
+            telemetry.overGEvents = 0;
+            telemetry.vipAccepted = 0;
+            telemetry.dogPetCount = 0;
+            telemetry.dogStressSeconds = 0;
+            telemetry.redLightsCrossed = 0;
+            telemetry.sidewalkSeconds = 0;
+            telemetry.microCorrections = 0;
+            telemetry.totalRideTimeSec = 0;
+            telemetry.destinationReached = false;
+            bikePhysics.speed = 0;
+            bikePhysics.z = 0;
+            bikePhysics.x = 0;
+
+            document.getElementById('hud-overlay').classList.remove('hidden');
+            sounds.startEngine();
+            gameState.isPlaying = true;
+            gameState.isPaused = false;
+        });
+
+        // INITIALIZE EVERYTHING ON LOAD
+        window.addEventListener('DOMContentLoaded', () => {
+            init3DWorld();
+            requestAnimationFrame(gameLoop);
+        });
+    </script>
+</body>
+</html>

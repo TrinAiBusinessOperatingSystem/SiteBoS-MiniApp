@@ -2,21 +2,32 @@
 <html lang="it">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Pachinko Rescue | SiteBoS Gamification Suite</title>
+    
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
     <style>
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background: #f8fafc;
+            background: #090d16;
+            color: #f8fafc;
             overflow: hidden;
             user-select: none;
             touch-action: none;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         }
 
         #app-layout {
@@ -28,36 +39,35 @@
             gap: 8px;
         }
 
-        /* 1. Header HUD */
+        /* 1. Header HUD Dark Glass */
         #game-header {
-            height: 42px;
-            background: #ffffff;
-            border: 1.5px solid #cbd5e1;
+            height: 44px;
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: space-around;
             padding: 0 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
             font-size: 11px;
-            font-weight: 900;
-            color: #0f172a;
+            font-weight: 800;
+            letter-spacing: 0.3px;
             white-space: nowrap;
-            shrink-0;
+            flex-shrink: 0;
         }
-        .text-good { color: #059669; }
-        .text-bomb { color: #dc2626; }
-        .text-exploded { color: #d97706; }
 
         /* 2. Box Centrale di Gioco */
         #canvas-container {
             flex: 1;
             min-height: 0;
             width: 100%;
-            background: #ffffff;
-            border: 2.5px solid #94a3b8;
+            background: #0d1526;
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
             border-radius: 20px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.06), inset 0 2px 6px rgba(0,0,0,0.02);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(0, 0, 0, 0.3);
             position: relative;
             overflow: hidden;
         }
@@ -74,7 +84,7 @@
             align-items: center;
             gap: 8px;
             width: 100%;
-            shrink-0;
+            flex-shrink: 0;
         }
 
         .btn-side {
@@ -84,23 +94,24 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            color: #fff;
-            border: none;
+            font-size: 17px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
             cursor: pointer;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            transition: transform 0.1s;
-            shrink-0;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
         }
-        .btn-side:active { transform: scale(0.90); }
-        .btn-blue { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
-        .btn-dark { background: linear-gradient(135deg, #1e293b, #0f172a); }
+        .btn-side:active { transform: scale(0.92); filter: brightness(1.2); }
+        .btn-blue { color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+        .btn-dark { color: #f8fafc; border-color: rgba(255, 255, 255, 0.2); }
 
         #btn-claim {
             flex: 1;
             height: 52px;
             border-radius: 16px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 900;
             display: flex;
             align-items: center;
@@ -113,22 +124,23 @@
             letter-spacing: 0.5px;
         }
         .claim-disabled {
-            background: #e2e8f0;
-            color: #94a3b8;
+            background: rgba(30, 41, 59, 0.7);
+            color: #64748b;
             cursor: not-allowed !important;
-            border: 1.5px dashed #cbd5e1 !important;
+            border: 1.5px dashed rgba(100, 116, 139, 0.4) !important;
             box-shadow: none;
         }
         .claim-ready {
-            background: linear-gradient(135deg, #10b981, #047857);
+            background: linear-gradient(135deg, #10b981, #059669);
             color: #ffffff;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+            border: 1.5px solid rgba(52, 211, 153, 0.6) !important;
+            box-shadow: 0 0 25px rgba(16, 185, 129, 0.55);
             animation: claimPulse 1.8s infinite ease-in-out;
             cursor: pointer !important;
         }
         @keyframes claimPulse {
-            0%, 100% { box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45); transform: scale(1); }
-            50% { box-shadow: 0 10px 28px rgba(16, 185, 129, 0.7); transform: scale(1.02); }
+            0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.45); transform: scale(1); }
+            50% { box-shadow: 0 0 32px rgba(16, 185, 129, 0.85); transform: scale(1.02); }
         }
 
         /* TOAST AVVISO */
@@ -137,16 +149,16 @@
             top: 14px;
             left: 50%;
             transform: translateX(-50%) translateY(-20px);
-            background: #dc2626;
+            background: #ef4444;
             color: #fff;
             padding: 8px 18px;
-            border-radius: 12px;
+            border-radius: 14px;
             font-size: 11px;
             font-weight: 800;
             opacity: 0;
             pointer-events: none;
-            transition: all 0.25s ease;
-            box-shadow: 0 4px 15px rgba(220,38,38,0.4);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.5);
             z-index: 150;
             white-space: nowrap;
         }
@@ -159,8 +171,9 @@
         #modal-claim {
             position: absolute;
             inset: 0;
-            background: rgba(15, 23, 42, 0.75);
-            backdrop-filter: blur(8px);
+            background: rgba(9, 13, 22, 0.88);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -172,100 +185,145 @@
         }
         #modal-claim.show { opacity: 1; pointer-events: auto; }
         .claim-card {
-            background: #ffffff;
-            border: 2px solid #e2e8f0;
+            background: #111827;
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
             border-radius: 28px;
             padding: 24px 20px;
             width: 100%;
-            max-width: 320px;
+            max-width: 330px;
             text-align: center;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
             transform: scale(0.9);
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
         #modal-claim.show .claim-card { transform: scale(1); }
         .badge-trophy {
-            width: 56px;
-            height: 56px;
+            width: 58px;
+            height: 58px;
             border-radius: 18px;
-            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
+            font-size: 24px;
+            color: #0f172a;
             margin: 0 auto 12px auto;
-            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.25);
+            box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
         }
         .btn-modal-action {
             width: 100%;
             padding: 12px;
             border-radius: 14px;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 800;
             border: none;
             cursor: pointer;
             margin-top: 8px;
             transition: transform 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .btn-modal-action:active { transform: scale(0.96); }
-        .btn-confirm { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 6px 18px rgba(16,185,129,0.35); }
-        .btn-replay  { background: #f1f5f9; color: #475569; }
+        .btn-confirm { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 6px 20px rgba(16,185,129,0.4); }
+        .btn-replay  { background: rgba(30, 41, 59, 0.8); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.1); }
     </style>
 </head>
 <body>
 
 <div id="app-layout">
 
-    <!-- 1. HEADER HUD -->
+    <!-- 1. HEADER HUD DARK GLASS -->
     <header id="game-header">
-        <span>🎁 PREMI: <b id="good-count" class="text-good">0</b></span>
-        <span>💣 BOMBE: <b id="bomb-count" class="text-bomb">0</b></span>
-        <span>💥 PERSI: <b id="exploded-count" class="text-exploded">0</b></span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-gem text-emerald-400"></i> PREMI: <b id="good-count" class="text-emerald-400 font-mono text-xs">0</b></span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-radiation text-rose-500"></i> BOMBE: <b id="bomb-count" class="text-rose-500 font-mono text-xs">0</b></span>
+        <span class="flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-amber-400"></i> PERSI: <b id="exploded-count" class="text-amber-400 font-mono text-xs">0</b></span>
     </header>
 
-    <!-- 2. BOX CENTRALE DI GIOCO CON GLI 8 BUMPERS -->
+    <!-- 2. BOX CENTRALE DI GIOCO -->
     <main id="canvas-container">
         <canvas id="c"></canvas>
     </main>
 
     <!-- 3. FOOTER CON I 3 PULSANTI AFFIANCATI -->
     <footer id="game-footer">
-        <button class="btn-side btn-blue" id="btn-maze" title="Cambia Posizione Bumpers (Riorganizza Traiettorie)">🎲</button>
+        <button class="btn-side btn-blue" id="btn-maze" title="Riorganizza Traiettorie Bumpers">
+            <i class="fa-solid fa-shuffle"></i>
+        </button>
         <button id="btn-claim" class="claim-disabled" onclick="handleClaimClick()">
-            <span id="claim-icon">🔒</span>
+            <i id="claim-icon-fa" class="fa-solid fa-lock"></i>
             <span id="claim-text">DISINNESCA LE BOMBE</span>
         </button>
-        <button class="btn-side btn-dark" id="btn-add" title="Aggiungi Altre Palline (Propensione al Rischio / Greed)">+</button>
+        <button class="btn-side btn-dark" id="btn-add" title="Aggiungi Altre Sfere (+Rischio)">
+            <i class="fa-solid fa-plus"></i>
+        </button>
     </footer>
 
 </div>
 
 <div id="toast-alert">⚠️ Elimina prima tutte le bombe per riscattare!</div>
 
-<!-- MODALE RISCATTO / VITTORIA -->
-<div id="modal-claim">
-    <div class="claim-card">
-        <div class="badge-trophy">🏆</div>
-        <h2 style="margin:0 0 6px 0; font-size: 20px; font-weight: 900; color: #0f172a;">AREA BONIFICATA!</h2>
-        <p style="margin:0 0 16px 0; font-size: 12px; color: #64748b; font-weight: 600;">Tutte le bombe sono state eliminate con successo!</p>
-        
-        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 14px; margin-bottom: 16px;">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px;">
-                <span>Premi Salvati:</span>
-                <span id="modal-saved-count" style="color: #059669; font-weight: 900;">0</span>
+<!-- ── MODALE ONBOARDING: COME SI GIOCA (Dark Glass) ── -->
+<div id="modal-howto" class="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-slate-700 rounded-3xl max-w-[360px] w-full p-6 text-center shadow-2xl font-sans">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white flex items-center justify-center text-xl mx-auto mb-3 shadow-lg">
+            <i class="fa-solid fa-bullseye"></i>
+        </div>
+        <h2 class="text-lg font-black text-white uppercase mb-1 tracking-wider">Pachinko Rescue</h2>
+        <p class="text-xs text-slate-400 font-semibold mb-4 leading-relaxed">
+            Bonifica l'area tattica neutralizzando le cariche esplosive prima che danneggino i premi!
+        </p>
+
+        <div class="text-left bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 mb-5 text-[11px] text-slate-300 space-y-2.5 font-medium">
+            <div class="flex items-start gap-2.5 bg-cyan-950/40 border border-cyan-500/30 p-2 rounded-xl text-cyan-200">
+                <i class="fa-solid fa-mobile-screen-button text-cyan-400 text-base mt-0.5 animate-pulse"></i>
+                <div><strong class="text-cyan-300 uppercase font-black block">📱 INCLINA IL TELEFONO:</strong> Inclina lo smartphone a destra, sinistra, avanti e indietro per far rotolare le sfere e guidare le traiettorie con la gravità reale!</div>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px;">
-                <span>Bombe Disinnescate:</span>
-                <span id="modal-defused-count" style="color: #dc2626; font-weight: 900;">0</span>
+            <div class="flex items-start gap-2.5">
+                <i class="fa-solid fa-circle-radiation text-rose-500 text-sm mt-0.5"></i>
+                <div><strong class="text-white">Neutralizza le Cariche:</strong> Tocca le cariche rosse prima che urtino le sfere verdi.</div>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 6px; margin-top: 4px;">
-                <span>Punti Guadagnati:</span>
-                <span id="modal-reward-points" style="color: #d97706;">+0 PUNTI</span>
+            <div class="flex items-start gap-2.5">
+                <i class="fa-solid fa-shuffle text-cyan-400 text-sm mt-0.5"></i>
+                <div><strong class="text-white">Cambia Traiettorie:</strong> Premi il tasto shuffle per riposizionare i respingenti al plasma.</div>
+            </div>
+            <div class="flex items-start gap-2.5">
+                <i class="fa-solid fa-unlock-keyhole text-emerald-400 text-sm mt-0.5"></i>
+                <div><strong class="text-white">Riscatto Tattico:</strong> Quando il campo è bonificato, premi il tasto verde per riscuotere!</div>
             </div>
         </div>
 
-        <button class="btn-modal-action btn-confirm" onclick="confirmClaimReward()">🎁 INCASSA PREMIO</button>
-        <button class="btn-modal-action btn-replay" onclick="closeModalAndReplay()">🔄 GIOCA ANCORA</button>
+        <button onclick="document.getElementById('modal-howto').style.display='none'; if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-2xl shadow-lg transition active:scale-95 cursor-pointer">
+            Inizia Operazione 🚀
+        </button>
+    </div>
+</div>
+
+<!-- MODALE RISCATTO / VITTORIA (Dark Glass) -->
+<div id="modal-claim">
+    <div class="claim-card text-slate-100">
+        <div class="badge-trophy">
+            <i class="fa-solid fa-trophy"></i>
+        </div>
+        <h2 class="text-lg font-black text-white uppercase mb-1 tracking-wider">AREA BONIFICATA!</h2>
+        <p class="text-xs text-slate-400 font-semibold mb-4">Tutte le cariche sono state neutralizzate con successo!</p>
+        
+        <div class="bg-slate-950/70 border border-slate-800 rounded-2xl p-3.5 mb-4 text-xs font-semibold space-y-2">
+            <div class="flex justify-between items-center text-slate-300">
+                <span>Premi Salvati:</span>
+                <span id="modal-saved-count" class="text-emerald-400 font-black font-mono">0</span>
+            </div>
+            <div class="flex justify-between items-center text-slate-300">
+                <span>Cariche Neutralizzate:</span>
+                <span id="modal-defused-count" class="text-rose-400 font-black font-mono">0</span>
+            </div>
+            <div class="flex justify-between items-center text-white border-t border-slate-800 pt-2 font-black">
+                <span>Punti Operazione:</span>
+                <span id="modal-reward-points" class="text-amber-400 font-mono text-sm">+0 PUNTI</span>
+            </div>
+        </div>
+
+        <button class="btn-modal-action btn-confirm" onclick="confirmClaimReward()">INCASSA PREMIO</button>
+        <button class="btn-modal-action btn-replay" onclick="closeModalAndReplay()">GIOCA ANCORA</button>
     </div>
 </div>
 
@@ -863,23 +921,23 @@ function updateHud() {
     }
 
     // 3. Pulsante Riscatta (Schermo 1)
-    const btnClaim  = document.getElementById('btn-claim');
-    const claimIcon = document.getElementById('claim-icon');
-    const claimText = document.getElementById('claim-text');
+    const btnClaim    = document.getElementById('btn-claim');
+    const claimIconFa = document.getElementById('claim-icon-fa');
+    const claimText   = document.getElementById('claim-text');
 
     if (!btnClaim) return;
 
     if (aliveBombs === 0 && aliveGood > 0) {
         btnClaim.className = 'claim-ready';
-        claimIcon.textContent = '✨';
+        if (claimIconFa) claimIconFa.className = 'fa-solid fa-unlock text-sm';
         claimText.textContent = `RISCATTA PREMIO`;
     } else if (aliveBombs > 0) {
         btnClaim.className = 'claim-disabled';
-        claimIcon.textContent = '🔒';
+        if (claimIconFa) claimIconFa.className = 'fa-solid fa-lock text-sm';
         claimText.textContent = `DISINNESCA LE BOMBE`;
     } else {
         btnClaim.className = 'claim-disabled';
-        claimIcon.textContent = '⚠️';
+        if (claimIconFa) claimIconFa.className = 'fa-solid fa-triangle-exclamation text-sm';
         claimText.textContent = `NESSUN PREMIO RIMASTO`;
     }
 }
@@ -1166,113 +1224,168 @@ function physicStep() {
     });
 }
 
-// ── Draw ────────────────────────────────────────────────────
+// ── Draw (Dark Sci-Fi Neon Engine) ──────────────────────────
 function draw(now) {
     const W = canvas.width, H = canvas.height;
 
     ctx.clearRect(0, 0, W, H);
     
-    // SFONDO PULITO CON PATTERN A MICRO-PUNTI MORBIDI
-    ctx.fillStyle = '#ffffff';
+    // SFONDO GRADIENTE RADIALE DARK & CYBER GRID
+    const bgGrad = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, Math.max(W, H) * 0.75);
+    bgGrad.addColorStop(0, '#101a30');
+    bgGrad.addColorStop(1, '#090d16');
+    ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = 'rgba(203, 213, 225, 0.4)';
-    const dotSpacing = 26;
-    for (let x = 20; x < W; x += dotSpacing) {
-        for (let y = 20; y < H; y += dotSpacing) {
+    ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+    const dotSpacing = 28;
+    for (let x = 16; x < W; x += dotSpacing) {
+        for (let y = 16; y < H; y += dotSpacing) {
             ctx.beginPath();
-            ctx.arc(x, y, 1.2, 0, Math.PI * 2);
+            ctx.arc(x, y, 1.1, 0, Math.PI * 2);
             ctx.fill();
         }
     }
 
-    // 1. RENDERING DEGLI 8 POP BUMPERS DORATI (3 DIMENSIONI)
+    // 1. RENDERING DEGLI 8 POP BUMPERS AL PLASMA NEON (3 DIMENSIONI)
     bumpers.forEach(bm => {
         ctx.save();
         const pulseScale = 1 + bm.hitAnim * 0.22;
 
+        // Shockwave su collisione
         if (bm.hitAnim > 0) {
             ctx.beginPath();
-            ctx.arc(bm.x, bm.y, (bm.r + 9) * pulseScale, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(245, 158, 11, ${bm.hitAnim * 0.45})`;
+            ctx.arc(bm.x, bm.y, (bm.r + 14) * pulseScale, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0, 229, 255, ${bm.hitAnim * 0.7})`;
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(bm.x, bm.y, (bm.r + 6) * pulseScale, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(0, 229, 255, ${bm.hitAnim * 0.35})`;
             ctx.fill();
         }
 
-        ctx.beginPath();
-        ctx.arc(bm.x, bm.y, bm.r * pulseScale, 0, Math.PI * 2);
-        const grad = ctx.createRadialGradient(bm.x - 4, bm.y - 4, 2, bm.x, bm.y, bm.r);
-        grad.addColorStop(0, '#fef08a');
-        grad.addColorStop(0.5, '#f59e0b');
-        grad.addColorStop(1, '#b45309');
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.strokeStyle = '#78350f';
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
+        // Bumper Body con Glow
+        ctx.shadowColor = 'rgba(0, 229, 255, 0.65)';
+        ctx.shadowBlur = bm.hitAnim > 0 ? 20 : 10;
 
         ctx.beginPath();
-        ctx.arc(bm.x, bm.y, bm.r * 0.38, 0, Math.PI * 2);
+        ctx.arc(bm.x, bm.y, bm.r * pulseScale, 0, Math.PI * 2);
+        const grad = ctx.createRadialGradient(bm.x - 3, bm.y - 3, 2, bm.x, bm.y, bm.r);
+        grad.addColorStop(0, '#a5f3fc');
+        grad.addColorStop(0.45, '#06b6d4');
+        grad.addColorStop(1, '#083344');
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Anello interno decorativo
+        ctx.shadowBlur = 0;
+        ctx.beginPath();
+        ctx.arc(bm.x, bm.y, bm.r * 0.55 * pulseScale, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Nucleo centrale
+        ctx.beginPath();
+        ctx.arc(bm.x, bm.y, bm.r * 0.28 * pulseScale, 0, Math.PI * 2);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
 
         ctx.restore();
     });
 
-    // 2. PARTICELLE
+    // 2. PARTICELLE LUMINOSE
     particles.forEach(p => {
         ctx.save();
         ctx.globalAlpha = p.life;
         ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
         ctx.fill();
         ctx.restore();
     });
 
-    // 3. PALLINE CON DISTINZIONE PREMI E BOMBE
-    ctx.textAlign    = 'center';
-    ctx.textBaseline = 'middle';
-
+    // 3. PALLINE (SFERE DI ENERGIA E CARICHE ESPLOSIVE)
     balls.forEach(b => {
         if (!b.alive) return;
 
         ctx.save();
         if (b.isBomb) {
-            const pulse = Math.sin((now * 0.006) + b.pulseOffset) * 0.25 + 0.75;
+            // CARICA ESPLOSIVA (BOMBA SCI-FI)
+            const pulse = Math.sin((now * 0.007) + b.pulseOffset) * 0.25 + 0.75;
             
+            // Alone esterno pulsante di pericolo
             ctx.beginPath();
-            ctx.arc(b.x, b.y, b.r + 6 * pulse, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(239, 68, 68, ${0.25 * pulse})`;
+            ctx.arc(b.x, b.y, b.r + 7 * pulse, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(239, 68, 68, ${0.28 * pulse})`;
             ctx.fill();
+
+            // Sfera Magma/Carica
+            ctx.shadowColor = 'rgba(239, 68, 68, 0.85)';
+            ctx.shadowBlur = 14;
 
             ctx.beginPath();
             ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff1f2';
+            const bGrad = ctx.createRadialGradient(b.x - 4, b.y - 4, 2, b.x, b.y, b.r);
+            bGrad.addColorStop(0, '#fca5a5');
+            bGrad.addColorStop(0.35, '#dc2626');
+            bGrad.addColorStop(1, '#450a0a');
+            ctx.fillStyle = bGrad;
             ctx.fill();
-            ctx.strokeStyle = '#dc2626';
-            ctx.lineWidth = 3.5;
-            ctx.shadowColor = 'rgba(220, 38, 38, 0.55)';
-            ctx.shadowBlur = 10;
+            ctx.strokeStyle = '#f87171';
+            ctx.lineWidth = 2.5;
             ctx.stroke();
+
+            // Simbolo Hazard al centro
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `900 ${b.r * 1.0}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⚡', b.x, b.y);
+
         } else {
+            // SFERA DI ENERGIA PREMIO (GLOSSY ORB)
+            ctx.shadowColor = 'rgba(16, 185, 129, 0.6)';
+            ctx.shadowBlur = 10;
+
             ctx.beginPath();
             ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+            const gGrad = ctx.createRadialGradient(b.x - 4, b.y - 4, 2, b.x, b.y, b.r);
+            gGrad.addColorStop(0, '#a7f3d0');
+            gGrad.addColorStop(0.4, '#10b981');
+            gGrad.addColorStop(1, '#064e3b');
+            ctx.fillStyle = gGrad;
+            ctx.fill();
+            ctx.strokeStyle = '#34d399';
+            ctx.lineWidth = 2.2;
+            ctx.stroke();
+
+            // Riflesso di luce speculare (highlight 3D)
+            ctx.shadowBlur = 0;
+            ctx.beginPath();
+            ctx.ellipse(b.x - 5, b.y - 5, b.r * 0.35, b.r * 0.2, -Math.PI / 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+            ctx.fill();
+
+            // Diamante geometrico al centro
+            ctx.beginPath();
+            ctx.moveTo(b.x, b.y - 5);
+            ctx.lineTo(b.x + 5, b.y);
+            ctx.lineTo(b.x, b.y + 5);
+            ctx.lineTo(b.x - 5, b.y);
+            ctx.closePath();
             ctx.fillStyle = '#ffffff';
             ctx.fill();
-            ctx.strokeStyle = '#10b981';
-            ctx.lineWidth = 2.8;
-            ctx.shadowColor = 'rgba(16, 185, 129, 0.35)';
-            ctx.shadowBlur = 8;
-            ctx.stroke();
         }
         ctx.restore();
-
-        ctx.font      = `bold ${b.r * 1.15 * 2}px sans-serif`;
-        ctx.fillStyle = '#000';
-        ctx.fillText(b.emoji, b.x, b.y + 1);
     });
 }
 

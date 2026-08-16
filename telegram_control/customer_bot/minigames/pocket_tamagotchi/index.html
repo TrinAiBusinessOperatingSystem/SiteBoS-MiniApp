@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiTeBoS Pocket Tamagotchi | Cucciolo Empatico</title>
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Quicksand:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                        cute: ['Quicksand', 'cursive', 'sans-serif'],
+                    },
+                    colors: {
+                        pastel: {
+                            pink: '#fce7f3',
+                            rose: '#f43f5e',
+                            lavender: '#ede9fe',
+                            cream: '#fffbeb',
+                            mint: '#dcfce7',
+                            peach: '#ffedd5',
+                            card: '#ffffff'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: #fff8fb;
+            color: #334155;
+            overflow: hidden;
+            user-select: none;
+            touch-action: none;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        }
+
+        .cozy-card {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1.5px solid rgba(244, 114, 182, 0.3);
+            box-shadow: 0 10px 30px -5px rgba(244, 63, 94, 0.12);
+        }
+
+        .action-btn {
+            background: #ffffff;
+            border: 2px solid #fecdd3;
+            box-shadow: 0 4px 14px rgba(244, 63, 94, 0.12);
+            transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+        .action-btn:active {
+            transform: scale(0.92) translateY(2px);
+            background: #ffe4e6;
+            border-color: #fb7185;
+        }
+        .action-btn.btn-risk {
+            border-color: #fca5a5;
+            background: #fff5f5;
+        }
+
+        /* Effetti Particelle */
+        @keyframes floatBubble {
+            0% { transform: translateY(0) scale(0.8); opacity: 0.9; }
+            100% { transform: translateY(-90px) scale(1.3); opacity: 0; }
+        }
+        .floating-heart {
+            position: absolute;
+            animation: floatBubble 1.2s ease-out forwards;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        @keyframes pulseAlert {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+            50% { transform: scale(1.05); box-shadow: 0 0 16px rgba(239, 68, 68, 0.6); }
+        }
+        .hazard-pulse {
+            animation: pulseAlert 0.8s infinite ease-in-out;
+        }
+
+        #room-bg {
+            background: radial-gradient(circle at 50% 30%, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden text-slate-800">
+
+    <!-- ── MODALE ONBOARDING: COME SI GIOCA & TRADE-OFF ── -->
+    <div id="modal-howto" class="fixed inset-0 z-50 bg-slate-900/85 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-rose-200 rounded-3xl max-w-[360px] w-full p-6 text-center shadow-2xl font-sans">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-400 to-pink-500 text-white flex items-center justify-center text-2xl mx-auto mb-3 shadow-md">
+                🐱
+            </div>
+            <h2 class="text-lg font-black text-slate-900 uppercase mb-1">Pocket Tamagotchi 2D</h2>
+            <div class="inline-block bg-rose-100 text-rose-700 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full mb-2">
+                ⏱️ MISSIONE: 2 MINUTI E 30 SECONDI
+            </div>
+            <p class="text-xs text-slate-600 font-semibold mb-3 leading-relaxed">
+                Prenditi cura del cucciolo fino allo scadere del tempo! <strong>Non far mai scendere a zero nessuna barra</strong> e salva i vasi in bilico per sbloccare il Buono Sconto!
+            </p>
+
+            <div class="text-left bg-rose-50/70 border border-rose-200 rounded-2xl p-3 mb-4 text-[11px] text-slate-700 space-y-2 font-medium">
+                <div class="flex items-start gap-2">
+                    <span class="text-sm">🐟</span>
+                    <div><strong>Pappa Sana (+25 Fame):</strong> Pasto nutriente e zero sporco.</div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="text-sm">🍩</span>
+                    <div><strong>Snack Turbo (+50 Fame / -25 Igiene):</strong> Riempie subito ma sporca il pelo e attiva gli <i>Zoomies</i>!</div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="text-sm">🫧</span>
+                    <div><strong>Bagnetto (+40 Igiene / -15 Umore):</strong> Pulisce ma infastidisce il gatto se non lo accarezzi!</div>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="text-sm">🏺</span>
+                    <div><strong>Salva i Vasi in Bilico:</strong> Quando suona l'allarme, salvalo al volo (+50 PT)!</div>
+                </div>
+            </div>
+
+            <button onclick="document.getElementById('modal-howto').style.display='none'; if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');" class="w-full py-3.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 text-white text-xs font-black uppercase tracking-wider rounded-2xl shadow-lg transition active:scale-95 cursor-pointer">
+                Inizia la Partita 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- ── 1. TOP HEADER (BRAND, HUD PUNTI & TIMER PROGRESS) ── -->
+    <header class="p-2.5 bg-white/95 backdrop-blur-md border-b border-rose-100 flex flex-col gap-1.5 z-30 shadow-sm shrink-0">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-400 to-pink-500 text-white flex items-center justify-center text-sm shadow-md">
+                    <i class="fa-solid fa-cat"></i>
+                </div>
+                <div>
+                    <h1 class="text-xs font-black tracking-wide text-slate-900 uppercase font-cute m-0">Pocket Pet</h1>
+                    <span class="text-[9px] text-rose-500 font-bold flex items-center gap-1">
+                        <span>PUNTI:</span>
+                        <b id="hud-score" class="font-mono text-slate-900 text-xs">0 PT</b>
+                        <span id="hud-combo" class="bg-rose-500 text-white text-[8px] px-1 rounded font-black">1.0X</span>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Timer Countdown & Pulsanti -->
+            <div class="flex items-center gap-2">
+                <div class="bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-xl flex items-center gap-1.5 text-[11px] font-black text-rose-600 font-mono shadow-sm">
+                    <i class="fa-solid fa-stopwatch text-rose-500 text-xs"></i>
+                    <span id="hud-timer">02:30</span>
+                </div>
+                <button id="btn-sound" class="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center text-xs shadow-sm">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+                <button id="btn-end-session" class="px-2.5 py-1 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black shadow transition active:scale-95">
+                    Fine 📋
+                </button>
+            </div>
+        </div>
+
+        <!-- 4 BARS DI STATO CON TRACCIAMENTO DIRETTO CONSEGUENZE -->
+        <div class="grid grid-cols-4 gap-1.5 text-[9px] font-bold">
+            <!-- 1. Fame -->
+            <div class="bg-rose-50/80 border border-rose-100 rounded-xl p-1 flex flex-col gap-0.5">
+                <div class="flex items-center justify-between text-rose-700">
+                    <span><i class="fa-solid fa-fish mr-0.5"></i>Pappa</span>
+                    <span id="val-hunger">75%</span>
+                </div>
+                <div class="w-full bg-rose-200/60 rounded-full h-1.5 overflow-hidden">
+                    <div id="bar-hunger" class="bg-gradient-to-r from-amber-400 to-rose-400 h-full w-[75%] transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- 2. Igiene / Pulizia -->
+            <div class="bg-sky-50/80 border border-sky-100 rounded-xl p-1 flex flex-col gap-0.5">
+                <div class="flex items-center justify-between text-sky-700">
+                    <span><i class="fa-solid fa-soap mr-0.5"></i>Igiene</span>
+                    <span id="val-clean">70%</span>
+                </div>
+                <div class="w-full bg-sky-200/60 rounded-full h-1.5 overflow-hidden">
+                    <div id="bar-clean" class="bg-gradient-to-r from-cyan-400 to-sky-400 h-full w-[70%] transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- 3. Felicità -->
+            <div class="bg-pink-50/80 border border-pink-100 rounded-xl p-1 flex flex-col gap-0.5">
+                <div class="flex items-center justify-between text-pink-700">
+                    <span><i class="fa-solid fa-heart mr-0.5"></i>Umore</span>
+                    <span id="val-happy">80%</span>
+                </div>
+                <div class="w-full bg-pink-200/60 rounded-full h-1.5 overflow-hidden">
+                    <div id="bar-happy" class="bg-gradient-to-r from-pink-400 to-rose-500 h-full w-[80%] transition-all duration-300"></div>
+                </div>
+            </div>
+
+            <!-- 4. Energia / Sonno -->
+            <div class="bg-amber-50/80 border border-amber-100 rounded-xl p-1 flex flex-col gap-0.5">
+                <div class="flex items-center justify-between text-amber-700">
+                    <span><i class="fa-solid fa-bolt mr-0.5"></i>Riposo</span>
+                    <span id="val-energy">85%</span>
+                </div>
+                <div class="w-full bg-amber-200/60 rounded-full h-1.5 overflow-hidden">
+                    <div id="bar-energy" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full w-[85%] transition-all duration-300"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── 2. MAIN 2D INTERACTIVE CANVAS ROOM CON EVENTI QUICK-TIME ── -->
+    <main id="room-bg" class="flex-1 relative w-full h-full flex flex-col items-center justify-center overflow-hidden">
+        
+        <!-- Canvas 2D per il gattino con fisica e animazioni -->
+        <canvas id="pet-canvas" class="w-full h-full cursor-pointer"></canvas>
+
+        <!-- Fumetto Pensiero Dinamico -->
+        <div id="pet-thought-bubble" class="absolute top-4 left-1/2 -translate-x-1/2 bg-white/95 border-2 border-rose-200 text-rose-600 text-xs font-cute font-bold px-4 py-2 rounded-2xl shadow-lg flex items-center gap-2 transition-all transform pointer-events-none">
+            <span id="thought-emoji" class="text-base">💖</span>
+            <span id="thought-text">Miao! Fai le tue scelte con cura!</span>
+        </div>
+
+        <!-- ALERT QUICK-TIME: VASO IN BILICO! -->
+        <div id="hazard-vase-banner" class="hidden absolute top-16 left-4 right-4 bg-red-600 text-white p-3 rounded-2xl shadow-2xl z-40 flex items-center justify-between hazard-pulse">
+            <div class="flex items-center gap-2 text-xs font-black uppercase">
+                <span class="text-2xl">🏺</span>
+                <div>
+                    <div>ATTENZIONE! VASO IN BILICO!</div>
+                    <div class="text-[9px] text-red-100 font-normal">Tocca il vaso prima che cada! (<span id="vase-timer">3.0s</span>)</div>
+                </div>
+            </div>
+            <button id="btn-save-vase" class="px-3 py-1.5 bg-white text-red-700 rounded-xl font-black text-xs uppercase shadow-md active:scale-95">
+                SALVA!
+            </button>
+        </div>
+
+        <!-- BANNER ZOOMIES / IPERATTIVITÀ -->
+        <div id="zoomies-banner" class="hidden absolute bottom-4 bg-amber-500/90 backdrop-blur-md text-slate-950 font-black text-xs px-4 py-1.5 rounded-full shadow-lg z-30 uppercase tracking-wide">
+            ⚡ ATTACCO DI ZOOMIES! +PUNTI ACROBAZIA!
+        </div>
+
+        <!-- Indicatore Fusa / Cuoricini Floating Container -->
+        <div id="particle-container" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+    </main>
+
+    <!-- ── 3. BOTTOM ACTION TOOLBAR CON TRADE-OFF ESPLICITI (FontAwesome Premium) ── -->
+    <footer class="p-2.5 bg-white/95 backdrop-blur-md border-t border-rose-100 z-30 shadow-lg shrink-0">
+        <div class="max-w-md mx-auto grid grid-cols-4 gap-2">
+            
+            <!-- 1. Pappa Sana (Trade-off: +25 Fame, zero sporco) -->
+            <button id="act-feed-healthy" class="action-btn py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-amber-700 cursor-pointer" title="Pappa Sana (+20 Fame, zero sporco)">
+                <i class="fa-solid fa-fish text-base text-amber-500 mb-0.5"></i>
+                <span class="text-[9.5px] font-black uppercase font-cute leading-none">Pappa Sana</span>
+                <span class="text-[7.5px] text-emerald-600 font-bold">+25 Fame</span>
+            </button>
+
+            <!-- 2. Super Snack Goloso (Trade-off: +Fame / -Igiene / Zoomies) -->
+            <button id="act-feed-snack" class="action-btn btn-risk py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-rose-600 cursor-pointer" title="Snack Goloso (+50 Fame, -25 Igiene, Zoomies!)">
+                <i class="fa-solid fa-cookie-bite text-base text-rose-500 mb-0.5"></i>
+                <span class="text-[9.5px] font-black uppercase font-cute leading-none">Snack Turbo</span>
+                <span class="text-[7.5px] text-rose-500 font-bold">-25 Igiene</span>
+            </button>
+
+            <!-- 3. Bagnetto (Trade-off: +40 Igiene / -15 Felicità) -->
+            <button id="act-bath" class="action-btn py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-sky-600 cursor-pointer" title="Bagnetto (+40 Igiene, -15 Umore)">
+                <i class="fa-solid fa-soap text-base text-sky-500 mb-0.5"></i>
+                <span class="text-[9.5px] font-black uppercase font-cute leading-none">Bagnetto</span>
+                <span class="text-[7.5px] text-sky-600 font-bold">+40 Igiene</span>
+            </button>
+
+            <!-- 4. Gomitolo Gioco (Trade-off: +35 Felicità / -30 Energia) -->
+            <button id="act-toy" class="action-btn py-2 px-1 rounded-2xl flex flex-col items-center justify-center gap-0.5 text-pink-600 cursor-pointer" title="Gomitolo (+35 Felicità, -30 Energia)">
+                <i class="fa-solid fa-circle-nodes text-base text-pink-500 mb-0.5"></i>
+                <span class="text-[9.5px] font-black uppercase font-cute leading-none">Gomitolo</span>
+                <span class="text-[7.5px] text-amber-600 font-bold">-30 Energia</span>
+            </button>
+
+        </div>
+    </footer>
+
+    <!-- ── 4. MODALE RIEPILOGO PARTITA & BUONO SCONTO ── -->
+    <div id="modal-dossier" class="hidden fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-white border-2 border-rose-200 rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden text-slate-800 font-sans">
+            
+            <!-- Header Dossier -->
+            <div class="bg-gradient-to-r from-rose-50 via-pink-50 to-rose-50 border-b border-rose-100 p-4 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-400 to-pink-500 text-white flex items-center justify-center text-lg shadow-md">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-black text-rose-600 uppercase tracking-wide">Riepilogo Benessere &amp; Coccole</div>
+                        <h2 id="dossier-title" class="text-base font-black text-slate-900 uppercase">Accuditore Empatico</h2>
+                    </div>
+                </div>
+
+                <button id="btn-claim-voucher" class="px-3 py-1.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 text-white text-xs font-black rounded-xl shadow flex items-center gap-1.5">
+                    <i class="fa-solid fa-gift"></i>
+                    <span>Riscatta Buono</span>
+                </button>
+            </div>
+
+            <!-- Statistiche di Gioco & Traguardi -->
+            <div class="p-4 space-y-3">
+                <div class="bg-rose-50/50 p-3 rounded-2xl border border-rose-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Punteggio Totale</span>
+                        <b id="summary-score" class="text-lg font-black text-rose-600">0 PT</b>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Vasi Salvati</span>
+                        <b id="summary-vases" class="text-lg font-black text-emerald-600">0</b>
+                    </div>
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-500 uppercase block">Zoomies Gestiti</span>
+                        <b id="summary-zoomies" class="text-lg font-black text-amber-600">0</b>
+                    </div>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs text-slate-700">
+                    <div class="font-black text-slate-900 mb-1">🎁 Vantaggio Reception:</div>
+                    <p class="m-0 text-slate-600 text-[11px] leading-relaxed">
+                        Mostra questo riepilogo al bancone per applicare il tuo sconto accoglienza!
+                    </p>
+                </div>
+
+                <button onclick="document.getElementById('modal-dossier').classList.add('hidden')" class="w-full py-2.5 bg-slate-900 hover:bg-black text-white font-black text-xs rounded-xl uppercase tracking-wider">
+                    Torna al Gioco
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ── SCRIPT MOTORE 2D CON FISICA, SCELTE & CONSEQUENZE ── -->
+    <script>
+    'use strict';
+
+    const STORAGE_KEY = 'SITEBOS_POCKET_PET_V1';
+
+    // ── 1. WebAudio Synthesizer Real-Time ──
+    class AudioEngine {
+        constructor() {
+            this.ctx = null;
+            this.muted = false;
+        }
+
+        init() {
+            if (!this.ctx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            }
+            if (this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        }
+
+        playPurr() {
+            if (this.muted || !this.ctx) return;
+            try {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(45, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            } catch (e) {}
+        }
+
+        playChime(freq = 520, duration = 0.25) {
+            if (this.muted || !this.ctx) return;
+            try {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        playAlert() {
+            if (this.muted || !this.ctx) return;
+            try {
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(600, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            } catch (e) {}
+        }
+    }
+
+    const audio = new AudioEngine();
+
+    // ── 2. Stato di Gioco con Vettori & Dilemmi ──
+    const state = {
+        hunger: 75,
+        clean: 70,
+        happy: 80,
+        energy: 85,
+        score: 0,
+        combo: 1.0,
+        vasesSaved: 0,
+        zoomiesCount: 0,
+        isZoomies: false,
+        zoomiesTimer: 0,
+        isHazardVase: false,
+        vaseTimer: 3.0,
+        sessionTimer: 150.0, // 2:30 minuti di sopravvivenza
+        isGameOver: false,
+        startTime: Date.now()
+    };
+
+    // ── 3. Canvas 2D Rendering del Gattino con Fisica ──
+    const canvas = document.getElementById('pet-canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+
+    function resizeCanvas() {
+        width = canvas.parentElement.clientWidth;
+        height = canvas.parentElement.clientHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    let catX = width / 2;
+    let catY = height / 2 + 40;
+    let targetX = catX;
+    let targetY = catY;
+    let catVelX = 0;
+    let catVelY = 0;
+    let catEyeBlink = 0;
+    let catTailAngle = 0;
+    let isPetting = false;
+
+    function updatePhysics() {
+        if (state.isGameOver) return;
+
+        // Countdown Timer Sessione
+        state.sessionTimer -= 0.016;
+        if (state.sessionTimer <= 0) {
+            state.sessionTimer = 0;
+            endGameSession(true); // Vittoria: sopravvissuto 2:30 min!
+            return;
+        }
+
+        if (state.isZoomies) {
+            // Movimento iperattivo acrobatico
+            if (Math.random() < 0.08) {
+                targetX = Math.random() * (width - 120) + 60;
+                targetY = Math.random() * (height - 200) + 100;
+            }
+            catVelX = (targetX - catX) * 0.18;
+            catVelY = (targetY - catY) * 0.18;
+        } else {
+            // Movimento calmo e rilassato
+            catVelX = (targetX - catX) * 0.05;
+            catVelY = (targetY - catY) * 0.05;
+        }
+
+        catX += catVelX;
+        catY += catVelY;
+
+        catTailAngle = Math.sin(Date.now() / 250) * 0.4;
+        catEyeBlink = Math.sin(Date.now() / 1500) > 0.95 ? 0.1 : 1;
+
+        // Degrado fisiologico calibrato per creare tensione reale entro 2:30 min
+        state.hunger = Math.max(0, state.hunger - 0.045);
+        state.energy = Math.max(0, state.energy - 0.038);
+        state.clean  = Math.max(0, state.clean  - 0.032);
+        state.happy  = Math.max(0, state.happy  - 0.035);
+
+        // Controllo Sconfitta: Se una barra scende a 0%
+        if (state.hunger <= 0 || state.energy <= 0 || state.clean <= 0 || state.happy <= 0) {
+            endGameSession(false); // Sconfitta / Fuga del cucciolo!
+            return;
+        }
+
+        // Zoomies countdown
+        if (state.isZoomies) {
+            state.zoomiesTimer -= 0.016;
+            if (state.zoomiesTimer <= 0) {
+                state.isZoomies = false;
+                document.getElementById('zoomies-banner').classList.add('hidden');
+                targetX = width / 2;
+                targetY = height / 2 + 40;
+            }
+        }
+
+        // Hazard Vase countdown
+        if (state.isHazardVase) {
+            state.vaseTimer -= 0.016;
+            const elVaseTimer = document.getElementById('vase-timer');
+            if (elVaseTimer) elVaseTimer.textContent = `${Math.max(0, state.vaseTimer).toFixed(1)}s`;
+            if (state.vaseTimer <= 0) {
+                // Vaso caduto! Conseguenza disastro
+                state.isHazardVase = false;
+                document.getElementById('hazard-vase-banner').classList.add('hidden');
+                state.happy = Math.max(0, state.happy - 25);
+                state.energy = Math.max(0, state.energy - 20);
+                showThought("😿 CRASH! Il vaso è caduto!", "💥");
+                audio.playAlert();
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+            }
+        } else {
+            // Chance casuale di innesco vaso in bilico (se energia > 40%)
+            if (Math.random() < 0.0022 && state.energy > 40) {
+                triggerHazardVase();
+            }
+        }
+
+        updateHUD();
+    }
+
+    function drawCat() {
+        ctx.clearRect(0, 0, width, height);
+
+        const floorY = height * 0.68;
+
+        // ── 1. STANZA COSY: PARETE DI FONDO ──
+        const wallGrad = ctx.createLinearGradient(0, 0, 0, floorY);
+        wallGrad.addColorStop(0, '#fff1f2');
+        wallGrad.addColorStop(1, '#fce7f3');
+        ctx.fillStyle = wallGrad;
+        ctx.fillRect(0, 0, width, floorY);
+
+        // Finestra in alto a sinistra (Vista Notturna Cosy)
+        ctx.save();
+        const winX = 24, winY = 24, winW = 54, winH = 68;
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.roundRect(winX, winY, winW, winH, [18, 18, 4, 4]);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Stelline nella finestra
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(winX + 16, winY + 22, 1.8, 0, Math.PI * 2);
+        ctx.arc(winX + 38, winY + 18, 1.5, 0, Math.PI * 2);
+        ctx.arc(winX + 28, winY + 42, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Luna
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(winX + 38, winY + 28, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#0f172a';
+        ctx.beginPath();
+        ctx.arc(winX + 35, winY + 26, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Mensola in legno sul lato destro
+        const shelfX = width - 85;
+        const shelfY = 70;
+        const shelfW = 75;
+        const shelfH = 8;
+        ctx.fillStyle = '#d97706';
+        ctx.beginPath();
+        ctx.roundRect(shelfX, shelfY, shelfW, shelfH, 3);
+        ctx.fill();
+        ctx.strokeStyle = '#b45309';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // VASO IN TERRACOTTA SULLA MENSOLA (Oscilla paurosamente durante l'hazard!)
+        ctx.save();
+        const vaseBaseX = shelfX + 35;
+        const vaseBaseY = shelfY;
+
+        ctx.translate(vaseBaseX, vaseBaseY);
+        if (state.isHazardVase) {
+            const wobble = Math.sin(Date.now() / 65) * 0.26;
+            ctx.rotate(wobble);
+            // Linee d'urgenza allarme
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-16, -28); ctx.lineTo(-24, -34);
+            ctx.moveTo(16, -28); ctx.lineTo(24, -34);
+            ctx.stroke();
+        }
+
+        // Piantina nel vaso
+        ctx.fillStyle = '#22c55e';
+        ctx.beginPath();
+        ctx.ellipse(-5, -28, 5, 8, -0.4, 0, Math.PI * 2);
+        ctx.ellipse(5, -28, 5, 8, 0.4, 0, Math.PI * 2);
+        ctx.ellipse(0, -32, 4, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Vaso
+        ctx.fillStyle = '#ea580c';
+        ctx.beginPath();
+        ctx.moveTo(-9, 0);
+        ctx.lineTo(9, 0);
+        ctx.lineTo(13, -16);
+        ctx.lineTo(10, -22);
+        ctx.lineTo(-10, -22);
+        ctx.lineTo(-13, -16);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = '#9a3412';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.restore();
+
+        // ── 2. PAVIMENTO IN PARQUET COSY ──
+        // Battiscopa
+        ctx.fillStyle = '#e2d5c3';
+        ctx.fillRect(0, floorY - 6, width, 6);
+        ctx.fillStyle = '#c5b49b';
+        ctx.fillRect(0, floorY - 1, width, 2);
+
+        // Doghe Parquet
+        const floorGrad = ctx.createLinearGradient(0, floorY, 0, height);
+        floorGrad.addColorStop(0, '#faebd7');
+        floorGrad.addColorStop(1, '#f0d9bc');
+        ctx.fillStyle = floorGrad;
+        ctx.fillRect(0, floorY, width, height - floorY);
+
+        ctx.strokeStyle = 'rgba(197, 180, 155, 0.45)';
+        ctx.lineWidth = 1.2;
+        const plankH = 22;
+        for (let py = floorY + plankH; py < height; py += plankH) {
+            ctx.beginPath();
+            ctx.moveTo(0, py);
+            ctx.lineTo(width, py);
+            ctx.stroke();
+        }
+
+        // Tappetino rotondo sotto il gattino
+        ctx.fillStyle = 'rgba(254, 205, 211, 0.55)';
+        ctx.beginPath();
+        ctx.ellipse(catX, catY + 45, 68, 22, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#fecdd3';
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+
+        // ── 3. RENDERING GATTINO REATTIVO CON FISICA & STATI VISIVI ──
+        // Ombra gattino
+        ctx.beginPath();
+        ctx.ellipse(catX, catY + 44, 42, 12, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(244, 114, 182, 0.25)';
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(catX, catY);
+
+        // Aura Zoomies se attivo
+        if (state.isZoomies) {
+            ctx.save();
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 18;
+            ctx.strokeStyle = 'rgba(245, 158, 11, 0.7)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, 52, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Coda animata
+        ctx.save();
+        ctx.translate(-25, 20);
+        ctx.rotate(catTailAngle);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(-30, -20, -25, -45);
+        ctx.lineWidth = 12;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#f43f5e';
+        ctx.stroke();
+        ctx.restore();
+
+        // Corpo
+        ctx.beginPath();
+        ctx.ellipse(0, 15, 42, 36, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#fecdd3';
+        ctx.stroke();
+
+        // Macchioline di sporco sul pelo se igiene bassa (< 40%)
+        if (state.clean < 40) {
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
+            ctx.beginPath();
+            ctx.arc(-16, 12, 4, 0, Math.PI * 2);
+            ctx.arc(14, 18, 5, 0, Math.PI * 2);
+            ctx.arc(0, 26, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // POSTURA SUPPLICANTE ZAMPE SE FAME BASSA (< 25%)
+        if (state.hunger < 25) {
+            // Zampetta sinistra alzata
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(-14, 2, 7, 13, -0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fecdd3';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+
+            // Zampetta destra alzata
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.ellipse(14, 2, 7, 13, 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#fecdd3';
+            ctx.lineWidth = 2.5;
+            ctx.stroke();
+        }
+
+        // Orecchie
+        ctx.fillStyle = '#f43f5e';
+        // Sinistra
+        ctx.beginPath();
+        ctx.moveTo(-32, -25);
+        ctx.lineTo(-45, -60);
+        ctx.lineTo(-15, -40);
+        ctx.closePath();
+        ctx.fill();
+        // Destra
+        ctx.beginPath();
+        ctx.moveTo(32, -25);
+        ctx.lineTo(45, -60);
+        ctx.lineTo(15, -40);
+        ctx.closePath();
+        ctx.fill();
+
+        // Testa
+        ctx.beginPath();
+        ctx.ellipse(0, -20, 38, 32, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#fecdd3';
+        ctx.stroke();
+
+        // Occhi: a mezzaluna assonnati se energia bassa (< 30%), grandi se affamato (< 25%), altrimenti vispi
+        ctx.fillStyle = '#0f172a';
+        ctx.save();
+        if (state.energy < 30) {
+            // Occhi stanchi a mezzaluna
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(-14, -20, 5, Math.PI * 0.1, Math.PI * 0.9);
+            ctx.arc(14, -20, 5, Math.PI * 0.1, Math.PI * 0.9);
+            ctx.stroke();
+        } else if (state.hunger < 25) {
+            // Occhi grandi e supplicanti
+            ctx.beginPath();
+            ctx.arc(-14, -20, 7.5, 0, Math.PI * 2);
+            ctx.arc(14, -20, 7.5, 0, Math.PI * 2);
+            ctx.fill();
+            // Riflesso occhi grandi
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(-16, -23, 3, 0, Math.PI * 2);
+            ctx.arc(12, -23, 3, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.scale(1, catEyeBlink);
+            ctx.beginPath();
+            ctx.arc(-14, -20, 5, 0, Math.PI * 2);
+            ctx.arc(14, -20, 5, 0, Math.PI * 2);
+            ctx.fill();
+            // Riflesso occhi
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(-16, -22, 2, 0, Math.PI * 2);
+            ctx.arc(12, -22, 2, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        // Musetto & Nasino
+        ctx.fillStyle = '#fb7185';
+        ctx.beginPath();
+        ctx.moveTo(0, -12);
+        ctx.lineTo(-3, -16);
+        ctx.lineTo(3, -16);
+        ctx.closePath();
+        ctx.fill();
+
+        // Boccuccia
+        ctx.beginPath();
+        ctx.arc(-4, -9, 4, 0, Math.PI);
+        ctx.arc(4, -9, 4, 0, Math.PI);
+        ctx.strokeStyle = '#f43f5e';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Guanciotte rosa
+        ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+        ctx.beginPath();
+        ctx.arc(-22, -12, 6, 0, Math.PI * 2);
+        ctx.arc(22, -12, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    function gameLoop() {
+        updatePhysics();
+        drawCat();
+        requestAnimationFrame(gameLoop);
+    }
+
+    // ── 4. Gestione Trade-Off & Azioni di Gioco ──
+
+    // 1. Pappa Sana (+25 Fame, +10 Punti, zero sporco)
+    document.getElementById('act-feed-healthy').addEventListener('click', () => {
+        audio.init();
+        audio.playChime(580);
+        state.hunger = Math.min(100, state.hunger + 25);
+        state.score += Math.round(15 * state.combo);
+        showThought("Gnam! Pappa sana deliziosa!", "🐟");
+        spawnHearts(catX, catY - 40, '🐟');
+        saveToLocalStorage();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    });
+
+    // 2. Snack Goloso Turbo (+50 Fame, -25 Igiene, attiva Zoomies!)
+    document.getElementById('act-feed-snack').addEventListener('click', () => {
+        audio.init();
+        audio.playChime(750);
+        state.hunger = Math.min(100, state.hunger + 50);
+        state.clean = Math.max(0, state.clean - 25); // CONSEGUENZA: SI SPORCA!
+        state.score += Math.round(35 * state.combo);
+        
+        // Attiva Zoomies
+        state.isZoomies = true;
+        state.zoomiesTimer = 5.0;
+        state.zoomiesCount++;
+        document.getElementById('zoomies-banner').classList.remove('hidden');
+        showThought("ZOOMIES! Troppi zuccheri!", "⚡");
+        spawnHearts(catX, catY - 40, '🍩');
+        saveToLocalStorage();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+    });
+
+    // 3. Bagnetto (+40 Igiene, -15 Umore)
+    document.getElementById('act-bath').addEventListener('click', () => {
+        audio.init();
+        audio.playChime(620);
+        state.clean = Math.min(100, state.clean + 40);
+        state.happy = Math.max(0, state.happy - 15); // CONSEGUENZA: INFASTIDITO DALL'ACQUA!
+        state.score += Math.round(20 * state.combo);
+        showThought("Brrr... bagnato ma profumato!", "🫧");
+        spawnHearts(catX, catY - 40, '🫧');
+        saveToLocalStorage();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    });
+
+    // 4. Gomitolo Gioco (+35 Felicità, -30 Energia)
+    document.getElementById('act-toy').addEventListener('click', () => {
+        audio.init();
+        audio.playChime(680);
+        state.happy = Math.min(100, state.happy + 35);
+        state.energy = Math.max(0, state.energy - 30); // CONSEGUENZA: STANCHEZZA RAPIDA!
+        state.score += Math.round(25 * state.combo);
+        state.combo = Math.min(3.0, state.combo + 0.2);
+        showThought("Che bello il gomitolo!", "🧶");
+        spawnHearts(catX, catY - 40, '🧶');
+        saveToLocalStorage();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    });
+
+    // 5. Coccole Touch sul Canvas (Accarezza per fare le fusa e calmare)
+    canvas.addEventListener('pointerdown', (e) => {
+        audio.init();
+        isPetting = true;
+        audio.playPurr();
+        state.happy = Math.min(100, state.happy + 8);
+        state.score += Math.round(5 * state.combo);
+        spawnHearts(e.clientX, e.clientY, '💖');
+        showThought("Purrrr... che belle coccole!", "💖");
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    });
+
+    // Trigger Hazard Vaso in Bilico
+    function triggerHazardVase() {
+        state.isHazardVase = true;
+        state.vaseTimer = 3.0;
+        document.getElementById('hazard-vase-banner').classList.remove('hidden');
+        audio.playAlert();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+    }
+
+    // Salva Vaso Quick-Time Button
+    document.getElementById('btn-save-vase').addEventListener('click', () => {
+        state.isHazardVase = false;
+        state.vasesSaved++;
+        state.score += Math.round(50 * state.combo);
+        document.getElementById('hazard-vase-banner').classList.add('hidden');
+        showThought("Uff! Vaso salvato al volo!", "🏺✨");
+        audio.playChime(880, 0.4);
+        spawnHearts(width / 2, 80, '✨');
+        saveToLocalStorage();
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    });
+
+    function showThought(text, emoji) {
+        const elText = document.getElementById('thought-text');
+        const elEmoji = document.getElementById('thought-emoji');
+        if (elText) elText.textContent = text;
+        if (elEmoji) elEmoji.textContent = emoji;
+    }
+
+    function spawnHearts(x, y, symbol = '💖') {
+        const container = document.getElementById('particle-container');
+        if (!container) return;
+        const el = document.createElement('div');
+        el.className = 'floating-heart text-xl select-none';
+        el.style.left = `${x - 10}px`;
+        el.style.top = `${y - 10}px`;
+        el.textContent = symbol;
+        container.appendChild(el);
+        setTimeout(() => el.remove(), 1200);
+    }
+
+    function updateHUD() {
+        const elH = document.getElementById('val-hunger');
+        const elC = document.getElementById('val-clean');
+        const elHa = document.getElementById('val-happy');
+        const elE = document.getElementById('val-energy');
+        const bH = document.getElementById('bar-hunger');
+        const bC = document.getElementById('bar-clean');
+        const bHa = document.getElementById('bar-happy');
+        const bE = document.getElementById('bar-energy');
+
+        if (elH) elH.textContent = `${Math.round(state.hunger)}%`;
+        if (elC) elC.textContent = `${Math.round(state.clean)}%`;
+        if (elHa) elHa.textContent = `${Math.round(state.happy)}%`;
+        if (elE) elE.textContent = `${Math.round(state.energy)}%`;
+
+        if (bH) bH.style.width = `${Math.round(state.hunger)}%`;
+        if (bC) bC.style.width = `${Math.round(state.clean)}%`;
+        if (bHa) bHa.style.width = `${Math.round(state.happy)}%`;
+        if (bE) bE.style.width = `${Math.round(state.energy)}%`;
+
+        const elScore = document.getElementById('hud-score');
+        const elCombo = document.getElementById('hud-combo');
+        if (elScore) elScore.textContent = `${state.score} PT`;
+        if (elCombo) elCombo.textContent = `${state.combo.toFixed(1)}X`;
+
+        // Formattazione Timer MM:SS
+        const elTimer = document.getElementById('hud-timer');
+        if (elTimer) {
+            const totalSec = Math.max(0, Math.ceil(state.sessionTimer));
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            elTimer.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+    }
+
+    function endGameSession(isVictory) {
+        state.isGameOver = true;
+        const elTitle = document.getElementById('dossier-title');
+
+        if (isVictory) {
+            state.score += 150; // Bonus completamento missione 2:30 min
+            if (elTitle) elTitle.textContent = "🏆 VITTORIA! ACCUDITORE PERFETTO";
+            showThought("Miao! Sei il miglior amico del mondo! 💖", "🏆");
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+            }
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        } else {
+            if (elTitle) elTitle.textContent = "⚠️ ATTENZIONE! IL CUCCIOLO È SCAPPATO!";
+            showThought("Il cucciolo si è nascosto sotto il letto...", "😿");
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+        }
+
+        document.getElementById('summary-score').textContent = `${state.score} PT`;
+        document.getElementById('summary-vases').textContent = state.vasesSaved;
+        document.getElementById('summary-zoomies').textContent = state.zoomiesCount;
+        document.getElementById('modal-dossier').classList.remove('hidden');
+        saveToLocalStorage();
+    }
+
+    // Termina sessione manuale & Apri Riepilogo
+    document.getElementById('btn-end-session').addEventListener('click', () => {
+        endGameSession(false);
+    });
+
+    // Riscatta Buono
+    document.getElementById('btn-claim-voucher').addEventListener('click', () => {
+        if (typeof confetti === 'function') {
+            confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        }
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+                type: 'MINIGAME_REWARD_CLAIMED',
+                game: 'pocket_tamagotchi',
+                points: state.score,
+                telemetry: generateTelemetry()
+            }, '*');
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        document.getElementById('modal-dossier').classList.add('hidden');
+    });
+
+    function generateTelemetry() {
+        return {
+            game_id: 'pocket_tamagotchi',
+            timestamp: new Date().toISOString(),
+            raw_telemetry: {
+                final_score: state.score,
+                hunger_final: Math.round(state.hunger),
+                clean_final: Math.round(state.clean),
+                happy_final: Math.round(state.happy),
+                energy_final: Math.round(state.energy),
+                vases_saved: state.vasesSaved,
+                zoomies_handled: state.zoomiesCount,
+                duration_seconds: Math.round((Date.now() - state.startTime) / 1000)
+            },
+            semantic_intelligence: {
+                primary_archetype: state.vasesSaved > 2 ? 'CUSTODE_PROTETTIVO_VIGILE' : 'ACCUDITORE_EMPATICO_CALOROSO',
+                metrics_scores: {
+                    nurturing_empathy_score: Math.min(100, Math.round(state.happy)),
+                    emotional_patience_score: Math.min(100, Math.round(state.clean)),
+                    responsibility_balance: Math.min(100, Math.round(state.hunger)),
+                    crisis_readiness_score: Math.min(100, state.vasesSaved * 30 + 40),
+                    affectionate_warmth: Math.min(100, Math.round((state.happy + state.energy) / 2))
+                }
+            }
+        };
+    }
+
+    function saveToLocalStorage() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(generateTelemetry()));
+        } catch (e) {}
+    }
+
+    // Inizializzazione
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+        }
+        gameLoop();
+    });
+    </script>
+</body>
+</html>
