@@ -8,14 +8,14 @@
 
 ### ⚡ Come funziona in 3 passaggi
 
-1. **L'azione fisica:** Il cliente pilota uno scooter di consegna con sidecar e cane compagno in un tragitto urbano 3D SiTeBoS (circa 850m). Deve bilanciare velocità di arrivo, conservazione della temperatura della pizza (non andare troppo piano) ed integrità strutturale della mozzarella (evitare curve ad alta forza G).
+1. **L'azione fisica:** Il cliente pilota uno scooter di consegna con cestino anteriore e cane compagno (sprite emoji 🐶) in un tragitto urbano 3D SiTeBoS (circa 850m), tra pedoni che attraversano sulle strisce agli incroci semaforizzati **solo quando il semaforo delle auto è rosso** (col verde restano fermi sul bordo, coerenti con la fisica del traffico) e auto correttamente orientate nel verso di marcia di ciascuna corsia. Deve bilanciare velocità di arrivo, conservazione della temperatura della pizza (non andare troppo piano) ed integrità strutturale della mozzarella (evitare curve ad alta forza G). Accarezzare il cane richiede di mollare l'acceleratore: la mano non può essere su entrambi i comandi insieme, quindi ogni carezza è una scelta consapevole di rallentare per il compagno di viaggio. Gli ordini flash VIP arrivano come una vera telefonata: il telefono squilla, il giocatore risponde premendo il pulsante dedicato, lo scooter accosta automaticamente e solo allora compare l'ordine da accettare o rifiutare — niente più clacson di cortesia, un gesto reale e circoscritto nel tempo.
 2. **L'estrazione del segnale passivo:** Il motore registra in tempo reale:
    - Forze G laterali e sobbalzi (over-G events)
    - Decadimento termico vs velocità media
    - Reattività e ascolto dei segnali di allerta del cane
    - Frequenza e momento delle carezze affettive al cane (relational empathy)
-   - Accettazione o rifiuto delle chiamate radio CB per consegne flash VIP (greed vs cautela)
-   - Rispetto di semafori, corsie regolari vs scorciatoie su marciapiedi
+   - Prontezza nel rispondere al telefono prima che la chiamata VIP vada persa, accettazione o rifiuto dell'ordine flash (greed vs cautela)
+   - Rispetto di semafori (che ciclano davvero rosso/verde: passare col rosso oltre i 25km/h costa punti integrità pizza ed è l'unico caso che incrementa il contatore), corsie regolari vs scorciatoie su marciapiedi
    - Micro-correzioni e tremolio di sterzata (somatic jitter index)
 3. **La sintesi semantica:** L'algoritmo converte la telemetria di guida in **5 vettori psicometrici (0-100)**, assegnando un archetipo comportamentale e generando istruzioni operative su misura per l'accoglienza al desk e per l'agente conversazionale.
 

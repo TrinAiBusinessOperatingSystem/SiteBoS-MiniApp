@@ -2,21 +2,32 @@
 <html lang="it">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>La Ruota della Fortuna | SiteBoS Gamification Suite</title>
+    
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Google Fonts & FontAwesome -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Canvas Confetti CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <style>
-        * { box-sizing: border-box; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body {
             margin: 0;
             padding: 0;
             width: 100%;
             height: 100%;
-            background: #f8fafc;
+            background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 45%, #fdf4ff 100%);
+            color: #1e293b;
             overflow: hidden;
             user-select: none;
             touch-action: none;
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
         }
 
         #app-layout {
@@ -24,133 +35,170 @@
             flex-direction: column;
             width: 100%;
             height: 100vh;
-            padding: 8px 10px;
+            padding: 8px 12px;
             gap: 8px;
+            max-width: 440px;
+            margin: 0 auto;
         }
 
-        /* 1. Header Message Status Bar (Clean, Zero-Box Clutter) */
+        /* 1. Header Status Bar */
         #game-header {
-            height: 42px;
-            background: #ffffff;
-            border: 1.5px solid #cbd5e1;
-            border-radius: 16px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1.5px solid #fde68a;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0 14px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            shrink-0;
+            padding: 0 16px;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.08);
+            backdrop-filter: blur(8px);
+            flex-shrink: 0;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         #header-status-message {
             display: flex;
             align-items: center;
             gap: 8px;
-            font-size: 12px;
+            font-size: 12.5px;
             font-weight: 900;
             color: #0f172a;
             letter-spacing: 0.2px;
         }
 
-        /* 2. Box Centrale Ruota */
+        /* 2. Container Centrale Viewport 3D Card Stack */
         #wheel-container {
             flex: 1;
             min-height: 0;
             width: 100%;
-            background: #ffffff;
-            border: 2.5px solid #94a3b8;
-            border-radius: 20px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.06), inset 0 2px 6px rgba(0,0,0,0.02);
+            background: radial-gradient(circle at center, #ffffff 0%, #fffbeb 85%, #fef3c7 100%);
+            border: 2px solid #fef08a;
+            border-radius: 28px;
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.12), inset 0 2px 10px rgba(255, 255, 255, 0.8);
             position: relative;
             overflow: hidden;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 8px;
         }
 
-        canvas {
-            display: block;
-            max-width: 100%;
-            max-height: 100%;
-        }
-
-        /* Pointer Top con Flapper Deflection Meccanico ancorato al bordo ruota */
-        #wheel-pointer {
-            position: absolute;
-            top: -22px;
-            left: 50%;
-            transform-origin: top center;
-            transform: translateX(-50%) rotate(0deg);
-            width: 26px;
-            height: 32px;
-            z-index: 50;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.45));
-            transition: transform 0.04s ease-out;
-        }
-        #wheel-pointer.deflect-right {
-            transform: translateX(-50%) rotate(24deg) scale(1.08);
-        }
-
-        /* Status Toast & Last Result */
-        #last-result-banner {
-            position: absolute;
-            bottom: 12px;
-            background: rgba(15, 23, 42, 0.88);
-            backdrop-filter: blur(6px);
-            color: #ffffff;
-            padding: 6px 14px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 800;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        /* 3D Stack Container con Prospettiva Reale */
+        .stack-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            perspective: 1200px;
+            transform-style: preserve-3d;
             display: flex;
             align-items: center;
-            gap: 6px;
-            border: 1px solid rgba(255,255,255,0.15);
-            transition: all 0.25s ease;
+            justify-content: center;
+            overflow: visible !important;
         }
 
-        /* 3. Footer Toolbar con Bet Gauge e Tasto Spin a Tutta Larghezza */
+        /* Card 3D Pulite & Colorate (Un Solo Bordo Singolo Brillante) */
+        .slot-card-3d {
+            position: absolute;
+            width: 82%;
+            max-width: 300px;
+            height: 76px;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            transform-origin: center center;
+            transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                        filter 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                        box-shadow 0.24s ease;
+            transform-style: preserve-3d;
+            backface-visibility: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.12);
+        }
+
+        /* Card attiva centrale: UN SOLO BORDO DORATO NETTO E PULITO */
+        .slot-card-3d.active {
+            border: 3.5px solid #f59e0b !important;
+            box-shadow: 0 16px 36px -4px rgba(245, 158, 11, 0.45), 0 0 20px rgba(245, 158, 11, 0.3) !important;
+        }
+
+        /* 3. Footer Console Arcade Game-Style */
         #game-footer {
             display: flex;
             flex-direction: column;
-            gap: 6px;
+            gap: 8px;
             width: 100%;
-            shrink-0;
+            flex-shrink: 0;
         }
 
-        #bet-slider {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 100%;
-            height: 7px;
-            border-radius: 6px;
-            background: linear-gradient(to right, #10b981 0%, #f59e0b 50%, #ef4444 100%);
-            outline: none;
+        /* Console Card Game-Style */
+        .arcade-console-card {
+            background: rgba(255, 255, 255, 0.96);
+            border: 1.5px solid #fde68a;
+            border-radius: 22px;
+            padding: 10px 14px;
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
-        #bet-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #0f172a;
-            border: 2.5px solid #ffffff;
+
+        /* Pulsanti Stepper (- e +) */
+        .btn-stepper-3d {
+            width: 38px;
+            height: 38px;
+            border-radius: 14px;
+            background: linear-gradient(180deg, #ffffff 0%, #fef3c7 100%);
+            border: 1.5px solid #fde68a;
+            color: #b45309;
+            font-size: 18px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-            transition: transform 0.1s ease;
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.15);
+            transition: all 0.1s ease;
         }
-        #bet-slider::-webkit-slider-thumb:active {
-            transform: scale(1.2);
+        .btn-stepper-3d:active {
+            transform: scale(0.92);
         }
 
-        /* Bottone Gira */
+        /* Gettoni Chip Arcade (10, 25, 50, MAX) */
+        .chip-btn-3d {
+            flex: 1;
+            height: 32px;
+            border-radius: 12px;
+            background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%);
+            border: 1.5px solid #fde68a;
+            color: #b45309;
+            font-size: 11px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(245, 158, 11, 0.12);
+            transition: all 0.1s ease;
+        }
+        .chip-btn-3d:active {
+            transform: scale(0.94);
+            background: #fef3c7;
+        }
+        .chip-btn-3d.max-chip {
+            background: linear-gradient(180deg, #fef3c7 0%, #fed7aa 100%);
+            border-color: #f59e0b;
+            color: #9a3412;
+        }
+
+        /* TASTONE GIRA PULITO */
         #btn-spin {
-            width: 100%;
+            flex: 1;
             height: 48px;
-            border-radius: 16px;
-            font-size: 13px;
+            border-radius: 18px;
+            font-size: 13.5px;
             font-weight: 900;
             display: flex;
             align-items: center;
@@ -158,23 +206,64 @@
             gap: 8px;
             border: none;
             cursor: pointer;
-            background: linear-gradient(135deg, #f59e0b, #d97706);
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #ea580c 100%);
             color: #ffffff;
-            box-shadow: 0 6px 18px rgba(245, 158, 11, 0.4);
-            transition: all 0.2s ease;
+            box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+            transition: all 0.15s ease;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        #btn-spin:active { transform: scale(0.97); }
+        #btn-spin:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
+        }
         #btn-spin.spinning {
-            background: #94a3b8;
+            background: #cbd5e1;
+            color: #64748b;
             cursor: not-allowed;
             box-shadow: none;
             transform: none;
-            opacity: 0.7;
         }
 
-        /* Modale Riscatto Premio / Incasso */
+        /* TASTO INCASSA PREMIO */
+        #btn-claim-reward {
+            height: 48px;
+            border-radius: 18px;
+            font-size: 11.5px;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 14px;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        #btn-claim-reward.locked {
+            background: #f1f5f9;
+            color: #94a3b8;
+            border: 1.5px solid #e2e8f0;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+        }
+        #btn-claim-reward.locked:active {
+            transform: scale(0.97);
+        }
+        #btn-claim-reward.unlocked {
+            background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #059669 100%) !important;
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.45) !important;
+            animation: pulseGlow 2s infinite ease-in-out;
+        }
+        #btn-claim-reward.unlocked:active {
+            transform: scale(0.97);
+        }
+        @keyframes pulseGlow {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+        }
+
+        /* Modale Riscatto Premio */
         #modal-claim {
             position: fixed;
             inset: 0;
@@ -189,13 +278,13 @@
         #modal-claim.show { display: flex; }
         .claim-card {
             background: #ffffff;
-            border: 2px solid #cbd5e1;
-            border-radius: 24px;
+            border: 2.5px solid #fde68a;
+            border-radius: 28px;
             padding: 24px 20px;
             max-width: 320px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 45px rgba(0,0,0,0.25);
             animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         @keyframes popIn {
@@ -203,23 +292,24 @@
             to   { transform: scale(1); opacity: 1; }
         }
         .badge-trophy {
-            width: 56px;
-            height: 56px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             background: #fef3c7;
             border: 2px solid #f59e0b;
-            font-size: 28px;
+            font-size: 30px;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto 12px;
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.25);
         }
         .btn-modal-action {
             width: 100%;
-            padding: 12px;
-            border-radius: 14px;
+            padding: 13px;
+            border-radius: 16px;
             font-size: 13px;
-            font-weight: 800;
+            font-weight: 900;
             border: none;
             cursor: pointer;
             margin-top: 8px;
@@ -227,68 +317,38 @@
         }
         .btn-modal-action:active { transform: scale(0.96); }
         .btn-confirm { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 6px 18px rgba(16,185,129,0.35); }
-        .btn-replay  { background: #f1f5f9; color: #475569; }
-
-        /* Stili Tasto Incassa Bloccato vs Sbloccato */
-        #btn-claim-reward {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        #btn-claim-reward.locked {
-            background: #f1f5f9 !important;
-            color: #94a3b8 !important;
-            border: 1.5px solid #cbd5e1 !important;
-            box-shadow: none !important;
-            cursor: pointer;
-        }
-        #btn-claim-reward.unlocked {
-            background: linear-gradient(135deg, #10b981, #059669) !important;
-            color: #ffffff !important;
-            border: none !important;
-            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
-            animation: pulseGlow 2s infinite ease-in-out;
-        }
-        @keyframes pulseGlow {
-            0%, 100% { transform: scale(1); box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4); }
-            50% { transform: scale(1.025); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.7); }
-        }
-
-        /* Particelle Vettoriali */
-        .particle {
-            position: absolute;
-            pointer-events: none;
-            border-radius: 50%;
-        }
+        .btn-replay  { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
     </style>
 </head>
 <body>
 
 <!-- ── MODALE ONBOARDING: COME SI GIOCA ── -->
-<div id="modal-howto" style="position:fixed; inset:0; z-index:200; background:rgba(15,23,42,0.85); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; padding:16px;">
-    <div style="background:#ffffff; border-radius:24px; max-width:360px; width:100%; padding:22px; box-shadow:0 20px 40px rgba(0,0,0,0.3); text-align:center; font-family:inherit;">
-        <div style="width:54px; height:54px; border-radius:18px; background:linear-gradient(135deg, #f59e0b, #d97706); color:#fff; display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 12px auto; box-shadow:0 6px 16px rgba(217,119,6,0.3);">
-            🎡
+<div id="modal-howto" style="position:fixed; inset:0; z-index:200; background:rgba(15,23,42,0.8); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#ffffff; border:2px solid #fde68a; border-radius:26px; max-width:360px; width:100%; padding:24px; box-shadow:0 20px 45px rgba(0,0,0,0.25); text-align:center; font-family:inherit;">
+        <div style="width:58px; height:58px; border-radius:20px; background:linear-gradient(135deg, #f59e0b, #ea580c); color:#fff; display:flex; align-items:center; justify-content:center; font-size:26px; margin:0 auto 12px auto; box-shadow:0 8px 20px rgba(245,158,11,0.35);">
+            🎴
         </div>
-        <h2 style="margin:0 0 6px 0; font-size:18px; font-weight:900; color:#0f172a; text-transform:uppercase;">La Ruota della Fortuna</h2>
-        <p style="margin:0 0 16px 0; font-size:11.5px; color:#64748b; font-weight:600; line-height:1.4;">
-            Gira la ruota, moltiplica i tuoi punti iniziali e sblocca subito il tuo buono sconto!
+        <h2 style="margin:0 0 6px 0; font-size:19px; font-weight:900; color:#0f172a; text-transform:uppercase;">La Ruota della Fortuna</h2>
+        <p style="margin:0 0 16px 0; font-size:12px; color:#64748b; font-weight:600; line-height:1.4;">
+            Gira la ruota, centra il moltiplicatore d'oro e sblocca il tuo buono sconto!
         </p>
 
-        <div style="text-align:left; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:16px; padding:12px; margin-bottom:18px; font-size:11px; color:#334155; line-height:1.5;">
+        <div style="text-align:left; background:#fffbeb; border:1.5px solid #fde68a; border-radius:18px; padding:14px; margin-bottom:18px; font-size:11.5px; color:#334155; line-height:1.5;">
             <div style="margin-bottom:8px; display:flex; align-items:flex-start; gap:8px;">
-                <span style="font-size:14px;">🪙</span>
-                <div><strong>Scegli la Puntata:</strong> Imposta quanti punti puntare per ogni giro (10, 25 o 50 PT).</div>
+                <span style="font-size:15px;">🪙</span>
+                <div><strong>Scegli i Gettoni:</strong> Imposta quanti punti puntare con i bottoni <b>–</b> e <b>+</b> o i chip rapidi (10, 25, 50, MAX).</div>
             </div>
             <div style="margin-bottom:8px; display:flex; align-items:flex-start; gap:8px;">
-                <span style="font-size:14px;">🎯</span>
-                <div><strong>Gira la Ruota:</strong> Premi <b>GIRA LA RUOTA</b> per centrare i moltiplicatori più alti (fino a x2.5!).</div>
+                <span style="font-size:15px;">🎡</span>
+                <div><strong>Gira la Ruota:</strong> Premi il tastone arcade <b>GIRA LA RUOTA</b> e guarda la ruota girare verso il centro (fino a x2.50!).</div>
             </div>
             <div style="display:flex; align-items:flex-start; gap:8px;">
-                <span style="font-size:14px;">🎁</span>
-                <div><strong>Incassa il Risultato:</strong> Premi <b>INCASSA</b> per convertire i punti in sconti esclusivi!</div>
+                <span style="font-size:15px;">🎁</span>
+                <div><strong>Incassa il Risultato:</strong> Dopo 3 lanci si sblocca <b>INCASSA</b> per convertire i punti in sconti esclusivi!</div>
             </div>
         </div>
 
-        <button onclick="document.getElementById('modal-howto').style.display='none'; if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');" style="width:100%; padding:14px; background:#0f172a; color:#fff; font-size:12.5px; font-weight:900; border-radius:16px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 18px rgba(15,23,42,0.25);">
+        <button onclick="document.getElementById('modal-howto').style.display='none'; if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');" style="width:100%; padding:14px; background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; font-size:13px; font-weight:900; border-radius:16px; border:none; cursor:pointer; text-transform:uppercase; letter-spacing:0.5px; box-shadow:0 6px 18px rgba(15,23,42,0.25);">
             Inizia a Giocare 🚀
         </button>
     </div>
@@ -296,7 +356,7 @@
 
 <div id="app-layout">
 
-    <!-- 1. HEADER MESSAGGI / STATUS BAR PULITA -->
+    <!-- 1. HEADER MESSAGGI / STATUS BAR -->
     <header id="game-header">
         <div id="header-status-message">
             <span id="banner-icon" style="font-size: 15px;">🎯</span>
@@ -304,101 +364,100 @@
         </div>
     </header>
 
-    <!-- 2. BOX CENTRALE RUOTA CON DISTRIBUZIONE A CAMPANA -->
+    <!-- 2. BOX CENTRALE 3D CARD STACK (Stile dashboard.html) -->
     <main id="wheel-container">
-        <!-- Wrapper Ruota + Puntatore Ancorato -->
-        <div id="wheel-wrapper" style="position: relative; display: inline-flex; align-items: center; justify-content: center;">
-            <!-- Indicatore Puntatore Vettoriale sul Bordo (Ore 12) -->
-            <svg id="wheel-pointer" viewBox="0 0 24 28">
-                <path d="M12 28 L3 6 Q1 2 5 2 L19 2 Q23 2 21 6 Z" fill="#0f172a" stroke="#ffffff" stroke-width="2"/>
-                <circle cx="12" cy="8" r="3" fill="#f59e0b"/>
-            </svg>
-
-            <canvas id="wheel-canvas"></canvas>
+        <!-- 3D Card Stack Container -->
+        <div id="stack-container" class="stack-container">
+            <!-- Rendered dynamically by JS -->
         </div>
     </main>
 
-    <!-- 3. FOOTER TOOLBAR CON GAUGE SCOMMESSA SU TUTTO IL BUDGET -->
+    <!-- 3. FOOTER CONSOLE ARCADE GAME-STYLE -->
     <footer id="game-footer">
-        <!-- Box Gauge Scommessa Graduato -->
-        <div id="bet-gauge-card" style="background:#ffffff; border:1.5px solid #cbd5e1; border-radius:18px; padding:8px 12px; box-shadow:0 2px 8px rgba(0,0,0,0.04); display:flex; flex-direction:column; gap:6px;">
-            <!-- Header Gauge: 3 Badge Uniformi (BET, BUDGET, GIRI) -->
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:5px; width:100%;">
-                <!-- 1. Bet con Pila Coin -->
-                <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:3.5px; background:#f8fafc; border:1px solid #e2e8f0; padding:4px 6px; border-radius:9px; white-space:nowrap;">
-                    <span style="font-size:13px;">🪙</span>
-                    <span style="font-size:9.5px; font-weight:900; color:#64748b;">BET:</span>
-                    <b id="bet-amount-display" style="color:#0f172a; font-size:12.5px; font-weight:900; font-family:monospace;">25</b>
-                    <span style="font-size:9px; color:#d97706; font-weight:800;">PT</span>
-                </div>
-                
-                <!-- 2. Budget con Sacchetto Coin -->
-                <div style="flex:1.15; display:flex; align-items:center; justify-content:center; gap:3.5px; background:#f8fafc; border:1px solid #e2e8f0; padding:4px 6px; border-radius:9px; white-space:nowrap;">
-                    <span style="font-size:13px;">💰</span>
-                    <span style="font-size:9.5px; font-weight:900; color:#64748b;">BUDGET:</span>
-                    <b id="hud-pts" style="color:#d97706; font-size:12.5px; font-weight:900; font-family:monospace;">250</b>
-                    <span style="font-size:9px; color:#d97706; font-weight:800;">PT</span>
+        <div class="arcade-console-card">
+            
+            <!-- Riga 1: HUD Punti & Giri Arcade Style -->
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%;">
+                <!-- Budget Monete -->
+                <div style="flex:1.2; display:flex; align-items:center; gap:6px; background:#fffbeb; border:1.5px solid #fde68a; padding:6px 10px; border-radius:14px;">
+                    <span style="font-size:16px;">💰</span>
+                    <div style="display:flex; flex-direction:column; line-height:1;">
+                        <span style="font-size:8.5px; font-weight:900; color:#b45309; text-transform:uppercase;">BUDGET PUNTI</span>
+                        <b id="hud-pts" style="color:#0f172a; font-size:14px; font-weight:900; font-family:monospace;">250</b>
+                    </div>
                 </div>
 
-                <!-- 3. Giri con Dado -->
-                <div style="flex:0.85; display:flex; align-items:center; justify-content:center; gap:3.5px; background:#f8fafc; border:1px solid #e2e8f0; padding:4px 6px; border-radius:9px; white-space:nowrap;">
-                    <span style="font-size:13px;">🎲</span>
-                    <span style="font-size:9.5px; font-weight:900; color:#64748b;">GIRI:</span>
-                    <b id="hud-spins" style="color:#2563eb; font-size:12.5px; font-weight:900; font-family:monospace;">0</b>
+                <!-- Giri Effettuati -->
+                <div style="flex:0.8; display:flex; align-items:center; gap:6px; background:#f8fafc; border:1.5px solid #e2e8f0; padding:6px 10px; border-radius:14px;">
+                    <span style="font-size:16px;">🎲</span>
+                    <div style="display:flex; flex-direction:column; line-height:1;">
+                        <span style="font-size:8.5px; font-weight:900; color:#64748b; text-transform:uppercase;">GIRI</span>
+                        <b id="hud-spins" style="color:#2563eb; font-size:14px; font-weight:900; font-family:monospace;">0</b>
+                    </div>
                 </div>
             </div>
 
-            <!-- Slider / Gauge Bar su tutto il budget -->
-            <div style="display:flex; align-items:center; gap:8px;">
-                <button onclick="adjustBet(-5)" title="Diminuisci 5 PT" style="width:30px; height:28px; border-radius:9px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; font-size:14px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center;">-</button>
-                <div style="flex:1; position:relative; display:flex; align-items:center;">
-                    <input type="range" id="bet-slider" min="1" max="250" value="25" step="1" oninput="onSliderBet(this.value)" style="width:100%;">
+            <!-- Riga 2: Selettore Puntata a Bottoncioni 3D & Gettoni Chip -->
+            <div style="display:flex; flex-direction:column; gap:6px; background:#f8fafc; border:1.5px solid #e2e8f0; border-radius:16px; padding:6px 8px;">
+                <!-- Stepper Puntata Centrale -->
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                    <button class="btn-stepper-3d" onclick="adjustBet(-5)">
+                        <i class="fa-solid fa-minus text-xs"></i>
+                    </button>
+
+                    <!-- Pillola Display Puntata -->
+                    <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#ffffff; border:1.5px solid #fde68a; border-radius:14px; padding:4px 8px; box-shadow:inset 0 2px 4px rgba(0,0,0,0.03);">
+                        <span style="font-size:15px;">🪙</span>
+                        <span style="font-size:10px; font-weight:900; color:#64748b;">BET:</span>
+                        <b id="bet-amount-display" style="color:#b45309; font-size:16px; font-weight:900; font-family:monospace;">25</b>
+                        <span style="font-size:9px; color:#d97706; font-weight:800;">PT</span>
+                    </div>
+
+                    <button class="btn-stepper-3d" onclick="adjustBet(5)">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                    </button>
                 </div>
-                <button onclick="adjustBet(5)" title="Aumenta 5 PT" style="width:30px; height:28px; border-radius:9px; background:#f1f5f9; border:1px solid #cbd5e1; color:#334155; font-size:14px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center;">+</button>
+
+                <!-- Gettoni Chip Rapidi (10, 25, 50, MAX) -->
+                <div style="display:flex; gap:5px; width:100%;">
+                    <button class="chip-btn-3d" onclick="setBet(10)">10 PT</button>
+                    <button class="chip-btn-3d" onclick="setBet(25)">25 PT</button>
+                    <button class="chip-btn-3d" onclick="setBet(50)">50 PT</button>
+                    <button class="chip-btn-3d max-chip" onclick="setBetFraction(1.0)">⚡ MAX</button>
+                </div>
             </div>
 
-            <!-- Quick Chips: MIN, 25%, 50%, ALL-IN -->
-            <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:4px; margin-top:2px;">
-                <button onclick="setBetFraction(0.04)" style="padding:4px 0; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; font-size:9px; font-weight:900; color:#475569; cursor:pointer;">MIN</button>
-                <button onclick="setBetFraction(0.25)" style="padding:4px 0; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; font-size:9px; font-weight:900; color:#475569; cursor:pointer;">25%</button>
-                <button onclick="setBetFraction(0.50)" style="padding:4px 0; border-radius:8px; background:#f8fafc; border:1px solid #e2e8f0; font-size:9px; font-weight:900; color:#475569; cursor:pointer;">50%</button>
-                <button onclick="setBetFraction(1.00)" style="padding:4px 0; border-radius:8px; background:#fff1f2; border:1px solid #fecdd3; font-size:9px; font-weight:900; color:#be123c; cursor:pointer;">ALL-IN</button>
-            </div>
         </div>
 
-        <!-- Riga Bottoni: Gira la Ruota + Incassa Premio -->
-        <div style="display: flex; gap: 8px; width: 100%;">
-            <button id="btn-spin" onclick="startSpin()" style="flex: 1.35; height: 48px;">
-                <span>🎡 GIRA</span>
-                <span id="btn-bet-tag" style="background:rgba(0,0,0,0.25); padding:3px 8px; border-radius:8px; font-size:11px; font-weight:900;">25 PT</span>
+        <!-- Riga 3: Action Buttons (Pulsantone Gira 3D & Incassa Premio) -->
+        <div style="display:flex; gap:8px; width:100%;">
+            <button id="btn-spin" onclick="startSpin()">
+                <i class="fa-solid fa-play text-sm"></i>
+                <span>GIRA LA RUOTA</span>
             </button>
-            <button id="btn-claim-reward" onclick="handleClaimReward()" style="flex: 1; height: 48px; border-radius: 16px; font-size: 12px; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 5px; border: none; cursor: pointer; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; box-shadow: 0 6px 18px rgba(16, 185, 129, 0.35); transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.3px;">
-                <span>🎁 INCASSA</span>
+
+            <button id="btn-claim-reward" class="locked" onclick="handleClaimReward()">
+                <span>🔒 INCASSA</span>
             </button>
         </div>
     </footer>
-
 </div>
 
-<!-- MODALE RISCATTO PREMIO & INCASSO ALLA RECEPTION -->
+<!-- ── MODALE RISCATTO PREMIO ALLA RECEPTION ── -->
 <div id="modal-claim">
     <div class="claim-card">
         <div class="badge-trophy">🏆</div>
-        <h2 style="margin:0 0 6px 0; font-size: 20px; font-weight: 900; color: #0f172a;">PREMIO PRONTO!</h2>
-        <p style="margin:0 0 16px 0; font-size: 12px; color: #64748b; font-weight: 600;">Incassa il tuo budget e mostralo alla reception!</p>
+        <h2 style="font-size:18px; font-weight:900; color:#0f172a; margin:0 0 4px 0; text-transform:uppercase;">Incasso Traguardo</h2>
+        <p style="font-size:12px; color:#64748b; margin:0 0 16px 0; font-weight:600;">Complimenti! Hai qualificato il tuo punteggio per lo sconto!</p>
         
-        <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 16px; padding: 14px; margin-bottom: 16px;">
-            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px;">
-                <span>Budget Iniziale:</span>
-                <span style="color: #64748b; font-weight: 800;">250 PT</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 6px;">
+        <div style="background:#fffbeb; border:1.5px solid #fde68a; border-radius:16px; padding:12px; margin-bottom:16px; text-align:left; font-size:11.5px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-weight:700; color:#475569;">
                 <span>Giri Effettuati:</span>
-                <span id="modal-total-spins" style="color: #2563eb; font-weight: 900;">0 🎲</span>
+                <span id="modal-total-spins" style="color:#0f172a;">3 🎲</span>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: 900; color: #0f172a; border-top: 1px dashed #cbd5e1; padding-top: 6px; margin-top: 4px;">
+            <div style="display:flex; justify-content:space-between; font-weight:900; color:#0f172a;">
                 <span>Punti Totali Incassati:</span>
-                <span id="modal-reward-points" style="color: #d97706; font-size: 15px;">250 PT</span>
+                <span id="modal-reward-points" style="color:#d97706; font-size:15px;">250 PT</span>
             </div>
         </div>
 
@@ -409,40 +468,34 @@
 
 <script>
 /* ─────────────────────────────────────────────────────────────
-   LA RUOTA DELLA FORTUNA — SITEBOS PRODUCTION GAMIFICATION SUITE
-   - Distribuzione a Campana (Gaussian / Bell Curve Multipliers)
-   - Spicchi: x2.5 (Raro) -> x1.5 -> x1.2 -> x1.0 -> x0.8 -> x0.6 -> x0.25 (Raro)
-   - Budget Iniziale: 250 PT
-   - Telemetria Psicometrica: Tolleranza al Rischio, Loss Chasing, Volatilità
+   LA RUOTA A CARD 3D VERTICALE — STILE DASHBOARD.HTML
+   - 3D CSS Preserve-3D con rotazione prospettica ad anello verticale
+   - Allineamento pixel-perfect al centro con la cornice selettrice
+   - Card pastello vivaci e ricche con singolo moltiplicatore grande
+   - Console Arcade Game-Style & Telemetria NoSQL
    ───────────────────────────────────────────────────────────── */
 
-const canvas = document.getElementById('wheel-canvas');
-const ctx = canvas.getContext('2d');
-const container = document.getElementById('wheel-container');
-
-// ── 16 Spicchi con Distribuzione a Campana Ricalibrata & Effetto Near-Miss ──
-// 1x x2.50 (Jackpot) | 1x x0.25 (Ore 1) | 2x x1.75 (Ore 2 e Ore 10) | 3x x1.25 | 3x x1.00 | 3x x0.75 | 3x x0.50 (incluso Ore 11)
+// ── 16 Card con Singolo Moltiplicatore Chiaro & Palette Candy Ricca ──
 const SLICES = [
-    { label: "x2.50", mult: 2.50, color: "#10b981", textColor: "#ffffff", border: "#047857", weight: 1, type: "MAX_WIN" },   // Spicchio 0: Jackpot Verde (Ore 12)
-    { label: "x0.25", mult: 0.25, color: "#ef4444", textColor: "#ffffff", border: "#b91c1c", weight: 1, type: "MAX_LOSS" },  // Spicchio 1: Max Loss Rosso (Ore 1 - Trappola Destra di x2.50)
-    { label: "x1.75", mult: 1.75, color: "#3b82f6", textColor: "#ffffff", border: "#1d4ed8", weight: 2, type: "WIN" },       // Spicchio 2: Big Win Blu (Ore 2 - Rilancio a Destra)
-    { label: "x0.50", mult: 0.50, color: "#fca5a5", textColor: "#7f1d1d", border: "#f87171", weight: 3, type: "LOSS" },      // Spicchio 3: Loss Rosa
-    { label: "x1.00", mult: 1.00, color: "#f8fafc", textColor: "#0f172a", border: "#cbd5e1", weight: 3, type: "NEUTRAL" },   // Spicchio 4: Picco Campana (Pareggio)
-    { label: "x1.25", mult: 1.25, color: "#06b6d4", textColor: "#ffffff", border: "#0891b2", weight: 3, type: "WIN" },       // Spicchio 5: Win Ciano
-    { label: "x1.00", mult: 1.00, color: "#f8fafc", textColor: "#0f172a", border: "#cbd5e1", weight: 3, type: "NEUTRAL" },   // Spicchio 6: Picco Campana
-    { label: "x0.75", mult: 0.75, color: "#fed7aa", textColor: "#7c2d12", border: "#fb923c", weight: 3, type: "SOFT_LOSS" }, // Spicchio 7: Soft Loss
-    { label: "x1.25", mult: 1.25, color: "#06b6d4", textColor: "#ffffff", border: "#0891b2", weight: 3, type: "WIN" },       // Spicchio 8: Win Ciano (Fronte Sud)
-    { label: "x0.75", mult: 0.75, color: "#fed7aa", textColor: "#7c2d12", border: "#fb923c", weight: 3, type: "SOFT_LOSS" }, // Spicchio 9: Soft Loss
-    { label: "x0.50", mult: 0.50, color: "#fca5a5", textColor: "#7f1d1d", border: "#f87171", weight: 3, type: "LOSS" },      // Spicchio 10: Loss Rosa
-    { label: "x1.00", mult: 1.00, color: "#f8fafc", textColor: "#0f172a", border: "#cbd5e1", weight: 3, type: "NEUTRAL" },   // Spicchio 11: Picco Campana
-    { label: "x1.25", mult: 1.25, color: "#06b6d4", textColor: "#ffffff", border: "#0891b2", weight: 3, type: "WIN" },       // Spicchio 12: Win Ciano (Fronte Ovest)
-    { label: "x0.75", mult: 0.75, color: "#fed7aa", textColor: "#7c2d12", border: "#fb923c", weight: 3, type: "SOFT_LOSS" }, // Spicchio 13: Soft Loss
-    { label: "x1.75", mult: 1.75, color: "#3b82f6", textColor: "#ffffff", border: "#1d4ed8", weight: 2, type: "WIN" },       // Spicchio 14: Big Win Blu (Ore 10 - Rilancio a Sinistra)
-    { label: "x0.50", mult: 0.50, color: "#fca5a5", textColor: "#7f1d1d", border: "#f87171", weight: 3, type: "LOSS" }       // Spicchio 15: Loss Rosa (Ore 11 - Trappola Sinistra di x2.50)
+    { label: "x2.50", mult: 2.50, bg: "linear-gradient(135deg, #10b981 0%, #059669 100%)", textColor: "#ffffff", type: "MAX_WIN" },
+    { label: "x0.25", mult: 0.25, bg: "linear-gradient(135deg, #fb7185 0%, #e11d48 100%)", textColor: "#ffffff", type: "MAX_LOSS" },
+    { label: "x1.75", mult: 1.75, bg: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)", textColor: "#ffffff", type: "WIN" },
+    { label: "x0.50", mult: 0.50, bg: "linear-gradient(135deg, #f472b6 0%, #db2777 100%)", textColor: "#ffffff", type: "LOSS" },
+    { label: "x1.00", mult: 1.00, bg: "linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)", textColor: "#0f172a", type: "NEUTRAL" },
+    { label: "x1.25", mult: 1.25, bg: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", textColor: "#ffffff", type: "WIN" },
+    { label: "x1.00", mult: 1.00, bg: "linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)", textColor: "#0f172a", type: "NEUTRAL" },
+    { label: "x0.75", mult: 0.75, bg: "linear-gradient(135deg, #fdba74 0%, #ea580c 100%)", textColor: "#ffffff", type: "SOFT_LOSS" },
+    { label: "x1.25", mult: 1.25, bg: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", textColor: "#ffffff", type: "WIN" },
+    { label: "x0.75", mult: 0.75, bg: "linear-gradient(135deg, #fdba74 0%, #ea580c 100%)", textColor: "#ffffff", type: "SOFT_LOSS" },
+    { label: "x0.50", mult: 0.50, bg: "linear-gradient(135deg, #f472b6 0%, #db2777 100%)", textColor: "#ffffff", type: "LOSS" },
+    { label: "x1.00", mult: 1.00, bg: "linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)", textColor: "#0f172a", type: "NEUTRAL" },
+    { label: "x1.25", mult: 1.25, bg: "linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)", textColor: "#ffffff", type: "WIN" },
+    { label: "x0.75", mult: 0.75, bg: "linear-gradient(135deg, #fdba74 0%, #ea580c 100%)", textColor: "#ffffff", type: "SOFT_LOSS" },
+    { label: "x1.75", mult: 1.75, bg: "linear-gradient(135deg, #a855f7 0%, #7e22ce 100%)", textColor: "#ffffff", type: "WIN" },
+    { label: "x0.50", mult: 0.50, bg: "linear-gradient(135deg, #f472b6 0%, #db2777 100%)", textColor: "#ffffff", type: "LOSS" }
 ];
 
 const NUM_SLICES = SLICES.length;
-const SLICE_ANGLE = (Math.PI * 2) / NUM_SLICES;
 
 // ── Stato di Gioco & Metriche Psicometriche ───────────────────
 const STORAGE_KEY = 'SITEBOS_SPIN_WIN_STATE_V1';
@@ -452,14 +505,412 @@ let currentBet    = 25;
 let totalSpins    = 0;
 let winSpins      = 0;
 let lossSpins     = 0;
-let betHistory    = [];   // cronologia puntate per loss-chasing detection
-let lastOutcome   = null; // 'WIN' | 'LOSS'
-let currentAngle  = 0;
+let betHistory    = [];
+let lastOutcome   = null;
+let activeIdx     = 0;
 let isSpinning    = false;
 let sessionStart  = Date.now();
 let earlyClaimAttempts = 0;
 
-// ── Persistenza Sicura su Cellulare (LocalStorage + Telegram CloudStorage) ─
+// ── Costruzione DOM 3D Card Stack (Stile dashboard.html) ──────
+function buildStack() {
+    const container = document.getElementById('stack-container');
+    if (!container) return;
+    container.innerHTML = '';
+
+    SLICES.forEach((slice, idx) => {
+        const card = document.createElement('div');
+        card.id = `card-${idx}`;
+        card.className = 'slot-card-3d';
+        card.style.background = slice.bg;
+
+        card.innerHTML = `
+            <div style="font-size:36px; font-weight:900; font-family:'Plus Jakarta Sans', sans-serif; letter-spacing:-0.5px; color:${slice.textColor}; text-shadow:0 2px 10px rgba(0,0,0,0.22);">
+                ${slice.label}
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+
+    updateStackLayout();
+}
+
+// ── Trasformazioni 3D Reali (Cilindro Verticale Curvo) ────────
+function updateStackLayout() {
+    const N = NUM_SLICES;
+    SLICES.forEach((_, idx) => {
+        const card = document.getElementById(`card-${idx}`);
+        if (!card) return;
+
+        let diff = idx - activeIdx;
+        if (N > 1) {
+            if (diff > N / 2) diff -= N;
+            else if (diff < -N / 2) diff += N;
+        }
+
+        let translateY = 0;
+        let translateZ = 0;
+        let rotateX = 0;
+        let scale = 1;
+        let opacity = 0;
+        let zIndex = 10;
+
+        if (diff === 0) {
+            // CARD ATTIVA (Centro esatto, perfettamente evidenziata con singolo bordo)
+            translateY = 0;
+            translateZ = 0;
+            rotateX = 0;
+            scale = 1.0;
+            opacity = 1.0;
+            zIndex = 100;
+            card.classList.add('active');
+        } else if (diff === -1) {
+            // CARD PRIMA (Sopra: curata verso il retro)
+            translateY = -86;
+            translateZ = -60;
+            rotateX = -12;
+            scale = 0.82;
+            opacity = 0.55;
+            zIndex = 40;
+            card.classList.remove('active');
+        } else if (diff === 1) {
+            // CARD DOPO (Sotto: curata verso il retro)
+            translateY = 86;
+            translateZ = -60;
+            rotateX = 12;
+            scale = 0.82;
+            opacity = 0.55;
+            zIndex = 40;
+            card.classList.remove('active');
+        } else if (diff === -2) {
+            // CARD IN ALTO
+            translateY = -135;
+            translateZ = -110;
+            rotateX = -20;
+            scale = 0.68;
+            opacity = 0.22;
+            zIndex = 20;
+            card.classList.remove('active');
+        } else if (diff === 2) {
+            // CARD IN BASSO
+            translateY = 135;
+            translateZ = -110;
+            rotateX = 20;
+            scale = 0.68;
+            opacity = 0.22;
+            zIndex = 20;
+            card.classList.remove('active');
+        } else {
+            // CARD NASCOSTE SUL RETRO
+            translateY = diff > 0 ? 160 : -160;
+            translateZ = -160;
+            rotateX = diff > 0 ? 25 : -25;
+            scale = 0.55;
+            opacity = 0.0;
+            zIndex = 5;
+            card.classList.remove('active');
+        }
+
+        card.style.transform = `translateY(${translateY}px) translateZ(${translateZ}px) rotateX(${rotateX}deg) scale(${scale})`;
+        card.style.opacity = opacity;
+        card.style.zIndex = zIndex;
+    });
+}
+
+// ── Avvio Giro con Scorrimento 3D e Decelerazione ad Inerzia ─
+function startSpin() {
+    if (isSpinning) return;
+    if (currentBudget < currentBet) {
+        setStatus('loss', '⚠️', 'Punti insufficienti per questa puntata!');
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+        return;
+    }
+
+    isSpinning = true;
+    totalSpins++;
+    currentBudget -= currentBet;
+    updateHud();
+
+    // Rileva Loss Chasing
+    const prevBet = betHistory.length > 0 ? betHistory[betHistory.length - 1].bet : currentBet;
+    const isChasing = (lastOutcome === 'LOSS' && currentBet > prevBet);
+    betHistory.push({ bet: currentBet, prevOutcome: lastOutcome, chasing: isChasing });
+
+    const btn = document.getElementById('btn-spin');
+    btn.classList.add('spinning');
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>RUOTA IN CORSA...</span>`;
+    setStatus('spinning', '⏳', 'RUOTA IN CORSA...');
+
+    // 1. Selezione casuale dello spicchio vincente (distribuzione a campana)
+    const targetSliceIndex = Math.floor(Math.random() * NUM_SLICES);
+    
+    // 2. Calcolo passi totali (almeno 3-5 giri completi + distanza dal target)
+    const fullLoops = 3 + Math.floor(Math.random() * 3);
+    const stepsToTarget = ((targetSliceIndex - activeIdx) % NUM_SLICES + NUM_SLICES) % NUM_SLICES;
+    const totalSteps = fullLoops * NUM_SLICES + stepsToTarget;
+
+    let currentStep = 0;
+
+    function executeStep() {
+        if (currentStep >= totalSteps) {
+            activeIdx = targetSliceIndex;
+            updateStackLayout();
+            finalizeSpin();
+            return;
+        }
+
+        activeIdx = (activeIdx + 1) % NUM_SLICES;
+        updateStackLayout();
+
+        const progress = currentStep / totalSteps;
+        playTickSound(1 + (1 - progress) * 0.4);
+
+        if (window.Telegram?.WebApp?.HapticFeedback && progress < 0.9) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+
+        currentStep++;
+
+        // Curva di decelerazione ad inerzia
+        let nextDelay = 35;
+        if (progress > 0.6) {
+            const easeFactor = (progress - 0.6) / 0.4;
+            nextDelay = 35 + Math.pow(easeFactor, 2.5) * 320;
+        }
+
+        setTimeout(executeStep, nextDelay);
+    }
+
+    executeStep();
+}
+
+// ── Sintetizzatore Audio Web Audio ────────────────────────────
+let audioCtx = null;
+function playTickSound(pitchMultiplier = 1) {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(380 * pitchMultiplier, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(90, audioCtx.currentTime + 0.03);
+        gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.03);
+    } catch (e) {}
+}
+
+function playWinSound(isJackpot = false) {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const notes = isJackpot ? [523.25, 659.25, 783.99, 1046.50] : [440, 554.37, 659.25];
+        notes.forEach((freq, i) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.08);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.08 + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(audioCtx.currentTime + i * 0.08);
+            osc.stop(audioCtx.currentTime + i * 0.08 + 0.3);
+        });
+    } catch (e) {}
+}
+
+function playBuzzSound() {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(115, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+    } catch (e) {}
+}
+
+// ── Calcolo Risultato Card Vincente ───────────────────────────
+function finalizeSpin() {
+    isSpinning = false;
+    const btn = document.getElementById('btn-spin');
+    btn.classList.remove('spinning');
+    btn.innerHTML = `<i class="fa-solid fa-play text-sm"></i><span>GIRA LA RUOTA</span>`;
+
+    const winningSlice = SLICES[activeIdx];
+    const winAmount = Math.round(currentBet * winningSlice.mult);
+    const netGain = winAmount - currentBet;
+    currentBudget = Math.max(0, currentBudget + winAmount);
+    if (winningSlice.mult > 1.0) {
+        winSpins++;
+        lastOutcome = 'WIN';
+        if (winningSlice.mult >= 2.0) {
+            setStatus('jackpot', '🏆', `JACKPOT! +${netGain} PT (${winningSlice.label})`);
+            playWinSound(true);
+            if (typeof confetti === 'function') confetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+        } else {
+            setStatus('win', '🎉', `HAI VINTO +${netGain} PT (${winningSlice.label})`);
+            playWinSound(false);
+            if (typeof confetti === 'function') confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        }
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    } else if (winningSlice.mult === 1.0) {
+        lastOutcome = 'NEUTRAL';
+        setStatus('neutral', '⚖️', `PAREGGIO 0 PT (${winningSlice.label})`);
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('light');
+    } else {
+        lossSpins++;
+        lastOutcome = 'LOSS';
+        setStatus('loss', '💔', `HAI PERSO ${Math.abs(netGain)} PT (${winningSlice.label})`);
+        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+    }
+
+    saveState();
+    updateHud();
+}
+
+// ── Gestione Scommessa & Controlli Arcade ─────────────────────
+function setBet(amount) {
+    if (isSpinning) return;
+    const maxAvailable = Math.max(1, currentBudget);
+    currentBet = Math.max(1, Math.min(amount, maxAvailable));
+
+    const display = document.getElementById('bet-amount-display');
+    if (display) display.textContent = currentBet;
+
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.selectionChanged();
+    }
+}
+
+function adjustBet(delta) {
+    setBet(currentBet + delta);
+}
+
+function setBetFraction(fraction) {
+    setBet(Math.max(1, Math.round(currentBudget * fraction)));
+}
+
+// ── Riscatto Premio & Incasso Reception ───────────────────────
+const MIN_SPINS_REQUIRED = 3;
+
+function handleClaimReward() {
+    if (isSpinning) return;
+    
+    if (totalSpins < MIN_SPINS_REQUIRED) {
+        earlyClaimAttempts++;
+        playBuzzSound();
+        setStatus('spinning', '🔒', `Fai almeno 3 lanci per sbloccare! (${totalSpins}/${MIN_SPINS_REQUIRED})`);
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        }
+        updateHud();
+        return;
+    }
+
+    document.getElementById('modal-total-spins').textContent = `${totalSpins} 🎲`;
+    document.getElementById('modal-reward-points').textContent = `+${currentBudget} PT`;
+    document.getElementById('modal-claim').classList.add('show');
+    playWinSound(true);
+
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+}
+
+function confirmClaimReward() {
+    const payload = getExtractionPayload();
+    if (window.parent) {
+        window.parent.postMessage({
+            type: 'MINIGAME_REWARD_CLAIMED',
+            game: 'spin_win_wheel',
+            reward: currentBudget,
+            totalSpins: totalSpins,
+            telemetry: payload
+        }, '*');
+    }
+
+    document.getElementById('modal-claim').classList.remove('show');
+    setStatus('win', '🏆', `PREMIO INCASSATO: +${currentBudget} PT`);
+}
+
+function closeModalAndContinue() {
+    document.getElementById('modal-claim').classList.remove('show');
+}
+
+function setStatus(type, icon, text) {
+    const header = document.getElementById('game-header');
+    const iconEl = document.getElementById('banner-icon');
+    const textEl = document.getElementById('banner-text');
+
+    if (iconEl) iconEl.textContent = icon;
+    if (textEl) textEl.textContent = text;
+    if (!header) return;
+
+    if (type === 'jackpot') {
+        header.style.background = '#ecfdf5';
+        header.style.borderColor = '#34d399';
+        header.style.color = '#065f46';
+    } else if (type === 'win') {
+        header.style.background = '#f0fdf4';
+        header.style.borderColor = '#86efac';
+        header.style.color = '#15803d';
+    } else if (type === 'loss') {
+        header.style.background = '#fff1f2';
+        header.style.borderColor = '#fca5a5';
+        header.style.color = '#b91c1c';
+    } else if (type === 'neutral') {
+        header.style.background = '#f8fafc';
+        header.style.borderColor = '#cbd5e1';
+        header.style.color = '#475569';
+    } else if (type === 'spinning') {
+        header.style.background = '#fefce8';
+        header.style.borderColor = '#fde047';
+        header.style.color = '#854d0e';
+    } else {
+        header.style.background = '#ffffff';
+        header.style.borderColor = '#fde68a';
+        header.style.color = '#0f172a';
+    }
+}
+
+function updateHud() {
+    document.getElementById('hud-pts').textContent   = currentBudget;
+    document.getElementById('hud-spins').textContent = totalSpins;
+
+    setBet(currentBet);
+
+    const btnClaim = document.getElementById('btn-claim-reward');
+    if (btnClaim) {
+        if (totalSpins >= MIN_SPINS_REQUIRED) {
+            btnClaim.className = 'unlocked';
+            btnClaim.innerHTML = '<span>🎁 INCASSA</span>';
+        } else {
+            btnClaim.className = 'locked';
+            btnClaim.innerHTML = `<span>🔒 INCASSA (${totalSpins}/${MIN_SPINS_REQUIRED})</span>`;
+        }
+    }
+
+    const payload = getExtractionPayload();
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'GAME_TELEMETRY', telemetry: payload }, '*');
+    }
+}
+
+// ── Persistenza Sicura su Cellulare ───────────────────────────
 function loadSavedState() {
     try {
         const saved = localStorage.getItem(STORAGE_KEY);
@@ -476,7 +927,6 @@ function loadSavedState() {
         }
     } catch (e) {}
 
-    // Sincronizzazione con Telegram CloudStorage su mobile
     if (window.Telegram?.WebApp?.CloudStorage) {
         try {
             window.Telegram.WebApp.CloudStorage.getItem(STORAGE_KEY, (err, cloudValue) => {
@@ -527,495 +977,10 @@ function saveState(syncCloud = true) {
                 if (err) console.warn("CloudStorage sync:", err);
             });
         }
-    } catch (e) {
-        console.error("Errore salvataggio spin_win:", e);
-    }
-}
-
-// ── Resize Canvas ────────────────────────────────────────────
-function resize() {
-    const containerW = container.clientWidth || 320;
-    const containerH = container.clientHeight || 360;
-    const size = Math.max(220, Math.min(containerW - 20, containerH - 70, 320));
-    canvas.width  = size;
-    canvas.height = size;
-    drawWheel(currentAngle);
-}
-window.addEventListener('resize', resize);
-
-// ── Gestione Gauge Scommessa su tutto il budget ──────────────
-function setBet(amount) {
-    if (isSpinning) return;
-    const maxAvailable = Math.max(1, currentBudget);
-    currentBet = Math.max(1, Math.min(amount, maxAvailable));
-
-    const slider = document.getElementById('bet-slider');
-    if (slider) {
-        slider.max = maxAvailable;
-        slider.value = currentBet;
-    }
-
-    const display = document.getElementById('bet-amount-display');
-    if (display) display.textContent = currentBet;
-
-    const btnTag = document.getElementById('btn-bet-tag');
-    if (btnTag) btnTag.textContent = `${currentBet} PT`;
-
-    // Calcolo percentuale e badge rischio
-    const pct = Math.min(100, Math.round((currentBet / maxAvailable) * 100));
-    const pctTag = document.getElementById('bet-percent-tag');
-    if (pctTag) pctTag.textContent = `${pct}%`;
-
-    const badge = document.getElementById('bet-risk-badge');
-    if (badge) {
-        if (pct <= 15) {
-            badge.textContent = "PRUDENTE";
-            badge.style.background = "#d1fae5";
-            badge.style.color = "#065f46";
-            badge.style.borderColor = "#a7f3d0";
-        } else if (pct <= 45) {
-            badge.textContent = "MODERATO";
-            badge.style.background = "#fef3c7";
-            badge.style.color = "#92400e";
-            badge.style.borderColor = "#fde68a";
-        } else if (pct < 100) {
-            badge.textContent = "AGGRESSIVO";
-            badge.style.background = "#ffedd5";
-            badge.style.color = "#9a3412";
-            badge.style.borderColor = "#fed7aa";
-        } else {
-            badge.textContent = "MAX ALL-IN";
-            badge.style.background = "#fee2e2";
-            badge.style.color = "#991b1b";
-            badge.style.borderColor = "#fca5a5";
-        }
-    }
-
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.selectionChanged();
-    }
-}
-
-function onSliderBet(val) {
-    setBet(parseInt(val, 10));
-}
-
-function adjustBet(delta) {
-    setBet(currentBet + delta);
-}
-
-function setBetFraction(fraction) {
-    setBet(Math.max(1, Math.round(currentBudget * fraction)));
-}
-
-// ── Rendering Grafico Ruota SiteBoS ──────────────────────────
-function drawWheel(angle) {
-    const W = canvas.width, H = canvas.height;
-    if (!W || !H) return;
-    ctx.clearRect(0, 0, W, H);
-
-    const cx = W / 2;
-    const cy = H / 2;
-    const radius = Math.min(cx, cy) - 10;
-
-    // 1. Anello Esterno Dorato SiteBoS
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius + 6, 0, Math.PI * 2);
-    ctx.fillStyle = '#0f172a';
-    ctx.fill();
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 3.5;
-    ctx.stroke();
-
-    // Rivetti / LED periferici
-    const numPins = 16;
-    for (let p = 0; p < numPins; p++) {
-        const pinAngle = angle + (p * Math.PI * 2 / numPins);
-        const px = cx + Math.cos(pinAngle) * (radius + 1);
-        const py = cy + Math.sin(pinAngle) * (radius + 1);
-        ctx.beginPath();
-        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = (p % 2 === 0) ? '#fef08a' : '#ffffff';
-        ctx.fill();
-    }
-    ctx.restore();
-
-    // 2. Spicchi a Campana
-    for (let i = 0; i < NUM_SLICES; i++) {
-        const s = SLICES[i];
-        const startAngle = angle + (i * SLICE_ANGLE);
-        const endAngle   = startAngle + SLICE_ANGLE;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(cx, cy);
-        ctx.arc(cx, cy, radius, startAngle, endAngle);
-        ctx.closePath();
-        ctx.fillStyle = s.color;
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Testo del Moltiplicatore
-        ctx.translate(cx, cy);
-        ctx.rotate(startAngle + SLICE_ANGLE / 2);
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = s.textColor;
-        ctx.font = `900 ${Math.max(9.5, Math.round(radius * 0.085))}px system-ui, sans-serif`;
-        ctx.shadowColor = 'rgba(0,0,0,0.35)';
-        ctx.shadowBlur = 3;
-        ctx.fillText(s.label, radius - 10, 0);
-
-        ctx.restore();
-    }
-
-    // 3. Mozzo Centrale Dorato con Logo / Icona
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius * 0.26, 0, Math.PI * 2);
-    const gradCenter = ctx.createRadialGradient(cx - 3, cy - 3, 2, cx, cy, radius * 0.26);
-    gradCenter.addColorStop(0, '#fef08a');
-    gradCenter.addColorStop(0.5, '#f59e0b');
-    gradCenter.addColorStop(1, '#b45309');
-    ctx.fillStyle = gradCenter;
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius * 0.12, 0, Math.PI * 2);
-    ctx.fillStyle = '#0f172a';
-    ctx.fill();
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('★', cx, cy + 0.5);
-
-    ctx.restore();
-}
-
-// ── Avvio Giro con Fisica d'Inerzia e Decelerazione Soft ──────
-function startSpin() {
-    if (isSpinning) return;
-    if (currentBudget < currentBet) {
-        showBanner("⚠️ Punti insufficienti per questa puntata!", "⚠️");
-        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-        return;
-    }
-
-    isSpinning = true;
-    totalSpins++;
-    currentBudget -= currentBet;
-    updateHud();
-
-    // Rileva Loss Chasing: aumento puntata subito dopo una perdita
-    const prevBet = betHistory.length > 0 ? betHistory[betHistory.length - 1].bet : currentBet;
-    const isChasing = (lastOutcome === 'LOSS' && currentBet > prevBet);
-
-    betHistory.push({ bet: currentBet, prevOutcome: lastOutcome, chasing: isChasing });
-
-    const btn = document.getElementById('btn-spin');
-    btn.classList.add('spinning');
-    btn.innerHTML = `<span>⏳ IN ROTAZIONE...</span>`;
-    setStatus('spinning', '⏳', 'IN ROTAZIONE...');
-
-    // 1. Selezione casuale dello spicchio di atterraggio (con variazione realistica interna)
-    const targetSliceIndex = Math.floor(Math.random() * NUM_SLICES);
-    const targetSliceCenter = (targetSliceIndex + 0.5) * SLICE_ANGLE;
-    const randomOffsetInSlice = (Math.random() - 0.5) * (SLICE_ANGLE * 0.7);
-
-    // 2. Calcolo angolo finale esatto affinché il centro dello spicchio coincida con le ore 12 (1.5 * PI)
-    const twoPi = Math.PI * 2;
-    const desiredFinalNormalized = ((Math.PI * 1.5 - targetSliceCenter - randomOffsetInSlice) % twoPi + twoPi) % twoPi;
-    const currentNorm = ((currentAngle % twoPi) + twoPi) % twoPi;
-    
-    let deltaAngle = desiredFinalNormalized - currentNorm;
-    if (deltaAngle < 0) deltaAngle += twoPi;
-
-    // 3. Aggiunta rotazioni complete (5-8 giri)
-    const fullSpins = (5 + Math.floor(Math.random() * 4)) * twoPi;
-    const targetDelta = fullSpins + deltaAngle;
-
-    let startAngle = currentAngle;
-    let startTime  = performance.now();
-    const duration = 3800 + Math.random() * 600; // ~4 secondi
-
-    let lastTickSlice = -1;
-
-    function animate(now) {
-        const elapsed = now - startTime;
-        const progress = Math.min(1, elapsed / duration);
-        
-        // Easing Quartic Out per decelerazione realistica
-        const ease = 1 - Math.pow(1 - progress, 3.8);
-        currentAngle = startAngle + targetDelta * ease;
-
-        drawWheel(currentAngle);
-
-        // Feedback audio, visivo (scatto flapper) e tattile al passaggio dei perni
-        const normalized = ((currentAngle % twoPi) + twoPi) % twoPi;
-        const currentSliceIndex = Math.floor((((Math.PI * 1.5 - normalized) + twoPi) % twoPi) / SLICE_ANGLE) % NUM_SLICES;
-        if (currentSliceIndex !== lastTickSlice) {
-            lastTickSlice = currentSliceIndex;
-            
-            // 1. Suono Click Sintetico
-            playTickSound(1 + (1 - progress) * 0.4);
-
-            // 2. Animazione visiva Flapper Deflection / Scatto del selettore
-            const pointer = document.getElementById('wheel-pointer');
-            if (pointer) {
-                pointer.classList.add('deflect-right');
-                setTimeout(() => pointer.classList.remove('deflect-right'), 35);
-            }
-
-            // 3. Feedback Tattile Haptic
-            if (window.Telegram?.WebApp?.HapticFeedback && progress < 0.95) {
-                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-            }
-        }
-
-        if (progress < 1) {
-            requestAnimationFrame(animate);
-        } else {
-            finalizeSpin();
-        }
-    }
-
-    requestAnimationFrame(animate);
-}
-
-// ── Sintetizzatore Audio Web Audio (Zero-Asset, Zero-Lag) ────
-let audioCtx = null;
-function playTickSound(pitchMultiplier = 1) {
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = ctx.createGain ? ctx.createGain() : audioCtx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(320 * pitchMultiplier, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(70, audioCtx.currentTime + 0.03);
-        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.03);
     } catch (e) {}
 }
 
-function playWinSound(isJackpot = false) {
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const notes = isJackpot ? [523.25, 659.25, 783.99, 1046.50] : [440, 554.37, 659.25];
-        notes.forEach((freq, i) => {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime + i * 0.08);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime + i * 0.08);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + i * 0.08 + 0.3);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start(audioCtx.currentTime + i * 0.08);
-            osc.stop(audioCtx.currentTime + i * 0.08 + 0.3);
-        });
-    } catch (e) {}
-}
-
-function playBuzzSound() {
-    try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(115, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.22, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.12);
-    } catch (e) {}
-}
-
-// ── Calcolo Risultato Spicchio Sotto il Puntatore ─────────────
-function finalizeSpin() {
-    isSpinning = false;
-    const btn = document.getElementById('btn-spin');
-    btn.classList.remove('spinning');
-    btn.innerHTML = `<span>🎡 GIRA</span><span id="btn-bet-tag" style="background:rgba(0,0,0,0.25); padding:3px 8px; border-radius:8px; font-size:11px; font-weight:900;">${currentBet} PT</span>`;
-
-    // Calcolo deterministico dello spicchio sotto il puntatore a ore 12 (1.5 * PI)
-    const twoPi = Math.PI * 2;
-    const normAngle = ((currentAngle % twoPi) + twoPi) % twoPi;
-    const pointerLocal = ((Math.PI * 1.5 - normAngle) + twoPi) % twoPi;
-    const sliceIndex = Math.floor(pointerLocal / SLICE_ANGLE) % NUM_SLICES;
-    const winningSlice = SLICES[sliceIndex];
-
-    const winAmount = Math.round(currentBet * winningSlice.mult);
-    const netGain = winAmount - currentBet;
-    currentBudget = Math.max(0, currentBudget + winAmount);
-
-    if (winningSlice.mult > 1.0) {
-        winSpins++;
-        lastOutcome = 'WIN';
-        if (winningSlice.mult >= 2.0) {
-            setStatus('jackpot', '🏆', `JACKPOT! +${netGain} PT`);
-            playWinSound(true);
-        } else {
-            setStatus('win', '🎉', `HAI VINTO +${netGain} PT`);
-            playWinSound(false);
-        }
-        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-    } else if (winningSlice.mult === 1.0) {
-        lastOutcome = 'NEUTRAL';
-        setStatus('neutral', '⚖️', `PAREGGIO 0 PT`);
-        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('light');
-    } else {
-        lossSpins++;
-        lastOutcome = 'LOSS';
-        setStatus('loss', '💔', `HAI PERSO ${netGain} PT`);
-        if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-    }
-
-    saveState();
-    updateHud();
-}
-
-// ── Gestione Riscatto Premio & Incasso alla Reception ─────────
-const MIN_SPINS_REQUIRED = 3;
-
-function handleClaimReward() {
-    if (isSpinning) return;
-    
-    // Vincolo scientifico: Almeno 3 giri minimi per campionamento comportamentale
-    if (totalSpins < MIN_SPINS_REQUIRED) {
-        earlyClaimAttempts++;
-        playBuzzSound();
-        setStatus('spinning', '🔒', `Fai almeno 3 giri per sbloccare l'incasso! (${totalSpins}/${MIN_SPINS_REQUIRED})`);
-        if (window.Telegram?.WebApp?.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
-        }
-        updateHud();
-        return;
-    }
-
-    document.getElementById('modal-total-spins').textContent = `${totalSpins} 🎲`;
-    document.getElementById('modal-reward-points').textContent = `+${currentBudget} PT`;
-    document.getElementById('modal-claim').classList.add('show');
-    playWinSound(true);
-
-    if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-    }
-}
-
-function confirmClaimReward() {
-    const payload = getExtractionPayload();
-    if (window.parent) {
-        window.parent.postMessage({
-            type: 'MINIGAME_REWARD_CLAIMED',
-            game: 'spin_win_wheel',
-            reward: currentBudget,
-            totalSpins: totalSpins,
-            telemetry: payload
-        }, '*');
-    }
-
-    document.getElementById('modal-claim').classList.remove('show');
-    setStatus('win', '🏆', `PREMIO INCASSATO: +${currentBudget} PT`);
-}
-
-function closeModalAndContinue() {
-    document.getElementById('modal-claim').classList.remove('show');
-}
-
-function setStatus(type, icon, text) {
-    const header = document.getElementById('game-header');
-    const iconEl = document.getElementById('banner-icon');
-    const textEl = document.getElementById('banner-text');
-
-    if (iconEl) iconEl.textContent = icon;
-    if (textEl) textEl.textContent = text;
-
-    if (!header) return;
-
-    header.style.transition = 'all 0.3s ease';
-
-    if (type === 'jackpot') {
-        header.style.background = '#ecfdf5';
-        header.style.borderColor = '#34d399';
-        header.style.color = '#065f46';
-        header.style.boxShadow = '0 4px 14px rgba(16, 185, 129, 0.25)';
-    } else if (type === 'win') {
-        header.style.background = '#f0fdf4';
-        header.style.borderColor = '#86efac';
-        header.style.color = '#15803d';
-        header.style.boxShadow = '0 3px 10px rgba(34, 197, 94, 0.15)';
-    } else if (type === 'loss') {
-        header.style.background = '#fff1f2';
-        header.style.borderColor = '#fca5a5';
-        header.style.color = '#b91c1c';
-        header.style.boxShadow = '0 3px 10px rgba(239, 68, 68, 0.15)';
-    } else if (type === 'neutral') {
-        header.style.background = '#f8fafc';
-        header.style.borderColor = '#cbd5e1';
-        header.style.color = '#475569';
-        header.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-    } else if (type === 'spinning') {
-        header.style.background = '#fefce8';
-        header.style.borderColor = '#fde047';
-        header.style.color = '#854d0e';
-        header.style.boxShadow = '0 2px 8px rgba(234, 179, 8, 0.15)';
-    } else {
-        header.style.background = '#ffffff';
-        header.style.borderColor = '#cbd5e1';
-        header.style.color = '#0f172a';
-        header.style.boxShadow = '0 2px 8px rgba(0,0,0,0.04)';
-    }
-}
-
-// ── Aggiornamento HUD & Telemetria Live verso Stazione Radar ──
-function updateHud() {
-    document.getElementById('hud-pts').textContent   = currentBudget;
-    document.getElementById('hud-spins').textContent = totalSpins;
-
-    // Sincronizza slider e gauge con il budget disponibile
-    const slider = document.getElementById('bet-slider');
-    if (slider) {
-        slider.max = Math.max(1, currentBudget);
-    }
-    setBet(currentBet);
-
-    // Sincronizza stato sblocco pulsante Incassa (Minimo 3 giri)
-    const btnClaim = document.getElementById('btn-claim-reward');
-    if (btnClaim) {
-        if (totalSpins >= MIN_SPINS_REQUIRED) {
-            btnClaim.className = 'unlocked';
-            btnClaim.innerHTML = '<span>🎁 INCASSA</span>';
-        } else {
-            btnClaim.className = 'locked';
-            btnClaim.innerHTML = `<span>🔒 INCASSA (${totalSpins}/${MIN_SPINS_REQUIRED})</span>`;
-        }
-    }
-
-    // Telemetria Psicometrica per la Reception Desk Board
-    const payload = getExtractionPayload();
-    if (window.parent && window.parent !== window) {
-        window.parent.postMessage({ type: 'GAME_TELEMETRY', telemetry: payload }, '*');
-    }
-}
-
-// ── MOTORE PSICOMETRICO FINANZIARIO UNIFICATO (SiTeBoS Wheel Engine) ──
+// ── MOTORE PSICOMETRICO FINANZIARIO UNIFICATO ─────────────────
 function evaluateSemanticProfile(data) {
     const tags = new Set();
     const behavioralDescriptors = [];
@@ -1030,16 +995,11 @@ function evaluateSemanticProfile(data) {
         earlyClaimAttempts
     } = data;
 
-    // ─────────────────────────────────────────────────────────
-    // 1. BISOGNO DI SICUREZZA FINANZIARIA (Certainty & Safety)
-    // ─────────────────────────────────────────────────────────
     const certaintyScore = Math.max(0, Math.min(100, Math.round(100 - (avgBetPct * 0.7 + chasingCount * 15))));
-
     if (certaintyScore >= 75) {
         tags.add("Bisogno Sicurezza Finanziaria");
         tags.add("Avversione Alle Perdite");
-        tags.add("Budget Blindato");
-        behavioralDescriptors.push("forte orientamento alla tutela delle risorse e rifiuto dell'incertezza economica");
+        behavioralDescriptors.push("forte orientamento alla tutela delle risorse e rifiuto dell'incertezza");
     } else if (certaintyScore >= 45) {
         tags.add("Rischio Calcolato");
         tags.add("Pragmatismo Commerciale");
@@ -1050,15 +1010,10 @@ function evaluateSemanticProfile(data) {
         behavioralDescriptors.push("bassa percezione del rischio e apertura a dinamiche ad alto rendimento");
     }
 
-    // ─────────────────────────────────────────────────────────
-    // 2. PROPENSIONE ALL'UPSELL & HIGH-YIELD (Greed & Expansion)
-    // ─────────────────────────────────────────────────────────
     const upsellGreedScore = Math.min(100, Math.round(avgBetPct * 0.8 + (maxBetUsed ? 20 : 0)));
-
     if (upsellGreedScore >= 70) {
         tags.add("Massimizzatore Di Rendimento");
         tags.add("Forte Propensione Upsell");
-        tags.add("Target Pacchetti Premium");
         behavioralDescriptors.push("attratto da moltiplicatori elevati e disposto a investire quote importanti del budget");
     } else if (upsellGreedScore <= 30) {
         tags.add("Profilo Frugale");
@@ -1068,24 +1023,16 @@ function evaluateSemanticProfile(data) {
         tags.add("Investimento Proporzionato");
     }
 
-    // ─────────────────────────────────────────────────────────
-    // 3. PAZIENZA TATTICA & REATTIVITÀ EMOTIVA (Loss Chasing)
-    // ─────────────────────────────────────────────────────────
     const tacticalPatienceScore = Math.max(0, 100 - chasingCount * 30);
-
     if (chasingCount >= 2) {
         tags.add("Reattività Emotiva Al Loss");
-        tags.add("Tilt Finanziario Latente");
-        behavioralDescriptors.push("tendenza a rilanciare immediatamente per recuperare margini o occasioni perse");
+        behavioralDescriptors.push("tendenza a rilanciare immediatamente per recuperare margini persi");
     } else {
         tags.add("Disciplina Finanziaria");
         tags.add("Stabilità Decisionale");
-        behavioralDescriptors.push("mantiene la lucidità strategica indipendentemente dagli esiti negativi");
+        behavioralDescriptors.push("mantiene la lucidità strategica indipendentemente dagli esiti");
     }
 
-    // ─────────────────────────────────────────────────────────
-    // 4. STILE DI COMUNICAZIONE & ADESIONE ALLE REGOLE
-    // ─────────────────────────────────────────────────────────
     let communicationStyle = "COLLOQUIALE_PROFESSIONALE";
     if (certaintyScore >= 75) {
         communicationStyle = "FORMALE_STRUTTURATO";
@@ -1093,34 +1040,9 @@ function evaluateSemanticProfile(data) {
         communicationStyle = "SINTETICO_DRITTO_AL_SODO";
     }
 
-    // Calcolo Adesione ai Vincoli / Compliance
     const ruleComplianceScore = Math.max(0, 100 - (earlyClaimAttempts || 0) * 25);
-    if ((earlyClaimAttempts || 0) >= 2) {
-        tags.add("Insofferente Ai Vincoli");
-        tags.add("Forzatore Di Processo");
-        behavioralDescriptors.push("tentativi precoci di forzatura del riscatto prima di aver completato i 3 giri minimi");
-    } else if ((earlyClaimAttempts || 0) === 0 && totalSpins >= MIN_SPINS_REQUIRED) {
-        tags.add("Rigorosa Adesione Regole");
-        tags.add("Compliance Nativa");
-        behavioralDescriptors.push("pieno rispetto delle sequenze di gioco prima di incassare");
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // 5. TENSIONE MOTORIA E RITMO DI GIOCO (Pacing)
-    // ─────────────────────────────────────────────────────────
     const somaticRelaxationScore = spinsPerMin > 18 ? 35 : (spinsPerMin > 10 ? 65 : 95);
-    if (spinsPerMin > 18) {
-        tags.add("Ritmo Compulsivo");
-        tags.add("Stato Tensione Attiva");
-        behavioralDescriptors.push("frequenza di rotazione serrata e ridotto tempo di valutazione pre-giro");
-    } else {
-        tags.add("Pacing Disteso");
-        behavioralDescriptors.push("interazione calma con intervalli regolari di riflessione");
-    }
 
-    // ─────────────────────────────────────────────────────────
-    // SINTESI ARCHETIPICA
-    // ─────────────────────────────────────────────────────────
     let primaryArchetype = "PRUDENTE_CALCOLATORE";
     if (maxBetUsed && avgBetPct >= 70) {
         primaryArchetype = "MAX_ALL_IN_RISK_TAKER";
@@ -1135,8 +1057,6 @@ function evaluateSemanticProfile(data) {
     return {
         primary_archetype: primaryArchetype,
         communication_style: communicationStyle,
-        
-        // Punteggi Quantitativi Assoluti (0 - 100)
         metrics_scores: {
             certainty_and_safety_score: certaintyScore,
             tactical_patience_score: tacticalPatienceScore,
@@ -1144,16 +1064,11 @@ function evaluateSemanticProfile(data) {
             rule_compliance_score: ruleComplianceScore,
             somatic_relaxation_score: somaticRelaxationScore
         },
-        
-        // Tag Semantici Puliti (Senza #)
         semantic_tags: Array.from(tags),
-        
-        // Descrittori Comportamentali Puri
         behavioral_descriptors: behavioralDescriptors
     };
 }
 
-// ── PAYLOAD PSICOMETRICO SCIENTIFICO PER DATA LAKE & GEMINI ──
 function getExtractionPayload() {
     const elapsedSec = Math.max(1, Math.floor((Date.now() - sessionStart) / 1000));
     const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
@@ -1181,11 +1096,7 @@ function getExtractionPayload() {
         game_id: "spin_win_wheel",
         game_title: "La Ruota della Fortuna",
         timestamp: new Date().toISOString(),
-        
-        // Livello Semantico Puro per Gemini
         semantic_intelligence: semanticIntelligence,
-
-        // Dati Grezzi per Dashboard e Audit
         raw_telemetry: {
             initial_budget_pt: initialBudget,
             current_budget_pt: currentBudget,
@@ -1208,14 +1119,14 @@ function getExtractionPayload() {
     };
 }
 
-// ── Avvio Iniziale ───────────────────────────────────────────
+// ── Inizializzazione ──────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+    }
     loadSavedState();
-    resize();
-    updateHud();
-});
-window.addEventListener('load', () => {
-    resize();
+    buildStack();
     updateHud();
 });
 </script>
