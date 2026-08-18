@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SiTeBoS — Inizializzazione Sessione</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- FontAwesome & Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      background: #090d16;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center justify-center p-6 text-center">
+
+  <!-- Moduli Condivisi -->
+  <script src="sitebos_passport.js"></script>
+  <script src="phygital_local_first.js"></script>
+
+  <main id="routerRoot" class="flex flex-col items-center justify-center gap-5 max-w-sm">
+    <div class="relative w-20 h-20 flex items-center justify-center">
+      <div class="absolute inset-0 rounded-full border-2 border-[#229ED9]/20 border-t-[#229ED9] animate-spin"></div>
+      <i class="fa-solid fa-compass text-3xl text-[#229ED9]"></i>
+    </div>
+    <div>
+      <h1 id="statusTitle" class="text-xl font-bold text-white mb-1">Accesso in Corso...</h1>
+      <p id="statusDesc" class="text-slate-400 text-xs leading-relaxed">
+        Riconciliazione passaporto e verifica dei servizi disponibili.
+      </p>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (tg) {
+        try {
+          tg.ready();
+          tg.expand();
+          if (typeof tg.requestFullscreen === 'function') {
+            tg.requestFullscreen();
+          }
+        } catch (e) {
+          console.warn('Fullscreen Telegram non disponibile:', e);
+        }
+      }
+
+      var urlParams = new URLSearchParams(window.location.search);
+      var vatNumber = urlParams.get('vat');
+
+      if (!vatNumber) {
+        // Tentativo di recupero da cache
+        try {
+          var lastChatId = localStorage.getItem('sitebos_last_active_chat_id');
+          if (lastChatId) {
+            var rawPassport = localStorage.getItem('sitebos_passport_' + lastChatId);
+            if (rawPassport) {
+              var p = JSON.parse(rawPassport);
+              if (p.visited_owners && p.visited_owners.length > 0) {
+                vatNumber = p.visited_owners[p.visited_owners.length - 1].vat_number;
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (!vatNumber) {
+        document.getElementById('statusTitle').textContent = 'Codice Attività Mancante';
+        document.getElementById('statusDesc').textContent = 'Impossibile identificare l\'attività di destinazione.';
+        return;
+      }
+
+      // Imposta il tenant corrente per i moduli
+      window.SITEBOS_TENANT_ID = vatNumber;
+
+      // 1. Carica il Passaporto Cliente (Fast-Path locale o refresh server)
+      Promise.all([
+        window.SitebosPassport.load(),
+        window.PhygitalLocalFirst.checkWifiGuestProximity(),
+        fetchOwnerVertical(vatNumber)
+      ]).then(function (results) {
+        var passport = results[0];
+        var proximity = results[1];
+        var ownerData = results[2];
+
+        var verticalId = (ownerData && (ownerData.vertical_id || ownerData.business_vertical)) || 'generic';
+        // Tassonomia ufficiale a 9 verticali (telegram_control/userguide/03b_verticals.html):
+        // dental, health, beauty, professional, workshop, construction, hospitality => TREATMENT
+        // food, generic => RETAIL
+        var TREATMENT_VERTICALS = ['dental', 'health', 'beauty', 'professional', 'workshop', 'construction', 'hospitality'];
+        var isTreatment = TREATMENT_VERTICALS.indexOf(verticalId) !== -1;
+
+        // Controlla se c'è un Job attivo per questo owner
+        var activeJobRef = null;
+        if (passport && Array.isArray(passport.visited_owners)) {
+          for (var i = 0; i < passport.visited_owners.length; i++) {
+            if (passport.visited_owners[i].vat_number === vatNumber) {
+              activeJobRef = passport.visited_owners[i].active_job_ref;
+              break;
+            }
+          }
+        }
+
+        // "Sono Qui" è ora il PRIMO bivio del router, non solo un flag propagato.
+        // Regola (decisione utente 2026-08-18): l'e-commerce mostra SOLO prodotti (mai servizi:
+        // quelli li gestisce il preventivatore, sistema a parte) — per questo è sempre disponibile
+        // per un cliente remoto, indipendentemente dalla verticale.
+        var onsite = !!(proximity && proximity.validated);
+        var onsiteFlag = onsite ? 'true' : 'false';
+
+        if (!onsite) {
+          // Remoto ("sono a casa"): sempre e-commerce prodotti, qualsiasi verticale.
+          window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=false');
+        } else if (activeJobRef && activeJobRef.has_active_job && activeJobRef.job_id) {
+          // On-site con lavoro già in corso: nessuna intervista, si riprende direttamente.
+          window.location.replace('booking.html?vat=' + encodeURIComponent(vatNumber) + '&job_id=' + encodeURIComponent(activeJobRef.job_id) + '&onsite=true');
+        } else if (isTreatment) {
+          // On-site, prima volta, verticale a trattamento: intervista prima della prima visita,
+          // mai l'e-commerce (non serve vedere prodotti se non sai ancora di che trattamento hai bisogno).
+          window.location.replace('booking.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=true');
+        } else {
+          // On-site, prima volta, verticale retail: sa già cosa vuole, va dritto a comprare.
+          window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=true');
+        }
+      }).catch(function (err) {
+        console.error('[CustomerRouter] Errore routing:', err);
+        // Fallback di default sicuro su ecommerce.html, prossimità non verificata = mai un falso positivo
+        window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=false');
+      });
+
+      function fetchOwnerVertical(vat) {
+        return fetch('https://prod.workflow.trinai.it/webhook/customer_auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'get_owner_public_profile', vat_number: vat })
+        }).then(function (r) {
+          if (!r.ok) return null;
+          return r.json();
+        }).then(function (data) {
+          return (data && data.owner_public) ? data.owner_public : null;
+        }).catch(function () {
+          return null;
+        });
+      }
+
+    })();
+  </script>
+</body>
+</html>

@@ -7,6 +7,9 @@
     <title>SiteBoS | Store</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="sitebos_passport.js"></script>
+    <script src="phygital_local_first.js"></script>
+    <script src="waiting_room_engagement.js"></script>
     <script>
 (function() {
     // Riferimento locale e temporaneo all'SDK per il controllo iniziale
@@ -260,18 +263,28 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         async function initApp() {
             try {
                 console.log("Inizializzazione App con ASH:", ashToken);
+
+                // Avviato in parallelo al fetch del catalogo, ma atteso prima di renderUI() più sotto:
+                // garantisce che window.userPassport (e quindi lo sconto Network) sia pronto prima che
+                // l'utente possa aprire un prodotto, anche con cache Passaporto scaduta e rete lenta.
+                const passportPromise = window.SitebosPassport
+                    ? window.SitebosPassport.load().then(p => { window.userPassport = p; })
+                    : Promise.resolve();
+
                 const res = await fetch(WH_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_ecom_get' })
                 });
-                
+
                 if (!res.ok) throw new Error("Risposta server non valida: " + res.status);
-                
+
                 const r = await res.json();
                 console.log("Risposta Webhook u_calc_ecom_get:", r);
-                const d = Array.isArray(r) ? r[0] : r; 
-                
+                const d = Array.isArray(r) ? r[0] : r;
+
+                await passportPromise;
+
                 if (d && d.success) {
                     console.log("Dati caricati con successo");
                     catalog = (d.catalog || []).filter(p => {
@@ -282,7 +295,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     imgRoot = (d.urlMiniApp || "").replace('telegram_control/', '');
                     categories = [...new Set(catalog.map(p => p.category))];
                     if (d.payment_active) document.getElementById('pay-card').classList.remove('hidden');
-                    renderUI(d.brand || {}); 
+                    renderUI(d.brand || {});
                 } else {
                     console.error("Success false o dati mancanti:", d);
                     tg.showAlert("Errore durante il caricamento del catalogo.");
@@ -411,24 +424,35 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             
             let config = { extras: [], note: "" };
 
-            // Handle Extras
+            // Handle Extras (con applicazione automatica sconto Passaporto Network se sbloccato)
             const extrasContainer = document.getElementById('modal-extras-container');
             const extrasList = document.getElementById('modal-extras-list');
             const extraOptions = p.commercial_setup?.extra_options || [];
+            const discountRate = (window.SitebosPassport && window.userPassport?.network_loyalty?.discount_tier_unlocked)
+                ? window.SitebosPassport.resolveDiscountRate(window.userPassport.network_loyalty.discount_tier_unlocked)
+                : 0.0;
             
             if (extraOptions.length > 0) {
                 extrasContainer.classList.remove('hidden');
-                extrasList.innerHTML = extraOptions.map((opt, idx) => `
+                extrasList.innerHTML = extraOptions.map((opt, idx) => {
+                    const fullPrice = parseFloat(opt.price) || 0;
+                    const discountedPrice = discountRate > 0 ? (fullPrice * (1 - discountRate)) : fullPrice;
+                    const priceLabel = discountRate > 0
+                        ? `+ € ${discountedPrice.toFixed(2)} <span class="line-through text-gray-400 text-[8px]">€ ${fullPrice.toFixed(2)}</span> <span class="text-emerald-600 font-bold">(-${window.userPassport.network_loyalty.discount_tier_unlocked})</span>`
+                        : `+ € ${fullPrice.toFixed(2)}`;
+
+                    return `
                     <label class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100 active:scale-[0.98] transition shadow-sm">
                         <div class="flex items-center gap-3">
-                            <input type="checkbox" class="extra-checkbox w-5 h-5 rounded-lg border-2 border-gray-200 text-black focus:ring-0 transition-all checked:bg-black checked:border-black" data-index="${idx}" data-price="${opt.price}" data-name="${opt.name}" 
+                            <input type="checkbox" class="extra-checkbox w-5 h-5 rounded-lg border-2 border-gray-200 text-black focus:ring-0 transition-all checked:bg-black checked:border-black" data-index="${idx}" data-price="${discountedPrice}" data-full-price="${fullPrice}" data-name="${opt.name}" 
                                 ${config.extras.some(e => e.name === opt.name) ? 'checked' : ''}
                                 onchange="updateModalPrice()">
                             <span class="text-[12px] font-black uppercase tracking-tight">${opt.name}</span>
                         </div>
-                        <span class="text-[10px] font-black text-gray-500">+ € ${parseFloat(opt.price).toFixed(2)}</span>
+                        <span class="text-[10px] font-black text-gray-500">${priceLabel}</span>
                     </label>
-                `).join('');
+                `;
+                }).join('');
             } else {
                 extrasContainer.classList.add('hidden');
             }
@@ -806,6 +830,23 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     });
                 } else if (r.success) {
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    
+                    // Sincronizzazione dell'acquisto sul Passaporto Cliente
+                    if (window.SitebosPassport) {
+                        const vatParam = new URLSearchParams(window.location.search).get('vat') || 'default_owner';
+                        items.forEach(it => {
+                            window.SitebosPassport.persistAction({
+                                owner_vat: vatParam,
+                                purchase: {
+                                    sku: it.sku,
+                                    name: it.name,
+                                    amount: it.final_price * it.quantity,
+                                    purchased_at: new Date().toISOString()
+                                }
+                            });
+                        });
+                    }
+
                     tg.showAlert("✅ Ordine ricevuto!", () => tg.close());
                 }
             } catch (e) { tg.showAlert("Errore invio."); btn.disabled = false; btn.innerText = "Riprova"; }
@@ -1117,7 +1158,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             return { validated: false, method: 'NONE' };
         }
 
-        // Controllo automatico bozza locale all'avvio (Resumability)
+        // Controllo automatico bozza locale all'avvio.
+        // NOTA: il caricamento del Passaporto Cliente (window.userPassport) è gestito in modo
+        // coordinato dentro initApp() (vedi sopra), non qui, per evitare che l'utente possa
+        // aprire un prodotto prima che il Passaporto sia pronto.
         document.addEventListener('DOMContentLoaded', () => {
             if (window.PhygitalLocalFirst) {
                 const draft = window.PhygitalLocalFirst.loadDraft();

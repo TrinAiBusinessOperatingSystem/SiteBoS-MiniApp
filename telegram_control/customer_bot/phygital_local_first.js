@@ -3,11 +3,23 @@
  * 
  * Regola Architetturale: Nessuna chiamata o bozza inviata al server MongoDB prima di SUBMIT o SKIP_TO_DESK espliciti.
  * Tutta la bozza risiede in localStorage con chiave sitebos_{tenant_id}_{chat_id}_intake_draft.
+ * Tutte le chiamate backend sono consolidate sull'endpoint canonico:
+ * https://prod.workflow.trinai.it/webhook/sitebos-phygital-checkin
  */
 
 const PhygitalLocalFirst = (() => {
-    const chatId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 'guest_user';
-    const tenantId = window.SITEBOS_TENANT_ID || 'default_tenant';
+    'use strict';
+
+    const WEBHOOK_BASE = 'https://prod.workflow.trinai.it/webhook/sitebos-phygital-checkin';
+
+    const chatId = (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) 
+        ? String(window.Telegram.WebApp.initDataUnsafe.user.id) 
+        : (new URLSearchParams(window.location.search).get('chat_id') || 'guest_user');
+    
+    const tenantId = window.SITEBOS_TENANT_ID 
+        || (new URLSearchParams(window.location.search).get('vat')) 
+        || 'default_tenant';
+
     const DRAFT_KEY = `sitebos_${tenantId}_${chatId}_intake_draft`;
     const REWARD_KEY = `sitebos_${tenantId}_${chatId}_reward_draft`;
 
@@ -64,7 +76,6 @@ const PhygitalLocalFirst = (() => {
 
     /* ── GENERAZIONE ASH HEADER DI SICUREZZA LOCAL-FIRST ── */
     function generateASHHeader(payload) {
-        // Generazione hash di sessione autorizzato
         const secret = window.Telegram?.WebApp?.initData || 'SITEBOS_LOCAL_SESSION_SECRET';
         const str = JSON.stringify(payload) + secret;
         let hash = 0;
@@ -76,6 +87,36 @@ const PhygitalLocalFirst = (() => {
         return 'ash_v3_' + Math.abs(hash).toString(16);
     }
 
+    function checkOnlineGate() {
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+            showOfflineGateBanner();
+            return false;
+        }
+        return true;
+    }
+
+    function showOfflineGateBanner() {
+        const existing = document.getElementById('sitebos-offline-gate-banner');
+        if (existing) return;
+
+        const banner = document.createElement('div');
+        banner.id = 'sitebos-offline-gate-banner';
+        banner.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[99999] flex flex-col items-center justify-center p-6 text-center text-white';
+        banner.innerHTML = `
+            <div class="w-16 h-16 rounded-3xl bg-red-500/20 border border-red-500/40 flex items-center justify-center mb-4">
+                <i class="fas fa-wifi-slash text-2xl text-red-400"></i>
+            </div>
+            <h2 class="text-xl font-black uppercase tracking-tight mb-2">Connessione Internet Richiesta</h2>
+            <p class="text-xs text-slate-300 max-w-xs leading-relaxed mb-6">
+                L'applicazione SiTeBoS richiede una connessione internet attiva per sincronizzare i tuoi dati. Collegati ad una rete per procedere.
+            </p>
+            <button onclick="window.location.reload()" class="bg-white text-slate-950 font-black py-3 px-6 rounded-2xl text-xs uppercase tracking-widest active:scale-95 transition">
+                <i class="fas fa-rotate-right mr-2"></i> Riprova Connessione
+            </button>
+        `;
+        document.body.appendChild(banner);
+    }
+
     /* ── EVENTO A: SUBMIT ESPLICITO DAL CLIENTE ── */
     async function submitIntake(proximityResult) {
         const draft = loadDraft();
@@ -84,14 +125,17 @@ const PhygitalLocalFirst = (() => {
         }
 
         const reward = loadReward();
-        const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : ('idemp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+        const idempotencyKey = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+            ? crypto.randomUUID() 
+            : ('idemp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
 
         const payload = {
+            action: 'submit_intake',
             chat_id: String(chatId),
             tenant_id: String(tenantId),
-            proximity_validated: !!proximityResult.validated,
-            station_id: proximityResult.station_id || null,
-            proximity_method: proximityResult.method || 'UNKNOWN',
+            proximity_validated: !!(proximityResult && proximityResult.validated),
+            station_id: (proximityResult && proximityResult.station_id) || null,
+            proximity_method: (proximityResult && proximityResult.method) || 'UNKNOWN',
             selected_services: draft.selected_services,
             gpctba_answers: draft.gpctba_answers || {},
             loop_guard_counter: draft.loop_guard_counter || 0,
@@ -109,7 +153,7 @@ const PhygitalLocalFirst = (() => {
                 await new Promise(r => setTimeout(r, delays[attempt]));
             }
             try {
-                const response = await fetch('/webhook/sitebos-phygital-submit', {
+                const response = await fetch(WEBHOOK_BASE, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -125,7 +169,6 @@ const PhygitalLocalFirst = (() => {
                 }
                 
                 if (response.status === 409) {
-                    // Turno attivo già esistente per questo chat_id
                     showTurnoAttivoMessage();
                     return { ok: false, error: 'TURNO_ATTIVO_ESISTENTE', message: 'Hai già un turno attivo.' };
                 }
@@ -139,7 +182,7 @@ const PhygitalLocalFirst = (() => {
             attempt++;
         }
 
-        // Fallback Offline: salva il payload completo in localStorage per sincronizzazione differita alla riconnessione
+        // Fallback Offline: salva il payload in localStorage
         try {
             localStorage.setItem(`sitebos_${tenantId}_${chatId}_pending_submit`, JSON.stringify(payload));
         } catch (e) {}
@@ -155,6 +198,7 @@ const PhygitalLocalFirst = (() => {
         }
 
         const payload = {
+            action: 'skip_to_desk',
             chat_id: String(chatId),
             tenant_id: String(tenantId),
             status: 'DESK_ASSIST',
@@ -163,7 +207,7 @@ const PhygitalLocalFirst = (() => {
         };
 
         try {
-            const response = await fetch('/webhook/sitebos-desk-assist', {
+            const response = await fetch(WEBHOOK_BASE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -202,124 +246,31 @@ const PhygitalLocalFirst = (() => {
         setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
     }
 
-    /* ── EVENTO C: CHECK-IN AUTOMATICO VIA WI-FI GUEST ("Inquadra, Connetti e Accedi") ── */
+    /* ── EVENTO C: CHECK-IN AUTOMATICO VIA PROBE PROSSIMITÀ IP DESK BOARD ── */
     async function checkWifiGuestProximity() {
         try {
-            const response = await fetch('/webhook/sitebos-phygital-check', {
+            const response = await fetch(WEBHOOK_BASE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
+                    action: 'wifi_proximity_probe',
                     chat_id: String(chatId),
-                    tenant_id: String(tenantId),
-                    action: 'wifi_proximity_probe'
+                    tenant_id: String(tenantId)
                 })
             });
             if (response.ok) {
                 const result = await response.json();
                 if (result && result.is_wifi_guest) {
-                    return { validated: true, method: 'WIFI_GUEST', ssid: result.ssid || 'ClinicGuest_HighSpeed' };
+                    return { validated: true, method: 'IP_MATCH', is_wifi_guest: true };
                 }
             }
         } catch (e) {
-            console.warn('[PhygitalLocalFirst] Probe Wi-Fi Prossimità non disponibile:', e);
+            console.warn('[PhygitalLocalFirst] Probe Wi-Fi Prossimità IP non disponibile:', e);
         }
-        return { validated: false, method: 'NONE' };
+        return { validated: false, method: 'NONE', is_wifi_guest: false };
     }
 
-    const STAKEHOLDER_MASTER_KEY = `sitebos_${tenantId}_${chatId}_stakeholder_master`;
-
-    /* ── STAKEHOLDER MASTER: DOCUMENTO UNICO (SOSTRITUZIONE INTEGRALE SUL TELEFONO) ── */
-    function loadStakeholderMaster() {
-        try {
-            const raw = localStorage.getItem(STAKEHOLDER_MASTER_KEY);
-            return raw ? JSON.parse(raw) : null;
-        } catch (e) {
-            console.error('[PhygitalLocalFirst] Errore lettura Stakeholder Master:', e);
-            return null;
-        }
-    }
-
-    function saveStakeholderMaster(fullMasterObject) {
-        try {
-            if (!fullMasterObject || typeof fullMasterObject !== 'object') return false;
-            // Sovrascrive interamente sul disco locale dello smartphone (Zero Frammentazione)
-            localStorage.setItem(STAKEHOLDER_MASTER_KEY, JSON.stringify({
-                ...fullMasterObject,
-                synced_at: new Date().toISOString()
-            }));
-            console.log('[PhygitalLocalFirst] Pacchetto Stakeholder Master sovrascritto interamente in locale.');
-            return true;
-        } catch (e) {
-            console.error('[PhygitalLocalFirst] Errore sovrascrittura Stakeholder Master:', e);
-            return false;
-        }
-    }
-
-    function checkOnlineGate() {
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            showOfflineGateBanner();
-            return false;
-        }
-        return true;
-    }
-
-    function showOfflineGateBanner() {
-        const existing = document.getElementById('sitebos-offline-gate-banner');
-        if (existing) return;
-
-        const banner = document.createElement('div');
-        banner.id = 'sitebos-offline-gate-banner';
-        banner.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[99999] flex flex-col items-center justify-center p-6 text-center text-white';
-        banner.innerHTML = `
-            <div class="w-16 h-16 rounded-3xl bg-red-500/20 border border-red-500/40 flex items-center justify-center mb-4">
-                <i class="fas fa-wifi-slash text-2xl text-red-400"></i>
-            </div>
-            <h2 class="text-xl font-black uppercase tracking-tight mb-2">Connessione Internet Richiesta</h2>
-            <p class="text-xs text-slate-300 max-w-xs leading-relaxed mb-6">
-                L'applicazione SiTeBoS richiede una connessione internet attiva per sincronizzare i tuoi dati. Collegati ad una rete per procedere.
-            </p>
-            <button onclick="window.location.reload()" class="bg-white text-slate-950 font-black py-3 px-6 rounded-2xl text-xs uppercase tracking-widest active:scale-95 transition">
-                <i class="fas fa-rotate-right mr-2"></i> Riprova Connessione
-            </button>
-        `;
-        document.body.appendChild(banner);
-    }
-
-    async function syncStakeholderMaster() {
-        if (!checkOnlineGate()) return { ok: false, error: 'OFFLINE' };
-
-        const currentMaster = loadStakeholderMaster();
-        const payload = {
-            chat_id: String(chatId),
-            tenant_id: String(tenantId),
-            action: 'get_stakeholder_master',
-            stakeholder_context: currentMaster || {}
-        };
-
-        const ashHeader = generateASHHeader(payload);
-        try {
-            const response = await fetch('/webhook/sitebos-phygital-checkin', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Authorized-Session-Hash': ashHeader
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                if (data && data.stakeholder) {
-                    saveStakeholderMaster(data.stakeholder); // Full Overwrite Sync
-                    return { ok: true, stakeholder: data.stakeholder };
-                }
-            }
-        } catch (err) {
-            console.error('[PhygitalLocalFirst] Errore sync Stakeholder Master:', err);
-        }
-        return { ok: false };
-    }
-
+    /* ── EVENTO D: INOLTRO CHECK-IN AL DESK BOARD ── */
     async function submitWifiCheckin(wifiInfo) {
         if (!checkOnlineGate()) return { ok: false, error: 'OFFLINE' };
 
@@ -328,22 +279,19 @@ const PhygitalLocalFirst = (() => {
             ? `${user.first_name} ${user.last_name || ''}`.trim()
             : 'Cliente in Sala d\'Attesa';
 
-        const currentMaster = loadStakeholderMaster();
-
         const payload = {
+            action: 'wifi_guest_checkin',
             chat_id: String(chatId),
             tenant_id: String(tenantId),
             customer_name: fullName,
             proximity_validated: true,
-            proximity_method: 'WIFI_GUEST',
-            ssid: wifiInfo?.ssid || 'ClinicGuest_HighSpeed',
-            stakeholder_context: currentMaster || {},
+            proximity_method: wifiInfo?.method || 'IP_MATCH',
             submitted_at: new Date().toISOString()
         };
 
         const ashHeader = generateASHHeader(payload);
         try {
-            const response = await fetch('/webhook/sitebos-phygital-checkin', {
+            const response = await fetch(WEBHOOK_BASE, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -354,9 +302,6 @@ const PhygitalLocalFirst = (() => {
 
             if (response.ok) {
                 const data = await response.json();
-                if (data && data.stakeholder) {
-                    saveStakeholderMaster(data.stakeholder); // Full Overwrite Sync post check-in
-                }
                 return { ok: true, data };
             }
         } catch (err) {
@@ -365,6 +310,7 @@ const PhygitalLocalFirst = (() => {
         return { ok: false };
     }
 
+    /* ── PROFILO PSICOMETRICO / GAMIFICATION TELEMETRIA ── */
     const CX_PROFILE_KEY = `sitebos_${tenantId}_${chatId}_cx_profile`;
 
     function saveCxProfile(cxProfileObj, economyProfileObj) {
@@ -394,12 +340,25 @@ const PhygitalLocalFirst = (() => {
     async function submitCxProfile(cxProfileObj, economyProfileObj, gamesPlayed, prizesAwarded) {
         saveCxProfile(cxProfileObj, economyProfileObj);
 
+        // Sincronizzazione sul Passaporto Cliente cross-owner (network_loyalty + psychometric_profile).
+        // +150pt per minigioco completato, flat e non legato al punteggio (AGENTS.md §2.11: profilazione
+        // esclusivamente motivazionale, mai punitiva). Un solo evento anche a fronte di più giochi in sessione.
+        if (window.SitebosPassport) {
+            const gamesCount = Array.isArray(gamesPlayed) && gamesPlayed.length > 0 ? gamesPlayed.length : 1;
+            window.SitebosPassport.persistAction({
+                network_loyalty_delta: { points_change: gamesCount * 150 },
+                owner_vat: String(tenantId),
+                psychometric_snapshot: cxProfileObj || {}
+            });
+        }
+
         if (!checkOnlineGate()) return { ok: false, error: 'OFFLINE' };
 
         const payload = {
+            action: 'gamification_telemetry',
             chat_id: String(chatId),
             tenant_id: String(tenantId),
-            proximity_method: 'WIFI_GUEST',
+            proximity_method: 'IP_MATCH',
             cx_profile_snapshot: cxProfileObj || {},
             economy_profile: economyProfileObj || {},
             games_played: gamesPlayed || [],
@@ -408,7 +367,7 @@ const PhygitalLocalFirst = (() => {
         };
 
         try {
-            const response = await fetch('/webhook/sitebos-gamification-log', {
+            const response = await fetch(WEBHOOK_BASE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -433,15 +392,14 @@ const PhygitalLocalFirst = (() => {
 
             saveReward(addonPayload);
 
-            // Invia in tempo reale l'aggiornamento dell'ordine alla reception
             if (checkOnlineGate()) {
-                await fetch('/webhook/phygital-desk-assist', {
+                await fetch(WEBHOOK_BASE, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        action: 'voucher_addon_applied',
                         chat_id: String(chatId),
                         tenant_id: String(tenantId),
-                        action: 'VOUCHER_ADDON_APPLIED',
                         applied_addon: addonPayload,
                         full_draft: updatedDraft
                     })
@@ -469,14 +427,9 @@ const PhygitalLocalFirst = (() => {
         showTurnoAttivoMessage,
         checkWifiGuestProximity,
         submitWifiCheckin,
-        loadStakeholderMaster,
-        saveStakeholderMaster,
-        syncStakeholderMaster,
         checkOnlineGate
     };
 })();
-
-
 
 if (typeof window !== 'undefined') {
     window.PhygitalLocalFirst = PhygitalLocalFirst;

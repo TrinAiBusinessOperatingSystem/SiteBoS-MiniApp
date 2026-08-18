@@ -144,6 +144,10 @@
                 <i class="fa-solid fa-plus"></i>
                 <span>+ Job</span>
             </button>
+            <button onclick="openSpecialVisitorModal()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black px-3.5 py-2.5 rounded-xl transition shadow-sm flex items-center gap-2" title="Check-In Visitatori Speciali (Tecnico, Rappresentante, Ispettore, Corriere)">
+                <i class="fa-solid fa-user-shield"></i>
+                <span>+ Visitatore</span>
+            </button>
             <button onclick="location.href='legal.html'" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-3 py-2.5 rounded-xl transition border border-slate-200 flex items-center gap-1.5" title="Note Legali & Privacy">
                 <i class="fa-solid fa-scale-balanced text-slate-900"></i>
                 <span>Legal</span>
@@ -273,6 +277,58 @@
                 <button onclick="confirmIntakeSubmit()" class="bg-slate-900 hover:bg-black text-white font-black text-xs px-5 py-2.5 rounded-xl transition shadow flex items-center gap-2">
                     <i class="fa-solid fa-check"></i>
                     <span>Metti in Coda il Turno</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE POPUP: VISITATORE SPECIALE (TECNICO, ISPETTORE, COMMERCIALE, CORRIERE) -->
+    <div id="special-visitor-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 max-w-lg w-full shadow-2xl space-y-4 text-slate-900">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 text-sm">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </span>
+                    <h3 class="text-sm font-black text-slate-900 uppercase">Check-In Visitatore Speciale</h3>
+                </div>
+                <button onclick="closeSpecialVisitorModal()" class="text-slate-400 hover:text-slate-900 text-sm font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 font-bold uppercase tracking-wider mb-1.5">Tipologia Visitatore / Ruolo</label>
+                    <select id="special-role-select" onchange="handleSpecialRoleChange()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-xs font-bold focus:border-black outline-none">
+                        <option value="TECHNICAL_CONTRACTOR">🛠️ Tecnico Manutentore (Blocca Postazione per Manutenzione)</option>
+                        <option value="COMMERCIAL_REPRESENTATIVE">💼 Rappresentante Commerciale / Informatore</option>
+                        <option value="AUDITOR">📋 Ispettore / Auditor (Accesso Registro Trasparenza)</option>
+                        <option value="COURIER">📦 Corriere / Consegna Pacchi</option>
+                    </select>
+                </div>
+
+                <div id="special-station-group">
+                    <label class="block text-slate-600 font-bold uppercase tracking-wider mb-1.5">Postazione da Bloccare in Manutenzione</label>
+                    <select id="special-station-select" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-xs font-semibold focus:border-black outline-none">
+                        <!-- Popolato da JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 font-bold uppercase tracking-wider mb-1">Nome / Riferimento Aziendale (Opzionale)</label>
+                    <input type="text" id="special-visitor-name" placeholder="Es. Ing. Rossi / Fornitore DentalX" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-xs focus:border-black outline-none">
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 font-bold uppercase tracking-wider mb-1">Motivazione / Note Intervento</label>
+                    <textarea id="special-visitor-notes" rows="2" placeholder="Dettaglio intervento, consegna o ispezione..." class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-xs focus:border-black outline-none resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2">
+                <button onclick="closeSpecialVisitorModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:text-black">Annulla</button>
+                <button onclick="submitSpecialVisitor()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs px-5 py-2.5 rounded-xl transition shadow flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Conferma Ingresso Visitatore</span>
                 </button>
             </div>
         </div>
@@ -440,29 +496,42 @@
             if (!container) return;
 
             container.innerHTML = stationsList.map(st => {
+                const isMaintenance = (st.status_info?.current_status === 'MAINTENANCE' || st.current_status === 'MAINTENANCE' || st.is_maintenance);
                 const stationJobs = activeJobs.filter(j => j.station_id === st.station_id);
                 return `
-                    <div class="kanban-col w-80 rounded-3xl flex flex-col shrink-0 bg-slate-50 border border-slate-200"
+                    <div class="kanban-col w-80 rounded-3xl flex flex-col shrink-0 ${isMaintenance ? 'bg-amber-50/70 border-2 border-amber-400' : 'bg-slate-50 border border-slate-200'}"
                          data-station-id="${st.station_id}"
-                         ondragover="handleDragOver(event)"
-                         ondragleave="handleDragLeave(event)"
-                         ondrop="handleDrop(event)">
+                         ondragover="${isMaintenance ? '' : 'handleDragOver(event)'}"
+                         ondragleave="${isMaintenance ? '' : 'handleDragLeave(event)'}"
+                         ondrop="${isMaintenance ? '' : 'handleDrop(event)'}">
                         
                         <!-- Header Colonna Postazione -->
-                        <div class="p-4 border-b border-slate-200 bg-white rounded-t-3xl flex items-center justify-between shadow-sm"
-                             ondragover="handleDragOver(event)"
-                             ondrop="handleDropOperator(event, '${st.station_id}')">
+                        <div class="p-4 border-b border-slate-200 ${isMaintenance ? 'bg-amber-100/60' : 'bg-white'} rounded-t-3xl flex items-center justify-between shadow-sm"
+                             ondragover="${isMaintenance ? '' : 'handleDragOver(event)'}"
+                             ondrop="${isMaintenance ? '' : `handleDropOperator(event, '${st.station_id}')`}">
                             <div>
                                 <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider">${escapeHtml(st.station_name)}</h3>
                                 <p class="text-[11px] text-slate-600 font-semibold flex items-center gap-1 mt-0.5">
-                                    <i class="fa-solid fa-user-doctor text-[10px] text-slate-900"></i>
-                                    <span>${escapeHtml(st.operator_name || 'Non Assegnato')}</span>
+                                    <i class="fa-solid ${isMaintenance ? 'fa-screwdriver-wrench text-amber-700' : 'fa-user-doctor text-slate-900'} text-[10px]"></i>
+                                    <span>${escapeHtml(isMaintenance ? 'Bloccata x Tecnico' : (st.operator_name || 'Non Assegnato'))}</span>
                                 </p>
                             </div>
-                            <span class="text-[10px] font-black px-2 py-1 rounded-lg ${st.assigned_operator_id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}">
-                                ${st.assigned_operator_id ? 'ATTIVA' : 'LIBERA'}
+                            <span class="text-[10px] font-black px-2 py-1 rounded-lg ${isMaintenance ? 'bg-amber-500 text-slate-950 animate-pulse' : (st.assigned_operator_id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500')}">
+                                ${isMaintenance ? 'MANUTENZIONE' : (st.assigned_operator_id ? 'ATTIVA' : 'LIBERA')}
                             </span>
                         </div>
+
+                        ${isMaintenance ? `
+                            <div class="p-3 bg-amber-100 border-b border-amber-200 flex items-center justify-between gap-2">
+                                <span class="text-[10px] font-bold text-amber-900 flex items-center gap-1">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Intervento in corso
+                                </span>
+                                <button onclick="endMaintenance('${st.station_id}')" class="bg-slate-900 hover:bg-black text-white text-[10px] font-black px-3 py-1 rounded-xl shadow transition active:scale-95 flex items-center gap-1">
+                                    <i class="fa-solid fa-check"></i>
+                                    <span>Termina</span>
+                                </button>
+                            </div>
+                        ` : ''}
 
                         <!-- Jobs List -->
                         <div class="p-3 flex-1 overflow-y-auto space-y-3 no-scrollbar min-h-[300px]">
@@ -721,6 +790,139 @@
             };
 
             activeJobs.push(newJob);
+            renderStationsKanban();
+            updateKPIs();
+        }
+
+        /* ── GESTIONE VISITATORI SPECIALI & MANUTENZIONI (DESK BOARD) ── */
+        const API_SPECIAL_CHECKIN = 'https://prod.workflow.trinai.it/webhook/special-user-checkin';
+
+        function openSpecialVisitorModal() {
+            const modal = document.getElementById('special-visitor-modal');
+            const selectStation = document.getElementById('special-station-select');
+            
+            if (selectStation) {
+                selectStation.innerHTML = stationsList.map(st => `
+                    <option value="${st.station_id}">${escapeHtml(st.station_name)} (${st.operator_name || 'Libera'})</option>
+                `).join('');
+            }
+            handleSpecialRoleChange();
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeSpecialVisitorModal() {
+            const modal = document.getElementById('special-visitor-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function handleSpecialRoleChange() {
+            const role = document.getElementById('special-role-select')?.value || 'TECHNICAL_CONTRACTOR';
+            const stationGroup = document.getElementById('special-station-group');
+            if (stationGroup) {
+                if (role === 'TECHNICAL_CONTRACTOR') {
+                    stationGroup.classList.remove('hidden');
+                } else {
+                    stationGroup.classList.add('hidden');
+                }
+            }
+        }
+
+        async function submitSpecialVisitor() {
+            const role = document.getElementById('special-role-select')?.value || 'TECHNICAL_CONTRACTOR';
+            const stationSelect = document.getElementById('special-station-select');
+            const nameInput = document.getElementById('special-visitor-name');
+            const notesInput = document.getElementById('special-visitor-notes');
+
+            const stationId = (role === 'TECHNICAL_CONTRACTOR' && stationSelect) ? stationSelect.value : null;
+            const visitorName = nameInput ? nameInput.value.trim() : '';
+            const notes = notesInput ? notesInput.value.trim() : '';
+            const urlParams = new URLSearchParams(window.location.search);
+            const vat = urlParams.get('vat') || 'default_tenant';
+
+            try {
+                const res = await fetch(API_SPECIAL_CHECKIN, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'checkin_special_user',
+                        role: role,
+                        station_id: stationId,
+                        visitor_name: visitorName,
+                        notes: notes,
+                        vat: vat,
+                        ash: getAshParam()
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // Se è un Tecnico Manutentore, segna la postazione come MAINTENANCE in locale
+                    if (role === 'TECHNICAL_CONTRACTOR' && stationId) {
+                        const targetStation = stationsList.find(s => s.station_id === stationId);
+                        if (targetStation) {
+                            targetStation.current_status = 'MAINTENANCE';
+                            targetStation.is_maintenance = true;
+                        }
+                    }
+
+                    // Se è un Ispettore, apri la pagina del Registro di Evidenze
+                    if (role === 'AUDITOR' && data.auditor_view_url) {
+                        if (confirm("Visitatore Ispettore registrato! Vuoi aprire il Registro Pubblico delle Evidenze?")) {
+                            window.open(data.auditor_view_url, '_blank');
+                        }
+                    }
+
+                    if (data.job) {
+                        activeJobs.push(data.job);
+                    }
+                }
+            } catch (err) {
+                console.warn('[DeskBoard] Errore check-in visitatore speciale:', err);
+                
+                // Fallback ottimistico locale per il Tecnico
+                if (role === 'TECHNICAL_CONTRACTOR' && stationId) {
+                    const targetStation = stationsList.find(s => s.station_id === stationId);
+                    if (targetStation) {
+                        targetStation.current_status = 'MAINTENANCE';
+                        targetStation.is_maintenance = true;
+                    }
+                }
+            }
+
+            closeSpecialVisitorModal();
+            renderStationsKanban();
+            updateKPIs();
+        }
+
+        async function endMaintenance(stationId) {
+            if (!confirm(`Sei sicuro di voler terminare l'intervento tecnico sulla postazione ${stationId} e rimetterla in rotazione?`)) return;
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const vat = urlParams.get('vat') || 'default_tenant';
+
+            try {
+                await fetch(API_SPECIAL_CHECKIN, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'end_maintenance',
+                        station_id: stationId,
+                        vat: vat,
+                        ash: getAshParam()
+                    })
+                });
+            } catch (err) {
+                console.warn('[DeskBoard] Errore sblocco manutenzione:', err);
+            }
+
+            const targetStation = stationsList.find(s => s.station_id === stationId);
+            if (targetStation) {
+                targetStation.current_status = 'AVAILABLE';
+                targetStation.is_maintenance = false;
+                delete targetStation.status_info;
+            }
+
             renderStationsKanban();
             updateKPIs();
         }

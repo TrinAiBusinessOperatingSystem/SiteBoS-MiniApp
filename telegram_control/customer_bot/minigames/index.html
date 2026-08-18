@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Arcade Launcher Hub | Gamification Suite SiteBoS</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../sitebos_passport.js"></script>
+    <script src="../phygital_local_first.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -198,8 +200,20 @@
         </div>
     </div>
 
-    <!-- INTESTAZIONE GIOCHI UFFICIALI DI PRODUZIONE -->
-    <div class="px-4 my-2 flex items-center justify-between">
+    <!-- SELETTORE TAB: GIOCHI VS NOTIZIE & INSIGHT -->
+    <div class="px-4 mt-3 mb-2">
+        <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+            <button id="tab-btn-games" onclick="switchHubTab('games')" class="py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition bg-slate-900 text-white shadow-sm cursor-pointer">
+                <i class="fas fa-gamepad text-emerald-400"></i> Minigiochi (8)
+            </button>
+            <button id="tab-btn-news" onclick="switchHubTab('news')" class="py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 cursor-pointer">
+                <i class="fas fa-newspaper text-amber-500"></i> Notizie &amp; Trend
+            </button>
+        </div>
+    </div>
+
+    <!-- INTESTAZIONE GIOCHI UFFICIALI DI PRODUZIONE (VISTA GIOCHI) -->
+    <div id="games-header-bar" class="px-4 my-2 flex items-center justify-between">
         <span class="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
             <i class="fas fa-certificate text-emerald-500"></i> Giochi Certificati Live (8)
         </span>
@@ -212,6 +226,66 @@
     <main class="flex-1 px-4 space-y-3" id="games-grid">
         <!-- Generato dinamicamente via JS -->
     </main>
+
+    <!-- VISTA NOTIZIE: INTEREST ARCHETYPE ENGINE -->
+    <section id="news-view" class="flex-1 px-4 space-y-3 hidden">
+        <div class="light-card rounded-2xl p-3 border-l-4 border-l-amber-500 flex items-start justify-between gap-2">
+            <div>
+                <span class="text-[9px] font-black uppercase text-amber-600 tracking-wider">Interest Archetype Engine</span>
+                <h3 class="text-xs font-black text-slate-900 m-0">Leggi 15 secondi = +30 PT</h3>
+                <p class="text-[10px] text-slate-500 m-0 leading-tight">4 assi tematici per accumulare sconti e profilare i tuoi interessi di rete.</p>
+            </div>
+            <span id="news-session-counter" class="text-[9px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-1 rounded-lg shrink-0">
+                0 / 4 Premiati
+            </span>
+        </div>
+
+        <div id="news-articles-container" class="space-y-3 pb-6">
+            <div class="text-center py-8 opacity-40 font-mono text-xs">
+                <i class="fas fa-spinner fa-spin text-lg mb-2"></i><br>Caricamento Feed Notizie...
+            </div>
+        </div>
+    </section>
+
+    <!-- MODALE LETTORE ARTICOLO NOTIZIA -->
+    <div id="article-modal" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md hidden flex-col items-center justify-center p-4">
+        <div class="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl flex flex-col max-h-[85vh] relative overflow-hidden border border-slate-200">
+            <!-- Close button -->
+            <button onclick="closeArticleModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center font-bold text-sm transition">✕</button>
+            
+            <!-- Category & Badge -->
+            <div class="flex items-center gap-2 mb-2">
+                <span id="art-modal-badge" class="text-[9px] font-black uppercase px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200"></span>
+                <span id="art-modal-readtime" class="text-[9px] font-mono text-slate-400 font-bold"></span>
+            </div>
+
+            <!-- Title -->
+            <h2 id="art-modal-title" class="text-base font-black text-slate-900 mb-3 leading-snug"></h2>
+
+            <!-- Article Body -->
+            <div class="flex-1 overflow-y-auto space-y-3 pr-1 text-slate-700 text-xs leading-relaxed border-t border-b border-slate-100 py-3">
+                <p id="art-modal-summary" class="font-semibold text-slate-900"></p>
+                <p id="art-modal-content">La trasformazione dei processi operativi e l'adozione delle più recenti innovazioni tecnologiche rappresentano una leva fondamentale per garantire l'eccellenza e la conformità nel contesto contemporaneo. L'integrazione tra automazione intelligente e supervisione umana qualifica un modello operativo ad alto valore aggiunto, orientato alla sicurezza e al miglioramento continuo.</p>
+                <p class="text-slate-500 text-[11px]">Analisi condotta dagli esperti di settore per la rete SiteBoS. Approfondimento riservato ai clienti registrati con Passaporto Digitale.</p>
+            </div>
+
+            <!-- Reward Progress Bar & Footer -->
+            <div class="mt-4 pt-2 flex items-center justify-between gap-3">
+                <div class="flex-1">
+                    <div class="flex items-center justify-between text-[10px] font-bold mb-1">
+                        <span id="art-timer-status" class="text-amber-600 flex items-center gap-1">
+                            <i class="fas fa-stopwatch animate-pulse"></i> Lettura attiva: <span id="art-countdown-sec">15</span>s
+                        </span>
+                        <span id="art-pts-badge" class="text-slate-500 font-mono">+30 PT</span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
+                        <div id="art-progress-fill" class="bg-amber-500 h-full w-0 transition-all duration-1000 ease-linear"></div>
+                    </div>
+                </div>
+                <button onclick="closeArticleModal()" class="px-4 py-2 bg-slate-900 text-white rounded-xl font-black text-xs shadow hover:bg-black transition active:scale-95">Fatto</button>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL RUNNER: SCHERMO INTERO NATURALE SU MOBILE & SIMULATORE RADAR SU DESKTOP -->
     <div id="game-modal" class="fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-md hidden flex-col items-center justify-center p-0 lg:p-4 overflow-y-auto">
@@ -1644,6 +1718,16 @@
                 const game = data.game || data.game_id || 'minigioco';
                 const reward = data.reward || data.points || 0;
                 creditPoints(game, reward, `Vincita ${game}`);
+
+                // Sincronizzazione sul Passaporto Cliente cross-owner: senza questa chiamata i premi
+                // variabili dei minigiochi (a differenza del flat +150pt di fine sessione) restavano
+                // solo nel wallet locale dell'Arcade Hub e non contribuivano allo sconto di rete.
+                if (window.SitebosPassport && reward > 0) {
+                    window.SitebosPassport.persistAction({
+                        network_loyalty_delta: { points_change: reward }
+                    });
+                }
+
                 if (data.telemetry) {
                     if (game.includes('pachinko')) localStorage.setItem('SITEBOS_PACHINKO_RESCUE_STATE_V1', JSON.stringify(data.telemetry));
                     else if (game.includes('spin')) localStorage.setItem('SITEBOS_SPIN_WIN_STATE_V1', JSON.stringify(data.telemetry));
@@ -1682,10 +1766,241 @@
             }
         });
 
+        // ── 📰 WIDGET NOTIZIE & INTEREST ARCHETYPE ENGINE ───────────
+        let networkArticles = [];
+        let rewardedArticlesCount = 0;
+        const MAX_REWARDED_ARTICLES_PER_SESSION = 4;
+        let activeReadingTimer = null;
+        let articleOpenTimeMs = 0;
+        let currentReadingArticle = null;
+
+        function switchHubTab(tabName) {
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.selectionChanged();
+            
+            const btnGames = document.getElementById('tab-btn-games');
+            const btnNews = document.getElementById('tab-btn-news');
+            const headerGames = document.getElementById('games-header-bar');
+            const gridGames = document.getElementById('games-grid');
+            const viewNews = document.getElementById('news-view');
+
+            if (tabName === 'news') {
+                btnGames.className = 'py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 cursor-pointer';
+                btnNews.className = 'py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition bg-slate-900 text-white shadow-sm cursor-pointer';
+                
+                headerGames.classList.add('hidden');
+                gridGames.classList.add('hidden');
+                viewNews.classList.remove('hidden');
+
+                if (networkArticles.length === 0) {
+                    loadNetworkNews();
+                }
+            } else {
+                btnNews.className = 'py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition text-slate-600 hover:text-slate-900 cursor-pointer';
+                btnGames.className = 'py-2.5 px-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition bg-slate-900 text-white shadow-sm cursor-pointer';
+                
+                headerGames.classList.remove('hidden');
+                gridGames.classList.remove('hidden');
+                viewNews.classList.add('hidden');
+            }
+        }
+
+        async function loadNetworkNews() {
+            const container = document.getElementById('news-articles-container');
+            const WH_URL = 'https://prod.workflow.trinai.it/webhook/sitebos-phygital-checkin';
+
+            try {
+                const res = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_network_news' })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success && Array.isArray(data.articles)) {
+                        networkArticles = data.articles;
+                        renderNewsArticles();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn('[News] Fallback a feed integrati:', e);
+            }
+
+            // Fallback mock immediato su 4 assi
+            networkArticles = [
+                {
+                    category: 'economia_finanza',
+                    category_label: 'Economia & Finanza',
+                    badge_icon: 'fa-chart-line',
+                    title: 'Mercati e Imprese: Nuove misure per sostenibilità e innovazione aziendale',
+                    summary: 'Quadro aggiornato sulle strategie di allocazione del capitale e crescita per le PMI.',
+                    read_time_est: '2 min',
+                    points_reward: 30
+                },
+                {
+                    category: 'tecnologia_innovazione',
+                    category_label: 'Tecnologia & Innovazione',
+                    badge_icon: 'fa-microchip',
+                    title: 'Intelligenza Artificiale Edge: Modelli compatti che girano a zero latenza',
+                    summary: 'Come i modelli neurali su dispositivo stanno rivoluzionando la privacy e la velocità.',
+                    read_time_est: '2 min',
+                    points_reward: 30
+                },
+                {
+                    category: 'salute_benessere',
+                    category_label: 'Salute & Benessere',
+                    badge_icon: 'fa-heart-pulse',
+                    title: 'De-escalation dello Stress: Routine scientifiche per il recupero mentale',
+                    summary: 'Tecniche di respirazione e mindfulness breve per migliorare focus e lucidità quotidiana.',
+                    read_time_est: '2 min',
+                    points_reward: 30
+                },
+                {
+                    category: 'sport_performance',
+                    category_label: 'Sport & Performance',
+                    badge_icon: 'fa-trophy',
+                    title: 'Mentalità Competitiva: Come gli atleti d\'élite gestiscono la pressione',
+                    summary: 'Focus strategico e resilienza emotiva nei momenti decisivi della gara e del lavoro.',
+                    read_time_est: '2 min',
+                    points_reward: 30
+                }
+            ];
+            renderNewsArticles();
+        }
+
+        function renderNewsArticles() {
+            const container = document.getElementById('news-articles-container');
+            if (!container) return;
+
+            const categoryColors = {
+                economia_finanza: 'border-l-indigo-500 bg-indigo-50/40',
+                tecnologia_innovazione: 'border-l-cyan-500 bg-cyan-50/40',
+                salute_benessere: 'border-l-emerald-500 bg-emerald-50/40',
+                sport_performance: 'border-l-amber-500 bg-amber-50/40'
+            };
+
+            container.innerHTML = networkArticles.map((art, idx) => {
+                const colorClass = categoryColors[art.category] || 'border-l-slate-500 bg-slate-50';
+                return `
+                    <div onclick="openArticleModal(${idx})" class="light-card rounded-2xl p-4 border-l-4 ${colorClass} cursor-pointer transition hover:shadow-md active:scale-[0.98]">
+                        <div class="flex items-center justify-between gap-2 mb-1.5">
+                            <span class="text-[9px] font-black uppercase tracking-wider text-slate-600 flex items-center gap-1">
+                                <i class="fas ${art.badge_icon || 'fa-tag'}"></i> ${art.category_label || art.category}
+                            </span>
+                            <span class="text-[8.5px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
+                                +${art.points_reward || 30} PT
+                            </span>
+                        </div>
+                        <h4 class="text-xs font-black text-slate-900 mb-1 leading-snug">${art.title}</h4>
+                        <p class="text-[10px] text-slate-600 line-clamp-2 leading-relaxed mb-2">${art.summary || ''}</p>
+                        <div class="flex items-center justify-between text-[9px] font-semibold text-slate-400">
+                            <span>Tempo lettura: ${art.read_time_est || '2 min'}</span>
+                            <span class="text-indigo-600 font-bold flex items-center gap-1">Leggi e Guadagna ➔</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openArticleModal(articleIdx) {
+            const art = networkArticles[articleIdx];
+            if (!art) return;
+            currentReadingArticle = art;
+            articleOpenTimeMs = Date.now();
+
+            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+
+            document.getElementById('art-modal-badge').innerText = art.category_label || art.category;
+            document.getElementById('art-modal-readtime').innerText = art.read_time_est || '2 min';
+            document.getElementById('art-modal-title').innerText = art.title;
+            document.getElementById('art-modal-summary').innerText = art.summary || '';
+
+            const modal = document.getElementById('article-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            startArticleReadingTimer(art);
+        }
+
+        function startArticleReadingTimer(art) {
+            clearInterval(activeReadingTimer);
+            let secondsLeft = 15;
+            const statusEl = document.getElementById('art-timer-status');
+            const countEl = document.getElementById('art-countdown-sec');
+            const fillEl = document.getElementById('art-progress-fill');
+
+            fillEl.style.width = '0%';
+            countEl.innerText = secondsLeft;
+            statusEl.className = 'text-amber-600 flex items-center gap-1';
+            statusEl.innerHTML = `<i class="fas fa-stopwatch animate-pulse"></i> Lettura attiva: <span id="art-countdown-sec">${secondsLeft}</span>s`;
+
+            activeReadingTimer = setInterval(() => {
+                secondsLeft--;
+                const secSpan = document.getElementById('art-countdown-sec');
+                if (secSpan) secSpan.innerText = secondsLeft;
+                const percent = Math.min(100, Math.round(((15 - secondsLeft) / 15) * 100));
+                fillEl.style.width = percent + '%';
+
+                if (secondsLeft <= 0) {
+                    clearInterval(activeReadingTimer);
+                    statusEl.className = 'text-emerald-600 font-bold flex items-center gap-1';
+                    statusEl.innerHTML = `<i class="fas fa-check-circle"></i> Sconto & Punti Riconosciuti!`;
+                    fillEl.style.width = '100%';
+                    fillEl.className = 'bg-emerald-500 h-full w-full';
+
+                    trackArticleRead(art, articleOpenTimeMs);
+                }
+            }, 1000);
+        }
+
+        function trackArticleRead(article, openedAtMs) {
+            const readTimeSec = Math.round((Date.now() - openedAtMs) / 1000);
+            if (readTimeSec < 15) return;
+
+            if (rewardedArticlesCount < MAX_REWARDED_ARTICLES_PER_SESSION) {
+                rewardedArticlesCount++;
+                creditPoints('news', 30, `Lettura: ${article.category}`);
+                const counterEl = document.getElementById('news-session-counter');
+                if (counterEl) counterEl.textContent = `${rewardedArticlesCount} / ${MAX_REWARDED_ARTICLES_PER_SESSION} Premiati`;
+            }
+
+            const engagementScoreDelta = Math.min(25, Math.round(readTimeSec / 2));
+            if (window.SitebosPassport) {
+                window.SitebosPassport.persistAction({
+                    network_loyalty_delta: { points_change: 30 },
+                    interest_delta: {
+                        category: article.category,
+                        engagement_score_delta: engagementScoreDelta,
+                        read_time_sec: readTimeSec
+                    }
+                });
+            }
+
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        function closeArticleModal() {
+            clearInterval(activeReadingTimer);
+            const modal = document.getElementById('article-modal');
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram?.WebApp) {
                 window.Telegram.WebApp.ready();
                 window.Telegram.WebApp.expand();
+            }
+            if (window.SitebosPassport) {
+                window.SitebosPassport.load().then(p => {
+                    if (p && p.network_loyalty && typeof p.network_loyalty.points_balance === 'number') {
+                        userWallet.total_points = p.network_loyalty.points_balance;
+                        updateWalletUI();
+                    }
+                });
             }
             seedStorageDefaults();
             loadWallet();
