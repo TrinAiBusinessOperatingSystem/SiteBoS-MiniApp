@@ -1,14 +1,357 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0;url=telegram_control/userguide/index.html">
-    <title>SiTeBoS — Reindirizzamento...</title>
-    <script>
-        window.location.href = "telegram_control/userguide/index.html";
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>SiTeBoS — Accesso Cliente</title>
+  
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts & FontAwesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      background: #090d16;
+      color: #ffffff;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+      user-select: none;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .btn-glow {
+      box-shadow: 0 0 25px rgba(34, 158, 217, 0.35);
+    }
+    .btn-glow:active {
+      box-shadow: 0 0 10px rgba(34, 158, 217, 0.2);
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.8; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.02); }
+    }
+    .pulse-subtle {
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+  </style>
 </head>
-<body>
-    <p>Se non vieni reindirizzato automaticamente, <a href="telegram_control/userguide/index.html">clicca qui per accedere alla Guida Utente SiTeBoS</a>.</p>
+<body class="flex flex-col justify-between">
+
+  <!-- Pulsante di Uscita X Fisso in Alto a Destra -->
+  <button id="exitButton" aria-label="Chiudi applicazione" class="fixed top-4 right-4 z-50 w-11 h-11 rounded-full bg-white/10 backdrop-blur border border-white/15 text-white/80 hover:text-white flex items-center justify-center transition active:scale-95 shadow-lg">
+    <i class="fa-solid fa-xmark text-lg"></i>
+  </button>
+
+  <!-- Root Container -->
+  <main id="landingRoot" class="relative w-full h-full flex flex-col justify-between overflow-hidden">
+    
+    <!-- STATO 1: Caricamento Iniziale -->
+    <div id="stateLoading" class="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
+      <div class="relative w-20 h-20 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full border-2 border-[#229ED9]/20 border-t-[#229ED9] animate-spin"></div>
+        <i class="fa-solid fa-bolt text-2xl text-[#229ED9]"></i>
+      </div>
+      <p class="text-slate-300 font-medium text-base mt-2">Caricamento attività in corso...</p>
+      <p class="text-slate-500 text-xs">Connessione sicura all'ecosistema SiTeBoS</p>
+    </div>
+
+    <!-- STATO 2: Profilo Attività Trovato (Hero + Logo + CTA) -->
+    <div id="stateProfile" class="hidden flex-1 flex flex-col justify-between w-full h-full overflow-hidden">
+      
+      <!-- Sezione Superiore: Immagine Hero Cover -->
+      <div class="relative w-full h-[45%] min-h-[200px] overflow-hidden bg-slate-900">
+        <img id="ownerPhoto" class="w-full h-full object-cover" alt="Foto Attività" style="display: none;" />
+        <!-- Fallback visuale foto di copertina -->
+        <div id="ownerPhotoFallback" class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-[#090d16]">
+          <i class="fa-solid fa-store text-5xl text-slate-700"></i>
+        </div>
+        <!-- Gradient Overlay per fusione perfetta col fondo scuro -->
+        <div class="absolute inset-0 bg-gradient-to-t from-[#090d16] via-[#090d16]/40 to-transparent"></div>
+      </div>
+
+      <!-- Sezione Centrale: Logo Badge Sovrapposto + Ragione Sociale -->
+      <div class="relative -mt-16 flex flex-col items-center px-6 text-center z-10">
+        
+        <!-- Logo Badge con cornice luminosa -->
+        <div class="w-24 h-24 rounded-2xl overflow-hidden border-4 border-[#090d16] bg-[#111827] shadow-2xl flex items-center justify-center relative">
+          <img id="ownerLogo" class="w-full h-full object-cover" alt="Logo Azienda" style="display: none;" />
+          <div id="ownerLogoFallback" class="w-full h-full flex items-center justify-center bg-slate-800 text-[#229ED9]">
+            <i class="fa-solid fa-building text-3xl"></i>
+          </div>
+        </div>
+
+        <!-- Titolo Attività (Ragione Sociale) -->
+        <h1 id="ownerName" class="mt-4 text-2xl font-extrabold tracking-tight text-white px-2"></h1>
+        
+        <!-- Sottotitolo Istituzionale -->
+        <p id="ownerDescription" class="mt-2 text-slate-400 text-sm max-w-xs leading-relaxed">
+          Benvenuto nel canale ufficiale. Abilita la nostra applicazione per accedere a tutti i servizi in tempo reale.
+        </p>
+
+        <!-- Badge di Sicurezza e Privacy -->
+        <div class="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs">
+          <i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i>
+          <span>Canale Verificato Telegram</span>
+        </div>
+      </div>
+
+      <!-- Sezione Inferiore: Pulsante Azione Primaria (CTA) -->
+      <div class="p-6 pb-8 w-full z-10">
+        <button id="connectButton" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#229ED9] to-[#1e88be] text-white font-bold text-lg flex items-center justify-center gap-3 btn-glow pulse-subtle active:scale-[0.98] transition-transform duration-150">
+          <i class="fa-brands fa-telegram text-2xl"></i>
+          <span>Abilita la Nostra App</span>
+        </button>
+        <p class="text-center text-slate-500 text-xs mt-3">
+          Nessuna registrazione manuale richiesta.
+        </p>
+      </div>
+
+    </div>
+
+    <!-- STATO 3: Errore (P.IVA Mancante / Non Trovata / Rete) -->
+    <div id="stateError" class="hidden flex-1 flex flex-col items-center justify-center gap-5 px-8 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-3xl">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold text-white mb-2">Accesso Non Riuscito</h2>
+        <p id="errorMessage" class="text-slate-400 text-sm leading-relaxed max-w-sm"></p>
+      </div>
+      <button onclick="window.location.reload()" class="mt-4 px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm font-semibold text-slate-200 transition">
+        <i class="fa-solid fa-rotate-right mr-2"></i> Riprova
+      </button>
+    </div>
+
+    <!-- STATO 4: Blocco Dispositivi Desktop (Mobile-Only) -->
+    <div id="stateMobileOnly" class="hidden flex-1 flex flex-col items-center justify-center gap-5 px-8 text-center">
+      <div class="w-20 h-20 rounded-2xl bg-[#229ED9]/10 border border-[#229ED9]/20 flex items-center justify-center text-[#229ED9] text-3xl">
+        <i class="fa-solid fa-mobile-screen-button"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-white mb-2">Esperienza Smartphone</h2>
+        <p class="text-slate-400 text-sm leading-relaxed max-w-xs mx-auto">
+          Questa applicazione è progettata per offrirti la massima fluidità direttamente sul tuo smartphone.
+        </p>
+      </div>
+      <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 max-w-xs">
+        <i class="fa-solid fa-qrcode mr-1 text-[#229ED9]"></i>
+        Inquadra il codice QR o apri il link dal tuo telefono per continuare.
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // 1. Inizializzazione SDK Telegram WebApp (se aperto dentro Telegram)
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (tg) {
+        try {
+          tg.ready();
+          tg.expand();
+          if (typeof tg.requestFullscreen === 'function') {
+            tg.requestFullscreen();
+          }
+        } catch (e) {
+          console.warn('Telegram WebApp expansion non disponibile:', e);
+        }
+      }
+
+      // 2. Gestione Pulsante di Uscita X
+      var exitBtn = document.getElementById('exitButton');
+      if (exitBtn) {
+        exitBtn.addEventListener('click', function () {
+          if (tg && typeof tg.close === 'function') {
+            tg.close();
+          } else {
+            window.close();
+          }
+        });
+      }
+
+      // 3. Mapping degli Stati della UI
+      var states = {
+        loading: document.getElementById('stateLoading'),
+        profile: document.getElementById('stateProfile'),
+        error: document.getElementById('stateError'),
+        mobileOnly: document.getElementById('stateMobileOnly')
+      };
+
+      function showState(key) {
+        Object.keys(states).forEach(function (k) {
+          if (states[k]) {
+            states[k].classList.add('hidden');
+          }
+        });
+        if (states[key]) {
+          states[key].classList.remove('hidden');
+        }
+      }
+
+      // 4. Controllo Dispositivo Mobile
+      var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent) || (window.innerWidth <= 768);
+      if (!isMobile) {
+        showState('mobileOnly');
+        return;
+      }
+
+      // 5. Estrazione e Validazione Partita IVA (?vat=)
+      var urlParams = new URLSearchParams(window.location.search);
+      var vatNumber = urlParams.get('vat');
+
+      if (!vatNumber || !vatNumber.trim()) {
+        document.getElementById('errorMessage').textContent = 'Collegamento non valido: codice attività (Partita IVA) mancante nell\'indirizzo.';
+        showState('error');
+        return;
+      }
+
+      vatNumber = vatNumber.trim();
+      var storageKey = 'sitebos_' + vatNumber + '_owner_data';
+
+      // 6. Controllo LocalStorage: Se i dati sono già salvati sul dispositivo, skippa direttamente aprendo il bot
+      try {
+        var cachedDataRaw = localStorage.getItem(storageKey);
+        if (cachedDataRaw) {
+          var cachedData = JSON.parse(cachedDataRaw);
+          if (cachedData && cachedData.bot_username) {
+            var directDeepLink = 'https://t.me/' + cachedData.bot_username + '?start=' + encodeURIComponent(vatNumber);
+            window.location.href = directDeepLink;
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('LocalStorage non accessibile o corrotto:', e);
+      }
+
+      // Helper per caricare immagini con fallback di estensione (.png -> .jpg -> fallback icon)
+      function loadImageWithFallback(imgElement, fallbackElement, baseUrls) {
+        var index = 0;
+        function tryNext() {
+          if (index >= baseUrls.length) {
+            imgElement.style.display = 'none';
+            if (fallbackElement) fallbackElement.style.display = 'flex';
+            return;
+          }
+          var currentUrl = baseUrls[index++];
+          var testImg = new Image();
+          testImg.onload = function () {
+            imgElement.src = currentUrl;
+            imgElement.style.display = 'block';
+            if (fallbackElement) fallbackElement.style.display = 'none';
+          };
+          testImg.onerror = tryNext;
+          testImg.src = currentUrl;
+        }
+        tryNext();
+      }
+
+      // 7. Chiamata al Webhook Backend customer_auth
+      var webhookUrl = 'https://prod.workflow.trinai.it/webhook/customer_auth';
+
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          action: 'get_owner_public_profile',
+          vat_number: vatNumber
+        })
+      })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        if (!data || !data.success || !data.owner_public) {
+          var msg = (data && data.message) ? data.message : 'Attività non trovata o non configurata. Verifica il collegamento ricevuto.';
+          document.getElementById('errorMessage').textContent = msg;
+          showState('error');
+          return;
+        }
+
+        var owner = data.owner_public;
+
+        // Salvataggio dei dati ricevuti in LocalStorage per gli accessi futuri
+        try {
+          localStorage.setItem(storageKey, JSON.stringify({
+            vat_number: owner.vat_number,
+            ragione_sociale: owner.ragione_sociale,
+            bot_username: owner.bot_username,
+            logo_url: owner.logo_url,
+            photo_url: owner.photo_url,
+            business_description: owner.business_description || '',
+            saved_at: new Date().toISOString()
+          }));
+        } catch (e) {
+          console.warn('Impossibile salvare in LocalStorage:', e);
+        }
+
+        // Popolamento dei campi visivi
+        document.getElementById('ownerName').textContent = owner.ragione_sociale || 'Attività Partner SiTeBoS';
+        if (owner.business_description) {
+          document.getElementById('ownerDescription').textContent = owner.business_description;
+        }
+
+        // Risoluzione e caricamento Foto Copertina (prova photo_url, .png, .jpg)
+        var photoUrls = [];
+        if (owner.photo_url) photoUrls.push(owner.photo_url);
+        photoUrls.push('https://prod.workflow.trinai.it/public/minisite/' + vatNumber + '/images/photo.png');
+        photoUrls.push('https://prod.workflow.trinai.it/public/minisite/' + vatNumber + '/images/photo.jpg');
+        photoUrls.push('https://prod.workflow.trinai.it/public/minisite/' + vatNumber + '/images/photo.jpeg');
+        loadImageWithFallback(document.getElementById('ownerPhoto'), document.getElementById('ownerPhotoFallback'), photoUrls);
+
+        // Risoluzione e caricamento Logo (prova logo_url, .png, .jpg)
+        var logoUrls = [];
+        if (owner.logo_url) logoUrls.push(owner.logo_url);
+        logoUrls.push('https://prod.workflow.trinai.it/public/minisite/' + vatNumber + '/images/logo.png');
+        logoUrls.push('https://prod.workflow.trinai.it/public/minisite/' + vatNumber + '/images/logo.jpg');
+        logoUrls.push('https://prod.workflow.trinai.it/public/minisite/' + vatNumber + '/images/logo.jpeg');
+        loadImageWithFallback(document.getElementById('ownerLogo'), document.getElementById('ownerLogoFallback'), logoUrls);
+
+        // Aggancio CTA Button
+        var connectBtn = document.getElementById('connectButton');
+        connectBtn.addEventListener('click', function () {
+          var targetBot = owner.bot_username;
+          if (!targetBot) {
+            alert('Configurazione bot non completata. Contatta l\'assistenza.');
+            return;
+          }
+          var deepLink = 'https://t.me/' + targetBot + '?start=' + encodeURIComponent(vatNumber);
+          window.location.href = deepLink;
+        });
+
+        // Mostra lo stato del profilo
+        showState('profile');
+      })
+      .catch(function (err) {
+        console.error('Errore chiamata customer_auth:', err);
+        document.getElementById('errorMessage').textContent = 'Impossibile completare la connessione con l\'attività. Verifica la connessione a internet e riprova.';
+        showState('error');
+      });
+
+    })();
+  </script>
 </body>
 </html>
