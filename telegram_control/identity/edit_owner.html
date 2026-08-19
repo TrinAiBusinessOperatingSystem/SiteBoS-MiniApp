@@ -438,11 +438,67 @@
                         Copia questo link nel <b>Messaggio di Benvenuto</b> su WhatsApp Business per portare i clienti nel tuo Bot Telegram:
                     </p>
                     <div class="flex gap-1.5 items-center bg-white border border-green-300 p-2 rounded-xl">
-                        <input type="text" id="wa-generated-link" readonly class="w-full text-[10px] font-mono font-bold text-green-900 bg-transparent outline-none" value="https://t.me/TrinAi_Site_bot?start=wa">
+                        <input type="text" id="wa-generated-link" readonly class="w-full text-[10px] font-mono font-bold text-green-900 bg-transparent outline-none" placeholder="Associa prima il tuo Bot Telegram qui sopra per generare il link." value="">
                         <button type="button" onclick="copyWaLink()" class="bg-green-600 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 active:scale-95 transition">
                             <i class="fas fa-copy text-[10px]"></i> Copia
                         </button>
                     </div>
+                </div>
+            </section>
+
+            <!-- SECTION 8: MCP SERVER — AGENTI ESTERNI (Claude Desktop/Code, Antigravity, Voice Agent) -->
+            <section class="section-card space-y-4 border-l-4 border-l-indigo-600">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-satellite-dish text-xs text-indigo-600"></i>
+                        <h2 class="font-black uppercase tracking-widest text-[10px]">Server MCP — Dati Live per Agenti Esterni</h2>
+                    </div>
+                    <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">Beta</span>
+                </div>
+
+                <p class="text-[10px] text-gray-600 leading-snug font-medium">
+                    Collega un assistente AI esterno (Claude Desktop, Claude Code, Antigravity, un agente vocale compatibile MCP) ai dati reali e aggiornati della tua attività su SiteBoS: catalogo servizi/prodotti, stato prenotazioni, disponibilità, richieste di intervento operatore. Copia URL e Token qui sotto nella configurazione del tuo client MCP — non condividerli con nessuno, chi li possiede può leggere i dati della tua attività.
+                </p>
+
+                <div class="space-y-2 border-b border-gray-100 pb-3">
+                    <label class="label-micro text-indigo-700">MCP Server URL</label>
+                    <div class="flex gap-1.5 items-center bg-white border border-indigo-200 p-2 rounded-xl">
+                        <input type="text" id="mcp-server-url" readonly class="w-full text-[10px] font-mono font-bold text-indigo-900 bg-transparent outline-none" value="https://prod.workflow.trinai.it/mcp/sitebos-mcp-live-data">
+                        <button type="button" onclick="copyMcpField('mcp-server-url', 'URL Server MCP')" class="bg-indigo-600 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 active:scale-95 transition">
+                            <i class="fas fa-copy text-[10px]"></i> Copia
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-2 border-b border-gray-100 pb-3">
+                    <div class="flex items-center justify-between">
+                        <label class="label-micro text-indigo-700">Access Token</label>
+                        <span class="text-[8px] font-bold text-gray-400 uppercase">Stesso token del login Dashboard</span>
+                    </div>
+                    <div class="flex gap-1.5 items-center bg-white border border-indigo-200 p-2 rounded-xl">
+                        <input type="password" id="mcp-access-token" readonly class="w-full text-[10px] font-mono font-bold text-indigo-900 bg-transparent outline-none" value="">
+                        <button type="button" onclick="toggleMcpTokenVisibility()" class="text-indigo-600 px-2 shrink-0">
+                            <i id="mcp-token-eye" class="fas fa-eye text-[10px]"></i>
+                        </button>
+                        <button type="button" onclick="copyMcpField('mcp-access-token', 'Access Token')" class="bg-indigo-600 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 active:scale-95 transition">
+                            <i class="fas fa-copy text-[10px]"></i> Copia
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-2 bg-indigo-50/50 border border-indigo-200/60 p-3 rounded-2xl">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black text-indigo-900 flex items-center gap-1.5">
+                            <i class="fas fa-code text-indigo-600 text-sm"></i> Esempio configurazione (Claude Desktop)
+                        </span>
+                        <button type="button" onclick="copyMcpConfigSnippet()" class="bg-indigo-600 text-white px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider shrink-0 active:scale-95 transition">
+                            <i class="fas fa-copy text-[10px]"></i> Copia
+                        </button>
+                    </div>
+                    <pre id="mcp-config-snippet" class="text-[9px] font-mono text-indigo-900 bg-white border border-indigo-200 rounded-xl p-2.5 overflow-x-auto leading-relaxed"></pre>
+                    <p class="text-[9px] text-indigo-700 leading-snug font-medium">
+                        Ogni chiamata del tool va autenticata con la tua Partita IVA (<code class="font-mono">vat_number</code>) e l'Access Token qui sopra — puoi copiarli separatamente e incollarli quando il tuo assistente te li chiede.
+                    </p>
                 </div>
             </section>
 
@@ -573,6 +629,14 @@
             document.getElementById('display-chat-id').innerText = data.chat_id || 'N/A';
             document.getElementById('display-credits').innerText = data.operator_credit || '0';
             document.getElementById('display-balance').innerText = (data.credits_balance || 0).toLocaleString();
+
+            // MCP Server credentials (sola lettura, generate all'onboarding, mai editabili da qui)
+            const mcpTokenField = document.getElementById('mcp-access-token');
+            if (mcpTokenField) mcpTokenField.value = data.access_token || '';
+            updateMcpConfigSnippet(data.vat_number, data.access_token);
+
+            // WhatsApp Auto-Responder: link reale solo se il bot e' gia' associato
+            updateWaLink(data.bot_username || '');
 
             // Populate safety & compliance details
             const secData = data.security_metadata || data.securityMetadata || data.general_metadata || data.generalMetadata || {};
@@ -791,6 +855,10 @@
                 if (result.success && result.result) {
                     tg.showAlert("Bot Associato: " + (result.description || "Successo!"));
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (result.bot_username) {
+                        ownerData.bot_username = result.bot_username;
+                        updateWaLink(result.bot_username);
+                    }
                 } else {
                     tg.showAlert("Errore Associazione: " + (result.description || "Controlla la chiave del bot."));
                 }
@@ -825,9 +893,23 @@
             finally { hideLoader(); }
         }
 
-        window.copyWaLink = function() {
+        function updateWaLink(botUsername) {
             const linkInput = document.getElementById('wa-generated-link');
             if (!linkInput) return;
+            if (botUsername) {
+                linkInput.value = 'https://t.me/' + botUsername + '?start=wa';
+            } else {
+                linkInput.value = '';
+                linkInput.placeholder = 'Associa prima il tuo Bot Telegram qui sopra per generare il link.';
+            }
+        }
+
+        window.copyWaLink = function() {
+            const linkInput = document.getElementById('wa-generated-link');
+            if (!linkInput || !linkInput.value) {
+                tg.showAlert("Associa prima il tuo Bot Telegram per generare il link.");
+                return;
+            }
             navigator.clipboard.writeText(linkInput.value).then(() => {
                 tg.showAlert("Link WhatsApp copiato negli appunti!");
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
@@ -839,6 +921,78 @@
 
         window.connectNylasEmail = function() {
             tg.showAlert("Procedi con l'autenticazione OAuth2 1-Click Nylas. Inserisci il Grant ID generato al termine.");
+        };
+
+        window.copyMcpField = function(elementId, label) {
+            const el = document.getElementById(elementId);
+            if (!el || !el.value) {
+                tg.showAlert("Dato non ancora disponibile, riprova tra poco.");
+                return;
+            }
+            navigator.clipboard.writeText(el.value).then(() => {
+                tg.showAlert(label + " copiato negli appunti!");
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }).catch(() => {
+                tg.showAlert("Seleziona e copia il valore manualmente.");
+            });
+        };
+
+        window.toggleMcpTokenVisibility = function() {
+            const field = document.getElementById('mcp-access-token');
+            const eye = document.getElementById('mcp-token-eye');
+            if (!field) return;
+            const isHidden = field.type === 'password';
+            field.type = isHidden ? 'text' : 'password';
+            if (eye) {
+                eye.classList.toggle('fa-eye', !isHidden);
+                eye.classList.toggle('fa-eye-slash', isHidden);
+            }
+        };
+
+        function updateMcpConfigSnippet(vatNumber, accessToken) {
+            const el = document.getElementById('mcp-config-snippet');
+            if (!el) return;
+            const vat = vatNumber || 'LA_TUA_PARTITA_IVA';
+            const token = accessToken ? '••••••••••••' : 'IL_TUO_ACCESS_TOKEN';
+            el.textContent = '{\n' +
+                '  "mcpServers": {\n' +
+                '    "sitebos": {\n' +
+                '      "command": "npx",\n' +
+                '      "args": [\n' +
+                '        "mcp-remote",\n' +
+                '        "https://prod.workflow.trinai.it/mcp/sitebos-mcp-live-data"\n' +
+                '      ]\n' +
+                '    }\n' +
+                '  }\n' +
+                '}\n' +
+                '\n' +
+                '// vat_number: ' + vat + '\n' +
+                '// access_token: ' + token + ' (copialo dal campo sopra)';
+        }
+
+        window.copyMcpConfigSnippet = function() {
+            const vat = (ownerData && ownerData.vat_number) || 'LA_TUA_PARTITA_IVA';
+            const token = (ownerData && ownerData.access_token) || 'IL_TUO_ACCESS_TOKEN';
+            const fullSnippet = '{\n' +
+                '  "mcpServers": {\n' +
+                '    "sitebos": {\n' +
+                '      "command": "npx",\n' +
+                '      "args": [\n' +
+                '        "mcp-remote",\n' +
+                '        "https://prod.workflow.trinai.it/mcp/sitebos-mcp-live-data"\n' +
+                '      ]\n' +
+                '    }\n' +
+                '  }\n' +
+                '}\n' +
+                '\n' +
+                '// vat_number: ' + vat + '\n' +
+                '// access_token: ' + token;
+            navigator.clipboard.writeText(fullSnippet).then(() => {
+                tg.showAlert("Configurazione MCP copiata (con Access Token in chiaro)!");
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }).catch(() => {
+                tg.showAlert("Copia manualmente i campi qui sopra.");
+            });
         };
 
         let voiceAudio = null;
