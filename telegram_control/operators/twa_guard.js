@@ -10,14 +10,14 @@
     document.body.innerHTML = `
       <div style="
         min-height: 100vh; display:flex; align-items:center; justify-content:center;
-        background:#000; color:#fff; padding:24px; text-align:center;
-        font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
-        <div>
+        background:#fafafa; color:#000000; padding:24px; text-align:center;
+        font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
+        <div style="background:white; border:1px solid #eeeeee; border-radius:24px; padding:32px; max-width:380px; width:100%; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05);">
           <div style="font-size:44px; margin-bottom:12px;">🚫</div>
-          <div style="font-weight:900; letter-spacing:0.08em; text-transform:uppercase; font-size:12px; opacity:0.85;">
-            Accesso negato
+          <div style="font-weight:900; letter-spacing:0.08em; text-transform:uppercase; font-size:12px; color:#000000;">
+            Accesso Negato
           </div>
-          <div style="margin-top:10px; font-size:14px; opacity:0.9;">${msg}</div>
+          <div style="margin-top:10px; font-size:13px; color:#64748b; font-weight:500;">${msg}</div>
         </div>
       </div>
     `;

@@ -180,8 +180,7 @@
       { name: "Sicurezza HSE & Conformità Normativa", desc: "Verifica DVR, sicurezza sul lavoro e adempimenti antinfortunistici.", url: "../agents/assistente-sicurezza.html", icon: "fa-shield-halved", category: "intelligence" },
       { name: "Controllo Gestione CFO & Marginalità", desc: "Monitoraggio flussi di cassa, bilancio e marginalità.", url: "../agents/controllo_gestione.html", icon: "fa-coins", category: "intelligence" },
       { name: "Magazzino AI & Ottimizzazione Scorte", desc: "Gestione ed ottimizzazione automatizzata delle scorte.", url: "../agents/intelligent-warehouse.html", icon: "fa-warehouse", category: "intelligence" },
-      { name: "Analisi Agenda & Tempi Staff", desc: "Pianificazione agenda ed ottimizzazione tempi del personale.", url: "../agents/agenda.html", icon: "fa-calendar-days", category: "intelligence" },
-      { name: "Supervisor Hub Auditing", desc: "Pannello supervisor per l'ispezione ed auditing delle SOP.", url: "../gestione/supervisor_hub.html", icon: "fa-user-check", category: "intelligence" }
+      { name: "Analisi Agenda & Tempi Staff", desc: "Pianificazione agenda ed ottimizzazione tempi del personale.", url: "../agents/agenda.html", icon: "fa-calendar-days", category: "intelligence" }
     ],
     supporto: [
       { name: "Support Hub & Ticket", desc: "Centro di assistenza tecnica e gestione ticket.", url: "../supporto/support_hub.html", icon: "fa-headset", category: "supporto" }

@@ -96,31 +96,31 @@
     if (!overlay) {
       overlay = document.createElement('div');
       overlay.id = 'sitebos-friendly-lock-overlay';
-      overlay.className = 'fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[999999] flex items-center justify-center p-4 transition-opacity duration-300';
+      overlay.className = 'fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[999999] flex items-center justify-center p-4 transition-opacity duration-300';
       document.body.appendChild(overlay);
     }
 
     if (isGenerating) {
       // Schermata di congelamento per Generazione AI attiva (Senza pulsanti di uscita)
       overlay.innerHTML = `
-        <div class="bg-slate-900/95 border border-blue-500/30 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center text-slate-100 flex flex-col items-center gap-6">
+        <div class="bg-white border border-gray-200 p-8 rounded-3xl w-full max-w-sm shadow-2xl text-center text-slate-900 flex flex-col items-center gap-6">
           <div class="relative flex items-center justify-center">
-            <div class="w-16 h-16 rounded-full border-4 border-blue-500/10 border-t-blue-500 animate-spin"></div>
-            <div class="absolute text-xl text-blue-400">
+            <div class="w-16 h-16 rounded-full border-4 border-slate-200 border-t-black animate-spin"></div>
+            <div class="absolute text-xl text-black">
               <i class="fas fa-brain animate-pulse"></i>
             </div>
           </div>
           <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-[9px] font-black uppercase tracking-widest text-blue-400 mb-3">
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[9px] font-black uppercase tracking-widest text-slate-700 mb-3">
+              <span class="w-1.5 h-1.5 rounded-full bg-black animate-ping"></span>
               ELABORAZIONE INTELLIGENZA ARTIFICIALE
             </div>
-            <h3 class="text-sm font-extrabold uppercase text-white leading-tight">Scrittura in corso...</h3>
-            <p class="text-xs text-slate-300 font-medium mt-3 leading-relaxed">
+            <h3 class="text-sm font-extrabold uppercase text-black leading-tight">Scrittura in corso...</h3>
+            <p class="text-xs text-slate-600 font-medium mt-3 leading-relaxed">
               ${reasonText}
             </p>
           </div>
-          <div class="text-[10px] text-slate-500 font-medium tracking-wide uppercase">
+          <div class="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
             L'editor si sbloccherà automaticamente al termine
           </div>
         </div>
@@ -128,21 +128,21 @@
     } else {
       // Schermata di blocco standard per concorrenza cross-tab o cross-platform (Con pulsante Home)
       overlay.innerHTML = `
-        <div class="bg-slate-900/95 border border-slate-700/80 p-6 rounded-3xl w-full max-w-sm shadow-2xl backdrop-blur-2xl text-center text-slate-100 flex flex-col items-center gap-4">
-          <div class="w-14 h-14 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center text-2xl shadow-lg">
+        <div class="bg-white border border-gray-200 p-6 rounded-3xl w-full max-w-sm shadow-2xl backdrop-blur-2xl text-center text-slate-900 flex flex-col items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 text-black flex items-center justify-center text-2xl shadow-sm">
             <i class="fas fa-shield-halved"></i>
           </div>
           <div>
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[9px] font-black uppercase tracking-widest text-blue-400 mb-2">
-              <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[9px] font-black uppercase tracking-widest text-slate-700 mb-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-black animate-pulse"></span>
               SESSIONE IN USO SU UN ALTRO SCHERMO
             </div>
-            <h3 class="text-sm font-extrabold uppercase text-white leading-tight">Sessione in corso su un altro dispositivo</h3>
-            <p class="text-xs text-slate-300 font-medium mt-2 leading-relaxed">
+            <h3 class="text-sm font-extrabold uppercase text-black leading-tight">Sessione in corso su un altro dispositivo</h3>
+            <p class="text-xs text-slate-600 font-medium mt-2 leading-relaxed">
               ${reasonText}
             </p>
           </div>
-          <button id="sitebos-go-home-btn" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+          <button id="sitebos-go-home-btn" class="w-full py-3 px-4 rounded-xl bg-black hover:bg-neutral-800 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
             <i class="fas fa-house text-xs"></i>
             Torna alla Dashboard
           </button>
