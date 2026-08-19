@@ -15,6 +15,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #090d16;
+      color: #ffffff;
+      min-height: 100vh;
+    }
     :root {
       --accent: #229ED9;
       --accent-text: #ffffff;
@@ -28,15 +35,32 @@
     .accent-text {
       color: var(--accent) !important;
     }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-out forwards;
+    }
+    .card-choice {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .card-choice:active {
+      transform: scale(0.98);
+      border-color: var(--accent);
+      background: rgba(17, 24, 39, 1);
+    }
   </style>
 </head>
-<body class="flex flex-col items-center justify-center p-6 text-center">
+<body class="flex flex-col items-center justify-center p-6 text-center select-none">
 
   <!-- Moduli Condivisi -->
   <script src="sitebos_passport.js"></script>
   <script src="phygital_local_first.js"></script>
 
-  <main id="routerRoot" class="flex flex-col items-center justify-center gap-5 max-w-sm">
+  <main id="routerRoot" class="flex flex-col items-center justify-center gap-5 max-w-sm w-full">
     <div class="relative w-20 h-20 flex items-center justify-center">
       <div class="absolute inset-0 rounded-full border-2 spinner-accent animate-spin"></div>
       <i class="fa-solid fa-compass text-3xl accent-text"></i>
@@ -88,6 +112,15 @@
         document.documentElement.style.setProperty('--accent-subtle', subtleBgRgba);
       }
 
+      window.SitebosRouterNav = function (url) {
+        if (tg && tg.HapticFeedback) {
+          try {
+            tg.HapticFeedback.impactOccurred('medium');
+          } catch (e) {}
+        }
+        window.location.replace(url);
+      };
+
       if (!vatNumber) {
         // Tentativo di recupero da cache
         try {
@@ -129,7 +162,7 @@
       Promise.all([
         window.SitebosPassport.load(),
         window.PhygitalLocalFirst.checkWifiGuestProximity(),
-        fetchOwnerVertical(vatNumber)
+        fetchOwnerProfile(vatNumber)
       ]).then(function (results) {
         var passport = results[0];
         var proximity = results[1];
@@ -139,14 +172,7 @@
           applyThemeAccent(ownerData.theme_accent);
         }
 
-        var verticalId = (ownerData && (ownerData.vertical_id || ownerData.business_vertical)) || 'generic';
-        // Tassonomia ufficiale a 9 verticali (telegram_control/userguide/03b_verticals.html):
-        // dental, health, beauty, professional, workshop, construction, hospitality => TREATMENT
-        // food, generic => RETAIL
-        var TREATMENT_VERTICALS = ['dental', 'health', 'beauty', 'professional', 'workshop', 'construction', 'hospitality'];
-        var isTreatment = TREATMENT_VERTICALS.indexOf(verticalId) !== -1;
-
-        // Controlla se c'è un Job attivo per questo owner
+        // Controlla se c'è un Job attivo per questo owner (priorità massima ripresa turno)
         var activeJobRef = null;
         if (passport && Array.isArray(passport.visited_owners)) {
           for (var i = 0; i < passport.visited_owners.length; i++) {
@@ -157,34 +183,110 @@
           }
         }
 
-        // "Sono Qui" è ora il PRIMO bivio del router, non solo un flag propagato.
-        // Regola (decisione utente 2026-08-18): l'e-commerce mostra SOLO prodotti (mai servizi:
-        // quelli li gestisce il preventivatore, sistema a parte) — per questo è sempre disponibile
-        // per un cliente remoto, indipendentemente dalla verticale.
         var onsite = !!(proximity && proximity.validated);
         var onsiteFlag = onsite ? 'true' : 'false';
+        var ashParam = urlParams.get('ash') ? '&ash=' + encodeURIComponent(urlParams.get('ash')) : '';
 
-        if (!onsite) {
-          // Remoto ("sono a casa"): sempre e-commerce prodotti, qualsiasi verticale.
-          window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=false');
-        } else if (activeJobRef && activeJobRef.has_active_job && activeJobRef.job_id) {
-          // On-site con lavoro già in corso: nessuna intervista, si riprende direttamente.
-          window.location.replace('booking.html?vat=' + encodeURIComponent(vatNumber) + '&job_id=' + encodeURIComponent(activeJobRef.job_id) + '&onsite=true');
-        } else if (isTreatment) {
-          // On-site, prima volta, verticale a trattamento: intervista prima della prima visita,
-          // mai l'e-commerce (non serve vedere prodotti se non sai ancora di che trattamento hai bisogno).
-          window.location.replace('booking.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=true');
+        // Se c'è un lavoro già in corso, riprendi direttamente
+        if (activeJobRef && activeJobRef.has_active_job && activeJobRef.job_id) {
+          window.location.replace('booking.html?vat=' + encodeURIComponent(vatNumber) + '&job_id=' + encodeURIComponent(activeJobRef.job_id) + '&onsite=' + onsiteFlag + ashParam);
+          return;
+        }
+
+        // Routing catalogo-driven (SER / PRO)
+        var hasServices = Boolean(ownerData && ownerData.has_services);
+        var hasProducts = Boolean(ownerData && ownerData.has_products);
+
+        if (hasServices && !hasProducts) {
+          // Solo Servizi (SER) -> Preventivatore AI
+          window.location.replace('preventivi.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=' + onsiteFlag + ashParam);
+        } else if (hasProducts && !hasServices) {
+          // Solo Prodotti (PRO) -> E-Commerce Store
+          window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=' + onsiteFlag + ashParam);
+        } else if (hasServices && hasProducts) {
+          // Entrambi disponibili -> Scelta utente con 2 card
+          renderDualChoice(vatNumber, onsiteFlag, ownerData, ashParam);
         } else {
-          // On-site, prima volta, verticale retail: sa già cosa vuole, va dritto a comprare.
-          window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=true');
+          // Nessun catalogo pronto
+          renderEmptyCatalogState(ownerData);
         }
       }).catch(function (err) {
         console.error('[CustomerRouter] Errore routing:', err);
-        // Fallback di default sicuro su ecommerce.html, prossimità non verificata = mai un falso positivo
-        window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=false');
+        // Fallback di default sicuro su ecommerce.html
+        var ashFallback = urlParams.get('ash') ? '&ash=' + encodeURIComponent(urlParams.get('ash')) : '';
+        window.location.replace('ecommerce.html?vat=' + encodeURIComponent(vatNumber) + '&onsite=false' + ashFallback);
       });
 
-      function fetchOwnerVertical(vat) {
+      function renderDualChoice(vat, onsiteFlag, owner, ashParam) {
+        var root = document.getElementById('routerRoot');
+        if (!root) return;
+
+        var brandName = (owner && owner.ragione_sociale) ? owner.ragione_sociale : 'Attività Partner';
+
+        root.className = 'w-full max-w-sm flex flex-col gap-4 animate-fade-in text-left';
+        root.innerHTML = 
+          '<div class="text-center mb-1">' +
+            '<div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-3" style="background: var(--accent-subtle); color: var(--accent);">' +
+              '<i class="fa-solid fa-store text-xl"></i>' +
+            '</div>' +
+            '<h1 class="text-lg font-extrabold text-white tracking-tight leading-snug">' + escapeHtml(brandName) + '</h1>' +
+            '<p class="text-xs text-slate-400 mt-1">Seleziona come desideri procedere</p>' +
+          '</div>' +
+          '<button onclick="window.SitebosRouterNav(\'preventivi.html?vat=' + encodeURIComponent(vat) + '&onsite=' + onsiteFlag + ashParam + '\')" class="w-full p-4 rounded-2xl card-choice flex items-center gap-4 text-left shadow-lg cursor-pointer">' +
+            '<div class="w-12 h-12 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style="background: var(--accent-subtle); color: var(--accent);">' +
+              '<i class="fa-solid fa-file-invoice-dollar"></i>' +
+            '</div>' +
+            '<div class="flex-1 min-w-0">' +
+              '<div class="text-sm font-bold text-white mb-0.5">Richiedi un Preventivo</div>' +
+              '<div class="text-[11px] text-slate-400 leading-snug">Servizi personalizzati e consulenza su misura</div>' +
+            '</div>' +
+            '<i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>' +
+          '</button>' +
+          '<button onclick="window.SitebosRouterNav(\'ecommerce.html?vat=' + encodeURIComponent(vat) + '&onsite=' + onsiteFlag + ashParam + '\')" class="w-full p-4 rounded-2xl card-choice flex items-center gap-4 text-left shadow-lg cursor-pointer">' +
+            '<div class="w-12 h-12 rounded-xl flex items-center justify-center text-lg flex-shrink-0" style="background: var(--accent-subtle); color: var(--accent);">' +
+              '<i class="fa-solid fa-bag-shopping"></i>' +
+            '</div>' +
+            '<div class="flex-1 min-w-0">' +
+              '<div class="text-sm font-bold text-white mb-0.5">Sfoglia i Prodotti</div>' +
+              '<div class="text-[11px] text-slate-400 leading-snug">Catalogo prodotti e acquisto rapido</div>' +
+            '</div>' +
+            '<i class="fa-solid fa-chevron-right text-xs text-slate-500"></i>' +
+          '</button>';
+      }
+
+      function renderEmptyCatalogState(owner) {
+        var root = document.getElementById('routerRoot');
+        if (!root) return;
+
+        var brandName = (owner && owner.ragione_sociale) ? owner.ragione_sociale : 'Attività Partner';
+
+        root.className = 'w-full max-w-sm flex flex-col items-center justify-center gap-4 animate-fade-in text-center';
+        root.innerHTML = 
+          '<div class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl mb-1" style="background: var(--accent-subtle); color: var(--accent);">' +
+            '<i class="fa-solid fa-circle-info"></i>' +
+          '</div>' +
+          '<div>' +
+            '<h1 class="text-lg font-bold text-white mb-1">' + escapeHtml(brandName) + '</h1>' +
+            '<p class="text-xs text-slate-400 leading-relaxed max-w-xs">' +
+              'Il catalogo di questa attività è in fase di configurazione. Torna presto a trovarci.' +
+            '</p>' +
+          '</div>' +
+          '<button onclick="if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.close) { window.Telegram.WebApp.close(); }" class="mt-2 px-5 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 transition-all cursor-pointer">' +
+            'Chiudi' +
+          '</button>';
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function fetchOwnerProfile(vat) {
         return fetch('https://prod.workflow.trinai.it/webhook/customer_auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

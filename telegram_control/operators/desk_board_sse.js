@@ -1,6 +1,6 @@
 /**
  * desk_board_sse.js
- * SiteBoS Operator Stream - Gestore Server-Sent Events (SSE) Client
+ * SiteBoS Operator Stream - Gestore Ably Realtime Client (Zero-PII)
  * Ricezione aggiornamenti in tempo reale sul Tabellone Kanban Operatori
  */
 
@@ -8,188 +8,314 @@
     'use strict';
 
     const SSE_ENDPOINT = 'https://prod.workflow.trinai.it/webhook/sitebos-operator-sse-stream';
-    let eventSourceInstance = null;
-    let reconnectDelay = 1000;
-    const MAX_RECONNECT_DELAY = 15000;
+    const REALTIME_ENDPOINT = SSE_ENDPOINT;
+
+    let ablyInstance = null;
+    let currentChannel = null;
+    let activeChannelName = null;
     let sseStatus = 'OFF'; // 'OFF' | 'CONNECTING' | 'LIVE'
 
+    function getAuthAsh() {
+        if (typeof window.getAshParam === 'function') {
+            return window.getAshParam();
+        }
+        if (typeof getAshParam === 'function') {
+            return getAshParam();
+        }
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('ash') || (window.TwaGuard?.requireAsh?.()) || '';
+    }
+
     function initSSEConnection() {
-        if (!window.EventSource) {
-            console.warn('⚠️ Server-Sent Events (SSE) non supportati da questo browser. Utilizzo fallback Local-First.');
+        if (!window.Ably) {
+            console.warn('⚠️ Ably JS SDK non disponibile. Utilizzo fallback Local-First.');
             updateSSEBadge('OFF');
             return;
         }
 
-        if (eventSourceInstance) {
-            eventSourceInstance.close();
+        if (ablyInstance) {
+            try {
+                ablyInstance.close();
+            } catch (err) {
+                console.warn('Avviso chiusura istanza Ably precedente:', err);
+            }
+            ablyInstance = null;
+            currentChannel = null;
         }
 
         updateSSEBadge('CONNECTING');
 
         try {
-            eventSourceInstance = new EventSource(SSE_ENDPOINT);
+            ablyInstance = new window.Ably.Realtime({
+                authCallback: async function (tokenParams, callback) {
+                    try {
+                        const ash = getAuthAsh();
+                        const response = await fetch(REALTIME_ENDPOINT, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'get_ably_token',
+                                ash: ash
+                            })
+                        });
 
-            eventSourceInstance.onopen = function () {
-                console.log('🟢 [SSE Live] Connessione stream al server n8n attivata.');
-                sseStatus = 'LIVE';
-                reconnectDelay = 1000; // Reset backoff
-                updateSSEBadge('LIVE');
-            };
+                        if (!response.ok) {
+                            throw new Error(`HTTP error ${response.status} da get_ably_token`);
+                        }
 
-            // Evento 1: Job preso in carico da un operatore
-            eventSourceInstance.addEventListener('job_claimed', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('⚡ [SSE Event] Job preso in carico:', data);
-                    handleJobClaimedEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE job_claimed:', err);
+                        const data = await response.json();
+                        if (data && data.token) {
+                            if (data.channel) {
+                                activeChannelName = data.channel;
+                                subscribeToChannel(data.channel);
+                            }
+                            callback(null, data.token);
+                        } else {
+                            const errorMsg = data?.error || 'Token Ably non trovato nella risposta del server.';
+                            console.error('❌ Errore token Ably:', errorMsg);
+                            callback(new Error(errorMsg), null);
+                        }
+                    } catch (err) {
+                        console.error('❌ Errore authCallback Ably:', err);
+                        callback(err, null);
+                    }
                 }
             });
+
+            ablyInstance.connection.on('connecting', function () {
+                console.log('🟡 [Ably Live] Connessione in corso...');
+                sseStatus = 'CONNECTING';
+                updateSSEBadge('CONNECTING');
+            });
+
+            ablyInstance.connection.on('connected', function () {
+                console.log('🟢 [Ably Live] Connessione realtime attivata.');
+                sseStatus = 'LIVE';
+                updateSSEBadge('LIVE');
+                if (activeChannelName) {
+                    subscribeToChannel(activeChannelName);
+                }
+            });
+
+            ablyInstance.connection.on('disconnected', function () {
+                console.warn('🟡 [Ably Live] Connessione interrotta. Riconnessione automatica...');
+                sseStatus = 'CONNECTING';
+                updateSSEBadge('CONNECTING');
+            });
+
+            ablyInstance.connection.on('suspended', function () {
+                console.warn('🔴 [Ably Live] Connessione sospesa.');
+                sseStatus = 'OFF';
+                updateSSEBadge('OFF');
+            });
+
+            ablyInstance.connection.on('failed', function (err) {
+                console.error('❌ [Ably Live] Errore critico connessione Ably:', err);
+                sseStatus = 'OFF';
+                updateSSEBadge('OFF');
+            });
+
+            ablyInstance.connection.on('closed', function () {
+                console.log('⚪ [Ably Live] Connessione Ably chiusa.');
+                sseStatus = 'OFF';
+                updateSSEBadge('OFF');
+            });
+
+        } catch (err) {
+            console.error('❌ Errore avvio Ably Realtime:', err);
+            updateSSEBadge('OFF');
+        }
+    }
+
+    function subscribeToChannel(channelName) {
+        if (!ablyInstance || !channelName) return;
+        if (currentChannel && currentChannel.name === channelName) return;
+
+        if (currentChannel) {
+            try {
+                currentChannel.unsubscribe();
+            } catch (e) {}
+        }
+
+        currentChannel = ablyInstance.channels.get(channelName);
+        currentChannel.subscribe(handleIncomingRealtimeMessage);
+        console.log(`📡 [Ably Live] Sottoscrizione al canale: ${channelName}`);
+    }
+
+    async function resolveEventRef(eventRef) {
+        if (!eventRef) return null;
+        try {
+            const res = await fetch(REALTIME_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'resolve_event_ref',
+                    event_ref: eventRef,
+                    ash: getAuthAsh()
+                })
+            });
+
+            if (!res.ok) {
+                console.warn(`[Ably Live] HTTP error ${res.status} su resolve_event_ref`);
+                return null;
+            }
+
+            const json = await res.json();
+            if (json && json.success && json.data) {
+                return json.data;
+            }
+            console.warn('[Ably Live] Risoluzione event_ref non riuscita:', json?.message);
+            return null;
+        } catch (err) {
+            console.error('[Ably Live] Errore richiesta resolve_event_ref:', err);
+            return null;
+        }
+    }
+
+    async function handleIncomingRealtimeMessage(msg) {
+        try {
+            let envelope = msg.data;
+            if (typeof envelope === 'string') {
+                try {
+                    envelope = JSON.parse(envelope);
+                } catch (e) {
+                    console.error('❌ Errore parsing messaggio Ably:', e);
+                    return;
+                }
+            }
+
+            if (!envelope || typeof envelope !== 'object') {
+                console.warn('⚠️ Payload Ably non valido:', envelope);
+                return;
+            }
+
+            const eventType = envelope.event_type || msg.name;
+            const eventRef = envelope.event_ref;
+            console.log(`⚡ [Ably Event] Ricevuto: ${eventType} (ref: ${eventRef || 'none'})`);
+
+            let resolvedData = null;
+            if (eventRef) {
+                resolvedData = await resolveEventRef(eventRef);
+            }
+
+            const eventData = resolvedData || envelope;
+            dispatchRealtimeEvent(eventType, eventData);
+        } catch (err) {
+            console.error('❌ Errore gestione evento realtime:', err);
+        }
+    }
+
+    function dispatchRealtimeEvent(eventType, data) {
+        switch (eventType) {
+            // Evento 1: Job preso in carico da un operatore
+            case 'job_claimed':
+                console.log('⚡ [Ably Event] Job preso in carico:', data);
+                handleJobClaimedEvent(data);
+                break;
 
             // Evento 2: Job riassegnato a nuova colonna/postazione
-            eventSourceInstance.addEventListener('job_reassigned', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('⚡ [SSE Event] Job riassegnato:', data);
-                    handleJobReassignedEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE job_reassigned:', err);
-                }
-            });
+            case 'job_reassigned':
+                console.log('⚡ [Ably Event] Job riassegnato:', data);
+                handleJobReassignedEvent(data);
+                break;
 
             // Evento 3: Nuovo Job creato ed entrato nel tabellone
-            eventSourceInstance.addEventListener('job_created', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('⚡ [SSE Event] Nuovo Job creato:', data);
-                    handleJobCreatedEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE job_created:', err);
-                }
-            });
+            case 'job_created':
+                console.log('⚡ [Ably Event] Nuovo Job creato:', data);
+                handleJobCreatedEvent(data);
+                break;
 
             // Evento 4: Slot Lock su postazione da altro operatore
-            eventSourceInstance.addEventListener('slot_locked', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('🔒 [SSE Event] Slot Lock attivo:', data);
-                    handleSlotLockedEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE slot_locked:', err);
-                }
-            });
+            case 'slot_locked':
+                console.log('🔒 [Ably Event] Slot Lock attivo:', data);
+                handleSlotLockedEvent(data);
+                break;
 
             // Evento 5: Approvazione sblocco in remoto dalla segretaria (Push Bypass)
-            eventSourceInstance.addEventListener('manual_bypass_approved', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('🔓 [SSE Push] Sblocco remoto approvato dalla segretaria!', data);
-                    if (window.JobSyncQueue) {
-                        window.JobSyncQueue.updateVerification(data.timestamp || Date.now());
-                    }
-                    if (typeof window.unlockBoardUI === 'function') {
-                        window.unlockBoardUI();
-                    }
-                } catch (err) {
-                    console.error('❌ Errore parsing manual_bypass_approved:', err);
+            case 'manual_bypass_approved':
+                console.log('🔓 [Ably Push] Sblocco remoto approvato dalla segretaria!', data);
+                if (window.JobSyncQueue) {
+                    window.JobSyncQueue.updateVerification(data.timestamp || Date.now());
                 }
-            });
+                if (typeof window.unlockBoardUI === 'function') {
+                    window.unlockBoardUI();
+                }
+                break;
 
             // Evento 6: Revoca operatore -> Wipe distruttivo locale (Anti-Frode)
-            eventSourceInstance.addEventListener('operator_revoked', function (e) {
-                console.warn('🚨 [SSE Push] Operatore revocato dall\'Owner. Avvio Wipe...');
+            case 'operator_revoked':
+                console.warn('🚨 [Ably Push] Operatore revocato dall\'Owner. Avvio Wipe...');
                 if (window.JobSyncQueue) {
                     window.JobSyncQueue.performWipe();
                 }
-            });
+                break;
 
             // Evento 7: Check-in Wi-Fi Guest in sala d'attesa
-            eventSourceInstance.addEventListener('wifi_guest_checkin', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('📶 [SSE Event] Check-in Wi-Fi Guest in Sala d\'Attesa:', data);
-                    handleWifiGuestCheckinEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE wifi_guest_checkin:', err);
-                }
-            });
+            case 'wifi_guest_checkin':
+                console.log('📶 [Ably Event] Check-in Wi-Fi Guest in Sala d\'Attesa:', data);
+                handleWifiGuestCheckinEvent(data);
+                break;
 
             // Evento 8: Job o Prenotazione Confermata dal Cliente (Verde)
-            eventSourceInstance.addEventListener('job_status_confirmed', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('🟢 [SSE Event] Job/Prenotazione CONFERMATA dal cliente:', data);
-                    handleJobConfirmedEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE job_status_confirmed:', err);
-                }
-            });
+            case 'job_status_confirmed':
+            case 'job_confirmed':
+                console.log('🟢 [Ably Event] Job/Prenotazione CONFERMATA dal cliente:', data);
+                handleJobConfirmedEvent(data);
+                break;
 
             // Evento 9: Job o Prenotazione Disdetta dal Cliente (Rosso / Slot Liberato)
-            eventSourceInstance.addEventListener('job_status_cancelled', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('🔴 [SSE Event] Job/Prenotazione DISDETTA dal cliente (Slot Liberato):', data);
-                    handleJobCancelledEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE job_status_cancelled:', err);
-                }
-            });
+            case 'job_status_cancelled':
+            case 'job_cancelled':
+                console.log('🔴 [Ably Event] Job/Prenotazione DISDETTA dal cliente (Slot Liberato):', data);
+                handleJobCancelledEvent(data);
+                break;
+
+            // Evento NUOVO: Handover Triggered (Richiesta intervento/passaggio da Communication Hub)
+            case 'handover_triggered':
+                console.log('🔔 [Ably Event] Handover Triggered:', data);
+                handleHandoverTriggeredEvent(data);
+                break;
+
+            // Evento NUOVO: Preventivo Approvato
+            case 'quote_approved':
+                console.log('🟢 [Ably Event] Preventivo Approvato:', data);
+                handleQuoteApprovedEvent(data);
+                break;
+
+            // Evento NUOVO: Preventivo Rifiutato
+            case 'quote_rejected':
+                console.log('🔴 [Ably Event] Preventivo Rifiutato:', data);
+                handleQuoteRejectedEvent(data);
+                break;
 
             // Evento 10: Profilo Psicografico Customer aggiornato dalla Gamification Suite
-            eventSourceInstance.addEventListener('cx_profile_update', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('🧠 [SSE Event] Profilo Psicografico Customer Aggiornato:', data);
-                    if (typeof window.handleCxProfileUpdateEvent === 'function') {
-                        window.handleCxProfileUpdateEvent(data);
-                    }
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE cx_profile_update:', err);
+            case 'cx_profile_update':
+                console.log('🧠 [Ably Event] Profilo Psicografico Customer Aggiornato:', data);
+                if (typeof window.handleCxProfileUpdateEvent === 'function') {
+                    window.handleCxProfileUpdateEvent(data);
                 }
-            });
+                break;
 
             // Evento 11: Buono Sconto Addon applicato dal cliente in sala d'attesa
-            eventSourceInstance.addEventListener('voucher_addon_applied', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('🎫 [SSE Event] Buono Sconto Addon Applicato dall\'Utente:', data);
-                    if (typeof window.handleVoucherAddonAppliedEvent === 'function') {
-                        window.handleVoucherAddonAppliedEvent(data);
-                    }
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE voucher_addon_applied:', err);
+            case 'voucher_addon_applied':
+                console.log('🎫 [Ably Event] Buono Sconto Addon Applicato dall\'Utente:', data);
+                if (typeof window.handleVoucherAddonAppliedEvent === 'function') {
+                    window.handleVoucherAddonAppliedEvent(data);
                 }
-            });
+                break;
 
             // Evento 12: Cambio stato pausa/disponibilità operatore
-            eventSourceInstance.addEventListener('operator_status_changed', function (e) {
-                try {
-                    const data = JSON.parse(e.data);
-                    console.log('🟠/🟢 [SSE Event] Stato operatore modificato:', data);
-                    handleOperatorStatusChangedEvent(data);
-                } catch (err) {
-                    console.error('❌ Errore parsing evento SSE operator_status_changed:', err);
+            case 'operator_status_changed':
+                console.log('🟠/🟢 [Ably Event] Stato operatore modificato:', data);
+                handleOperatorStatusChangedEvent(data);
+                break;
+
+            default:
+                console.warn(`[Ably Event] Evento non gestito specificamente: ${eventType}`, data);
+                if (typeof window.refreshBoard === 'function') {
+                    window.refreshBoard(true);
                 }
-            });
-
-
-
-            eventSourceInstance.onerror = function () {
-                console.warn('🟡 [SSE Warning] Connessione stream interrotta. Riconnessione in corso...');
-                sseStatus = 'OFF';
-                updateSSEBadge('CONNECTING');
-                eventSourceInstance.close();
-
-                // Exponential backoff
-                setTimeout(initSSEConnection, reconnectDelay);
-                reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY);
-            };
-
-        } catch (err) {
-            console.error('❌ Errore avvio SSE:', err);
-            updateSSEBadge('OFF');
+                break;
         }
     }
 
@@ -268,16 +394,55 @@
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
         }
-        showStatusToast(`🟢 ${data.customer_name || 'Cliente'} ha CONFERMATO l'appuntamento per domani!`, 'emerald');
-        highlightCardState(data.job_id, 'confirmed');
+        showStatusToast(`🟢 ${data.customer_name || data.client_name || 'Cliente'} ha CONFERMATO l'appuntamento per domani!`, 'emerald');
+        if (data.job_id) {
+            highlightCardState(data.job_id, 'confirmed');
+        }
     }
 
     function handleJobCancelledEvent(data) {
         if (window.Telegram?.WebApp?.HapticFeedback) {
             window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
         }
-        showStatusToast(`🔴 ${data.customer_name || 'Cliente'} ha DISDETTO. Lo slot orario è stato LIBERATO!`, 'red');
-        highlightCardState(data.job_id, 'cancelled');
+        showStatusToast(`🔴 ${data.customer_name || data.client_name || 'Cliente'} ha DISDETTO. Lo slot orario è stato LIBERATO!`, 'red');
+        if (data.job_id) {
+            highlightCardState(data.job_id, 'cancelled');
+        }
+    }
+
+    function handleHandoverTriggeredEvent(data) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        }
+        const clientName = data.customer_name || data.client_name || data.caller_name || 'Cliente';
+        showStatusToast(`🔔 Richiesta Handover Operatore per ${clientName}!`, 'amber');
+        if (typeof window.refreshBoard === 'function') {
+            window.refreshBoard(true);
+        }
+    }
+
+    function handleQuoteApprovedEvent(data) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+        const clientName = data.customer_name || data.client_name || 'Cliente';
+        showStatusToast(`🟢 ${clientName} ha APPROVATO il preventivo!`, 'emerald');
+        if (data.job_id) {
+            highlightCardState(data.job_id, 'confirmed');
+        } else if (typeof window.refreshBoard === 'function') {
+            window.refreshBoard(true);
+        }
+    }
+
+    function handleQuoteRejectedEvent(data) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        }
+        const clientName = data.customer_name || data.client_name || 'Cliente';
+        showStatusToast(`🔴 ${clientName} ha RIFIUTATO il preventivo.`, 'red');
+        if (typeof window.refreshBoard === 'function') {
+            window.refreshBoard(true);
+        }
     }
 
     function highlightCardState(jobId, state) {
@@ -300,11 +465,21 @@
 
     function showStatusToast(message, color) {
         const toast = document.createElement('div');
-        const bgClass = color === 'emerald' ? 'bg-emerald-950 border-emerald-700 text-emerald-100' : 'bg-red-950 border-red-700 text-red-100';
+        let bgClass = 'bg-emerald-950 border-emerald-700 text-emerald-100';
+        let iconHtml = '<i class="fas fa-circle-check text-emerald-400"></i>';
+
+        if (color === 'red') {
+            bgClass = 'bg-red-950 border-red-700 text-red-100';
+            iconHtml = '<i class="fas fa-circle-xmark text-red-400"></i>';
+        } else if (color === 'amber') {
+            bgClass = 'bg-amber-950 border-amber-700 text-amber-100';
+            iconHtml = '<i class="fas fa-bell text-amber-400"></i>';
+        }
+
         toast.className = `fixed top-4 right-4 ${bgClass} border rounded-2xl p-4 shadow-2xl z-[9999] flex items-center gap-3 animate-bounce`;
         toast.innerHTML = `
             <div class="text-lg shrink-0">
-                <i class="fas fa-${color === 'emerald' ? 'circle-check text-emerald-400' : 'circle-xmark text-red-400'}"></i>
+                ${iconHtml}
             </div>
             <div class="text-xs font-bold">${message}</div>
         `;
@@ -341,3 +516,4 @@
     }
 
 })(window);
+

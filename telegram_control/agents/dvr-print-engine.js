@@ -776,9 +776,9 @@ const DVRPrintEngine = {
 
 
     // ══════════════════════════════════════════════════════════════════════
-    // 2. STAMPA DEL LIBRO COMPLETO DVR (ALTA QUALITÀ)
+    // 2. GENERATORE DEL LIBRO COMPLETO DVR (ALTA QUALITÀ)
     // ══════════════════════════════════════════════════════════════════════
-    generateAndPrint: async function (tenant, catalog, checklistState, ownerData, mitigationControls, serverChecklistState) {
+    generateDvrPdf: async function (tenant, catalog, checklistState, ownerData, mitigationControls, serverChecklistState) {
         if (window.showLoader) window.showLoader("Generazione Documento Tecnico...");
 
         const now = new Date();
@@ -1641,10 +1641,24 @@ const DVRPrintEngine = {
                 pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
             }
 
+            return pdf;
+        } catch (err) {
+            console.error('DVR PDF Generation Error:', err);
+            throw err;
+        } finally {
+            if (container.parentNode) document.body.removeChild(container);
+            if (overlay.parentNode) document.body.removeChild(overlay);
+            if (window.hideLoader) window.hideLoader();
+        }
+    },
+
+    generateAndPrint: async function (tenant, catalog, checklistState, ownerData, mitigationControls, serverChecklistState) {
+        try {
+            const pdf = await DVRPrintEngine.generateDvrPdf(tenant, catalog, checklistState, ownerData, mitigationControls, serverChecklistState);
+            if (!pdf) return;
+
             const tgApp = window.Telegram?.WebApp;
             const isMobile = (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-            if (progressText) progressText.innerText = `Invio al server in corso...`;
 
             if (isMobile) {
                 try {
@@ -1653,30 +1667,40 @@ const DVRPrintEngine = {
                     const initData = tgApp?.initData || '';
                     const pdfBase64Uri = pdf.output('datauristring');
                     const base64Data = pdfBase64Uri.split(',')[1];
-                    const filename = `DVR_${tenant.ragioneSociale.replace(/\s+/g, '_')}_${new Date().getTime()}.pdf`;
+                    const now = new Date();
+                    const dataOggi = now.toISOString().split('T')[0];
+                    const ragioneSociale = (tenant.ragioneSociale || 'azienda').replace(/\s+/g, '_');
+                    const filename = `DVR_${ragioneSociale}_${dataOggi}.pdf`;
 
                     const webhookPayload = {
                         action: 'document_to_valut',
-                        base64: base64Data,
-                        mimetype: 'application/pdf',
-                        filename: filename,
                         ash: sessionAsh,
-                        _auth: initData
+                        _auth: initData,
+                        base64: base64Data,
+                        filename: filename,
+                        mimetype: 'application/pdf'
                     };
 
-                    fetch(webhookUrl, {
+                    const response = await fetch(webhookUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(webhookPayload)
                     });
 
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
                     if (tgApp && tgApp.showAlert) {
-                        tgApp.showAlert("✅ Elaborato DVR generato con successo! Lo riceverai a breve in chat.");
+                        tgApp.showAlert("DVR inviato nella tua chat Telegram!");
                     } else {
-                        alert("✅ Documento generato e inviato al server.");
+                        alert("DVR inviato nella tua chat Telegram!");
                     }
                 } catch (err) {
                     console.error('Mobile upload process error:', err);
+                    if (tgApp && tgApp.showAlert) {
+                        tgApp.showAlert("Impossibile inviare il DVR al bot. Riprova più tardi.");
+                    } else {
+                        alert("Impossibile inviare il DVR al bot. Riprova più tardi.");
+                    }
                 }
             } else {
                 const pdfBytes = pdf.output('arraybuffer');
@@ -1684,7 +1708,7 @@ const DVRPrintEngine = {
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `DVR_Valutazione_${tenant.ragioneSociale.replace(/\s+/g, '_')}.pdf`;
+                a.download = `DVR_Valutazione_${(tenant.ragioneSociale || 'azienda').replace(/\s+/g, '_')}.pdf`;
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
@@ -1695,10 +1719,6 @@ const DVRPrintEngine = {
         } catch (err) {
             console.error('DVR PDF Error:', err);
             alert('Errore generazione PDF: ' + err.message);
-        } finally {
-            document.body.removeChild(container);
-            document.body.removeChild(overlay);
-            if (window.hideLoader) window.hideLoader();
         }
     }
 };

@@ -8,6 +8,7 @@
   let currentTabId = null;
   let activeScope = null;
   let heartbeatInterval = null;
+  let remoteRenewInterval = null;
 
   /**
    * Identifica il tipo ed il livello di blocco della pagina corrente
@@ -89,9 +90,34 @@
   }
 
   /**
+   * Sblocca forzatamente il lock remoto per lo scope specificato (indipendentemente dal proprietario originario)
+   */
+  async function forceReleaseCrossPlatformLock(scope) {
+    const ash = getLockManagerAsh();
+    if (!ash || !scope) return false;
+    try {
+      const res = await fetch(CROSS_LOCK_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          _auth: window.Telegram?.WebApp?.initData || '',
+          ash: ash,
+          scope: scope,
+          platform: getPlatformType(),
+          action: 'force_release'
+        })
+      });
+      return res.ok;
+    } catch (e) {
+      console.warn('[CrossPlatformLock] force_release warn:', e);
+      return false;
+    }
+  }
+
+  /**
    * Genera dinamicamente l'overlay di blocco adattandosi al tipo di lock (Concorrente o Generazione AI)
    */
-  function renderFriendlyLockOverlay(reasonText, isGenerating = false) {
+  function renderFriendlyLockOverlay(reasonText, isGenerating = false, blockedScope = null) {
     let overlay = document.getElementById('sitebos-friendly-lock-overlay');
     if (!overlay) {
       overlay = document.createElement('div');
@@ -126,7 +152,8 @@
         </div>
       `;
     } else {
-      // Schermata di blocco standard per concorrenza cross-tab o cross-platform (Con pulsante Home)
+      const scopeToUnlock = blockedScope || activeScope || (analyzePageScope() ? analyzePageScope().scope : null);
+      // Schermata di blocco standard per concorrenza cross-tab o cross-platform (Con pulsante Home e Prendi il Controllo)
       overlay.innerHTML = `
         <div class="bg-white border border-gray-200 p-6 rounded-3xl w-full max-w-sm shadow-2xl backdrop-blur-2xl text-center text-slate-900 flex flex-col items-center gap-4">
           <div class="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 text-black flex items-center justify-center text-2xl shadow-sm">
@@ -142,10 +169,16 @@
               ${reasonText}
             </p>
           </div>
-          <button id="sitebos-go-home-btn" class="w-full py-3 px-4 rounded-xl bg-black hover:bg-neutral-800 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
-            <i class="fas fa-house text-xs"></i>
-            Torna alla Dashboard
-          </button>
+          <div class="w-full flex flex-col gap-2.5 mt-1">
+            <button id="sitebos-force-unlock-btn" class="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+              <i class="fas fa-lock-open text-xs"></i>
+              🔓 Prendi il Controllo
+            </button>
+            <button id="sitebos-go-home-btn" class="w-full py-3 px-4 rounded-xl bg-black hover:bg-neutral-800 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+              <i class="fas fa-house text-xs"></i>
+              Torna alla Dashboard
+            </button>
+          </div>
         </div>
       `;
 
@@ -157,6 +190,50 @@
             window.location.href = window.location.origin + window.location.pathname.substring(0, window.location.pathname.indexOf('/telegram_control/')) + '/telegram_control/dashboard/dashboard.html';
           } else {
             window.history.back();
+          }
+        });
+      }
+
+      const forceUnlockBtn = overlay.querySelector('#sitebos-force-unlock-btn');
+      if (forceUnlockBtn) {
+        forceUnlockBtn.addEventListener('click', function () {
+          const tg = window.Telegram?.WebApp;
+          const confirmMessage = "Un altro dispositivo potrebbe star lavorando qui in questo momento. Forzare comunque lo sblocco?";
+
+          const executeForceUnlock = async function () {
+            try {
+              forceUnlockBtn.disabled = true;
+              forceUnlockBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i> Sblocco in corso...';
+
+              const targetScope = scopeToUnlock;
+              if (targetScope) {
+                await forceReleaseCrossPlatformLock(targetScope);
+                localStorage.removeItem(`sitebos_lock_${targetScope}`);
+                localStorage.removeItem(`sitebos_hb_${targetScope}`);
+              }
+              window.location.reload();
+            } catch (err) {
+              console.error('[ForceUnlock] Error during force unlock:', err);
+              if (tg && typeof tg.showAlert === 'function') {
+                tg.showAlert('Impossibile forzare lo sblocco in questo momento. Riprova.');
+              } else {
+                alert('Impossibile forzare lo sblocco in questo momento. Riprova.');
+              }
+              forceUnlockBtn.disabled = false;
+              forceUnlockBtn.innerHTML = '<i class="fas fa-lock-open text-xs"></i> 🔓 Prendi il Controllo';
+            }
+          };
+
+          if (tg && typeof tg.showConfirm === 'function') {
+            tg.showConfirm(confirmMessage, function (confirmed) {
+              if (confirmed) {
+                executeForceUnlock();
+              }
+            });
+          } else {
+            if (window.confirm(confirmMessage)) {
+              executeForceUnlock();
+            }
           }
         });
       }
@@ -192,7 +269,7 @@
   }
 
   /**
-   * Tenta di acquisire il lock remoto (Intercetta lo scope 'generating')
+   * Tenta di acquisire o rinnovare il lock remoto (Intercetta lo scope 'generating')
    */
   async function tryAcquireCrossPlatformLock(scope, ttlSeconds = 300) {
     const ash = getLockManagerAsh();
@@ -224,7 +301,9 @@
           const otherPlatform = data.platform === 'desktop' ? 'PC Desktop' : 'Smartphone Mobile';
           const labelStr = data.label ? `<b>${data.label}</b>` : `sezione <b>${data.scope || scope}</b>`;
           renderFriendlyLockOverlay(
-            `Questa sessione è in uso su <b>${otherPlatform}</b> (${labelStr}).<br><br>Sblocco automatico stimato: ⏱️ <b>circa ${remainingMin} minuti</b> o non appena l'altra sessione verrà chiusa.`
+            `Questa sessione è in uso su <b>${otherPlatform}</b> (${labelStr}).<br><br>Sblocco automatico stimato: ⏱️ <b>circa ${remainingMin} minuti</b> o non appena l'altra sessione verrà chiusa.`,
+            false,
+            scope
           );
         }
         return false;
@@ -233,6 +312,34 @@
       console.warn('[CrossPlatformLock] acquire check warn:', e);
     }
     return true;
+  }
+
+  /**
+   * Avvia il rinnovo periodico automatico del lock cross-platform lato client (ogni ~1/3 del TTL)
+   */
+  function startRemoteLockRenewal(scope, ttlSeconds = 300) {
+    if (remoteRenewInterval) {
+      clearInterval(remoteRenewInterval);
+      remoteRenewInterval = null;
+    }
+    // Intervallo di rinnovo pari a ~1/3 del TTL (es. 100s per TTL 300s, 400s per TTL 1200s)
+    const renewIntervalMs = Math.max(10000, Math.floor((ttlSeconds / 3) * 1000));
+    remoteRenewInterval = setInterval(async function () {
+      if (!activeScope || activeScope !== scope) {
+        if (remoteRenewInterval) {
+          clearInterval(remoteRenewInterval);
+          remoteRenewInterval = null;
+        }
+        return;
+      }
+      const acquired = await tryAcquireCrossPlatformLock(scope, ttlSeconds);
+      if (!acquired) {
+        if (remoteRenewInterval) {
+          clearInterval(remoteRenewInterval);
+          remoteRenewInterval = null;
+        }
+      }
+    }, renewIntervalMs);
   }
 
   /**
@@ -273,24 +380,29 @@
 
     // Check 1: Master Global Lock (identity) attivo da un'altra scheda?
     if (scope !== 'identity' && isLockActiveOnOtherTab('identity')) {
-      renderFriendlyLockOverlay('Per garantire la sincronizzazione dei dati ed evitare sovrascritture accidentali, le modifiche sono temporaneamente in pausa perché la sezione <b>Identity & Setup</b> è aperta su un altro schermo.');
+      renderFriendlyLockOverlay('Per garantire la sincronizzazione dei dati ed evitare sovrascritture accidentali, le modifiche sono temporaneamente in pausa perché la sezione <b>Identity & Setup</b> è aperta su un altro schermo.', false, 'identity');
       return false;
     }
 
     // Check 2: Domain Master Lock (catalog) attivo da un'altra scheda?
     if (scope !== 'catalog' && pageAnalysis.type === 'DOMAIN_MASTER' && isLockActiveOnOtherTab('catalog')) {
-      renderFriendlyLockOverlay('Per garantire l\'integrità dei dati del listino, la gestione del <b>Catalogo</b> è attualmente aperta ed in uso su un altro dispositivo.');
+      renderFriendlyLockOverlay('Per garantire l\'integrità dei dati del listino, la gestione del <b>Catalogo</b> è attualmente aperta ed in uso su un altro dispositivo.', false, 'catalog');
       return false;
     }
 
     // Check 3: Same Module Lock attivo da un'altra scheda localmente?
     if (isLockActiveOnOtherTab(scope)) {
-      renderFriendlyLockOverlay(`Per garantire la sincronizzazione dei dati ed evitare sovrascritture accidentali, questa sezione (<b>${scope}</b>) è attualmente aperta ed operativa su un altro schermo.`);
+      renderFriendlyLockOverlay(`Per garantire la sincronizzazione dei dati ed evitare sovrascritture accidentali, questa sezione (<b>${scope}</b>) è attualmente aperta ed operativa su un altro schermo.`, false, scope);
       return false;
     }
 
     // Check 4: Remote Cross-Platform Lock (n8n/MongoDB)
-    tryAcquireCrossPlatformLock(scope, scope === 'blueprint' ? 1200 : 300);
+    const ttlSeconds = scope === 'blueprint' ? 1200 : 300;
+    tryAcquireCrossPlatformLock(scope, ttlSeconds).then(function (acquired) {
+      if (acquired && activeScope === scope) {
+        startRemoteLockRenewal(scope, ttlSeconds);
+      }
+    });
 
     // Se non ci sono conflitti: PRENDE IL LOCK (First-Come)
     activeScope = scope;
@@ -306,6 +418,14 @@
 
     // Rilascio immediato del lock alla chiusura della pagina (Local + Remote sendBeacon)
     const releaseLock = function () {
+      if (remoteRenewInterval) {
+        clearInterval(remoteRenewInterval);
+        remoteRenewInterval = null;
+      }
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+        heartbeatInterval = null;
+      }
       if (activeScope) {
         if (localStorage.getItem(`sitebos_lock_${activeScope}`) === currentTabId) {
           localStorage.removeItem(`sitebos_lock_${activeScope}`);
@@ -313,7 +433,6 @@
         }
         sendBeaconCrossRelease(activeScope);
       }
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
     };
 
     window.addEventListener('beforeunload', releaseLock);
@@ -540,6 +659,8 @@
 
   // Esporta nel namespace globale
   window.initSiteBosTwaLaunch = initSiteBosTwaLaunch;
+  window.forceReleaseCrossPlatformLock = forceReleaseCrossPlatformLock;
+  window.tryAcquireCrossPlatformLock = tryAcquireCrossPlatformLock;
 
   // Auto-esecuzione soft al DOMContentLoaded
   if (document.readyState === 'loading') {

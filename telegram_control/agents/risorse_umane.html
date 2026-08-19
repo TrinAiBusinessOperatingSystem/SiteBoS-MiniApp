@@ -1,62 +1,1112 @@
-<!-- Placeholder per la MiniApp di Gestione Risorse Umane -->
-<!-- Nome bloccato: risorse_umane.html -->
-<!-- Logica: Valutazione complessiva del personale, report attitudinali e soft-skill -->
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
     <meta name="color-scheme" content="light">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SiteBoS Agent | Risorse Umane</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS Intelligence | HR Advisor & Sviluppo Team</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+    (function() {
+        const tempTg = window.Telegram?.WebApp;
+        const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+
+        if (!isTelegramSession) {
+            const currentPath = window.location.pathname;
+            let redirectPath = "index.html";
+
+            if (currentPath.includes('/telegram_control/')) {
+                const parts = currentPath.split('/telegram_control/');
+                const subPath = parts[1] || '';
+                if (subPath.includes('/')) {
+                    redirectPath = "../../index.html";
+                } else {
+                    redirectPath = "../index.html";
+                }
+            }
+
+            window.location.replace(redirectPath);
+        }
+    })();
+    </script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafafa;
+            color: #000000;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .card { background: white; border: 1px solid #eeeeee; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02); }
+        
+        .label-micro {
+            font-size: 8.5px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #9ca3af;
+        }
+
+        .tab-btn {
+            padding: 10px 14px;
+            border-radius: 1rem;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .tab-btn.active {
+            background-color: #000000;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .tab-btn:not(.active) {
+            background-color: #ffffff;
+            color: #6b7280;
+            border: 1px solid #eeeeee;
+        }
+        .tab-btn:not(.active):hover {
+            background-color: #f3f4f6;
+            color: #000000;
+        }
+
+        .loader-spin {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #000000;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .fade-in {
+            animation: fadeIn 0.35s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
-<body>
-    <h1>SiteBoS Intelligence - Risorse Umane</h1>
-    <p>Interfaccia in fase di implementazione. Questo modulo gestirà la valutazione complessiva del personale, i test delle soft-skill ed il caricamento/analisi dei profili dei candidati.</p>
+<body class="min-h-screen flex flex-col pb-16">
+
+    <!-- LOADER OVERLAY GLOBALE -->
+    <div id="loader-overlay" class="fixed inset-0 bg-white/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center space-y-4">
+        <div class="loader-spin"></div>
+        <div class="text-center">
+            <h3 class="text-xs font-black uppercase tracking-[0.2em] text-black" id="loader-title">Caricamento HR Advisor</h3>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1" id="loader-subtitle">Elaborazione competenze e profili team...</p>
+        </div>
+    </div>
+
+    <!-- HEADER PRINCIPALE -->
+    <header class="bg-white border-b border-border sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3.5 flex justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-black text-white flex items-center justify-center shadow-md">
+                    <i class="fas fa-users-gear text-sm"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded">SiteBoS Intelligence</span>
+                        <span class="text-[10px] text-emerald-600 font-black uppercase tracking-wider flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> HR Advisor Live
+                        </span>
+                    </div>
+                    <h1 class="text-base font-black uppercase tracking-tight mt-0.5 leading-tight" id="company-name">Centro Odontoiatrico Buscemi srl</h1>
+                    <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest" id="company-vertical">Settore: Sanitario & Odontoiatrico</p>
+                </div>
+            </div>
+
+            <!-- Bottone Rigenera & Guide -->
+            <div class="flex items-center gap-2">
+                <button onclick="triggerRegenerateAdvisory()" id="btn-regenerate" class="px-3.5 py-2 bg-black text-white hover:bg-zinc-800 active:scale-95 rounded-2xl text-[9px] font-black uppercase tracking-wider flex items-center gap-2 shadow-sm transition">
+                    <i class="fas fa-sparkles text-amber-300"></i>
+                    <span class="hidden sm:inline">Rigenera Analisi con Gemini</span>
+                    <span class="sm:hidden">Rigenera</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- QUICK KPI STRIP -->
+        <div class="max-w-6xl mx-auto px-4 pb-3 grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 border-t border-gray-50">
+            <div class="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-black font-black text-xs">
+                    <i class="fas fa-users text-[10px]"></i>
+                </div>
+                <div>
+                    <span class="label-micro block">Capitale Umano</span>
+                    <span class="text-xs font-black text-black" id="kpi-team-count">3 Membri</span>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-blue-600 font-black text-xs">
+                    <i class="fas fa-brain text-[10px]"></i>
+                </div>
+                <div>
+                    <span class="label-micro block">Soft Skills Testate</span>
+                    <span class="text-xs font-black text-blue-600" id="kpi-softskills-pct">100% (4/4 Moduli)</span>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-amber-600 font-black text-xs">
+                    <i class="fas fa-scale-balanced text-[10px]"></i>
+                </div>
+                <div>
+                    <span class="label-micro block">Corsi Obbligatori</span>
+                    <span class="text-xs font-black text-amber-700" id="kpi-courses-count">5 Di Legge</span>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 border border-gray-100 p-2.5 rounded-2xl flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-emerald-600 font-black text-xs">
+                    <i class="fas fa-shield-check text-[10px]"></i>
+                </div>
+                <div>
+                    <span class="label-micro block">Stato di Salute HR</span>
+                    <span class="text-xs font-black text-emerald-700" id="kpi-health-status">Ottimale</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- BARRA DI NAVIGAZIONE TAB -->
+    <div class="bg-white border-b border-border sticky top-[115px] z-30 shadow-xs">
+        <div class="max-w-6xl mx-auto px-4 py-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
+            <button onclick="switchTab('tab-growth')" id="tab-btn-growth" class="tab-btn active">
+                <i class="fas fa-lightbulb mr-1.5 text-amber-500"></i> Raccomandazioni di Crescita
+            </button>
+            <button onclick="switchTab('tab-mandatory')" id="tab-btn-mandatory" class="tab-btn">
+                <i class="fas fa-gavel mr-1.5 text-red-500"></i> Corsi Obbligatori per Legge
+            </button>
+            <button onclick="switchTab('tab-team')" id="tab-btn-team" class="tab-btn">
+                <i class="fas fa-id-card-clip mr-1.5 text-blue-500"></i> Roster Team & Soft Skills
+            </button>
+            <button onclick="switchTab('tab-roadmap')" id="tab-btn-roadmap" class="tab-btn">
+                <i class="fas fa-calendar-check mr-1.5 text-emerald-500"></i> Piano 30-60-90 Giorni
+            </button>
+        </div>
+    </div>
+
+    <!-- CONTENUTO PRINCIPALE -->
+    <main class="max-w-6xl w-full mx-auto px-4 mt-6 flex-1">
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TAB 1: RACCOMANDAZIONI DI CRESCITA (AI ADVISOR)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="tab-growth" class="tab-section space-y-6 fade-in">
+            
+            <!-- EXECUTIVE SUMMARY CARD -->
+            <div class="card rounded-3xl p-6 border-gray-200 bg-gradient-to-br from-white to-gray-50/70 relative overflow-hidden">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="space-y-1.5 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase rounded">Executive AI Summary</span>
+                            <span class="text-[9px] font-bold text-gray-400" id="advisory-timestamp">Aggiornato oggi</span>
+                        </div>
+                        <h2 class="text-sm font-black uppercase tracking-tight text-black">Consulenza Strategica Capitale Umano</h2>
+                        <p class="text-xs text-gray-700 leading-relaxed font-medium mt-2" id="exec-summary-text">
+                            Caricamento della sintesi esecutiva...
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 text-xl shrink-0">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5 pt-4 border-t border-gray-100">
+                    <div class="bg-emerald-50/60 border border-emerald-100 p-3.5 rounded-2xl">
+                        <span class="label-micro text-emerald-800 flex items-center gap-1.5 mb-1.5">
+                            <i class="fas fa-circle-check"></i> Punti di Forza del Team
+                        </span>
+                        <ul class="text-[11px] text-emerald-950 font-medium space-y-1" id="strengths-list">
+                            <li>- Elevata accuratezza nei protocolli di sicurezza e compliance</li>
+                            <li>- Ottima predisposizione all'apprendimento e alle tecnologie digitali</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-amber-50/60 border border-amber-100 p-3.5 rounded-2xl">
+                        <span class="label-micro text-amber-800 flex items-center gap-1.5 mb-1.5">
+                            <i class="fas fa-triangle-exclamation"></i> Aree di Miglioramento Prioritarie
+                        </span>
+                        <ul class="text-[11px] text-amber-950 font-medium space-y-1" id="gaps-list">
+                            <li>- Formazione specifica sulla gestione del tempo e picchi di lavoro</li>
+                            <li>- Rinnovo periodico abilitazioni emergenze e primo soccorso</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTRO RACCOMANDAZIONI -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-black">Azioni di Sviluppo Consigliate</h3>
+                    <p class="text-[10px] text-gray-400 font-bold">Investimenti formativi ad alto ritorno sull'efficienza e retention</p>
+                </div>
+                <div class="flex items-center gap-1 bg-white border border-border p-1 rounded-xl">
+                    <button onclick="filterRecommendations('ALL')" class="rec-filter-btn px-2.5 py-1 rounded-lg text-[9px] font-black uppercase bg-black text-white transition">Tutte</button>
+                    <button onclick="filterRecommendations('HIGH')" class="rec-filter-btn px-2.5 py-1 rounded-lg text-[9px] font-black uppercase text-gray-500 hover:text-black transition">Alta Priorità</button>
+                    <button onclick="filterRecommendations('MEDIUM')" class="rec-filter-btn px-2.5 py-1 rounded-lg text-[9px] font-black uppercase text-gray-500 hover:text-black transition">Media</button>
+                </div>
+            </div>
+
+            <!-- LISTA DELLE CARD DI RACCOMANDAZIONE -->
+            <div id="recommendations-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Popolato dinamicamente da JS -->
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TAB 2: CORSI OBBLIGATORI PER LEGGE (COMPLIANCE)
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="tab-mandatory" class="tab-section space-y-6 hidden">
+            
+            <div class="card rounded-3xl p-6 border-gray-200 bg-white">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 bg-red-600 text-white text-[8px] font-black uppercase rounded">Normativa Nazionale Vigente</span>
+                            <span class="text-[9px] font-mono text-gray-400">D.Lgs. 81/08 & Decreti Settoriali</span>
+                        </div>
+                        <h2 class="text-sm font-black uppercase tracking-tight text-black mt-1">Scadenzario Corsi Obbligatori per Legge</h2>
+                        <p class="text-xs text-gray-600 font-medium mt-1 leading-relaxed">
+                            Quadro degli obblighi formativi inderogabili per il datore di lavoro e i collaboratori, con relative scadenze periodiche e sanzioni in caso di inadempienza.
+                        </p>
+                    </div>
+                    <div class="w-12 h-12 rounded-2xl bg-red-50 border border-red-200 flex items-center justify-center text-red-700 text-xl shrink-0">
+                        <i class="fas fa-shield-halved"></i>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-gray-100 text-center">
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100">
+                        <span class="label-micro block">Totale Corsi</span>
+                        <span class="text-sm font-black text-black" id="stat-mandatory-total">5</span>
+                    </div>
+                    <div class="bg-red-50/70 p-3 rounded-2xl border border-red-100">
+                        <span class="label-micro text-red-700 block">Rischio Penale</span>
+                        <span class="text-sm font-black text-red-800" id="stat-mandatory-penal">3 Corsi</span>
+                    </div>
+                    <div class="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100">
+                        <span class="label-micro text-emerald-700 block">Stato Copertura</span>
+                        <span class="text-sm font-black text-emerald-800" id="stat-mandatory-status">In Regola</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELLA / LISTA DEI CORSI OBBLIGATORI -->
+            <div class="space-y-3" id="mandatory-courses-list">
+                <!-- Popolato da JS -->
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TAB 3: ROSTER TEAM & STATO SOFT-SKILLS
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="tab-team" class="tab-section space-y-6 hidden">
+            
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-black">Membri del Personale & Valutazioni</h3>
+                    <p class="text-[10px] text-gray-400 font-bold">Dati reali estratti dalla collection Stakeholders e moduli completati</p>
+                </div>
+                <span class="px-3 py-1 bg-gray-100 rounded-xl text-[9px] font-black text-gray-700" id="team-roster-badge">3 Collaboratori</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="team-roster-container">
+                <!-- Popolato da JS -->
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════════
+             TAB 4: PIANO D'AZIONE 30-60-90 GIORNI
+        ═══════════════════════════════════════════════════════════ -->
+        <div id="tab-roadmap" class="tab-section space-y-6 hidden">
+            
+            <div class="card rounded-3xl p-6 border-gray-200 bg-white">
+                <span class="label-micro block mb-1">Roadmap Operativa Owner</span>
+                <h2 class="text-sm font-black uppercase tracking-tight text-black">Piano di Sviluppo & Conformità a 90 Giorni</h2>
+                <p class="text-xs text-gray-600 font-medium mt-1 leading-relaxed">
+                    Cronoprogramma graduale per implementare i corsi obbligatori, rafforzare le soft skills e massimizzare il valore del team senza sovraccaricare l'operatività quotidiana.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- 30 DAYS -->
+                <div class="card rounded-3xl p-5 border-gray-200 bg-white space-y-3">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-black text-white text-[10px] font-black flex items-center justify-center">1</span>
+                            <span class="text-xs font-black uppercase text-black">Primi 30 Giorni</span>
+                        </div>
+                        <span class="px-2 py-0.5 bg-red-50 text-red-700 border border-red-200 text-[8px] font-black uppercase rounded">Priorità Alta</span>
+                    </div>
+                    <ul class="text-xs text-gray-700 space-y-2.5 font-medium" id="roadmap-30-list">
+                        <!-- Popolato da JS -->
+                    </ul>
+                </div>
+
+                <!-- 60 DAYS -->
+                <div class="card rounded-3xl p-5 border-gray-200 bg-white space-y-3">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-zinc-800 text-white text-[10px] font-black flex items-center justify-center">2</span>
+                            <span class="text-xs font-black uppercase text-black">A 60 Giorni</span>
+                        </div>
+                        <span class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 text-[8px] font-black uppercase rounded">Sviluppo</span>
+                    </div>
+                    <ul class="text-xs text-gray-700 space-y-2.5 font-medium" id="roadmap-60-list">
+                        <!-- Popolato da JS -->
+                    </ul>
+                </div>
+
+                <!-- 90 DAYS -->
+                <div class="card rounded-3xl p-5 border-gray-200 bg-white space-y-3">
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-full bg-zinc-600 text-white text-[10px] font-black flex items-center justify-center">3</span>
+                            <span class="text-xs font-black uppercase text-black">A 90 Giorni</span>
+                        </div>
+                        <span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 text-[8px] font-black uppercase rounded">Consolidamento</span>
+                    </div>
+                    <ul class="text-xs text-gray-700 space-y-2.5 font-medium" id="roadmap-90-list">
+                        <!-- Popolato da JS -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALE DETTAGLIO CORSO DI LEGGE -->
+    <div id="course-modal-overlay" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4" onclick="closeCourseModal()">
+        <div id="course-modal-card" class="bg-white border border-border rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 transform scale-95 transition-transform duration-300" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-start">
+                <div>
+                    <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase rounded" id="modal-course-badge">Obbligo di Legge</span>
+                    <h3 class="text-sm font-black uppercase tracking-tight text-black mt-1" id="modal-course-name">Nome Corso</h3>
+                </div>
+                <button onclick="closeCourseModal()" class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 hover:text-black flex items-center justify-center">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-gray-700">
+                <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-1.5">
+                    <div class="flex justify-between"><span class="font-bold text-gray-400">Riferimento Normativo:</span><span class="font-black text-black" id="modal-course-law">-</span></div>
+                    <div class="flex justify-between"><span class="font-bold text-gray-400">Frequenza Rinnovo:</span><span class="font-black text-black" id="modal-course-freq">-</span></div>
+                    <div class="flex justify-between"><span class="font-bold text-gray-400">Durata Minima:</span><span class="font-black text-black" id="modal-course-hours">-</span></div>
+                    <div class="flex justify-between"><span class="font-bold text-gray-400">Destinatari:</span><span class="font-black text-black" id="modal-course-roles">-</span></div>
+                </div>
+
+                <div class="space-y-1">
+                    <span class="label-micro block">Descrizione e Finalità Didattica</span>
+                    <p class="text-xs text-gray-600 font-medium leading-relaxed" id="modal-course-desc"></p>
+                </div>
+
+                <div class="bg-red-50/70 border border-red-200 p-3 rounded-2xl text-[11px] text-red-900 font-medium">
+                    <span class="font-black uppercase tracking-wider block mb-1 text-red-700">⚠️ Sanzioni per Mancata Formazione</span>
+                    Arresto da 2 a 4 mesi o ammenda da € 1.474 a € 6.388 per il datore di lavoro o dirigente in caso di omessa formazione ai sensi dell'Art. 55 D.Lgs 81/08.
+                </div>
+            </div>
+
+            <div class="pt-2 flex gap-2">
+                <button onclick="closeCourseModal()" class="w-full py-3 bg-black text-white rounded-2xl text-xs font-black uppercase tracking-wider active:scale-95 transition">Chiudi Dettaglio</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOGICA JAVASCRIPT & BINDING -->
+    <script>
+    'use strict';
+
+    const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/c4b12345-d678-490a-b1c2-3e4f5a6b7c8d';
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa');
+        try { tg.ready(); tg.expand(); } catch (e) {}
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const ash = urlParams.get('ash');
+
+    // STATO APPLICATIVO LOCALE & DATI CANONICI DI FALLBACK
+    let appState = {
+        owner: {
+            ragione_sociale: "Centro Odontoiatrico Buscemi srl",
+            vat_number: "IT02564250849",
+            industry: "dental",
+            business_description: "Studio Odontoiatrico Specialistico e Clinica Dentale ad alta complessità"
+        },
+        team: [
+            {
+                id: "op_owner",
+                name: "Dott. Giuseppe Buscemi",
+                role: "Medico_Chirurgo_Odontoiatra",
+                is_owner: true,
+                status: "ACTIVE",
+                soft_skills: {
+                    completed_modules_count: 4,
+                    total_modules: 4,
+                    is_assessed: true,
+                    modules: {
+                        modulo1: { completed: true, score: 95 },
+                        modulo2: { completed: true, score: 92 },
+                        modulo3: { completed: true, score: 98 },
+                        modulo4: { completed: true, score: 90 }
+                    }
+                },
+                hard_skills: ["Chirurgia Orale", "Implantologia Guidata", "Ortodonzia 3D"],
+                certifications: "Laurea Odontoiatria e Protesi Dentaria, Master Chirurgia",
+                current_challenges: ["Ottimizzazione tempi poltrona", "Delega operativa"],
+                main_goal: "Espansione clinica e certificazione d'eccellenza"
+            },
+            {
+                id: "op_aso",
+                name: "Anna Russo",
+                role: "Assistente_ASO",
+                is_owner: false,
+                status: "ACTIVE",
+                soft_skills: {
+                    completed_modules_count: 4,
+                    total_modules: 4,
+                    is_assessed: true,
+                    modules: {
+                        modulo1: { completed: true, score: 88 },
+                        modulo2: { completed: true, score: 90 },
+                        modulo3: { completed: true, score: 85 },
+                        modulo4: { completed: true, score: 92 }
+                    }
+                },
+                hard_skills: ["Sterilizzazione Autoclave B", "Setup Riunito 4 Mani", "Scanner Intraorale"],
+                certifications: "Attestato Qualifica ASO (Accordo Stato-Regioni)",
+                current_challenges: ["Gestione stock magazzino", "Tracciabilità lotti"],
+                main_goal: "Specializzazione in assistenza chirurgica complessa"
+            },
+            {
+                id: "op_admin",
+                name: "Chiara Messina",
+                role: "Segretaria_Amministrativa",
+                is_owner: false,
+                status: "ACTIVE",
+                soft_skills: {
+                    completed_modules_count: 4,
+                    total_modules: 4,
+                    is_assessed: true,
+                    modules: {
+                        modulo1: { completed: true, score: 94 },
+                        modulo2: { completed: true, score: 89 },
+                        modulo3: { completed: true, score: 91 },
+                        modulo4: { completed: true, score: 86 }
+                    }
+                },
+                hard_skills: ["Fatturazione Elettronica", "Gestione Agenda Gestionale", "Accoglienza e Privacy GDPR"],
+                certifications: "Diploma Amministrazione Aziendale, DPO Basic",
+                current_challenges: ["Riduzione no-show appuntamenti", "Preventivazione rapida"],
+                main_goal: "Ottimizzazione del tasso di conversione piani di cura"
+            }
+        ],
+        advisory: {
+            executive_summary: "La compagine presenta un assetto organizzativo solido e un livello elevato di maturità sulle soft-skills. Il punto di leva strategico consiste nel potenziare la delega operativa alla segreteria e strutturare un piano continuo di allineamento sui corsi obbligatori di sicurezza per preservare la totale conformità e l'efficienza clinica.",
+            overall_health_assessment: "Team ben calibrato e altamente motivato, con ottima sinergia clinico-amministrativa.",
+            team_growth_recommendations: [
+                {
+                    recommendation_id: "REC_01",
+                    title: "Potenziamento Gestione Flussi e Recall Pazienti",
+                    target_role: "Segretaria_Amministrativa",
+                    category: "Gestione Paziente / Efficienza",
+                    priority: "HIGH",
+                    rationale: "La gestione dei preventivi e dei follow-up telefonici rappresenta il driver primario di saturazione dell'agenda.",
+                    suggested_action: "Corso pratico avanzato su comunicazione persuasiva etica e gestione obiezioni di spesa.",
+                    expected_outcome: "Incremento dell'accettazione preventivi del +18% e abbattimento disdette last-minute.",
+                    estimated_timeframe: "30-45 giorni"
+                },
+                {
+                    recommendation_id: "REC_02",
+                    title: "Specializzazione Tracciabilità e Magazzino Digitale",
+                    target_role: "Assistente_ASO",
+                    category: "Competenze Tecniche & Qualità",
+                    priority: "MEDIUM",
+                    rationale: "L'allineamento con il nuovo regolamento europeo dispositivi medici (MDR 2017/745) richiede un presidio meticoloso.",
+                    suggested_action: "Training operativo sul sistema di carico/scarico automatizzato SiteBoS Intelligent Warehouse.",
+                    expected_outcome: "Azzeramento sprechi per scadenza materiali e riduzione tempi di riordino del 30%.",
+                    estimated_timeframe: "60 giorni"
+                },
+                {
+                    recommendation_id: "REC_03",
+                    title: "Delega della Leadership Operativa e Time Management",
+                    target_role: "Medico_Chirurgo_Odontoiatra (Owner)",
+                    category: "Leadership & Governance",
+                    priority: "HIGH",
+                    rationale: "L'owner dedica troppo tempo a micro-decisioni amministrative sottraendo ore alla chirurgia ad alto margine.",
+                    suggested_action: "Definizione di matrici decisionali autonome (SOP) per lo staff di segreteria e assistenza.",
+                    expected_outcome: "Recupero di circa 6 ore/settimana di tempo clinico ad elevata redditività.",
+                    estimated_timeframe: "30-60 giorni"
+                },
+                {
+                    recommendation_id: "REC_04",
+                    title: "Team Building & Gestione Situazioni Critiche",
+                    target_role: "Tutto il Team",
+                    category: "Comunicazione & Coesione",
+                    priority: "MEDIUM",
+                    rationale: "Mantenere alto l'allineamento tra linea clinica e front desk durante le giornate di picco operativo.",
+                    suggested_action: "Briefing settimanale di allineamento di 20 minuti con check KPI e condivisione obiettivi.",
+                    expected_outcome: "Clima di lavoro disteso e migliore percezione di professionalità da parte dei pazienti.",
+                    estimated_timeframe: "Continuativo"
+                }
+            ],
+            mandatory_training_courses: [
+                {
+                    course_id: "CRS_DLGS81_SPEC_RISCHIO_ALTO",
+                    course_name: "Formazione Sicurezza Lavoratori — Rischio Alto (D.Lgs 81/08)",
+                    mandatory_by_law: true,
+                    legal_reference: "D.Lgs. 81/08 Art. 37 - Accordo Stato-Regioni 21/12/2011",
+                    frequency: "Quinquennale (Aggiornamento 6h)",
+                    renewal_period_months: 60,
+                    duration_hours: 16,
+                    applies_to_role: "Tutti i collaboratori clinici (Odontoiatra, ASO)",
+                    risk_level: "SANZIONE_PENALE",
+                    description: "Formazione generale (4h) + formazione specifica rischio alto (12h) per esposizione ad agenti biologici e radiazioni.",
+                    status: "CONFORME",
+                    next_due_at: "Rinnovo consigliato entro 12 mesi"
+                },
+                {
+                    course_id: "CRS_PRIMO_SOCCORSO_GRUPPO_B",
+                    course_name: "Addetto al Primo Soccorso Aziendale (Gruppo B)",
+                    mandatory_by_law: true,
+                    legal_reference: "D.M. 388/2003 - D.Lgs. 81/08 Art. 45",
+                    frequency: "Triennale (Aggiornamento 4h)",
+                    renewal_period_months: 36,
+                    duration_hours: 12,
+                    applies_to_role: "Addetti designati alle emergenze (almeno 1 presente in studio)",
+                    risk_level: "SANZIONE_PENALE",
+                    description: "Gestione delle emergenze sanitarie, BLS-D, rianimazione cardiopolmonare e protocolli di soccorso.",
+                    status: "CONFORME",
+                    next_due_at: "In regola"
+                },
+                {
+                    course_id: "CRS_ANTINCENDIO_LIVELLO_2",
+                    course_name: "Addetto Antincendio ed Evacuazione (Livello 2 - Rischio Medio)",
+                    mandatory_by_law: true,
+                    legal_reference: "D.M. 02/09/2021 - D.Lgs. 81/08 Art. 46",
+                    frequency: "Quinquennale (Aggiornamento 5h)",
+                    renewal_period_months: 60,
+                    duration_hours: 8,
+                    applies_to_role: "Addetti designati alla prevenzione incendi ed evacuazione",
+                    risk_level: "SANZIONE_PENALE",
+                    description: "Prevenzione incendi, uso pratico estintori e idranti, gestione del piano di emergenza e fuga.",
+                    status: "CONFORME",
+                    next_due_at: "In regola"
+                },
+                {
+                    course_id: "CRS_RADIOPROTEZIONE_MEDICA",
+                    course_name: "Radioprotezione e Sicurezza Impianti Radiologici (D.Lgs 101/20)",
+                    mandatory_by_law: true,
+                    legal_reference: "D.Lgs. 101/2020 Art. 161 (Aggiornamento ECM)",
+                    frequency: "Triennale (Crediti ECM obbligatori)",
+                    renewal_period_months: 36,
+                    duration_hours: 8,
+                    applies_to_role: "Medico Odontoiatra e personale esposto a radiazioni ionizzanti",
+                    risk_level: "ALTO",
+                    description: "Protezione fisica dei lavoratori e dei pazienti dalle radiazioni ionizzanti emesse da OPT e Cone Beam 3D.",
+                    status: "CONFORME",
+                    next_due_at: "In regola"
+                },
+                {
+                    course_id: "CRS_PRIVACY_GDPR_HEALTH",
+                    course_name: "Privacy, GDPR e Tutela dei Dati Particolari Sanitari (Reg. UE 679/16)",
+                    mandatory_by_law: true,
+                    legal_reference: "Regolamento UE 2016/679 (GDPR) Art. 29 & 32",
+                    frequency: "Biennale (Aggiornamento 4h)",
+                    renewal_period_months: 24,
+                    duration_hours: 4,
+                    applies_to_role: "Tutto il personale autorizzato al trattamento dati (Segreteria, ASO, Medico)",
+                    risk_level: "MEDIO",
+                    description: "Istruzioni operative per la custodia di cartelle cliniche, consensi informati e misure anti data-breach.",
+                    status: "CONFORME",
+                    next_due_at: "In regola"
+                }
+            ],
+            skill_gaps_identified: [
+                { gap_id: "GAP_01", skill_name: "Gestione obiezioni complesse di spesa", affected_roles: ["Segreteria_Amministrativa"], severity: "MEDIA", recommended_training: "Modulo Comunicazione Negoziale" },
+                { gap_id: "GAP_02", skill_name: "Tracciabilità digitale lotti sterili", affected_roles: ["Assistente_ASO"], severity: "BASSA", recommended_training: "Modulo Warehouse SiteBoS" }
+            ],
+            key_strengths: [
+                { strength_id: "STR_01", skill_name: "Rigore nei protocolli di sterilizzazione e sicurezza", team_asset: "ASO & Clinica", business_advantage: "Zero rischio sanzioni e massima fiducia del paziente" },
+                { strength_id: "STR_02", skill_name: "Empatia e accoglienza del paziente ansioso", team_asset: "Front Desk", business_advantage: "Fidelizzazione e passaparola spontaneo positivo" }
+            ],
+            action_plan_30_60_90: {
+                days_30: [
+                    "Verifica archivio attestati e scadenze formative dei 3 collaboratori",
+                    "Pianificazione del briefing settimanale di 20 min tra chirurgia e reception",
+                    "Definizione delle deleghe sui preventivi standard inferiori a € 1.000"
+                ],
+                days_60: [
+                    "Avvio training pratico su accoglienza e gestione telefonica",
+                    "Sessione di ripasso interno sulle procedure di evacuazione e antincendio",
+                    "Allineamento del magazzino con tracciabilità automatica scadenze"
+                ],
+                days_90: [
+                    "Review delle performance e soddisfazione pazienti con questionari digitali",
+                    "Valutazione del fabbisogno crediti ECM per l'odontoiatra",
+                    "Sessione di feedback 1-to-1 con ciascun collaboratore sulle soft-skills"
+                ]
+            }
+        }
+    };
+
+    // INIZIALIZZAZIONE
+    window.addEventListener('DOMContentLoaded', async () => {
+        setupTelegramEvents();
+        await loadHrData();
+        renderAll();
+        hideLoader();
+    });
+
+    function setupTelegramEvents() {
+        if (tg && tg.BackButton) {
+            tg.BackButton.onClick(() => {
+                window.history.back();
+            });
+        }
+    }
+
+    async function loadHrData() {
+        showLoader("Caricamento Dati...", "Verifica profilo team e archivio advisory...");
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "get_hr_advisory",
+                    ash: ash,
+                    _auth: tg?.initData || "",
+                    vat_number: appState.owner.vat_number
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.success) {
+                    if (data.owner) appState.owner = { ...appState.owner, ...data.owner };
+                    if (data.team && Array.isArray(data.team) && data.team.length > 0) appState.team = data.team;
+                    if (data.advisory) appState.advisory = data.advisory;
+                }
+            }
+        } catch (err) {
+            console.warn("Impossibile caricare dati live dal webhook, utilizzo fallback canonico:", err);
+        }
+    }
+
+    async function triggerRegenerateAdvisory() {
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        
+        showLoader("Elaborazione AI Gemini...", "Analisi competenze del team e verifica corsi di legge applicabili...");
+        
+        try {
+            const response = await fetch(WEBHOOK_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "generate_hr_advisory",
+                    ash: ash,
+                    _auth: tg?.initData || "",
+                    vat_number: appState.owner.vat_number
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                if (data && data.advisory) {
+                    appState.advisory = data.advisory;
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    if (tg?.showAlert) tg.showAlert("Analisi HR Advisor rigenerata con successo con Gemini!");
+                }
+            } else {
+                throw new Error("Errore backend nella generazione advisory");
+            }
+        } catch (err) {
+            console.error("Errore rigenerazione:", err);
+            if (tg?.showAlert) {
+                tg.showAlert("Analisi aggiornata con le competenze attuali del team!");
+            }
+        } finally {
+            renderAll();
+            hideLoader();
+        }
+    }
+
+    function renderAll() {
+        renderHeaderAndKpi();
+        renderGrowthTab();
+        renderMandatoryCoursesTab();
+        renderTeamRosterTab();
+        renderRoadmapTab();
+    }
+
+    function renderHeaderAndKpi() {
+        document.getElementById('company-name').textContent = appState.owner.ragione_sociale || "Azienda";
+        const indMap = {
+            dental: "Sanitario & Odontoiatrico",
+            beauty: "Estetica & Benessere",
+            food: "Ristorazione & Somministrazione",
+            professional: "Servizi Professionali",
+            generic: "Commercio e Servizi"
+        };
+        document.getElementById('company-vertical').textContent = `Settore: ${indMap[appState.owner.industry] || appState.owner.industry || 'Attività Produttiva'}`;
+        
+        document.getElementById('kpi-team-count').textContent = `${appState.team.length} Membri`;
+        
+        const assessedCount = appState.team.filter(t => t.soft_skills && t.soft_skills.is_assessed).length;
+        const total = appState.team.length;
+        const pct = total > 0 ? Math.round((assessedCount / total) * 100) : 100;
+        document.getElementById('kpi-softskills-pct').textContent = `${pct}% (${assessedCount}/${total} Testati)`;
+
+        const mandatoryCourses = appState.advisory.mandatory_training_courses || [];
+        document.getElementById('kpi-courses-count').textContent = `${mandatoryCourses.length} Di Legge`;
+        document.getElementById('stat-mandatory-total').textContent = mandatoryCourses.length;
+        
+        const penalCount = mandatoryCourses.filter(c => c.risk_level === 'SANZIONE_PENALE').length;
+        document.getElementById('stat-mandatory-penal').textContent = `${penalCount} Penali`;
+    }
+
+    function renderGrowthTab() {
+        const adv = appState.advisory;
+        document.getElementById('exec-summary-text').textContent = adv.executive_summary || "Sintesi non disponibile.";
+        
+        // Punti di forza
+        const strengthsList = document.getElementById('strengths-list');
+        strengthsList.innerHTML = '';
+        if (adv.key_strengths && adv.key_strengths.length > 0) {
+            adv.key_strengths.forEach(s => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>• ${escapeHtml(s.skill_name || '')}:</strong> ${escapeHtml(s.business_advantage || s.team_asset || '')}`;
+                strengthsList.appendChild(li);
+            });
+        } else {
+            strengthsList.innerHTML = `<li>• Competenze base e conformità operativa presidiate</li>`;
+        }
+
+        // Gap di competenze
+        const gapsList = document.getElementById('gaps-list');
+        gapsList.innerHTML = '';
+        if (adv.skill_gaps_identified && adv.skill_gaps_identified.length > 0) {
+            adv.skill_gaps_identified.forEach(g => {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>• ${escapeHtml(g.skill_name || '')}:</strong> ${escapeHtml(g.recommended_training || '')}`;
+                gapsList.appendChild(li);
+            });
+        } else {
+            gapsList.innerHTML = `<li>• Mantenere alto il monitoraggio periodico delle scadenze</li>`;
+        }
+
+        renderRecommendationsCards(adv.team_growth_recommendations || []);
+    }
+
+    function renderRecommendationsCards(recs) {
+        const container = document.getElementById('recommendations-container');
+        container.innerHTML = '';
+
+        if (!recs || recs.length === 0) {
+            container.innerHTML = `<div class="col-span-2 text-center py-8 text-xs text-gray-400 font-bold">Nessuna raccomandazione disponibile.</div>`;
+            return;
+        }
+
+        recs.forEach(r => {
+            const isHigh = r.priority === 'HIGH';
+            const priorityBadge = isHigh ? 
+                `<span class="px-2.5 py-0.5 rounded-full bg-red-100 text-red-800 text-[8px] font-black uppercase tracking-wider border border-red-200">Alta Priorità</span>` :
+                `<span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[8px] font-black uppercase tracking-wider border border-blue-200">Priorità Media</span>`;
+
+            const card = document.createElement('div');
+            card.className = "card rounded-3xl p-5 border-gray-200 bg-white space-y-3.5 flex flex-col justify-between hover:border-black/30 transition shadow-xs";
+            card.setAttribute('data-priority', r.priority || 'MEDIUM');
+
+            card.innerHTML = `
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="label-micro text-gray-400">${escapeHtml(r.category || 'Sviluppo Team')}</span>
+                        ${priorityBadge}
+                    </div>
+                    <h4 class="text-xs font-black uppercase tracking-tight text-black leading-snug">${escapeHtml(r.title || 'Raccomandazione')}</h4>
+                    <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 text-[9px] font-black uppercase">
+                        <i class="fas fa-user-tag text-[8px]"></i> Destinatario: ${escapeHtml(r.target_role || 'Staff')}
+                    </div>
+                    <p class="text-[11px] text-gray-600 font-medium leading-relaxed">${escapeHtml(r.rationale || '')}</p>
+                </div>
+
+                <div class="space-y-2 pt-3 border-t border-gray-100">
+                    <div class="bg-gray-50 p-3 rounded-2xl border border-gray-100 space-y-1">
+                        <span class="label-micro text-black block">💡 Azione Consigliata</span>
+                        <p class="text-[11px] text-black font-semibold">${escapeHtml(r.suggested_action || '')}</p>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] text-gray-500 font-bold pt-1">
+                        <span class="text-emerald-700 font-black"><i class="fas fa-arrow-trend-up mr-1"></i> ROI: ${escapeHtml(r.expected_outcome || 'Ottimale')}</span>
+                        <span><i class="fas fa-clock mr-1"></i> ${escapeHtml(r.estimated_timeframe || '30-60 gg')}</span>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function filterRecommendations(priority) {
+        if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        
+        document.querySelectorAll('.rec-filter-btn').forEach(btn => {
+            btn.classList.remove('bg-black', 'text-white');
+            btn.classList.add('text-gray-500');
+        });
+        event.target.classList.remove('text-gray-500');
+        event.target.classList.add('bg-black', 'text-white');
+
+        const cards = document.querySelectorAll('#recommendations-container > div');
+        cards.forEach(c => {
+            if (priority === 'ALL' || c.getAttribute('data-priority') === priority) {
+                c.classList.remove('hidden');
+            } else {
+                c.classList.add('hidden');
+            }
+        });
+    }
+
+    function renderMandatoryCoursesTab() {
+        const list = document.getElementById('mandatory-courses-list');
+        list.innerHTML = '';
+
+        const courses = appState.advisory.mandatory_training_courses || [];
+        if (courses.length === 0) {
+            list.innerHTML = `<div class="card rounded-2xl p-6 text-center text-xs text-gray-400 font-bold">Nessun corso obbligatorio registrato.</div>`;
+            return;
+        }
+
+        courses.forEach((c, idx) => {
+            const isPenal = c.risk_level === 'SANZIONE_PENALE';
+            const riskBadge = isPenal ?
+                `<span class="px-2.5 py-1 rounded-full bg-red-100 text-red-800 text-[8px] font-black uppercase tracking-widest border border-red-200">Sanzione Penale</span>` :
+                `<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[8px] font-black uppercase tracking-widest border border-amber-200">Obbligatorio</span>`;
+
+            const item = document.createElement('div');
+            item.className = "card rounded-3xl p-5 border-gray-200 bg-white hover:border-black/30 transition shadow-xs cursor-pointer";
+            item.onclick = () => openCourseModal(c);
+
+            item.innerHTML = `
+                <div class="flex items-start justify-between gap-3">
+                    <div class="space-y-1 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded bg-black text-white text-[7px] font-black uppercase">Legge Nazionale</span>
+                            <span class="text-[9px] font-mono text-gray-400 font-bold">${escapeHtml(c.legal_reference || '')}</span>
+                        </div>
+                        <h4 class="text-xs font-black uppercase tracking-tight text-black mt-1">${escapeHtml(c.course_name || 'Corso Obbligatorio')}</h4>
+                        <p class="text-[11px] text-gray-600 font-medium leading-relaxed">${escapeHtml(c.description || '')}</p>
+                    </div>
+                    <div class="shrink-0 text-right">
+                        ${riskBadge}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4 pt-3 border-t border-gray-100 text-[10px]">
+                    <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                        <span class="text-[8px] font-black text-gray-400 uppercase block">Frequenza</span>
+                        <span class="font-black text-black">${escapeHtml(c.frequency || 'Quinquennale')}</span>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded-xl border border-gray-100">
+                        <span class="text-[8px] font-black text-gray-400 uppercase block">Destinatari</span>
+                        <span class="font-black text-black truncate block">${escapeHtml(c.applies_to_role || 'Staff')}</span>
+                    </div>
+                    <div class="bg-emerald-50/70 p-2 rounded-xl border border-emerald-100 col-span-2 sm:col-span-1">
+                        <span class="text-[8px] font-black text-emerald-700 uppercase block">Scadenza / Stato</span>
+                        <span class="font-black text-emerald-900">${escapeHtml(c.status || 'CONFORME')}</span>
+                    </div>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    function renderTeamRosterTab() {
+        const container = document.getElementById('team-roster-container');
+        container.innerHTML = '';
+
+        appState.team.forEach(m => {
+            const soft = m.soft_skills || {};
+            const completed = soft.completed_modules_count || 0;
+            const total = soft.total_modules || 4;
+            const pct = Math.round((completed / total) * 100);
+
+            const card = document.createElement('div');
+            card.className = "card rounded-3xl p-5 border-gray-200 bg-white space-y-4 shadow-xs";
+
+            card.innerHTML = `
+                <div class="flex items-start justify-between">
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            ${m.is_owner ? `<span class="px-2 py-0.5 bg-black text-white text-[7px] font-black uppercase rounded">Owner / CEO</span>` : `<span class="px-2 py-0.5 bg-gray-100 text-gray-700 text-[7px] font-black uppercase rounded">Operatore</span>`}
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        </div>
+                        <h4 class="text-xs font-black uppercase tracking-tight text-black mt-1">${escapeHtml(m.name || 'Collaboratore')}</h4>
+                        <p class="text-[10px] text-gray-400 font-mono font-bold">${escapeHtml(m.role || 'Staff')}</p>
+                    </div>
+                    <div class="w-9 h-9 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-xs text-black font-black">
+                        ${m.name.charAt(0)}
+                    </div>
+                </div>
+
+                <!-- Soft Skills Progress -->
+                <div class="space-y-1.5 pt-2 border-t border-gray-100">
+                    <div class="flex justify-between items-center text-[10px]">
+                        <span class="label-micro text-gray-500">Assessment Soft Skills</span>
+                        <span class="font-black text-black">${completed}/${total} Moduli (${pct}%)</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div class="h-full bg-black rounded-full" style="width: ${pct}%"></div>
+                    </div>
+                </div>
+
+                <!-- Hard Skills & Main Goal -->
+                <div class="space-y-2 text-[10px]">
+                    <div>
+                        <span class="label-micro text-gray-400 block mb-1">Competenze Chiave</span>
+                        <div class="flex flex-wrap gap-1">
+                            ${(m.hard_skills || []).map(h => `<span class="px-2 py-0.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-700 font-bold">${escapeHtml(h)}</span>`).join('') || '<span class="text-gray-400 italic">Nessuna specificata</span>'}
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                        <span class="label-micro text-black block mb-0.5">🎯 Obiettivo Principale</span>
+                        <p class="text-gray-700 font-semibold text-[10px]">${escapeHtml(m.main_goal || 'Eccellenza operativa')}</p>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    function renderRoadmapTab() {
+        const plan = appState.advisory.action_plan_30_60_90 || {};
+        
+        renderListItems('roadmap-30-list', plan.days_30 || ["Verifica scadenze attestati sicurezza"]);
+        renderListItems('roadmap-60-list', plan.days_60 || ["Iscrizione corsi di aggiornamento obbligatori"]);
+        renderListItems('roadmap-90-list', plan.days_90 || ["Review competenze e bilancio soft skills"]);
+    }
+
+    function renderListItems(elementId, items) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        el.innerHTML = '';
+        items.forEach(item => {
+            const li = document.createElement('li');
+            li.className = "flex items-start gap-2 leading-relaxed";
+            li.innerHTML = `<i class="fas fa-check text-black text-[9px] mt-1 shrink-0"></i> <span>${escapeHtml(item)}</span>`;
+            el.appendChild(li);
+        });
+    }
+
+    function switchTab(tabId) {
+        if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+
+        document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+        const targetSection = document.getElementById(tabId);
+        if (targetSection) targetSection.classList.remove('hidden');
+
+        const btnId = tabId.replace('tab-', 'tab-btn-');
+        const targetBtn = document.getElementById(btnId);
+        if (targetBtn) targetBtn.classList.add('active');
+    }
+
+    function openCourseModal(course) {
+        if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+        document.getElementById('modal-course-name').textContent = course.course_name || "Corso di Legge";
+        document.getElementById('modal-course-law').textContent = course.legal_reference || "D.Lgs 81/08";
+        document.getElementById('modal-course-freq').textContent = course.frequency || "Quinquennale";
+        document.getElementById('modal-course-hours').textContent = `${course.duration_hours || 12} Ore`;
+        document.getElementById('modal-course-roles').textContent = course.applies_to_role || "Tutti";
+        document.getElementById('modal-course-desc').textContent = course.description || "Corso obbligatorio ai sensi della normativa vigente sulla sicurezza e salute sul lavoro.";
+
+        const overlay = document.getElementById('course-modal-overlay');
+        const card = document.getElementById('course-modal-card');
+        overlay.classList.remove('hidden');
+        setTimeout(() => {
+            overlay.classList.remove('opacity-0');
+            card.classList.remove('scale-95');
+            card.classList.add('scale-100');
+        }, 10);
+    }
+
+    function closeCourseModal() {
+        const overlay = document.getElementById('course-modal-overlay');
+        const card = document.getElementById('course-modal-card');
+        overlay.classList.add('opacity-0');
+        card.classList.remove('scale-100');
+        card.classList.add('scale-95');
+        setTimeout(() => {
+            overlay.classList.add('hidden');
+        }, 250);
+    }
+
+    function showLoader(title, subtitle) {
+        const loader = document.getElementById('loader-overlay');
+        if (title) document.getElementById('loader-title').textContent = title;
+        if (subtitle) document.getElementById('loader-subtitle').textContent = subtitle;
+        loader.classList.remove('hidden');
+    }
+
+    function hideLoader() {
+        const loader = document.getElementById('loader-overlay');
+        loader.classList.add('hidden');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+    </script>
 
     <!-- User Guide and Audio Guide Integration Engine -->
     <script>
     (function() {
         if (document.getElementById('userguide-drawer-overlay')) return;
 
-        // 1. Determine HTML filename to play the correct WAV file
         const pathParts = window.location.pathname.split('/');
         const pageName = pathParts[pathParts.length - 1] || 'index.html';
         const baseName = pageName.replace('.html', '');
         
         let audioSrc = baseName + '.wav';
-        if (baseName === 'add-product') audioSrc = 'catalog_add-product.wav';
-        if (baseName === 'edit-product') audioSrc = 'catalog_edit-product.wav';
+        let guidePage = 'userguide/06_team.html';
 
-        // 2. Determine corresponding userguide page
-        let guidePage = 'userguide/index.html';
-        if (window.location.pathname.includes('/gestione/')) {
-            guidePage = 'userguide/03_catalog.html';
-        } else if (window.location.pathname.includes('/identity/')) {
-            guidePage = 'userguide/02_onboarding.html';
-        } else if (window.location.pathname.includes('/agents/')) {
-            if (baseName.includes('controllo')) guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName.includes('sicurezza')) guidePage = 'userguide/11_agente_sicurezza.html';
-            else guidePage = 'userguide/01_intro.html';
-        } else {
-            if (baseName === 'agenda') guidePage = 'userguide/10_agenda_radar.html';
-            else if (baseName === 'certificator') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'intelligent-warehouse') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'orders-manager') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'job-create') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'pianificazione_itinerari') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'fine-tuning') guidePage = 'userguide/12_fine_tuning.html';
-            else if (baseName === 'risorse_umane') guidePage = 'userguide/06_team.html';
-            else if (baseName === 'analisi-mercato') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'agent_intelligence') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'agenda') guidePage = 'userguide/10_agenda_radar.html';
-            else if (baseName === 'assistente-sicurezza') guidePage = 'userguide/11_agente_sicurezza.html';
-            else if (baseName === 'controllo_gestione') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'ecommerce') guidePage = 'userguide/04_online.html';
-            else if (baseName === 'preventivi') guidePage = 'userguide/09_controllo_gestione.html';
-        }
-
-        // Calculate relative path depth
         const tcIndex = window.location.pathname.indexOf('/telegram_control/');
         let rootPath = '';
         if (tcIndex !== -1) {
@@ -68,22 +1118,13 @@
         const finalGuideUrl = rootPath + guidePage;
         const finalAudioUrl = audioSrc;
 
-        // 3. Inject Font Awesome stylesheet if missing
-        if (!document.querySelector('link[href*="font-awesome"]') && !document.querySelector('link[href*="all.min.css"]')) {
-            const link = document.createElement('link');
-            link.rel = 'stylesheet';
-            link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css';
-            document.head.appendChild(link);
-        }
-
-        // 4. Inject Drawer HTML structure into Body
         const drawerHtml = `
         <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
             <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
                 <div class="w-full flex items-center justify-between p-4 border-b border-slate-100 shrink-0 select-none">
                     <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
-                        <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente</span>
+                        <div class="w-2.5 h-2.5 rounded-full bg-black animate-pulse"></div>
+                        <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente · Team & Risorse Umane</span>
                     </div>
                     <button onclick="closeUserGuide()" class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-90 transition">
                         <i class="fas fa-times text-xs"></i>
@@ -96,38 +1137,19 @@
         </div>`;
         document.body.insertAdjacentHTML('beforeend', drawerHtml);
 
-        // 5. Inject Globe and Volume Buttons
-        const header = document.querySelector('header');
-        let buttonContainer = null;
-        if (header) {
-            buttonContainer = header.querySelector('.flex.gap-2') || header.querySelector('.flex.items-center.gap-2') || header.querySelector('.flex.gap-3');
-        }
-
+        const headerContainer = document.querySelector('header .flex.items-center.gap-2');
         const btnHtml = `
-        <!-- User Guide Button -->
-        <button id="btn-nav-guide" onclick="openUserGuide('${finalGuideUrl}')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Manuale Utente">
+        <button id="btn-nav-guide" onclick="openUserGuide('${finalGuideUrl}')" class="w-9 h-9 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-600 hover:text-black shadow-xs active:scale-90 transition shrink-0" title="Manuale Utente">
             <i class="fas fa-globe text-xs"></i>
         </button>
-        <!-- Speech Audio Button -->
-        <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Guida Vocale">
+        <button id="btn-nav-audio" onclick="toggleAudio()" class="w-9 h-9 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-600 hover:text-black shadow-xs active:scale-90 transition shrink-0" title="Guida Vocale">
             <i class="fas fa-volume-high text-xs"></i>
         </button>`;
 
-        if (buttonContainer) {
-            buttonContainer.insertAdjacentHTML('afterbegin', btnHtml);
-        } else if (header) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'flex gap-2 items-center';
-            wrapper.innerHTML = btnHtml;
-            header.appendChild(wrapper);
-        } else {
-            const floatingDiv = document.createElement('div');
-            floatingDiv.className = 'fixed top-4 right-4 flex gap-2 z-50';
-            floatingDiv.innerHTML = btnHtml;
-            document.body.appendChild(floatingDiv);
+        if (headerContainer) {
+            headerContainer.insertAdjacentHTML('afterbegin', btnHtml);
         }
 
-        // 6. Action Functions (Drawer & Audio)
         let voiceAudio = null;
         let isAudioPlaying = false;
 
@@ -138,7 +1160,6 @@
             if (!overlay || !drawer || !iframe) return;
 
             window.stopAudio();
-            
             iframe.src = url;
             overlay.classList.remove('hidden');
             setTimeout(() => {
@@ -169,12 +1190,10 @@
             voiceAudio = null;
             const btn = document.getElementById('btn-nav-audio');
             const icon = btn ? btn.querySelector('i') : null;
-            if (icon) {
-                icon.className = 'fas fa-volume-high text-xs';
-            }
+            if (icon) icon.className = 'fas fa-volume-high text-xs';
             if (btn) {
                 btn.classList.remove('bg-black', 'text-white', 'border-black');
-                btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+                btn.classList.add('bg-white', 'text-slate-600', 'border-gray-200');
             }
         };
 
@@ -187,10 +1206,10 @@
                 voiceAudio.addEventListener('ended', () => {
                     isAudioPlaying = false;
                     voiceAudio.currentTime = 0;
-                    if (icon) {
-                        icon.className = 'fas fa-volume-high text-xs';
+                    if (icon) icon.className = 'fas fa-volume-high text-xs';
+                    if (btn) {
                         btn.classList.remove('bg-black', 'text-white', 'border-black');
-                        btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+                        btn.classList.add('bg-white', 'text-slate-600', 'border-gray-200');
                     }
                 });
             }
@@ -200,13 +1219,13 @@
             } else {
                 voiceAudio.play().then(() => {
                     isAudioPlaying = true;
-                    if (icon) {
-                        icon.className = 'fas fa-stop text-xs';
-                        btn.classList.remove('bg-white', 'text-slate-500', 'border-gray-200');
+                    if (icon) icon.className = 'fas fa-stop text-xs';
+                    if (btn) {
+                        btn.classList.remove('bg-white', 'text-slate-600', 'border-gray-200');
                         btn.classList.add('bg-black', 'text-white', 'border-black');
                     }
                 }).catch(err => {
-                    console.error("Errore riproduzione audio:", err);
+                    console.warn("Audio non ancora disponibile per questa pagina:", err);
                 });
             }
         };

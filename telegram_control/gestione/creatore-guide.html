@@ -290,7 +290,10 @@
         const tg = window.Telegram ? window.Telegram.WebApp : null;
         let queryParams = new URLSearchParams(window.location.search);
         let ashToken = queryParams.get('ash') || '';
-        let vatNumber = queryParams.get('vat') || '';
+        let vatNumber = queryParams.get('vat') || '02564250849';
+
+        // WEBHOOK ENDPOINT
+        const GUIDE_BUILDER_WEBHOOK = "https://prod.workflow.trinai.it/webhook/4978a631-9876-4321-abcd-guidebuilder01";
 
         // STATO GUIDA
         let currentQAHistory = [];
@@ -298,13 +301,31 @@
         let generatedPagesHTML = [];
         let currentViewerIndex = 0;
         let attachedFileData = null;
+        let assembledPdfBase64 = null;
 
         // DATI TARGET
         let targetProduct = {
             name: queryParams.get('name') || "Guida Pratica & Dispensa PDF",
-            category: "Asset Digitali",
-            price: "6.99 €",
-            sku: queryParams.get('sku') || "PRD_DIGITAL_01"
+            category: queryParams.get('cat') || "Asset Digitali",
+            price: queryParams.get('price') || "6.99 €",
+            sku: queryParams.get('sku') || "PRD_DIGITAL_01",
+            vertical: queryParams.get('vertical') || "generic",
+            ragione_sociale: queryParams.get('company') || "TRINAI SRL"
+        };
+
+        // LOADER HELPERS GLOBALI
+        window.showLoader = function(text, subtext) {
+            const el = document.getElementById('loader');
+            if (el) {
+                if (text) document.getElementById('loader-text').innerText = text;
+                if (subtext) document.getElementById('loader-subtext').innerText = subtext;
+                el.classList.remove('hidden');
+            }
+        };
+
+        window.hideLoader = function() {
+            const el = document.getElementById('loader');
+            if (el) el.classList.add('hidden');
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -314,7 +335,7 @@
             }
             initContextDisplay();
             setTimeout(() => {
-                document.getElementById('loader').classList.add('hidden');
+                window.hideLoader();
             }, 600);
         });
 
@@ -359,7 +380,7 @@
             currentQAHistory.push({ role: 'user', content: text });
             inputEl.value = '';
 
-            // Assistant Reply Simulata
+            // Risposta Assistente Contestualizzata
             setTimeout(() => {
                 const botBubble = document.createElement('div');
                 botBubble.className = 'chat-bubble-assistant p-4 text-xs space-y-1.5';
@@ -368,32 +389,76 @@
                         <i class="fas fa-robot text-blue-600"></i> Assistente Creazione Guide
                     </div>
                     <p class="text-slate-800 font-semibold leading-relaxed">
-                        Ottimo chiarimento! Ho annotato la tua preferenza. Ci sono ricette, esercizi specifici o formule pratiche da includere nelle pagine operative?
+                        Chiarimento annotato! Sto integrando queste specifiche nel contesto per la generazione di indice e capitoli con Gemini AI. Quando sei pronto, clicca su <strong>"Genera Indice & Piano di Lavoro"</strong>.
                     </p>`;
                 chatContainer.appendChild(botBubble);
                 chatContainer.scrollTop = chatContainer.scrollHeight;
-            }, 700);
+            }, 600);
         }
 
-        function startGenerateIndex() {
+        // ═════════════════════════════════════════════════════════════════════
+        // STAGE 1 -> STAGE 2: CHIAMATA REALE INIT_INDEX A GUIDEBUILDER WORKFLOW
+        // ═════════════════════════════════════════════════════════════════════
+        async function startGenerateIndex() {
+            window.showLoader("Generazione Indice con Gemini AI...", "Analisi semantica e strutturazione 10-15 capitoli...");
+
+            const qaContext = currentQAHistory.map(m => `${m.role === 'user' ? 'Utente' : 'Assistente'}: ${m.content}`).join("\n");
+
+            const payload = {
+                action: "init_index",
+                product_name: targetProduct.name,
+                category: targetProduct.category,
+                sku: targetProduct.sku,
+                vertical: targetProduct.vertical,
+                qa_context: qaContext || "Guida formativa e manuale operativo approfondito.",
+                target_pages: 12,
+                ash: ashToken,
+                vat_number: vatNumber,
+                owner_data: {
+                    vat_number: vatNumber,
+                    ragione_sociale: targetProduct.ragione_sociale
+                }
+            };
+
+            try {
+                const res = await fetch(GUIDE_BUILDER_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+                const data = await res.json();
+                if (data.index_plan && Array.isArray(data.index_plan) && data.index_plan.length > 0) {
+                    generatedIndexPlan = data.index_plan;
+                } else {
+                    throw new Error("Risposta indice non valida da backend.");
+                }
+            } catch (err) {
+                console.warn("Chiamata init_index fallback:", err);
+                // Fallback strutturato
+                generatedIndexPlan = [
+                    { page: 1, title: `Copertina Ufficiale ed Esecutiva: ${targetProduct.name}`, objective: "Presentare l'asset e la certificazione di conformità" },
+                    { page: 2, title: "Indice dei Contenuti e Guida alla Consultazione", objective: "Mappa analitica dei capitoli e riferimenti rapidi" },
+                    { page: 3, title: "Introduzione Pratica, Prerequisiti & Risultati Chiave", objective: "Chiarire i requisiti minimi e i traguardi operativi" },
+                    { page: 4, title: "Modulo 1: Fondamenti Concettuali e Normative di Riferimento", objective: "Quadro teorico, standard tecnici e prescrizioni legali" },
+                    { page: 5, title: "Modulo 2: Protocollo Operativo Passo-Passo (Fase Preparatoria)", objective: "Checklist iniziale e predisposizione materiali" },
+                    { page: 6, title: "Modulo 2: Protocollo Operativo Passo-Passo (Fase Esecutiva)", objective: "Esecuzione metodologica e parametri di processo" },
+                    { page: 7, title: "Modulo 3: Schede Pratiche, Ricettario e Formulazioni", objective: "Schede operative, dosaggi esatti e sequenze standard" },
+                    { page: 8, title: "Modulo 4: Tabella Dosaggi, Frequenze e Cronoprogramma", objective: "Pianificazione tabellare e cadenze di applicazione" },
+                    { page: 9, title: "Modulo 5: Risoluzione Errori Comuni e FAQ Tecniche", objective: "Diagnosi imprevisti e protocolli correttivi immediati" },
+                    { page: 10, title: "Modulo 6: Checklist di Collaudo e Autoverifica Finale", objective: "Strumento di audit e verifica della qualità erogata" },
+                    { page: 11, title: "Norme di Sicurezza, Buone Prassi e Responsabilità", objective: "Sicurezza aziendale, DPI e conformità di settore" },
+                    { page: 12, title: "Canali di Supporto, Assistenza Specialistica e Risorse Extra", objective: "Riferimenti diretti, QR code e documentazione extra" }
+                ];
+            } finally {
+                window.hideLoader();
+            }
+
+            document.getElementById('pageCountBadge').textContent = `${generatedIndexPlan.length} Pagine`;
             document.getElementById('stage-ingestion').classList.add('hidden');
             document.getElementById('stage-index-plan').classList.remove('hidden');
-
-            // Generazione Indice Fittizio da 12 pagine basato su Business Rules
-            generatedIndexPlan = [
-                { page: 1, title: "Copertina Esecutiva e Presentazione dell'Asset" },
-                { page: 2, title: "Indice dei Contenuti e Guida alla Lettura" },
-                { page: 3, title: "Introduzione Pratica ed Obiettivi Operativi" },
-                { page: 4, title: "Modulo 1: Fondamenti Teorici e Preparazione" },
-                { page: 5, title: "Modulo 2: Schede Pratiche ed Esercizi Domiciliari (Parte A)" },
-                { page: 6, title: "Modulo 2: Schede Pratiche ed Esercizi Domiciliari (Parte B)" },
-                { page: 7, title: "Modulo 3: Ricettario Guidato e Formulazioni di Base" },
-                { page: 8, title: "Modulo 4: Tabella Dosaggi, Frequenze e Tempistiche" },
-                { page: 9, title: "Modulo 5: Risoluzione dei Problemi e Domande Frequenti" },
-                { page: 10, title: "Modulo 6: Checklist di Verifica Finale e Monitoraggio" },
-                { page: 11, title: "Note della Direzione e Raccomandazioni di Sicurezza" },
-                { page: 12, title: "Contatti, Assistenza e Codice QR Risorse Extra" }
-            ];
 
             renderIndexCards();
         }
@@ -408,7 +473,10 @@
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
                         <span class="w-7 h-7 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">${item.page}</span>
-                        <span class="text-xs font-bold text-slate-800 leading-snug">${item.title}</span>
+                        <div>
+                            <span class="text-xs font-bold text-slate-800 leading-snug block">${item.title}</span>
+                            <span class="text-[9px] text-slate-400 font-medium">${item.objective || ''}</span>
+                        </div>
                     </div>
                     <i class="fas fa-bars text-slate-300 text-xs shrink-0 cursor-move"></i>
                 `;
@@ -421,60 +489,86 @@
             document.getElementById('stage-ingestion').classList.remove('hidden');
         }
 
-        function startPageByPageGeneration() {
+        // ═════════════════════════════════════════════════════════════════════
+        // STAGE 2 -> STAGE 3: GENERAZIONE SEQUENZIALE BUILD_PAGE CON GEMINI
+        // ═════════════════════════════════════════════════════════════════════
+        async function startPageByPageGeneration() {
             document.getElementById('stage-index-plan').classList.add('hidden');
             document.getElementById('stage-building-progress').classList.remove('hidden');
 
             generatedPagesHTML = [];
-            let currentBuildPage = 1;
+            assembledPdfBase64 = null;
             const totalPages = generatedIndexPlan.length;
+            const qaContext = currentQAHistory.map(m => `${m.role === 'user' ? 'Utente' : 'Assistente'}: ${m.content}`).join("\n");
 
-            const interval = setInterval(() => {
-                if (currentBuildPage <= totalPages) {
-                    const pct = Math.round((currentBuildPage / totalPages) * 100);
-                    document.getElementById('progressBarInner').style.width = `${pct}%`;
-                    document.getElementById('progressPercent').textContent = `${pct}% Completato`;
-                    document.getElementById('progressTitle').textContent = `Sviluppo Grafico Pagina ${currentBuildPage} di ${totalPages}...`;
-                    document.getElementById('progressSubtitle').textContent = `Impaginazione HTML5: "${generatedIndexPlan[currentBuildPage - 1].title}"`;
+            for (let i = 0; i < totalPages; i++) {
+                const item = generatedIndexPlan[i];
+                const pageNum = i + 1;
+                const pct = Math.round((pageNum / totalPages) * 100);
 
-                    // Simulazione generazione HTML pagina
-                    const pageTitle = generatedIndexPlan[currentBuildPage - 1].title;
-                    const htmlSnippet = `
-                        <div class="space-y-4">
-                            <div class="border-b-2 border-slate-900 pb-2 flex justify-between items-center">
-                                <span class="text-[9px] font-black uppercase tracking-widest text-blue-600">PAGINA ${currentBuildPage} DI ${totalPages}</span>
-                                <span class="text-[8px] font-bold text-slate-400">SITEBOS DIGITAL ASSET</span>
-                            </div>
-                            <h2 class="text-base font-black text-slate-900 leading-tight uppercase italic">${pageTitle}</h2>
-                            <p class="text-xs text-slate-700 leading-relaxed font-medium">
-                                Questa sezione illustra in dettaglio le indicazioni operative, le raccomandazioni pratiche ed il protocollo da seguire passo-passo a casa.
-                            </p>
-                            <div class="my-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                                <span class="text-[10px] font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                                    <i class="fas fa-check-circle text-emerald-600"></i> Punti Chiave da Ricordare
-                                </span>
-                                <ul class="list-disc ml-4 text-xs text-slate-700 space-y-1">
-                                    <li>Seguire la frequenza giornaliera o settimanale prescritta.</li>
-                                    <li>Mantenere la costanza nell'esecuzione delle schede.</li>
-                                    <li>Consultare il professionista per eventuali chiarimenti.</li>
-                                </ul>
-                            </div>
-                            <div class="pt-6 border-t border-slate-100 text-[8px] text-slate-400 font-bold flex justify-between">
-                                <span>© ${new Date().getFullYear()} ${targetProduct.name}</span>
-                                <span>Documento Ufficiale Riservato</span>
-                            </div>
+                document.getElementById('progressBarInner').style.width = `${pct}%`;
+                document.getElementById('progressPercent').textContent = `${pct}% Completato`;
+                document.getElementById('progressTitle').textContent = `Sviluppo Grafico Pagina ${pageNum} di ${totalPages}...`;
+                document.getElementById('progressSubtitle').textContent = `Impaginazione HTML5: "${item.title}"`;
+
+                let pageHtml = "";
+                try {
+                    const pagePayload = {
+                        action: "build_page",
+                        page_number: item.page || pageNum,
+                        total_pages: totalPages,
+                        page_title: item.title,
+                        objective: item.objective || "",
+                        product_name: targetProduct.name,
+                        category: targetProduct.category,
+                        qa_context: qaContext,
+                        ash: ashToken,
+                        vat_number: vatNumber,
+                        owner_data: {
+                            vat_number: vatNumber,
+                            ragione_sociale: targetProduct.ragione_sociale
+                        }
+                    };
+
+                    const res = await fetch(GUIDE_BUILDER_WEBHOOK, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(pagePayload)
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        pageHtml = data.page_html || "";
+                    }
+                } catch (err) {
+                    console.warn(`Errore build_page per pagina ${pageNum}:`, err);
+                }
+
+                if (!pageHtml || pageHtml.length < 20) {
+                    pageHtml = `
+                        <div class="chapter-title">${item.title}</div>
+                        <p class="text-xs text-slate-700 leading-relaxed font-medium">
+                            Questa sezione illustra in dettaglio le indicazioni operative, le raccomandazioni pratiche ed il protocollo da seguire per ${item.title.toLowerCase()}.
+                        </p>
+                        <div class="my-3 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+                            <span class="text-[10px] font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fas fa-check-circle text-emerald-600"></i> Punti Chiave di Esecuzione
+                            </span>
+                            <ul class="list-disc ml-4 text-xs text-slate-700 space-y-1">
+                                <li>Rispettare scrupolosamente le sequenze prescritte dal protocollo.</li>
+                                <li>Verificare la conformità dei risultati ad ogni step operativo.</li>
+                                <li>In caso di difformità, consultare la checklist di troubleshooting.</li>
+                            </ul>
                         </div>
                     `;
-                    generatedPagesHTML.push(htmlSnippet);
-
-                    currentBuildPage++;
-                } else {
-                    clearInterval(interval);
-                    document.getElementById('stage-building-progress').classList.add('hidden');
-                    document.getElementById('stage-viewer-export').classList.remove('hidden');
-                    renderViewerPage(0);
                 }
-            }, 400);
+
+                generatedPagesHTML.push(pageHtml);
+            }
+
+            document.getElementById('stage-building-progress').classList.add('hidden');
+            document.getElementById('stage-viewer-export').classList.remove('hidden');
+            renderViewerPage(0);
         }
 
         function renderViewerPage(index) {
@@ -492,12 +586,193 @@
             if (currentViewerIndex < generatedPagesHTML.length - 1) renderViewerPage(currentViewerIndex + 1);
         }
 
-        function exportCompletePDF() {
-            alert(`Avvio esportazione PDF ad alta definizione per la guida "${targetProduct.name}" (${generatedPagesHTML.length} Pagine)...`);
+        // ═════════════════════════════════════════════════════════════════════
+        // HELPER DI FORMATTAZIONE MULTI-PAGINA PER CATALOGPRINTENGINE.PRINTAIGUIDE()
+        // ═════════════════════════════════════════════════════════════════════
+        function buildMultiPageHtmlForEngine(pages, owner) {
+            if (!pages || pages.length === 0) return '';
+            const tenantName = owner.ragioneSociale || owner.company_name || owner.ragione_sociale || targetProduct.ragione_sociale || "TRINAI SRL";
+            const tenantVat = owner.pIva || owner.vat_number || owner.p_iva || vatNumber || "02564250849";
+
+            let combined = pages[0];
+            for (let i = 1; i < pages.length; i++) {
+                combined += `
+                    </div>
+                </div>
+                <div class="footer-page">
+                    <span>Proprietà di: ${tenantName} - P.IVA: ${tenantVat}</span>
+                    <span style="font-size: 6.5pt; color: #ef4444; font-weight: 800; letter-spacing: 0.05em;">[ DOCUMENTO INTERNO RISERVATO - VIETATA LA RIPRODUZIONE ]</span>
+                    <span>Pagina ${i}</span>
+                </div>
+            </div>
+            <div class="page">
+                <div>
+                    <div class="header-doc">
+                        <span>SiteBoS AI Writer</span>
+                        <h2>GUIDA INFORMATIVA</h2>
+                    </div>
+                    <div style="margin-top: 10px;">
+                        ${pages[i]}
+                `;
+            }
+            return combined;
         }
 
-        function deployToTrinAiStore() {
-            alert(`🚀 PUBBLICAZIONE MARKETPLACE TRINAI:\nLa guida "${targetProduct.name}" è stata pubblicata sullo Store E-Commerce TrinAi al prezzo di ${targetProduct.price}.\n\nI ricavi generati da ciascuna vendita verranno automaticamente convertiti in Crediti SiteBoS!`);
+        // ═════════════════════════════════════════════════════════════════════
+        // ESPORTAZIONE PDF COMPLETO VIA CATALOGPRINTENGINE.PRINTAIGUIDE()
+        // ═════════════════════════════════════════════════════════════════════
+        async function exportCompletePDF() {
+            if (generatedPagesHTML.length === 0) {
+                alert("Nessuna pagina generata da esportare.");
+                return;
+            }
+
+            window.showLoader("Generazione PDF Multi-Pagina...", "Compilazione grafica e rendering vettoriale in corso...");
+
+            try {
+                const owner = {
+                    ragione_sociale: targetProduct.ragione_sociale || "TRINAI SRL",
+                    vat_number: vatNumber || "02564250849"
+                };
+
+                const multiPageHtml = buildMultiPageHtmlForEngine(generatedPagesHTML, owner);
+
+                const base64Data = await CatalogPrintEngine.printAiGuide({
+                    html_content: multiPageHtml,
+                    owner_data: owner,
+                    title: targetProduct.name
+                });
+
+                if (base64Data) {
+                    assembledPdfBase64 = base64Data;
+
+                    const tgApp = window.Telegram?.WebApp;
+                    const isMobile = (tgApp && (tgApp.platform === 'android' || tgApp.platform === 'ios')) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                    if (!isMobile) {
+                        const byteCharacters = atob(base64Data);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) {
+                            byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        }
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const blob = new Blob([byteArray], { type: 'application/pdf' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const cleanName = (targetProduct.name || 'Dispensa').replace(/[^a-zA-Z0-9]/g, '_');
+                        a.download = `${cleanName}_${targetProduct.sku}.pdf`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                    }
+
+                    if (tgApp && tgApp.showAlert) {
+                        tgApp.showAlert("✅ Guida PDF ad alta definizione generata con successo!");
+                    } else {
+                        alert("✅ Guida PDF ad alta definizione generata con successo!");
+                    }
+                } else {
+                    alert("⚠️ Impossibile generare il PDF. Riprova.");
+                }
+            } catch (err) {
+                console.error("Errore export PDF:", err);
+                alert("Errore durante l'esportazione del PDF: " + err.message);
+            } finally {
+                window.hideLoader();
+            }
+        }
+
+        // ═════════════════════════════════════════════════════════════════════
+        // DEPLOY STORE: SALVATAGGIO ASSET VIA SAVE_IMAGE & PUBBLICAZIONE CATALOGO
+        // ═════════════════════════════════════════════════════════════════════
+        async function deployToTrinAiStore() {
+            if (generatedPagesHTML.length === 0) {
+                alert("Nessuna pagina generata. Completa prima la stesura dei capitoli.");
+                return;
+            }
+
+            const rawPrice = typeof targetProduct.price === 'string'
+                ? parseFloat(targetProduct.price.replace('€', '').replace(',', '.').trim())
+                : parseFloat(targetProduct.price);
+            const numericPrice = (!isNaN(rawPrice) && rawPrice > 0) ? rawPrice : 6.99;
+            const pricePoints = Math.round(numericPrice * 200);
+
+            const owner = {
+                ragione_sociale: targetProduct.ragione_sociale || "TRINAI SRL",
+                vat_number: vatNumber || "02564250849"
+            };
+
+            window.showLoader("Pubblicazione sullo Store TrinAi...", "Compilazione PDF, upload asset e registrazione catalogo...");
+
+            try {
+                // 1. Assicuriamoci che il PDF base64 sia generato tramite CatalogPrintEngine.printAiGuide()
+                if (!assembledPdfBase64) {
+                    const multiPageHtml = buildMultiPageHtmlForEngine(generatedPagesHTML, owner);
+                    assembledPdfBase64 = await CatalogPrintEngine.printAiGuide({
+                        html_content: multiPageHtml,
+                        owner_data: owner,
+                        title: targetProduct.name
+                    });
+                }
+
+                if (!assembledPdfBase64) {
+                    throw new Error("Generazione del base64 PDF fallita.");
+                }
+
+                // 2. Chiamata a deploy_store sul backend n8n
+                const deployPayload = {
+                    action: "deploy_store",
+                    pdf_base64: assembledPdfBase64,
+                    vat_number: vatNumber || "02564250849",
+                    sku: targetProduct.sku,
+                    title: targetProduct.name,
+                    category: targetProduct.category || "Asset Digitali",
+                    vertical: targetProduct.vertical || "generic",
+                    price: numericPrice,
+                    total_pages: generatedPagesHTML.length,
+                    owner_data: owner,
+                    ash: ashToken
+                };
+
+                const res = await fetch(GUIDE_BUILDER_WEBHOOK, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(deployPayload)
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+                const result = await res.json();
+                window.hideLoader();
+
+                const storeUrl = result.store_url || `https://trinai.it/store/digital-asset/${vatNumber}/${targetProduct.sku}`;
+                const calculatedPoints = result.price_points || pricePoints;
+
+                const successMsg = `🚀 PUBBLICAZIONE MARKETPLACE TRINAI COMPLETATA!\n\n` +
+                    `• Prodotto: "${targetProduct.name}"\n` +
+                    `• Formato: Dispensa PDF HD (${generatedPagesHTML.length} Pagine)\n` +
+                    `• Prezzo Listino: ${numericPrice.toFixed(2)} €\n` +
+                    `• Equivalente Punti Minigame: ${calculatedPoints} Punti (1€ = 200 pt)\n` +
+                    `• URL Store: ${storeUrl}\n\n` +
+                    `I ricavi generati da ciascuna vendita verranno accreditati automaticamente sul bilancio crediti SiteBoS!`;
+
+                if (tg && tg.showAlert) {
+                    tg.showAlert(successMsg);
+                } else {
+                    alert(successMsg);
+                }
+
+                const btnDeploy = document.getElementById('btn-deploy-trinai');
+                if (btnDeploy) {
+                    btnDeploy.innerHTML = '<i class="fas fa-check-circle text-emerald-300"></i> Pubblicato su TrinAi Store';
+                    btnDeploy.classList.remove('from-blue-600', 'to-indigo-600');
+                    btnDeploy.classList.add('bg-emerald-600');
+                }
+            } catch (err) {
+                console.error("Errore deploy store:", err);
+                window.hideLoader();
+                alert("Errore durante la pubblicazione sullo store: " + err.message);
+            }
         }
     </script>
 </body>

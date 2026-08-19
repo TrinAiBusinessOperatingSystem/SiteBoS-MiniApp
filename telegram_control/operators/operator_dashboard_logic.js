@@ -810,8 +810,17 @@ function launchJobExecution() {
   closePreJobModal();
   
   const isOnsite = activeClaimedJob?.is_onsite !== false;
-  const targetPage = isOnsite ? 'operator_task_create.html' : '../operativita/pianificazione_itinerari.html';
-  window.location.href = `${targetPage}?job_id=${encodeURIComponent(activeClaimedJob?._id || '')}&ash=${encodeURIComponent(ash)}`;
+  const targetPage = isOnsite ? 'operator_task_create.html' : 'outbound_mission.html';
+  window.location.href = `${targetPage}?job_id=${encodeURIComponent(activeClaimedJob?._id || activeClaimedJob?.job_id || '')}&ash=${encodeURIComponent(ash || '')}`;
+}
+
+function launchOutboundMission() {
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+  
+  const offsiteJob = currentShelfJobs.find(j => j.is_onsite === false || j.job_type === 'outbound_mission') || currentShelfJobs[0];
+  const targetJobId = offsiteJob ? (offsiteJob.job_id || offsiteJob._id) : ('job_outbound_' + Date.now());
+  
+  window.location.href = `outbound_mission.html?job_id=${encodeURIComponent(targetJobId)}&ash=${encodeURIComponent(ash || '')}`;
 }
 
 // ============================================
