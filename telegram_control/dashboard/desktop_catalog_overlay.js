@@ -33,7 +33,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     _auth: tg?.initData || '',
-                    ash: overlayAsh,
+                    ash: overlayLockToken || overlayAsh,
                     scope: OVERLAY_LOCK_SCOPE,
                     platform: platform,
                     action: 'acquire',
@@ -68,6 +68,7 @@
 
     // Parametri di Sessione
     let overlayAsh = '';
+    let overlayLockToken = '';
     let overlayMsg = '';
 
     // ─── GUARD ANTI-RACE-CONDITION (Fetch Async Interne) ────────────────────
@@ -173,24 +174,36 @@
 
     /**
      * Inizializza i parametri di sessione ash e msg
+     * Priorità 1: Parametro 'ash' dall'URL (Pattern identico a catalog.html mobile)
+     * Priorità 2: Fallback sessionStorage solo se assente da URL
      */
     function initSessionParams() {
-        try {
-            const stored = sessionStorage.getItem('sitebos_access_token');
-            if (stored) {
-                overlayAsh = stored;
-                const urlParams = new URLSearchParams(window.location.search);
-                overlayMsg = urlParams.get('msg') || urlParams.get('message_id') || '';
-                return;
-            }
-        } catch (_) {}
         const urlParams = new URLSearchParams(window.location.search);
-        overlayAsh = urlParams.get('ash') || '';
+        let paramAsh = urlParams.get('ash') || '';
         overlayMsg = urlParams.get('msg') || urlParams.get('message_id') || '';
-        if (overlayAsh.includes('?msg=')) {
-            const parts = overlayAsh.split('?msg=');
-            overlayAsh = parts[0];
+
+        if (paramAsh.includes('?msg=')) {
+            const parts = paramAsh.split('?msg=');
+            paramAsh = parts[0];
             if (!overlayMsg) overlayMsg = parts[1];
+        }
+
+        // Priorità assoluta all'ash reale da URL
+        if (paramAsh) {
+            overlayAsh = paramAsh;
+        } else {
+            try {
+                overlayAsh = sessionStorage.getItem('sitebos_ash') || sessionStorage.getItem('sitebos_access_token') || '';
+            } catch (_) {
+                overlayAsh = '';
+            }
+        }
+
+        // Token dedicato esclusivamente al lock cross-platform
+        try {
+            overlayLockToken = sessionStorage.getItem('sitebos_access_token') || overlayAsh;
+        } catch (_) {
+            overlayLockToken = overlayAsh;
         }
     }
 
@@ -449,7 +462,7 @@
                 const platform = window.innerWidth < 768 ? 'mobile' : 'desktop';
                 const payload = JSON.stringify({
                     _auth: tg?.initData || '',
-                    ash: overlayAsh,
+                    ash: overlayLockToken || overlayAsh,
                     scope: OVERLAY_LOCK_SCOPE,
                     platform: platform,
                     action: 'release'
@@ -613,6 +626,99 @@
     }
 
     /**
+     * Helper unificato per dialog di conferma (Telegram WebApp showConfirm con fallback su confirm nativo)
+     */
+    function showConfirmation(message, onConfirm) {
+        const tg = window.Telegram?.WebApp;
+        if (tg && typeof tg.showConfirm === 'function') {
+            tg.showConfirm(message, (ok) => {
+                if (ok) onConfirm();
+            });
+        } else {
+            if (window.confirm(message)) {
+                onConfirm();
+            }
+        }
+    }
+
+    /**
+     * Eliminazione Categoria (Stessa action webhook di catalog.html mobile)
+     */
+    async function deleteCategoryDesktop(categoryId, categoryName) {
+        if (!categoryId) return;
+        const displayName = categoryName || cleanLabelText(categoryId);
+        showConfirmation(`Eliminare la categoria ${displayName}?`, async () => {
+            initSessionParams();
+            const tg = window.Telegram?.WebApp;
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete_category',
+                        _auth: tg?.initData || '',
+                        ash: overlayAsh,
+                        msg: overlayMsg,
+                        category_id: categoryId
+                    })
+                });
+                cachedCatalog = null;
+                await renderOverlayContent();
+            } catch (e) {
+                console.error('[CatalogOverlay] Errore eliminazione categoria:', e);
+                alert("Errore durante l'eliminazione della categoria.");
+            }
+        });
+    }
+
+    /**
+     * Eliminazione Voce / Prodotto (Stessa action webhook di catalog.html mobile)
+     */
+    async function deleteProductDesktop(productId, productName) {
+        if (!productId) return;
+        const displayName = productName || cleanLabelText(productId);
+        showConfirmation(`Eliminare la voce ${displayName}?`, async () => {
+            initSessionParams();
+            const tg = window.Telegram?.WebApp;
+            try {
+                const res = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'delete_product',
+                        _auth: tg?.initData || '',
+                        ash: overlayAsh,
+                        msg: overlayMsg,
+                        product_id: productId
+                    })
+                });
+                cachedCatalog = null;
+                const freshCatalog = await fetchCatalogData();
+                if (activeCategory) {
+                    const updatedCat = (freshCatalog || []).find(c =>
+                        (c.callback_data && c.callback_data === activeCategory.callback_data) ||
+                        (c.name && c.name === activeCategory.name)
+                    );
+                    activeCategory = updatedCat || null;
+                    if (!activeCategory) {
+                        overlayViewLevel = 'categories';
+                    }
+                }
+                if (overlayViewLevel === 'actions') {
+                    overlayViewLevel = 'items';
+                    activeProduct = null;
+                    overlayProductData = null;
+                    overlaySopId = null;
+                }
+                await renderOverlayContent();
+            } catch (e) {
+                console.error('[CatalogOverlay] Errore eliminazione voce:', e);
+                alert("Errore durante l'eliminazione della voce.");
+            }
+        });
+    }
+
+    /**
      * Compilazione della Lista delle Action Card per il Livello 3
      */
     function compileActionCardsOverlay() {
@@ -704,6 +810,17 @@
             icon: 'fa-print',
             badge: 'PDF PRINT',
             action: () => printSingleServiceDesktop()
+        });
+
+        // 9. Elimina Voce
+        list.push({
+            id: 'delete',
+            label: 'Elimina Voce',
+            desc: 'Elimina definitivamente questo elemento dal catalogo aziendale.',
+            icon: 'fa-trash-can',
+            badge: 'ELIMINA',
+            danger: true,
+            action: () => deleteProductDesktop(overlaySopId, cleanLabelText(activeProduct.short_name || activeProduct.name))
         });
 
         return list;
@@ -893,19 +1010,20 @@
                 `;
             } else {
                 filteredActions.forEach(card => {
+                    const isDanger = card.danger === true;
                     html += `
-                        <div onclick="window.DesktopCatalogOverlay.triggerAction('${card.id}')" class="group relative bg-white border border-slate-200 hover:border-blue-500/80 rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer">
+                        <div onclick="window.DesktopCatalogOverlay.triggerAction('${card.id}')" class="group relative bg-white border ${isDanger ? 'border-rose-200 hover:border-rose-500/80' : 'border-slate-200 hover:border-blue-500/80'} rounded-2xl p-5 flex flex-col justify-between shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer">
                             <div>
                                 <div class="flex items-center justify-between mb-3.5">
-                                    <div class="w-11 h-11 rounded-xl bg-slate-900 text-white border border-slate-800 text-lg flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
+                                    <div class="w-11 h-11 rounded-xl ${isDanger ? 'bg-rose-50 border border-rose-200 text-rose-600' : 'bg-slate-900 text-white border border-slate-800'} text-lg flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
                                         <i class="fas ${card.icon}"></i>
                                     </div>
-                                    <span class="px-2.5 py-1 rounded-full border border-blue-200 bg-blue-50 text-blue-700 text-[9px] font-black uppercase tracking-widest">
+                                    <span class="px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${isDanger ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-blue-50 text-blue-700 border-blue-200'}">
                                         ${card.badge}
                                     </span>
                                 </div>
 
-                                <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1.5">
+                                <h3 class="text-xs font-black uppercase ${isDanger ? 'text-rose-600' : 'text-slate-900'} leading-tight group-hover:${isDanger ? 'text-rose-700' : 'text-blue-600'} transition mb-1.5">
                                     ${card.label}
                                 </h3>
                                 <p class="text-[11px] text-slate-500 font-medium line-clamp-2 leading-relaxed mb-4">
@@ -915,10 +1033,10 @@
 
                             <div class="pt-3 border-t border-slate-100 flex items-center justify-between mt-auto">
                                 <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                                    GESTISCI
+                                    ${isDanger ? 'ELIMINAZIONE' : 'GESTISCI'}
                                 </span>
-                                <button class="px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-blue-600 text-white font-black text-[10px] uppercase tracking-wider transition shadow-xs">
-                                    APRI ➔
+                                <button class="px-3.5 py-1.5 rounded-xl ${isDanger ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-slate-900 hover:bg-blue-600 text-white'} font-black text-[10px] uppercase tracking-wider transition shadow-xs">
+                                    ${isDanger ? 'ELIMINA 🗑️' : 'APRI ➔'}
                                 </button>
                             </div>
                         </div>
@@ -954,9 +1072,14 @@
                                     <div class="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 text-xl flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
                                         ${prodIcon || (item.icon || '💡')}
                                     </div>
-                                    <span class="px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${isReady ? 'bg-slate-900 text-white border-slate-800' : 'bg-slate-100 text-slate-700 border-slate-200'}">
-                                        ${isReady ? 'ATTIVO' : 'SUGGERITO'}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${isReady ? 'bg-slate-900 text-white border-slate-800' : 'bg-slate-100 text-slate-700 border-slate-200'}">
+                                            ${isReady ? 'ATTIVO' : 'SUGGERITO'}
+                                        </span>
+                                        <button onclick="event.stopPropagation(); window.DesktopCatalogOverlay.deleteProduct('${(item.callback_data || '').replace(/'/g, "\\'")}', '${prodShort.replace(/'/g, "\\'")}')" class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-slate-400 hover:text-rose-600 flex items-center justify-center text-xs transition cursor-pointer active:scale-90" title="Elimina Voce">
+                                            <i class="fas fa-trash text-[10px]"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1.5">
@@ -1016,9 +1139,14 @@
                                     <div class="w-11 h-11 rounded-xl bg-blue-50 border border-blue-200 text-xl flex items-center justify-center shadow-xs group-hover:scale-105 transition duration-200">
                                         ${catIcon}
                                     </div>
-                                    <span class="px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${macroBadge}">
-                                        ${macroLabel}
-                                    </span>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-2.5 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${macroBadge}">
+                                            ${macroLabel}
+                                        </span>
+                                        <button onclick="event.stopPropagation(); window.DesktopCatalogOverlay.deleteCategory('${catKey}', '${cleanCatTitle.replace(/'/g, "\\'")}')" class="w-7 h-7 rounded-lg bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-slate-400 hover:text-rose-600 flex items-center justify-center text-xs transition cursor-pointer active:scale-90" title="Elimina Categoria">
+                                            <i class="fas fa-trash text-[10px]"></i>
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <h3 class="text-xs font-black uppercase text-slate-900 leading-tight group-hover:text-blue-600 transition mb-1.5">
@@ -1177,6 +1305,8 @@
 
         openAddCategory: openAddCategoryWindow,
         openAddProduct: openAddProductWindow,
+        deleteCategory: deleteCategoryDesktop,
+        deleteProduct: deleteProductDesktop,
         bringToFront: bringOverlayToFront
     };
 
