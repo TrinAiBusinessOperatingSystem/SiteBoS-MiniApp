@@ -12,6 +12,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --accent: #229ED9;
+            --accent-text: #ffffff;
+            --accent-glow: rgba(34, 158, 217, 0.35);
+            --accent-subtle: rgba(34, 158, 217, 0.12);
+            --accent-border: rgba(34, 158, 217, 0.25);
+        }
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #ffffff;
@@ -1989,16 +1996,55 @@
             modal.classList.add('hidden');
         }
 
+        function applyThemeAccent(accentHex) {
+            var hex = accentHex || '#229ED9';
+            if (!hex.startsWith('#')) hex = '#' + hex;
+            if (hex.length === 4) hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+            var num = parseInt(hex.replace('#', ''), 16);
+            var r = isNaN(num) ? 34 : (num >> 16) & 255;
+            var g = isNaN(num) ? 158 : (num >> 8) & 255;
+            var b = isNaN(num) ? 217 : num & 255;
+            var luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+            var textOnAccent = luminance > 180 ? '#0f172a' : '#ffffff';
+            var glowRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.35)';
+            var subtleBgRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.12)';
+            var borderRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.25)';
+
+            document.documentElement.style.setProperty('--accent', hex);
+            document.documentElement.style.setProperty('--accent-text', textOnAccent);
+            document.documentElement.style.setProperty('--accent-glow', glowRgba);
+            document.documentElement.style.setProperty('--accent-subtle', subtleBgRgba);
+            document.documentElement.style.setProperty('--accent-border', borderRgba);
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram?.WebApp) {
                 window.Telegram.WebApp.ready();
                 window.Telegram.WebApp.expand();
             }
+
+            try {
+                var urlParams = new URLSearchParams(window.location.search);
+                var vat = urlParams.get('vat');
+                if (vat) {
+                    var cached = localStorage.getItem('sitebos_' + vat + '_owner_data');
+                    if (cached) {
+                        var parsed = JSON.parse(cached);
+                        if (parsed && parsed.theme_accent) {
+                            applyThemeAccent(parsed.theme_accent);
+                        }
+                    }
+                }
+            } catch (e) {}
+
             if (window.SitebosPassport) {
                 window.SitebosPassport.load().then(p => {
                     if (p && p.network_loyalty && typeof p.network_loyalty.points_balance === 'number') {
                         userWallet.total_points = p.network_loyalty.points_balance;
                         updateWalletUI();
+                    }
+                    if (p && p.theme_accent) {
+                        applyThemeAccent(p.theme_accent);
                     }
                 });
             }

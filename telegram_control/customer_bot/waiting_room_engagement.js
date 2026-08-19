@@ -32,7 +32,38 @@
     } catch (e) {}
   }
 
+  function getThemeAccent() {
+    var computedAccent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+    if (computedAccent) return computedAccent;
+    try {
+      var tenantId = window.SITEBOS_TENANT_ID || new URLSearchParams(window.location.search).get('vat');
+      if (tenantId) {
+        var cached = localStorage.getItem('sitebos_' + tenantId + '_owner_data');
+        if (cached) {
+          var p = JSON.parse(cached);
+          if (p && p.theme_accent) return p.theme_accent;
+        }
+      }
+    } catch (e) {}
+    return '#1a1200';
+  }
+
+  function getAccentContrastColor(hex) {
+    if (!hex || hex === '#1a1200') return '#ffffff';
+    if (!hex.startsWith('#')) hex = '#' + hex;
+    if (hex.length === 4) hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+    var num = parseInt(hex.replace('#', ''), 16);
+    var r = isNaN(num) ? 26 : (num >> 16) & 255;
+    var g = isNaN(num) ? 18 : (num >> 8) & 255;
+    var b = isNaN(num) ? 0 : num & 255;
+    var lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    return lum > 180 ? '#0f172a' : '#ffffff';
+  }
+
   function buildModal() {
+    var accentBg = getThemeAccent();
+    var accentTextColor = getAccentContrastColor(accentBg);
+
     var overlay = document.createElement('div');
     overlay.id = 'sitebos-waitingroom-modal';
     overlay.className = 'fixed inset-0 z-[99999] flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm transition-all duration-300';
@@ -64,7 +95,7 @@
       
       // Bottone CTA
       '<button id="sitebos-waitingroom-cta" style="width:100%; padding:15px; border-radius:18px; ',
-      'background:#1a1200; color:#ffffff; font-weight:800; border:none; font-size:15px; box-shadow:0 8px 20px rgba(0,0,0,0.25); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">',
+      'background:' + accentBg + '; color:' + accentTextColor + '; font-weight:800; border:none; font-size:15px; box-shadow:0 8px 20px rgba(0,0,0,0.25); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">',
       '<span>Inizia a Giocare</span> <span style="font-size:18px;">➔</span></button>',
       
       '</div>'

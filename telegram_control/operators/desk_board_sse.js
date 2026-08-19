@@ -163,6 +163,17 @@
                 }
             });
 
+            // Evento 12: Cambio stato pausa/disponibilità operatore
+            eventSourceInstance.addEventListener('operator_status_changed', function (e) {
+                try {
+                    const data = JSON.parse(e.data);
+                    console.log('🟠/🟢 [SSE Event] Stato operatore modificato:', data);
+                    handleOperatorStatusChangedEvent(data);
+                } catch (err) {
+                    console.error('❌ Errore parsing evento SSE operator_status_changed:', err);
+                }
+            });
+
 
 
             eventSourceInstance.onerror = function () {
@@ -202,6 +213,17 @@
 
     function handleJobCreatedEvent(data) {
         if (typeof window.refreshBoard === 'function') {
+            window.refreshBoard(true);
+        }
+    }
+
+    function handleOperatorStatusChangedEvent(data) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+        }
+        if (typeof window.handleOperatorStatusUpdate === 'function') {
+            window.handleOperatorStatusUpdate(data);
+        } else if (typeof window.refreshBoard === 'function') {
             window.refreshBoard(true);
         }
     }

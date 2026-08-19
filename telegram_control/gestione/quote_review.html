@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Revisione Preventivo | SiteBoS</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+    (function() {
+        // Riferimento locale e temporaneo all'SDK per il controllo iniziale
+        const tempTg = window.Telegram?.WebApp;
+        const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+
+        if (!isTelegramSession) {
+            const currentPath = window.location.pathname;
+            let redirectPath = "index.html";
+
+            if (currentPath.includes('/telegram_control/')) {
+                const parts = currentPath.split('/telegram_control/');
+                const subPath = parts[1] || '';
+                if (subPath.includes('/')) {
+                    redirectPath = "../../index.html";
+                } else {
+                    redirectPath = "../index.html";
+                }
+            }
+
+            window.location.replace(redirectPath);
+        }
+    })();
+
+    (function () {
+        if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+            document.documentElement.innerHTML = `
+                <body class="bg-black text-white flex items-center justify-center h-screen text-center p-10 font-sans">
+                    <div><h1 class="text-6xl mb-4">🚫</h1><h2 class="text-xl font-bold uppercase">Accesso Proibito</h2></div>
+                </body>`;
+            window.stop();
+        }
+    })();
+    </script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* SiteBoS Architect Alignment */
+        body { 
+            background-color: #fafafa !important; 
+            color: #000000 !important; 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .card, .section-card { 
+            background: white !important; 
+            border: 1px solid #eeeeee !important; 
+            box-shadow: none !important; 
+            border-radius: 1.5rem; 
+            padding: 1.25rem; 
+        }
+        input:focus, textarea:focus, select:focus { 
+            border-color: #000000 !important; 
+            box-shadow: none !important; 
+            outline: none !important; 
+        }
+        .label-micro { 
+            font-size: 9px; 
+            font-weight: 900; 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em; 
+            color: #6b7280; 
+            margin-left: 0.25rem; 
+            margin-bottom: 0.25rem; 
+            display: block; 
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader-spin { 
+            border: 3px solid #f3f3f3; 
+            border-top: 3px solid #000; 
+            border-radius: 50%; 
+            width: 28px; 
+            height: 28px; 
+            animation: spin 1s linear infinite; 
+        }
+        .fas, .far, .fal, .fab { 
+            font-weight: 900 !important; 
+            font-family: "Font Awesome 6 Free" !important; 
+        }
+        .fab {
+            font-family: "Font Awesome 6 Brands" !important;
+        }
+    </style>
+</head>
+<body class="safe-area-inset min-h-screen flex flex-col overflow-x-hidden text-sm">
+
+    <!-- HEADER -->
+    <header class="p-5 bg-white border-b border-gray-100 sticky top-0 z-50 flex justify-between items-center shadow-sm">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-sm">
+                <i class="fas fa-file-signature text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">Architect Desk</h1>
+                <p class="text-sm font-black tracking-tight">Revisione Preventivo</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="goBackToMenu()" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition" title="Torna al menu">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <button onclick="tg.close()" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition" title="Chiudi">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 p-5 space-y-6 max-w-xl mx-auto w-full pb-32">
+
+        <!-- STATUS BANNER (se già approvato o rifiutato) -->
+        <div id="status-banner" class="hidden p-4 rounded-2xl border text-xs font-bold flex items-center gap-3">
+            <div id="status-icon" class="text-lg"></div>
+            <div id="status-message" class="flex-1 leading-snug"></div>
+        </div>
+
+        <!-- ERROR MESSAGE -->
+        <div id="error-card" class="hidden p-6 bg-white border border-red-200 rounded-3xl text-center space-y-3">
+            <div class="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto text-xl font-black">
+                <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <h2 class="font-black uppercase tracking-tight text-sm text-red-800">Impossibile Caricare il Preventivo</h2>
+            <p id="error-text" class="text-xs text-gray-500 font-medium">Verifica i parametri di accesso e riprova.</p>
+        </div>
+
+        <!-- FORM REVISIONE -->
+        <div id="quote-form-container" class="space-y-6 hidden">
+
+            <!-- SEZIONE 1: IDENTIFICATIVO E SERVIZI SELEZIONATI (SOLA LETTURA) -->
+            <section class="section-card space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-concierge-bell text-xs text-gray-600"></i>
+                        <h2 class="font-black uppercase tracking-widest text-[10px]">Servizi Richiesti</h2>
+                    </div>
+                    <span id="display-quote-id" class="text-[9px] font-mono font-bold bg-gray-50 text-gray-500 px-2 py-1 rounded-lg border border-gray-100">...</span>
+                </div>
+
+                <div id="items-list" class="space-y-2">
+                    <!-- Popolato da Javascript -->
+                </div>
+            </section>
+
+            <!-- SEZIONE 2: QUADRO STRATEGICO DEL CLIENTE (SOLA LETTURA) -->
+            <section class="section-card space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <i class="fas fa-compass text-xs text-gray-600"></i>
+                    <h2 class="font-black uppercase tracking-widest text-[10px]">Esigenze e Contesto del Cliente</h2>
+                </div>
+
+                <div class="space-y-3">
+                    <div class="space-y-1">
+                        <span class="label-micro">Obiettivo Finale</span>
+                        <div id="display-goals" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-medium text-gray-800 leading-relaxed min-h-[40px] whitespace-pre-wrap">Nessun dettaglio specificato</div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <span class="label-micro">Stato Attuale e Azioni Già Provate</span>
+                        <div id="display-plans" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-medium text-gray-800 leading-relaxed min-h-[40px] whitespace-pre-wrap">Nessun dettaglio specificato</div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <span class="label-micro">Difficoltà e Ostacoli Principali</span>
+                        <div id="display-challenges" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-3 text-xs font-medium text-gray-800 leading-relaxed min-h-[40px] whitespace-pre-wrap">Nessun dettaglio specificato</div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div class="space-y-1">
+                            <span class="label-micro">Tempistica Desiderata</span>
+                            <div id="display-timeline" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-xs font-bold text-gray-800">Standard</div>
+                        </div>
+                        <div class="space-y-1">
+                            <span class="label-micro">Approccio al Budget</span>
+                            <div id="display-budget" class="w-full bg-gray-50 border border-gray-100 rounded-xl p-2.5 text-xs font-bold text-gray-800">Non specificato</div>
+                        </div>
+                    </div>
+
+                    <div id="attachments-block" class="space-y-1 pt-2 hidden">
+                        <span class="label-micro">Materiale e Documenti Allegati</span>
+                        <div id="attachments-list" class="grid grid-cols-3 gap-2"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEZIONE 3: PROPOSTA ECONOMICA E PIANO INTELLIGENZA ARTIFICIALE (EDITABILE) -->
+            <section class="section-card space-y-4 border-l-4 border-l-black">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-wand-magic-sparkles text-xs text-black"></i>
+                        <h2 class="font-black uppercase tracking-widest text-[10px]">Stima Economica e Piano Strategico</h2>
+                    </div>
+                    <span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-black text-white">Modificabile</span>
+                </div>
+
+                <p class="text-[10px] text-gray-500 font-medium leading-relaxed">
+                    I campi seguenti sono stati precompilati dal motore neurale. Puoi verificare e correggere i valori prima dell'invio finale al cliente.
+                </p>
+
+                <!-- FORCHETTA PREZZO -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="label-micro" for="input-price-min">Stima Prezzo Minimo Euro</label>
+                        <div class="relative">
+                            <input type="number" id="input-price-min" step="any" min="0" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-black text-black focus:border-black outline-none transition" placeholder="0">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">EUR</span>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-micro" for="input-price-max">Stima Prezzo Massimo Euro</label>
+                        <div class="relative">
+                            <input type="number" id="input-price-max" step="any" min="0" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-black text-black focus:border-black outline-none transition" placeholder="0">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">EUR</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SINTESI PIANO -->
+                <div class="space-y-1">
+                    <label class="label-micro" for="input-plan-summary">Sintesi della Soluzione Raccomandata</label>
+                    <textarea id="input-plan-summary" rows="4" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-medium text-black focus:border-black outline-none transition resize-none leading-relaxed" placeholder="Dettagli della soluzione proposta..."></textarea>
+                </div>
+
+                <!-- PROSSIMO PASSO -->
+                <div class="space-y-1">
+                    <label class="label-micro" for="input-next-step">Prossimo Passo Consigliato per il Cliente</label>
+                    <textarea id="input-next-step" rows="3" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-medium text-black focus:border-black outline-none transition resize-none leading-relaxed" placeholder="Indicazioni per procedere..."></textarea>
+                </div>
+            </section>
+
+            <!-- AZIONI DI APPROVAZIONE / RIFIUTO -->
+            <div id="action-buttons-container" class="space-y-3 pt-2">
+                <button type="button" onclick="submitApproval()" class="w-full h-14 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md active:scale-98 transition flex items-center justify-center gap-2 hover:bg-neutral-800">
+                    <i class="fas fa-check"></i>
+                    <span>Approva e Invia al Cliente</span>
+                </button>
+
+                <button type="button" onclick="submitRejection()" class="w-full h-12 bg-white text-red-600 border border-red-200 rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-98 transition flex items-center justify-center gap-2 hover:bg-red-50">
+                    <i class="fas fa-times"></i>
+                    <span>Rifiuta Preventivo</span>
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- GLOBAL LOADER -->
+    <div id="global-loader" class="fixed inset-0 bg-white/95 z-[500] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
+        <div class="loader-spin mb-4"></div>
+        <h3 id="loader-title" class="text-xs font-black uppercase tracking-widest text-black mb-1">Caricamento</h3>
+        <p id="loader-subtitle" class="text-[9px] text-gray-400 font-medium">Recupero dati del preventivo dal server...</p>
+    </div>
+
+    <script>
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+            if (tg.setBackgroundColor) tg.setBackgroundColor('#ffffff');
+            tg.expand();
+            tg.ready();
+        }
+
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/8eb69e84-d20d-486e-a70e-9acf31c3da9e";
+        const urlParams = new URLSearchParams(window.location.search);
+        let ashToken = urlParams.get('ash') || '';
+        let msgToken = urlParams.get('msg') || urlParams.get('message_id') || '';
+        let quoteId = urlParams.get('quote_id') || urlParams.get('quoteId') || '';
+
+        // Pulizia eventuale del formato sporco del token ash: TOKEN?msg=ID
+        if (ashToken && ashToken.includes('?msg=')) {
+            const parts = ashToken.split('?msg=');
+            ashToken = parts[0];
+            if (!msgToken) msgToken = parts[1];
+        }
+
+        window.goBackToMenu = function() {
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+            const ashVal = encodeURIComponent(ashToken || '');
+            const msgVal = encodeURIComponent(msgToken || '');
+            location.href = `../dashboard/dashboard.html?ash=${ashVal}&msg=${msgVal}&menu=identity_hub`;
+        };
+
+        if (tg?.BackButton) {
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => {
+                window.goBackToMenu();
+            });
+        }
+
+        let currentQuote = null;
+
+        window.onload = async () => {
+            if (!ashToken) {
+                showError("Parametro di autenticazione mancante.");
+                hideLoader();
+                return;
+            }
+            if (!quoteId) {
+                showError("Identificativo del preventivo non specificato nell'indirizzo.");
+                hideLoader();
+                return;
+            }
+            await fetchQuote();
+        };
+
+        function showLoader(title, subtitle) {
+            const l = document.getElementById('global-loader');
+            if (!l) return;
+            if (title) document.getElementById('loader-title').innerText = title;
+            if (subtitle) document.getElementById('loader-subtitle').innerText = subtitle;
+            l.classList.remove('hidden', 'opacity-0');
+        }
+
+        function hideLoader() {
+            const l = document.getElementById('global-loader');
+            if (!l) return;
+            l.classList.add('opacity-0');
+            setTimeout(() => l.classList.add('hidden'), 300);
+        }
+
+        function showError(message) {
+            const errCard = document.getElementById('error-card');
+            const errText = document.getElementById('error-text');
+            const formContainer = document.getElementById('quote-form-container');
+            if (errText) errText.innerText = message;
+            if (errCard) errCard.classList.remove('hidden');
+            if (formContainer) formContainer.classList.add('hidden');
+        }
+
+        async function fetchQuote() {
+            showLoader("Recupero Dati", "Lettura dettagli del preventivo...");
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg?.initData || '',
+                        ash: ashToken,
+                        action: 'get_quote_for_review',
+                        quote_id: quoteId
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.quote) {
+                    currentQuote = data.quote;
+                    renderQuote(data.quote);
+                    document.getElementById('quote-form-container').classList.remove('hidden');
+                } else {
+                    const msg = data.error || data.message || "Impossibile recuperare il preventivo richiesto.";
+                    showError(msg);
+                }
+            } catch (err) {
+                console.error("Errore fetchQuote:", err);
+                showError("Errore di connessione durante il caricamento del preventivo.");
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function formatTimelineLabel(val) {
+            switch (val) {
+                case 'IMMEDIATE':
+                    return 'Il prima possibile (entro 7 giorni)';
+                case '1_MONTH':
+                    return 'Entro un mese';
+                case '3_MONTHS':
+                    return 'Nei prossimi 3 mesi';
+                default:
+                    return val || 'Non specificato';
+            }
+        }
+
+        function formatBudgetLabel(val) {
+            switch (val) {
+                case 'LOW':
+                    return 'Essenziale (risoluzione necessità primaria)';
+                case 'MEDIUM':
+                    return 'Completo (bilanciamento valore e prezzo)';
+                case 'HIGH':
+                    return 'Prioritario (massima cura e standard superiori)';
+                default:
+                    return val || 'Non specificato';
+            }
+        }
+
+        function renderQuote(quote) {
+            // Display Quote ID
+            document.getElementById('display-quote-id').innerText = quote.quote_id || quoteId;
+
+            // Check Quote Status
+            const isPending = quote.status === 'PENDING_OWNER_APPROVAL';
+            const statusBanner = document.getElementById('status-banner');
+            const actionButtons = document.getElementById('action-buttons-container');
+
+            if (!isPending) {
+                statusBanner.classList.remove('hidden');
+                if (quote.status === 'APPROVED') {
+                    statusBanner.className = 'p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-green-50 border-green-200 text-green-800';
+                    document.getElementById('status-icon').innerHTML = '<i class="fas fa-check-circle text-green-600"></i>';
+                    const dateStr = quote.updated_at ? new Date(quote.updated_at).toLocaleDateString('it-IT') : '';
+                    document.getElementById('status-message').innerText = `Questo preventivo è già stato approvato${dateStr ? ' il ' + dateStr : ''}.`;
+                } else if (quote.status === 'REJECTED') {
+                    statusBanner.className = 'p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-red-50 border-red-200 text-red-800';
+                    document.getElementById('status-icon').innerHTML = '<i class="fas fa-times-circle text-red-600"></i>';
+                    const dateStr = quote.updated_at ? new Date(quote.updated_at).toLocaleDateString('it-IT') : '';
+                    document.getElementById('status-message').innerText = `Questo preventivo è già stato rifiutato${dateStr ? ' il ' + dateStr : ''}.`;
+                } else {
+                    statusBanner.className = 'p-4 rounded-2xl border text-xs font-bold flex items-center gap-3 bg-gray-50 border-gray-200 text-gray-800';
+                    document.getElementById('status-icon').innerHTML = '<i class="fas fa-info-circle text-gray-600"></i>';
+                    document.getElementById('status-message').innerText = `Stato attuale del preventivo: ${quote.status || 'Archiviato'}.`;
+                }
+
+                // Disabilita campi di input se non è pending
+                document.getElementById('input-price-min').disabled = true;
+                document.getElementById('input-price-max').disabled = true;
+                document.getElementById('input-plan-summary').disabled = true;
+                document.getElementById('input-next-step').disabled = true;
+                actionButtons.classList.add('hidden');
+            }
+
+            // Render Items List
+            const itemsContainer = document.getElementById('items-list');
+            const items = quote.items || [];
+            if (items.length === 0) {
+                itemsContainer.innerHTML = '<p class="text-xs text-gray-400 italic">Nessun servizio specificato nel preventivo.</p>';
+            } else {
+                itemsContainer.innerHTML = items.map(item => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-black shadow-2xs">
+                                <i class="fas fa-check text-[10px]"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-xs text-black leading-tight">${item.name || item.sku || 'Servizio'}</h3>
+                                <span class="text-[8px] font-mono text-gray-400 uppercase">${item.sku || 'SER'}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs font-black bg-white px-2.5 py-1 rounded-lg border border-gray-100 shadow-2xs">Quantità ${item.qty || 1}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render GPCTBA Context
+            const gpctba = quote.gpctba || {};
+            document.getElementById('display-goals').innerText = gpctba.goals || 'Nessun dettaglio specificato';
+            document.getElementById('display-plans').innerText = gpctba.plans || 'Nessun dettaglio specificato';
+            document.getElementById('display-challenges').innerText = gpctba.challenges || 'Nessun dettaglio specificato';
+            document.getElementById('display-timeline').innerText = formatTimelineLabel(gpctba.timeline);
+            document.getElementById('display-budget').innerText = formatBudgetLabel(gpctba.budget);
+
+            // Render Attachments if any
+            const attachments = quote.attachments || [];
+            const attachmentsBlock = document.getElementById('attachments-block');
+            const attachmentsList = document.getElementById('attachments-list');
+            if (attachments.length > 0) {
+                attachmentsBlock.classList.remove('hidden');
+                attachmentsList.innerHTML = attachments.map(att => {
+                    if (att.type && att.type.startsWith('image/')) {
+                        return `
+                            <div class="relative aspect-square rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                                <img src="${att.data}" class="w-full h-full object-cover" alt="${att.name || 'Allegato'}">
+                            </div>`;
+                    }
+                    return `
+                        <div class="flex flex-col items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl aspect-square text-center">
+                            <i class="fas fa-file-pdf text-xl text-gray-400 mb-1"></i>
+                            <span class="text-[8px] font-bold text-gray-600 truncate w-full px-1">${att.name || 'Documento'}</span>
+                        </div>`;
+                }).join('');
+            }
+
+            // Populate Editable AI fields (nidificati sotto ai_generated nel documento salvato dal backend)
+            const aiGenerated = quote.ai_generated || {};
+            document.getElementById('input-price-min').value = aiGenerated.price_estimate_min !== undefined ? aiGenerated.price_estimate_min : '';
+            document.getElementById('input-price-max').value = aiGenerated.price_estimate_max !== undefined ? aiGenerated.price_estimate_max : '';
+            document.getElementById('input-plan-summary').value = aiGenerated.recommended_plan_summary || '';
+            document.getElementById('input-next-step').value = aiGenerated.next_step_suggestion || '';
+        }
+
+        async function submitApproval() {
+            const minVal = document.getElementById('input-price-min').value;
+            const maxVal = document.getElementById('input-price-max').value;
+            const planSummary = document.getElementById('input-plan-summary').value.trim();
+            const nextStep = document.getElementById('input-next-step').value.trim();
+
+            const parsedMin = parseFloat(minVal);
+            const parsedMax = parseFloat(maxVal);
+
+            if (isNaN(parsedMin) || isNaN(parsedMax)) {
+                if (tg?.showAlert) {
+                    tg.showAlert("Inserisci una stima valida per i prezzi minimo e massimo.");
+                } else {
+                    alert("Inserisci una stima valida per i prezzi minimo e massimo.");
+                }
+                return;
+            }
+
+            if (parsedMin > parsedMax) {
+                if (tg?.showAlert) {
+                    tg.showAlert("Il prezzo minimo non può essere superiore al prezzo massimo.");
+                } else {
+                    alert("Il prezzo minimo non può essere superiore al prezzo massimo.");
+                }
+                return;
+            }
+
+            showLoader("Salvataggio", "Approvazione e invio al cliente in corso...");
+
+            try {
+                const payload = {
+                    _auth: tg?.initData || '',
+                    ash: ashToken,
+                    action: 'approve_quote',
+                    quote_id: quoteId,
+                    price_estimate_min: parsedMin,
+                    price_estimate_max: parsedMax,
+                    recommended_plan_summary: planSummary,
+                    next_step_suggestion: nextStep
+                };
+
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.success || response.ok) {
+                    if (tg?.HapticFeedback) {
+                        tg.HapticFeedback.notificationOccurred('success');
+                    }
+                    if (tg?.showAlert) {
+                        tg.showAlert("Preventivo approvato e inviato al cliente!", () => {
+                            if (tg.close) tg.close();
+                        });
+                    } else {
+                        alert("Preventivo approvato e inviato al cliente!");
+                    }
+                } else {
+                    const err = result.error || result.message || "Errore durante l'approvazione del preventivo.";
+                    if (tg?.showAlert) tg.showAlert(err);
+                    else alert(err);
+                }
+            } catch (err) {
+                console.error("Errore submitApproval:", err);
+                if (tg?.showAlert) tg.showAlert("Errore di connessione durante l'approvazione.");
+                else alert("Errore di connessione durante l'approvazione.");
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function submitRejection() {
+            const handleConfirm = async (confirmed) => {
+                if (!confirmed) return;
+
+                showLoader("Rifiuto in corso", "Aggiornamento stato preventivo...");
+
+                try {
+                    const payload = {
+                        _auth: tg?.initData || '',
+                        ash: ashToken,
+                        action: 'reject_quote',
+                        quote_id: quoteId
+                    };
+
+                    const response = await fetch(WH_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success || response.ok) {
+                        if (tg?.HapticFeedback) {
+                            tg.HapticFeedback.notificationOccurred('warning');
+                        }
+                        if (tg?.showAlert) {
+                            tg.showAlert("Preventivo rifiutato.", () => {
+                                if (tg.close) tg.close();
+                            });
+                        } else {
+                            alert("Preventivo rifiutato.");
+                        }
+                    } else {
+                        const err = result.error || result.message || "Errore durante il rifiuto del preventivo.";
+                        if (tg?.showAlert) tg.showAlert(err);
+                        else alert(err);
+                    }
+                } catch (err) {
+                    console.error("Errore submitRejection:", err);
+                    if (tg?.showAlert) tg.showAlert("Errore di connessione durante il rifiuto.");
+                    else alert("Errore di connessione durante il rifiuto.");
+                } finally {
+                    hideLoader();
+                }
+            };
+
+            if (tg?.showConfirm) {
+                tg.showConfirm("Rifiutare questo preventivo?", handleConfirm);
+            } else {
+                const confirmed = confirm("Rifiutare questo preventivo?");
+                handleConfirm(confirmed);
+            }
+        }
+    </script>
+</body>
+</html>

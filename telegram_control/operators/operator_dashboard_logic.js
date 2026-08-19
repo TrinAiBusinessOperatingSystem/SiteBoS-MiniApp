@@ -81,6 +81,7 @@ async function init() {
   try {
     await loadOperatorData();
     populateHeader();
+    updateOperatorStatusUI(getOperatorStatus());
     buildSatellites();
     setupOrbitEvents();
     hideLoader();
@@ -205,6 +206,100 @@ function populateHeader() {
     avatarDiv.innerHTML = `<i class="fas fa-microphone text-slate-900 text-lg"></i>`;
   }
 
+}
+
+// ============================================
+// OPERATOR AVAILABILITY & BREAK STATUS ENGINE
+// ============================================
+
+function getOperatorId() {
+  const raw = sessionStorage.getItem('stakeholder_raw');
+  if (raw) {
+    try {
+      const s = JSON.parse(raw);
+      if (s._id) return s._id;
+      if (s.operator_id) return s.operator_id;
+      if (s.sessionId) return s.sessionId;
+    } catch (_) {}
+  }
+  return ash || 'current_operator';
+}
+
+function getOperatorStatus() {
+  const opId = getOperatorId();
+  return localStorage.getItem(`sitebos_operator_${opId}_status`) || 'AVAILABLE';
+}
+
+function setOperatorAvailability(status, syncBackend = true) {
+  const opId = getOperatorId();
+  localStorage.setItem(`sitebos_operator_${opId}_status`, status);
+  updateOperatorStatusUI(status);
+
+  if (syncBackend) {
+    syncOperatorAvailabilityBackend(status, opId);
+  }
+}
+
+function toggleOperatorStatus() {
+  const current = getOperatorStatus();
+  const next = current === 'ON_BREAK' ? 'AVAILABLE' : 'ON_BREAK';
+  if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+  setOperatorAvailability(next, true);
+}
+
+function updateOperatorStatusUI(status) {
+  const btn = document.getElementById('btn-operator-status');
+  const dot = document.getElementById('operator-status-dot');
+  const text = document.getElementById('operator-status-text');
+  const heroBtn = document.getElementById('hero-claim-btn');
+
+  const isOnBreak = status === 'ON_BREAK';
+
+  if (btn && dot && text) {
+    if (isOnBreak) {
+      btn.className = "px-2 py-0.5 text-[8px] font-black uppercase rounded-lg border transition-all flex items-center gap-1 shadow-sm bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100";
+      dot.className = "w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse";
+      text.innerText = "🟠 IN PAUSA";
+    } else {
+      btn.className = "px-2 py-0.5 text-[8px] font-black uppercase rounded-lg border transition-all flex items-center gap-1 shadow-sm bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100";
+      dot.className = "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse";
+      text.innerText = "🟢 DISPONIBILE";
+    }
+  }
+
+  if (heroBtn) {
+    if (isOnBreak) {
+      heroBtn.classList.add('opacity-50', 'cursor-not-allowed', 'grayscale');
+      heroBtn.setAttribute('title', 'Sei in pausa — passa a Disponibile per prendere un lavoro');
+    } else {
+      heroBtn.classList.remove('opacity-50', 'cursor-not-allowed', 'grayscale');
+      heroBtn.removeAttribute('title');
+    }
+  }
+}
+
+async function syncOperatorAvailabilityBackend(status, opId) {
+  try {
+    const payload = {
+      action: 'set_operator_availability',
+      operator_id: opId,
+      status: status,
+      ash: ash,
+      _auth: tg.initData
+    };
+
+    const response = await fetch(API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      console.warn('Backend sync returned non-ok status');
+    }
+  } catch (err) {
+    console.warn('Sync operator status backend error (saved locally):', err);
+  }
 }
 
 // ============================================
@@ -635,6 +730,11 @@ async function refreshOperatorShelf() {
 }
 
 async function claimNextJobOnShelf() {
+  if (getOperatorStatus() === 'ON_BREAK') {
+    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+    alert("Sei in pausa — passa a Disponibile per prendere un lavoro");
+    return;
+  }
   if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
   
   const targetJob = currentShelfJobs.length > 0 ? currentShelfJobs[0] : {
@@ -651,6 +751,11 @@ async function claimNextJobOnShelf() {
 }
 
 function claimSpecificJob(jobId) {
+  if (getOperatorStatus() === 'ON_BREAK') {
+    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+    alert("Sei in pausa — passa a Disponibile per prendere un lavoro");
+    return;
+  }
   const job = currentShelfJobs.find(j => j._id === jobId) || currentShelfJobs[0];
   openPreJobModal(job);
 }
@@ -658,7 +763,7 @@ function claimSpecificJob(jobId) {
 function openPreJobModal(job) {
   activeClaimedJob = job;
   if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-  
+
   const modal = document.getElementById('prejob-copilot-modal');
   const titleEl = document.getElementById('copilot-job-title');
   const tipEl = document.getElementById('copilot-bigfive-tip');
@@ -666,11 +771,31 @@ function openPreJobModal(job) {
   const upsellEl = document.getElementById('copilot-upsell-pitch');
 
   if (titleEl) titleEl.innerText = `${job.title || 'JOB OPERATIVO'} — ~${job.blueprint_eta_minutes || 10} MIN`;
-  
+
   const agreeableness = operatorData?.big_five?.agreeableness || 85;
   if (tipEl) tipEl.innerText = `Hai un'elevata Amabilità (Agreeableness ${agreeableness}%). Usa il tuo tono empatico per accogliere il cliente e rassicurarlo sugli step.`;
-  if (safetyEl) safetyEl.innerText = job.is_safety_job ? `🦺 URGENTE D.Lgs. 81/08: Verificare indossamento visiera DPI e sanificazione previa con disinfettante ospedaliero.` : `Obbligatorio: Guanti in nitrile monouso e sanificazione postazione.`;
-  if (upsellEl) upsellEl.innerText = `Proponi l'add-on igienizzante empatico prima del risciacquo ("Noterà una sensazione di freschezza duratura").`;
+
+  // NUOVO: checklist di sicurezza reale dal blueprint/SOP del job, non più binaria
+  if (safetyEl) {
+    const checklist = Array.isArray(job.sop_checklist) ? job.sop_checklist : [];
+    if (checklist.length > 0) {
+      safetyEl.innerHTML = checklist.map(step =>
+        `<div class="flex items-center gap-2"><i class="fas ${step.completed ? 'fa-check-circle text-emerald-600' : 'fa-circle text-rose-400'}"></i> ${step.label}</div>`
+      ).join('');
+    } else if (job.is_safety_job) {
+      safetyEl.innerText = `🦺 URGENTE D.Lgs. 81/08: Verificare indossamento visiera DPI e sanificazione previa con disinfettante ospedaliero.`;
+    } else {
+      safetyEl.innerText = `Obbligatorio: Guanti in nitrile monouso e sanificazione postazione.`;
+    }
+  }
+
+  // NUOVO: upsell reale dal primo addon_reward disponibile del job, non più fisso
+  if (upsellEl) {
+    const addon = Array.isArray(job.addon_rewards) && job.addon_rewards.length > 0 ? job.addon_rewards[0] : null;
+    upsellEl.innerText = addon
+      ? `Proponi l'add-on "${addon.code || addon.name || 'consigliato'}" — coerente con lo sconto già sbloccato dal cliente.`
+      : `Proponi l'add-on igienizzante empatico prima del risciacquo ("Noterà una sensazione di freschezza duratura").`;
+  }
 
   if (modal) modal.classList.remove('hidden');
 }

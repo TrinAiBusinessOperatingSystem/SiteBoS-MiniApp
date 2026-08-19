@@ -31,6 +31,13 @@
       overflow: hidden;
       user-select: none;
     }
+    :root {
+      --accent: #229ED9;
+      --accent-text: #ffffff;
+      --accent-glow: rgba(34, 158, 217, 0.35);
+      --accent-subtle: rgba(34, 158, 217, 0.12);
+      --accent-border: rgba(34, 158, 217, 0.25);
+    }
     .glass-card {
       background: rgba(17, 24, 39, 0.75);
       backdrop-filter: blur(16px);
@@ -38,10 +45,24 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .btn-glow {
-      box-shadow: 0 0 25px rgba(34, 158, 217, 0.35);
+      box-shadow: 0 0 25px var(--accent-glow);
     }
     .btn-glow:active {
-      box-shadow: 0 0 10px rgba(34, 158, 217, 0.2);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    .accent-bg {
+      background-color: var(--accent) !important;
+      color: var(--accent-text) !important;
+    }
+    .accent-text {
+      color: var(--accent) !important;
+    }
+    .accent-border {
+      border-color: var(--accent) !important;
+    }
+    .spinner-accent {
+      border-color: var(--accent-subtle);
+      border-top-color: var(--accent) !important;
     }
     @keyframes pulseGlow {
       0%, 100% { opacity: 0.8; transform: scale(1); }
@@ -65,8 +86,8 @@
     <!-- STATO 1: Caricamento Iniziale -->
     <div id="stateLoading" class="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
       <div class="relative w-20 h-20 flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full border-2 border-[#229ED9]/20 border-t-[#229ED9] animate-spin"></div>
-        <i class="fa-solid fa-bolt text-2xl text-[#229ED9]"></i>
+        <div class="absolute inset-0 rounded-full border-2 spinner-accent animate-spin"></div>
+        <i class="fa-solid fa-bolt text-2xl accent-text"></i>
       </div>
       <p class="text-slate-300 font-medium text-base mt-2">Caricamento attività in corso...</p>
       <p class="text-slate-500 text-xs">Connessione sicura all'ecosistema SiTeBoS</p>
@@ -92,7 +113,7 @@
         <!-- Logo Badge con cornice luminosa -->
         <div class="w-24 h-24 rounded-2xl overflow-hidden border-4 border-[#090d16] bg-[#111827] shadow-2xl flex items-center justify-center relative">
           <img id="ownerLogo" class="w-full h-full object-cover" alt="Logo Azienda" style="display: none;" />
-          <div id="ownerLogoFallback" class="w-full h-full flex items-center justify-center bg-slate-800 text-[#229ED9]">
+          <div id="ownerLogoFallback" class="w-full h-full flex items-center justify-center bg-slate-800 accent-text">
             <i class="fa-solid fa-building text-3xl"></i>
           </div>
         </div>
@@ -114,7 +135,7 @@
 
       <!-- Sezione Inferiore: Pulsante Azione Primaria (CTA) -->
       <div class="p-6 pb-8 w-full z-10">
-        <button id="connectButton" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#229ED9] to-[#1e88be] text-white font-bold text-lg flex items-center justify-center gap-3 btn-glow pulse-subtle active:scale-[0.98] transition-transform duration-150">
+        <button id="connectButton" class="w-full py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 btn-glow pulse-subtle active:scale-[0.98] transition-transform duration-150 accent-bg">
           <i class="fa-brands fa-telegram text-2xl"></i>
           <span>Abilita la Nostra App</span>
         </button>
@@ -141,7 +162,7 @@
 
     <!-- STATO 4: Blocco Dispositivi Desktop (Mobile-Only) -->
     <div id="stateMobileOnly" class="hidden flex-1 flex flex-col items-center justify-center gap-5 px-8 text-center">
-      <div class="w-20 h-20 rounded-2xl bg-[#229ED9]/10 border border-[#229ED9]/20 flex items-center justify-center text-[#229ED9] text-3xl">
+      <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl accent-text" style="background-color: var(--accent-subtle); border: 1px solid var(--accent-border);">
         <i class="fa-solid fa-mobile-screen-button"></i>
       </div>
       <div>
@@ -151,7 +172,7 @@
         </p>
       </div>
       <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 max-w-xs">
-        <i class="fa-solid fa-qrcode mr-1 text-[#229ED9]"></i>
+        <i class="fa-solid fa-qrcode mr-1 accent-text"></i>
         Inquadra il codice QR o apri il link dal tuo telefono per continuare.
       </div>
     </div>
@@ -227,11 +248,37 @@
       vatNumber = vatNumber.trim();
       var storageKey = 'sitebos_' + vatNumber + '_owner_data';
 
+      // Funzione applicazione Colore Accento con guardrail di leggibilità (luminanza relativa)
+      function applyThemeAccent(accentHex) {
+        var hex = accentHex || '#229ED9';
+        if (!hex.startsWith('#')) hex = '#' + hex;
+        if (hex.length === 4) hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+        var num = parseInt(hex.replace('#', ''), 16);
+        var r = isNaN(num) ? 34 : (num >> 16) & 255;
+        var g = isNaN(num) ? 158 : (num >> 8) & 255;
+        var b = isNaN(num) ? 217 : num & 255;
+        // Formula luminanza relativa standard W3C (0.299*R + 0.587*G + 0.114*B)
+        var luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+        var textOnAccent = luminance > 180 ? '#0f172a' : '#ffffff';
+        var glowRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.35)';
+        var subtleBgRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.12)';
+        var borderRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.25)';
+
+        document.documentElement.style.setProperty('--accent', hex);
+        document.documentElement.style.setProperty('--accent-text', textOnAccent);
+        document.documentElement.style.setProperty('--accent-glow', glowRgba);
+        document.documentElement.style.setProperty('--accent-subtle', subtleBgRgba);
+        document.documentElement.style.setProperty('--accent-border', borderRgba);
+      }
+
       // 6. Controllo LocalStorage: Se i dati sono già salvati sul dispositivo, skippa direttamente aprendo il bot
       try {
         var cachedDataRaw = localStorage.getItem(storageKey);
         if (cachedDataRaw) {
           var cachedData = JSON.parse(cachedDataRaw);
+          if (cachedData && cachedData.theme_accent) {
+            applyThemeAccent(cachedData.theme_accent);
+          }
           if (cachedData && cachedData.bot_username) {
             var directDeepLink = 'https://t.me/' + cachedData.bot_username + '?start=' + encodeURIComponent(vatNumber);
             window.location.href = directDeepLink;
@@ -293,6 +340,9 @@
 
         var owner = data.owner_public;
 
+        // Applicazione Colore Accento Brand
+        applyThemeAccent(owner.theme_accent || '#229ED9');
+
         // Salvataggio dei dati ricevuti in LocalStorage per gli accessi futuri
         try {
           localStorage.setItem(storageKey, JSON.stringify({
@@ -302,6 +352,7 @@
             logo_url: owner.logo_url,
             photo_url: owner.photo_url,
             business_description: owner.business_description || '',
+            theme_accent: owner.theme_accent || '#229ED9',
             saved_at: new Date().toISOString()
           }));
         } catch (e) {

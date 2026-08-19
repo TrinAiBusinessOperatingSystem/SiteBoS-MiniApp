@@ -585,26 +585,58 @@
             if (badgeEl) badgeEl.textContent = `${operatorsList.length} attivi`;
             if (!container) return;
 
-            container.innerHTML = operatorsList.map(op => `
-                <div class="operator-pill bg-white border border-slate-200 hover:border-slate-900 rounded-2xl p-3 flex items-center justify-between shadow-sm"
+            container.innerHTML = operatorsList.map(op => {
+                const isOnBreak = op.status === 'ON_BREAK' || op.availability === 'ON_BREAK' || op.is_break;
+                const isFree = !isOnBreak && (op.status === 'FREE' || op.status === 'AVAILABLE' || !op.current_station);
+
+                let badgeHtml = '';
+                let avatarBg = '';
+                if (isOnBreak) {
+                    badgeHtml = `<span class="text-[9px] font-black px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">🟠 IN PAUSA</span>`;
+                    avatarBg = 'bg-amber-100 text-amber-900 border border-amber-300';
+                } else if (isFree) {
+                    badgeHtml = `<span class="text-[9px] font-black px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 LIBERO</span>`;
+                    avatarBg = 'bg-slate-900 text-white font-black';
+                } else {
+                    badgeHtml = `<span class="text-[9px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500">🔴 OCCUPATO</span>`;
+                    avatarBg = 'bg-slate-100 text-slate-700 border border-slate-200';
+                }
+
+                return `
+                <div class="operator-pill bg-white border ${isOnBreak ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200'} hover:border-slate-900 rounded-2xl p-3 flex items-center justify-between shadow-sm"
                      draggable="true"
                      data-operator-id="${op.operator_id}"
+                     data-status="${isOnBreak ? 'ON_BREAK' : (isFree ? 'FREE' : 'BUSY')}"
                      ondragstart="handleOperatorDragStart(event)">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-xl ${op.status === 'FREE' ? 'bg-slate-900 text-white font-black' : 'bg-slate-100 text-slate-700 border border-slate-200'} flex items-center justify-center font-bold text-xs">
+                        <div class="w-8 h-8 rounded-xl ${avatarBg} flex items-center justify-center font-bold text-xs">
                             ${op.operator_name.substr(0, 2).toUpperCase()}
                         </div>
                         <div>
                             <p class="text-slate-900 font-black text-xs">${escapeHtml(op.operator_name)}</p>
-                            <p class="text-[10px] text-slate-500">${op.current_station ? 'Postazione: ' + op.current_station : 'Nessuna postazione'}</p>
+                            <p class="text-[10px] text-slate-500">${isOnBreak ? 'In Pausa' : (op.current_station ? 'Postazione: ' + op.current_station : 'Nessuna postazione')}</p>
                         </div>
                     </div>
-                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-md ${op.status === 'FREE' ? 'bg-slate-900 text-white font-black' : 'bg-slate-100 text-slate-500'}">
-                        ${op.status === 'FREE' ? '● LIBERO' : '🔴 OCCUPATO'}
-                    </span>
+                    ${badgeHtml}
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
+
+        window.handleOperatorStatusUpdate = function(data) {
+            const opId = data.operator_id;
+            const newStatus = data.status; // 'AVAILABLE' | 'ON_BREAK'
+            const op = operatorsList.find(o => o.operator_id === opId || (o.operator_name && data.operator_name && o.operator_name === data.operator_name));
+            if (op) {
+                op.status = newStatus === 'ON_BREAK' ? 'ON_BREAK' : (op.current_station ? 'BUSY' : 'FREE');
+                op.availability = newStatus;
+                op.is_break = (newStatus === 'ON_BREAK');
+                renderOperatorsPanel();
+                showStatusToast(`Operatore ${op.operator_name}: ${newStatus === 'ON_BREAK' ? 'In Pausa 🟠' : 'Disponibile 🟢'}`, newStatus === 'ON_BREAK' ? 'amber' : 'emerald');
+            } else {
+                renderOperatorsPanel();
+            }
+        };
 
         /* ── LOGICA DRAG & DROP NATIVO ── */
         function handleOperatorDragStart(event) {

@@ -15,21 +15,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
+    :root {
+      --accent: #229ED9;
+      --accent-text: #ffffff;
+      --accent-glow: rgba(34, 158, 217, 0.35);
+      --accent-subtle: rgba(34, 158, 217, 0.12);
     }
-    html, body {
-      height: 100%;
-      height: 100dvh;
-      margin: 0;
-      padding: 0;
-      background: #090d16;
-      color: #ffffff;
-      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      overflow: hidden;
-      user-select: none;
+    .spinner-accent {
+      border-color: var(--accent-subtle);
+      border-top-color: var(--accent) !important;
+    }
+    .accent-text {
+      color: var(--accent) !important;
     }
   </style>
 </head>
@@ -41,8 +38,8 @@
 
   <main id="routerRoot" class="flex flex-col items-center justify-center gap-5 max-w-sm">
     <div class="relative w-20 h-20 flex items-center justify-center">
-      <div class="absolute inset-0 rounded-full border-2 border-[#229ED9]/20 border-t-[#229ED9] animate-spin"></div>
-      <i class="fa-solid fa-compass text-3xl text-[#229ED9]"></i>
+      <div class="absolute inset-0 rounded-full border-2 spinner-accent animate-spin"></div>
+      <i class="fa-solid fa-compass text-3xl accent-text"></i>
     </div>
     <div>
       <h1 id="statusTitle" class="text-xl font-bold text-white mb-1">Accesso in Corso...</h1>
@@ -72,6 +69,25 @@
       var urlParams = new URLSearchParams(window.location.search);
       var vatNumber = urlParams.get('vat');
 
+      function applyThemeAccent(accentHex) {
+        var hex = accentHex || '#229ED9';
+        if (!hex.startsWith('#')) hex = '#' + hex;
+        if (hex.length === 4) hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+        var num = parseInt(hex.replace('#', ''), 16);
+        var r = isNaN(num) ? 34 : (num >> 16) & 255;
+        var g = isNaN(num) ? 158 : (num >> 8) & 255;
+        var b = isNaN(num) ? 217 : num & 255;
+        var luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+        var textOnAccent = luminance > 180 ? '#0f172a' : '#ffffff';
+        var glowRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.35)';
+        var subtleBgRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.12)';
+
+        document.documentElement.style.setProperty('--accent', hex);
+        document.documentElement.style.setProperty('--accent-text', textOnAccent);
+        document.documentElement.style.setProperty('--accent-glow', glowRgba);
+        document.documentElement.style.setProperty('--accent-subtle', subtleBgRgba);
+      }
+
       if (!vatNumber) {
         // Tentativo di recupero da cache
         try {
@@ -83,6 +99,18 @@
               if (p.visited_owners && p.visited_owners.length > 0) {
                 vatNumber = p.visited_owners[p.visited_owners.length - 1].vat_number;
               }
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (vatNumber) {
+        try {
+          var cachedOwnerRaw = localStorage.getItem('sitebos_' + vatNumber + '_owner_data');
+          if (cachedOwnerRaw) {
+            var cachedOwner = JSON.parse(cachedOwnerRaw);
+            if (cachedOwner && cachedOwner.theme_accent) {
+              applyThemeAccent(cachedOwner.theme_accent);
             }
           }
         } catch (e) {}
@@ -106,6 +134,10 @@
         var passport = results[0];
         var proximity = results[1];
         var ownerData = results[2];
+
+        if (ownerData && ownerData.theme_accent) {
+          applyThemeAccent(ownerData.theme_accent);
+        }
 
         var verticalId = (ownerData && (ownerData.vertical_id || ownerData.business_vertical)) || 'generic';
         // Tassonomia ufficiale a 9 verticali (telegram_control/userguide/03b_verticals.html):

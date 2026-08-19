@@ -313,6 +313,21 @@
                     </label>
                 </div>
 
+                <!-- BRAND ACCENT COLOR PICKER -->
+                <div class="pt-2 border-t border-gray-50 space-y-2">
+                    <label class="label-micro" for="theme_accent">Colore Accento Brand</label>
+                    <div class="flex items-center gap-3">
+                        <div class="relative flex-1 flex items-center bg-white border border-gray-100 rounded-xl px-3 py-2">
+                            <input type="color" id="theme_accent" name="theme_accent" value="#229ED9" class="w-8 h-8 rounded-lg cursor-pointer border-0 bg-transparent p-0 mr-3" oninput="updateThemeAccentPreview(this.value)">
+                            <span id="theme_accent_hex" class="text-xs font-mono font-bold text-gray-700 uppercase">#229ED9</span>
+                        </div>
+                        <div id="theme_accent_preview" class="w-10 h-10 rounded-xl shadow-sm border border-gray-200 flex items-center justify-center text-white transition-colors" style="background-color: #229ED9;">
+                            <i class="fas fa-palette text-xs" id="theme_accent_preview_icon"></i>
+                        </div>
+                    </div>
+                    <p class="text-[8px] text-gray-400 italic ml-1">Colore primario utilizzato per pulsanti, glow ed elementi attivi nella MiniApp cliente.</p>
+                </div>
+
                 <div class="pt-2 border-t border-gray-50 flex justify-between items-center">
                     <div class="flex flex-col">
                         <span class="label-micro !m-0">Crediti Operatore</span>
@@ -523,7 +538,7 @@
 
         function populateForm(data) {
             const form = document.getElementById('owner-form');
-            const fields = ['name', 'surname', 'email', 'fiscal_code', 'vat_number', 'sdi_pec', 'phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'operator_credit', 'user_id', 'chat_id', 'payment_provider_token', 'esposizione_prezzi'];
+            const fields = ['name', 'surname', 'email', 'fiscal_code', 'vat_number', 'sdi_pec', 'phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'operator_credit', 'user_id', 'chat_id', 'payment_provider_token', 'esposizione_prezzi', 'theme_accent'];
             
             fields.forEach(f => {
                 const el = form.elements[f];
@@ -535,6 +550,13 @@
                     }
                 }
             });
+
+            // Set and preview theme accent
+            const currentAccent = data.theme_accent || '#229ED9';
+            if (form.elements['theme_accent']) {
+                form.elements['theme_accent'].value = currentAccent;
+            }
+            updateThemeAccentPreview(currentAccent);
 
             document.getElementById('display-user-id').innerText = data.user_id || 'N/A';
             document.getElementById('display-chat-id').innerText = data.chat_id || 'N/A';
@@ -571,6 +593,35 @@
                 ownerForm.addEventListener('change', checkDirtyState);
                 checkDirtyState();
             }, 100);
+        }
+
+        function updateThemeAccentPreview(color) {
+            const hex = color || '#229ED9';
+            const hexDisplay = document.getElementById('theme_accent_hex');
+            const previewBox = document.getElementById('theme_accent_preview');
+            const icon = document.getElementById('theme_accent_preview_icon');
+            if (hexDisplay) hexDisplay.textContent = hex.toUpperCase();
+            if (previewBox) previewBox.style.backgroundColor = hex;
+            
+            const rgb = hexToRgb(hex);
+            if (rgb && icon) {
+                const lum = 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b;
+                icon.style.color = lum > 180 ? '#111827' : '#ffffff';
+            }
+            checkDirtyState();
+        }
+
+        function hexToRgb(hex) {
+            if (!hex) return null;
+            let c = hex.replace('#', '');
+            if (c.length === 3) c = c.split('').map(x => x + x).join('');
+            const num = parseInt(c, 16);
+            if (isNaN(num)) return null;
+            return {
+                r: (num >> 16) & 255,
+                g: (num >> 8) & 255,
+                b: num & 255
+            };
         }
 
         let addettiArray = [];
@@ -633,7 +684,7 @@
             const form = document.getElementById('owner-form');
             const data = {};
             // Inviamo solo i campi modificabili per evitare di sovrascrivere dati fissi (int32, ID, etc.)
-            const editableFields = ['phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'payment_provider_token', 'esposizione_prezzi', 'omnisocials_api_key', 'nylas_grant_id'];
+            const editableFields = ['phone', 'ragione_sociale', 'sector', 'indirizzo', 'business_description', 'site', 'linkedin_page', 'facebook_page', 'instagram_page', 'twitter_page', 'gemini_key', 'bot_key', 'lenguage', 'payment_preference', 'owner_unavailable_time', 'operator_unavailable_time', 'payment_provider_token', 'esposizione_prezzi', 'omnisocials_api_key', 'nylas_grant_id', 'theme_accent'];
             
             editableFields.forEach(field => {
                 const el = form.elements[field];

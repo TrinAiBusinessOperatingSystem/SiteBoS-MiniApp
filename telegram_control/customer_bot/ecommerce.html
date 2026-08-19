@@ -46,7 +46,7 @@
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
@@ -61,8 +61,14 @@
     </script>
 
     <style>
-
 /* SiteBoS Architect Alignment */
+:root {
+    --accent: #229ED9;
+    --accent-text: #ffffff;
+    --accent-glow: rgba(34, 158, 217, 0.35);
+    --accent-subtle: rgba(34, 158, 217, 0.12);
+    --accent-border: rgba(34, 158, 217, 0.25);
+}
 body { background-color: #fafafa !important; color: #000000 !important; }
 .card, .section-card, .dark-card, .upload-box { 
     background: white !important; 
@@ -74,20 +80,66 @@ input:focus, textarea:focus, select:focus {
     box-shadow: none !important; 
     outline: none !important;
 }
-.text-primary, .text-black, .text-blue-600, .text-black { color: #000000 !important; }
-.bg-primary, .bg-black, .bg-black, .bg-black { background-color: #000000 !important; color: #ffffff !important; }
-.border-primary, .border-black, .border-blue-600, .border-black { border-color: #000000 !important; }
+.text-primary, .text-black, .text-blue-600 { color: #000000 !important; }
+.bg-primary, .bg-black { background-color: #000000 !important; color: #ffffff !important; }
+.border-primary, .border-black, .border-blue-600 { border-color: #000000 !important; }
 .spinner { border-top-color: #000 !important; }
 input[type="checkbox"]:checked { background-color: #000 !important; border-color: #000 !important; }
 /* Forza icone pesanti */
 .fas, .far, .fal { font-weight: 900 !important; font-family: "Font Awesome 6 Free" !important; }
 
-
-        body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #000000; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fafafa; color: #000000; -webkit-tap-highlight-color: transparent; user-select: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .bento-card { transition: all 0.2s ease; border: 1px solid #eeeeee; }
         .bento-card:active { transform: scale(0.97); background-color: #fcfcfc; }
         .safe-bottom { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+        
+        .overlay { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 400; background-color: #ffffff; position: fixed; inset: 0; }
+        .overlay-hidden { transform: translateX(100%); }
+        .modal-hidden { opacity: 0; pointer-events: none; }
+        .modal-hidden .modal-content { transform: translateY(100%); }
+        
+        select { -webkit-appearance: none; background: transparent; border: none; outline: none; width: 100%; }
+    </style>
+</head>
+<body class="safe-area-inset h-screen flex flex-col overflow-hidden text-sm">
+
+    <!-- HEADER (COMPACT) -->
+    <header class="bg-white border-b border-gray-100 sticky top-0 z-50 flex flex-col">
+        <div class="px-5 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div id="brand-logo" class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white shadow-md overflow-hidden">
+                    <i class="fas fa-shopping-bag text-sm"></i>
+                </div>
+                <div>
+                    <p id="customer-name" class="text-[9px] font-black tracking-widest text-gray-500 leading-none mb-1 uppercase truncate max-w-[100px]">Marketplace</p>
+                    <h1 class="font-black text-[11px] tracking-tight uppercase">SiteBoS Store</h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="btn-sono-qui" onclick="handleSonoQuiClick()" class="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-bold px-3 py-2 rounded-xl transition-all shadow-sm flex items-center gap-1.5 flex-shrink-0">
+                    <i class="fas fa-location-dot text-xs"></i>
+                    <span id="sono-qui-label">Sono Qui</span>
+                </button>
+                <button onclick="toggleHistory()" class="w-8 h-8 flex items-center justify-center text-gray-300"><i class="fas fa-history text-sm"></i></button>
+                <button onclick="tg.close()" class="w-8 h-8 flex items-center justify-center text-gray-300"><i class="fas fa-times text-lg"></i></button>
+            </div>
+        </div>
+        <div class="px-5 pb-3">
+            <div class="relative bg-gray-50 rounded-xl px-3 py-2 border border-gray-100 flex items-center">
+                <i class="fas fa-filter text-[9px] mr-2 opacity-20"></i>
+                <select id="category-select" onchange="filterCategory(this.value)" class="font-bold text-[10px] uppercase tracking-wider text-black">
+                    <option value="ALL">Tutti i prodotti</option>
+                </select>
+                <i class="fas fa-chevron-down text-[7px] absolute right-3 opacity-30"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main id="main-content" class="flex-1 overflow-y-scroll p-5 space-y-8 safe-bottom">
+        <section id="section-suggested" class="hidden">
+            <h2 class="text-[9px] font-black uppercase tracking-widest text-black mb-4 pl-3 border-l-2 border-black">Top Picks</h2>
             <div id="suggested-list" class="flex gap-3 overflow-x-auto no-scrollbar pb-1"></div>
         </section>
         <div id="catalog-container" class="space-y-8"></div>
@@ -134,7 +186,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                         </div>
                         <span id="modal-price" class="text-2xl font-black tracking-tighter"></span>
                     </div>
-                    <button id="modal-confirm-btn" onclick="confirmModalItem()" class="w-full bg-black text-white py-4 rounded-xl font-black text-[12px] uppercase tracking-widest active:scale-95 transition-all shadow-md">
+                    <button id="modal-confirm-btn" onclick="confirmModalItem()" class="w-full py-4 rounded-xl font-black text-[12px] uppercase tracking-widest active:scale-95 transition-all shadow-md" style="background-color: var(--accent); color: var(--accent-text);">
                         Aggiungi all'ordine
                     </button>
                 </div>
@@ -195,16 +247,14 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             <button onclick="toggleHistory()" class="text-gray-300 text-xl"><i class="fas fa-times-circle"></i></button>
         </header>
         <div id="history-list" class="flex-1 overflow-y-auto p-5 space-y-3 no-scrollbar"></div>
-    </div>
-
-    <!-- CHECKOUT BAR (MOBILE ONLY SLIM) -->
+    </div>    <!-- CHECKOUT BAR (MOBILE ONLY SLIM) -->
     <div id="checkout-bar" class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 z-[100] translate-y-full transition-transform duration-300 shadow-sm">
         <div class="flex items-center justify-between gap-4 max-w-md mx-auto">
             <div class="flex flex-col">
                 <span class="text-[8px] font-black uppercase tracking-widest text-gray-500">Totale</span>
                 <span id="total-price-bar" class="text-lg font-black tracking-tighter">€ 0,00</span>
             </div>
-            <button onclick="toggleSummary()" class="flex-1 h-12 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2">
+            <button onclick="toggleSummary()" class="flex-1 h-12 rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm" style="background-color: var(--accent); color: var(--accent-text);">
                 <span>Rivedi Ordine</span><i class="fas fa-arrow-right text-[8px]"></i>
             </button>
         </div>
@@ -212,7 +262,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
     <!-- LOADER -->
     <div id="global-loader" class="fixed inset-0 bg-white z-[600] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
-        <div class="w-10 h-10 border-2 border-gray-100 border-t-black rounded-full animate-spin mb-4"></div>
+        <div class="w-10 h-10 border-2 border-gray-100 rounded-full animate-spin mb-4" style="border-top-color: var(--accent);"></div>
         <p class="text-[8px] font-black uppercase tracking-[0.3em] text-gray-300">SiteBoS Engine...</p>
     </div>
 
@@ -230,6 +280,27 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         let catalog = [], categories = [], history = [], cart = {}, cartConfig = {}; 
         let imgRoot = "", vat = params.get('vat') || 'default', currentFilter = 'ALL', userCoords = null, paymentMode = 'DELIVERY';
         let activeSku = null, currentBasePrice = 0, modalLocalQty = 1, modalEditingKey = null;
+
+        function applyThemeAccent(accentHex) {
+            var hex = accentHex || '#229ED9';
+            if (!hex.startsWith('#')) hex = '#' + hex;
+            if (hex.length === 4) hex = '#' + hex[1] + hex[1] + hex[2] + hex[2] + hex[3] + hex[3];
+            var num = parseInt(hex.replace('#', ''), 16);
+            var r = isNaN(num) ? 34 : (num >> 16) & 255;
+            var g = isNaN(num) ? 158 : (num >> 8) & 255;
+            var b = isNaN(num) ? 217 : num & 255;
+            var luminance = (0.299 * r + 0.587 * g + 0.114 * b);
+            var textOnAccent = luminance > 180 ? '#0f172a' : '#ffffff';
+            var glowRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.35)';
+            var subtleBgRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.12)';
+            var borderRgba = 'rgba(' + r + ', ' + g + ', ' + b + ', 0.25)';
+
+            document.documentElement.style.setProperty('--accent', hex);
+            document.documentElement.style.setProperty('--accent-text', textOnAccent);
+            document.documentElement.style.setProperty('--accent-glow', glowRgba);
+            document.documentElement.style.setProperty('--accent-subtle', subtleBgRgba);
+            document.documentElement.style.setProperty('--accent-border', borderRgba);
+        }
 
         function getProductImageUrl(p) {
             return `https://minisite.trinai.it/${vat}/images/${p.callback_data}.jpg`;
@@ -251,6 +322,16 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         window.onload = async () => { 
             console.log("Window Loaded. Script pronto.");
+            try {
+                var cached = localStorage.getItem('sitebos_' + vat + '_owner_data');
+                if (cached) {
+                    var parsed = JSON.parse(cached);
+                    if (parsed && parsed.theme_accent) {
+                        applyThemeAccent(parsed.theme_accent);
+                    }
+                }
+            } catch (e) {}
+
             if (!ashToken) { 
                 console.error("Errore: ashToken mancante nell'URL");
                 tg.showAlert("ASH Token mancante."); 
@@ -295,6 +376,9 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     imgRoot = (d.urlMiniApp || "").replace('telegram_control/', '');
                     categories = [...new Set(catalog.map(p => p.category))];
                     if (d.payment_active) document.getElementById('pay-card').classList.remove('hidden');
+                    if (d.brand?.theme_accent || d.theme_accent) {
+                        applyThemeAccent(d.brand?.theme_accent || d.theme_accent);
+                    }
                     renderUI(d.brand || {});
                 } else {
                     console.error("Success false o dati mancanti:", d);
@@ -313,6 +397,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         function renderUI(brand) {
             document.getElementById('customer-name').innerText = (tg.initDataUnsafe.user?.first_name || "Cliente");
             if (brand.logo) document.getElementById('brand-logo').innerHTML = `<img src="${brand.logo}" class="w-full h-full object-cover">`;
+            if (brand.theme_accent) applyThemeAccent(brand.theme_accent);
             const select = document.getElementById('category-select');
             select.innerHTML = '<option value="ALL">TUTTI I PRODOTTI</option>';
             categories.forEach(cat => {
@@ -347,7 +432,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                                 <h3 class="font-black text-[7px] text-white uppercase tracking-tighter leading-none mb-1" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">${p.short_name || p.name}</h3>
                                 <p class="font-black text-[9px] text-white" style="text-shadow: 1px 1px 2px rgba(0,0,0,0.8)">€ ${parseFloat(p.price).toFixed(2)}</p>
                             </div>
-                            ${getProductQty(p.callback_data) > 0 ? `<div class="absolute top-1 right-1 bg-black text-white w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black border border-white z-10">${getProductQty(p.callback_data)}</div>` : ''}
+                            ${getProductQty(p.callback_data) > 0 ? `<div class="absolute top-1 right-1 w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black border border-white z-10 shadow-sm" style="background-color: var(--accent); color: var(--accent-text);">${getProductQty(p.callback_data)}</div>` : ''}
                         </div>
                     </div>`).join('');
             }
@@ -362,7 +447,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 const section = document.createElement('section');
                 section.id = `section-${cat.replace(/\s/g, '_')}`; section.className = "space-y-4";
                 section.innerHTML = `
-                    <h2 class="text-[9px] font-black uppercase tracking-widest text-black px-1 border-l-2 border-black ml-1 pl-3">${cat.replace('[PRO] ', '').replace('[SER] ', '')}</h2>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-black px-1 border-l-2 ml-1 pl-3" style="border-color: var(--accent);">${cat.replace('[PRO] ', '').replace('[SER] ', '')}</h2>
                     <div class="grid grid-cols-2 gap-3">
                         ${products.map(p => `
                             <div class="bg-white p-3 rounded-3xl bento-card space-y-3 relative overflow-hidden group border border-gray-50" onclick="openProduct('${p.callback_data}')">
@@ -375,10 +460,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                                         <span class="font-black text-xs">${p.pricing?.pricing_rules_engine?.is_dynamic_price ? '<span class="text-[7px] uppercase opacity-30 mr-0.5">da</span>' : ''}€ ${parseFloat(p.price).toFixed(2)}</span>
                                         <div class="flex items-center gap-1">
                                             ${getProductQty(p.callback_data) > 0 ? `
-                                                <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', -1)" class="w-7 h-7 bg-gray-50 rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-minus text-[7px]"></i></button>
+                                                 <button onclick="event.stopPropagation(); updateQty('${p.callback_data}', -1)" class="w-7 h-7 bg-gray-50 rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-minus text-[7px]"></i></button>
                                                 <span class="font-black text-[10px] min-w-[12px] text-center">${getProductQty(p.callback_data)}</span>
                                             ` : ''}
-                                            <button onclick="event.stopPropagation(); ${(p.commercial_setup?.extra_options?.length > 0 || p.commercial_setup?.allow_customer_notes) ? `openProduct('${p.callback_data}')` : `updateQty('${p.callback_data}', 1)`}" class="w-7 h-7 bg-black text-white rounded-full flex items-center justify-center active:scale-75 transition"><i class="fas fa-plus text-[7px]"></i></button>
+                                            <button onclick="event.stopPropagation(); ${(p.commercial_setup?.extra_options?.length > 0 || p.commercial_setup?.allow_customer_notes) ? `openProduct('${p.callback_data}')` : `updateQty('${p.callback_data}', 1)`}" class="w-7 h-7 rounded-full flex items-center justify-center active:scale-75 transition shadow-sm" style="background-color: var(--accent); color: var(--accent-text);"><i class="fas fa-plus text-[7px]"></i></button>
                                         </div>
                                     </div>
                                 </div>
