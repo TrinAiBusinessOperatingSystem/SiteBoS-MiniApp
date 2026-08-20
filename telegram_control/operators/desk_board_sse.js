@@ -310,6 +310,24 @@
                 handleOperatorStatusChangedEvent(data);
                 break;
 
+            // Evento 13: Check-in Visitatore Speciale (Tecnico, Commerciale, Ispettore, Corriere)
+            case 'special_visitor_checkin':
+                console.log('⚡ [Ably Event] Check-in Visitatore Speciale:', data);
+                handleSpecialVisitorCheckinEvent(data);
+                break;
+
+            // Evento 14: Fine Manutenzione Tecnica
+            case 'maintenance_ended':
+                console.log('🟢 [Ably Event] Manutenzione Terminata:', data);
+                handleMaintenanceEndedEvent(data);
+                break;
+
+            // Evento 15: Briefing Strategico Negoziale AI Pronto per Rappresentante Commerciale
+            case 'commercial_visit_briefing_ready':
+                console.log('💡 [Ably Event] Briefing Visita Commerciale Pronto:', data);
+                handleCommercialBriefingReadyEvent(data);
+                break;
+
             default:
                 console.warn(`[Ably Event] Evento non gestito specificamente: ${eventType}`, data);
                 if (typeof window.refreshBoard === 'function') {
@@ -441,6 +459,45 @@
         const clientName = data.customer_name || data.client_name || 'Cliente';
         showStatusToast(`🔴 ${clientName} ha RIFIUTATO il preventivo.`, 'red');
         if (typeof window.refreshBoard === 'function') {
+            window.refreshBoard(true);
+        }
+    }
+
+    function handleSpecialVisitorCheckinEvent(data) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        }
+        const name = data.visitor_name || data.client_name || data.role || 'Visitatore Speciale';
+        const roleLabel = data.role === 'TECHNICAL_CONTRACTOR' ? '🛠️ Tecnico Manutentore' :
+                          data.role === 'COMMERCIAL_REPRESENTATIVE' ? '💼 Rappresentante Commerciale' :
+                          data.role === 'AUDITOR' ? '📋 Ispettore / Auditor' :
+                          data.role === 'COURIER' ? '📦 Corriere' : 'Visitatore Speciale';
+        showStatusToast(`⚡ Check-in: ${roleLabel} (${name}) registrato!`, 'amber');
+        if (typeof window.refreshBoard === 'function') {
+            window.refreshBoard(true);
+        }
+    }
+
+    function handleMaintenanceEndedEvent(data) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+        const stId = data.station_id || data.event_ref || 'Postazione';
+        showStatusToast(`🟢 Manutenzione completata: ${stId} sbloccata e disponibile!`, 'emerald');
+        if (typeof window.refreshBoard === 'function') {
+            window.refreshBoard(true);
+        }
+    }
+
+    function handleCommercialBriefingReadyEvent(data) {
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+        const name = data.client_name || 'Rappresentante';
+        showStatusToast(`💡 Briefing Negoziale AI pronto per l'incontro con ${name}!`, 'emerald');
+        if (typeof window.handleCommercialBriefingReceived === 'function') {
+            window.handleCommercialBriefingReceived(data);
+        } else if (typeof window.refreshBoard === 'function') {
             window.refreshBoard(true);
         }
     }

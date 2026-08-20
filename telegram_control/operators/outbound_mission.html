@@ -7,6 +7,7 @@
     <title>SiTeBoS | Console Missione Outbound</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="twa_guard.js"></script>
+    <script src="offline_queue.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -44,9 +45,12 @@
     <!-- HEADER STRATEGICO MISSIONE (100% LIGHT TAILWIND) -->
     <header class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 backdrop-blur shadow-sm">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-[10px] font-black text-white bg-slate-900 px-2.5 py-0.5 rounded-full uppercase">
-                🚚 Missione Outbound
-            </span>
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] font-black text-white bg-slate-900 px-2.5 py-0.5 rounded-full uppercase">
+                    🚚 Missione Outbound
+                </span>
+                <div id="offline-sync-badge" class="hidden"></div>
+            </div>
             <span id="mission-batch-id" class="text-xs font-mono font-bold text-slate-400">#BATCH-CARICAMENTO...</span>
         </div>
         <h1 id="mission-client-name" class="text-base font-black text-slate-900">Caricamento Missione...</h1>
@@ -180,17 +184,44 @@
         });
 
         async function syncOutboundState(action, extraPayload = {}) {
+            const payload = {
+                action: action,
+                job_id: jobId,
+                ash: ash,
+                _auth: window.Telegram?.WebApp?.initData,
+                ...extraPayload
+            };
+
+            // Azioni di scrittura (GPS check-in, chiusura missione) avvolte con OfflineQueue
+            if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function' && (action === 'MARK_DONE' || action === 'GPS_CHECKIN')) {
+                const res = await window.OfflineQueue.executeOrEnqueue({
+                    url: API_OUTBOUND_ENDPOINT,
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payload,
+                    action_type: 'OUTBOUND_' + action,
+                    metadata: { job_id: jobId, action: action }
+                });
+
+                if (res.queued) {
+                    console.log(`📦 [OutboundOffline] Azione ${action} accodata con successo in memoria locale.`);
+                    return { status: 'success', queued: true };
+                }
+
+                if (res.response) {
+                    try {
+                        return await res.response.json();
+                    } catch (_) {
+                        return { status: res.ok ? 'success' : 'error' };
+                    }
+                }
+            }
+
             try {
                 const response = await fetch(API_OUTBOUND_ENDPOINT, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: action,
-                        job_id: jobId,
-                        ash: ash,
-                        _auth: window.Telegram?.WebApp?.initData,
-                        ...extraPayload
-                    })
+                    body: JSON.stringify(payload)
                 });
                 if (!response.ok) {
                     console.warn(`[OutboundState] Server status: ${response.status}`);

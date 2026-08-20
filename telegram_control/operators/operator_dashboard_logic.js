@@ -86,6 +86,10 @@ async function init() {
     setupOrbitEvents();
     hideLoader();
     
+    if (window.OfflineQueue && typeof window.OfflineQueue.updateBadge === 'function') {
+      window.OfflineQueue.updateBadge();
+    }
+    
     if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
   } catch (error) {
     console.error('Init error:', error);
@@ -287,6 +291,21 @@ async function syncOperatorAvailabilityBackend(status, opId) {
       ash: ash,
       _auth: tg.initData
     };
+
+    if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function') {
+      const res = await window.OfflineQueue.executeOrEnqueue({
+        url: API_ENDPOINT,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payload,
+        action_type: 'SET_OPERATOR_AVAILABILITY',
+        metadata: { operator_id: opId, status: status }
+      });
+      if (res.queued) {
+        console.log('📦 [OperatorStatus] Cambio stato operatore accodato in memoria locale per assenza di rete.');
+      }
+      return;
+    }
 
     const response = await fetch(API_ENDPOINT, {
       method: 'POST',
@@ -907,7 +926,7 @@ function deleteOwnerJob() {
   refreshOperatorShelf();
 }
 
-/* ── TRIGGER "AVANTI IL PROSSIMO" CON ASH SECURITY ED IDEMPOTENCY KEY ── */
+/* ── TRIGGER "AVANTI IL PROSSIMO" CON ASH SECURITY ED IDEMPOTENCY KEY (RESILIENTE OFFLINE) ── */
 async function handleNextJobTrigger(jobId, operatorId, activeSopDurationMin) {
     const btn = document.getElementById('btn-avanti-prossimo');
     if (btn) {
@@ -925,49 +944,173 @@ async function handleNextJobTrigger(jobId, operatorId, activeSopDurationMin) {
     };
 
     const ashHeader = (window.TwaGuard && window.TwaGuard.requireAsh) ? window.TwaGuard.requireAsh() : ('ash_trigger_' + Date.now());
-    const delays = [0, 1000, 2000, 4000];
-    let attempt = 0;
-    let success = false;
 
-    while (attempt < delays.length) {
-        if (delays[attempt] > 0) {
-            await new Promise(r => setTimeout(r, delays[attempt]));
-        }
-        try {
-            const res = await fetch('/webhook/job-complete-trigger', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Authorized-Session-Hash': ashHeader
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (res.status === 200 || res.status === 201) {
-                success = true;
-                break;
+    if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function') {
+        const result = await window.OfflineQueue.executeOrEnqueue({
+            url: '/webhook/job-complete-trigger',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Authorized-Session-Hash': ashHeader
+            },
+            body: payload,
+            action_type: 'JOB_COMPLETE_TRIGGER',
+            metadata: {
+                job_id: jobId,
+                operator_id: operatorId,
+                duration_minutes: activeSopDurationMin || 15
             }
-        } catch (err) {
-            console.warn(`[PhygitalTrigger] Tentativo ${attempt + 1} fallito:`, err);
-        }
-        attempt++;
-    }
+        });
 
-    if (success) {
-        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        if (result.queued) {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+            }
+            alert('Connessione di rete assente. La chiusura del Job è stata salvata in memoria locale e verrà sincronizzata automaticamente non appena la rete torna disponibile.');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up mr-2"></i>Salvato in Memoria Locale`;
+            }
+            refreshOperatorShelf();
+            return;
         }
-        refreshOperatorShelf();
-    } else {
-        // Fallback LocalStorage per riconnessione
-        try {
-            localStorage.setItem(`sitebos_pending_job_close_${jobId}`, JSON.stringify(payload));
-        } catch (e) {}
-        alert('Connessione instabile. La chiusura del Job è stata salvata in locale e verrà inviata non appena la rete torna disponibile.');
+
+        if (result.ok) {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+            refreshOperatorShelf();
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-check mr-2"></i>Job Completato`;
+            }
+            return;
+        }
+
+        // Errore effettivo dal server
+        console.warn('[PhygitalTrigger] Server ha risposto con errore:', result.status);
+        alert('Il server ha restituito un errore durante la chiusura del Job. Verifica lo stato e riprova.');
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-rotate-right mr-2"></i>Riprova Avanti il Prossimo`;
         }
+        return;
+    }
+
+    // Fallback standard
+    try {
+        const res = await fetch('/webhook/job-complete-trigger', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Authorized-Session-Hash': ashHeader
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+            refreshOperatorShelf();
+        } else {
+            alert('Errore di comunicazione con il server. Riprova tra poco.');
+        }
+    } catch (err) {
+        console.warn('[PhygitalTrigger] Errore di rete:', err);
+        alert('Connessione instabile. Riprova non appena la rete è disponibile.');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-rotate-right mr-2"></i>Avanti il Prossimo`;
+        }
+    }
+}
+
+/* ── ESECUZIONE STEP ED EVIDENZE RESILIENTI PER JOB FUORI SEDE (IS_ONSITE: FALSE) ── */
+async function submitJobStepEvidence(jobId, stepId, evidenceType, evidenceData, isOffsite = false) {
+    const payload = {
+        action: 'save_step_evidence',
+        job_id: jobId,
+        step_id: stepId,
+        evidence_type: evidenceType, // 'SIGNATURE' | 'PHOTO' | 'INSPECTION'
+        evidence_data: evidenceData,
+        is_onsite: !isOffsite,
+        ash: ash,
+        _auth: window.Telegram?.WebApp?.initData,
+        timestamp: new Date().toISOString()
+    };
+
+    if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function') {
+        const result = await window.OfflineQueue.executeOrEnqueue({
+            url: 'https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            action_type: 'SAVE_STEP_EVIDENCE',
+            metadata: { job_id: jobId, step_id: stepId, evidence_type: evidenceType, is_offsite: isOffsite }
+        });
+
+        if (result.queued) {
+            console.log(`📦 [Evidenze] Evidenza ${evidenceType} per step ${stepId} salvata su IndexedDB locale.`);
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+        }
+        return result;
+    }
+
+    try {
+        const res = await fetch('https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return { ok: res.ok, status: res.status };
+    } catch (e) {
+        console.warn('Errore salvataggio evidenza:', e);
+        return { ok: false, network_error: true };
+    }
+}
+
+async function completeJobStep(jobId, stepId, stepData = {}, isOffsite = false) {
+    const payload = {
+        action: 'complete_job_step',
+        job_id: jobId,
+        step_id: stepId,
+        step_data: stepData,
+        is_onsite: !isOffsite,
+        ash: ash,
+        _auth: window.Telegram?.WebApp?.initData,
+        completed_at: new Date().toISOString()
+    };
+
+    if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function') {
+        const result = await window.OfflineQueue.executeOrEnqueue({
+            url: 'https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint',
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            action_type: 'COMPLETE_JOB_STEP',
+            metadata: { job_id: jobId, step_id: stepId, is_offsite: isOffsite }
+        });
+
+        if (result.queued) {
+            console.log(`📦 [Step] Completamento step ${stepId} salvato in memoria locale.`);
+        }
+        return result;
+    }
+
+    try {
+        const res = await fetch('https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        return { ok: res.ok, status: res.status };
+    } catch (e) {
+        console.warn('Errore completamento step:', e);
+        return { ok: false, network_error: true };
     }
 }
 
@@ -1009,6 +1152,10 @@ const slotLockManager = {
         }, 1000);
     }
 };
+
+window.submitJobStepEvidence = submitJobStepEvidence;
+window.completeJobStep = completeJobStep;
+window.handleNextJobTrigger = handleNextJobTrigger;
 
 // 3 REACTIVE SYNC TRIGGERS
 document.addEventListener("DOMContentLoaded", () => {

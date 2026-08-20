@@ -183,6 +183,43 @@
         </button>
     </div>
 
+    <!-- MODALE RICERCA E COLLEGAMENTO PRODOTTO MAGAZZINO -->
+    <div id="productPickerModal" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-200 flex items-center justify-center p-4" onclick="closeProductPickerModal()">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl transform scale-95 transition-transform duration-200" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center text-xs">
+                        <i class="fas fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-black uppercase tracking-wider text-slate-900">Catalogo Magazzino</h3>
+                        <p class="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Collega Articolo</p>
+                    </div>
+                </div>
+                <button onclick="closeProductPickerModal()" class="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 active:scale-90 transition">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+
+            <div class="relative">
+                <i class="fas fa-search absolute left-3 top-3 text-slate-400 text-xs"></i>
+                <input type="text" id="productPickerSearch" oninput="filterProductPickerList(this.value)" placeholder="Cerca per nome o codice..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-black transition">
+            </div>
+
+            <div id="productPickerList" class="max-h-60 overflow-y-auto space-y-1.5 pr-1">
+                <!-- Injected via JS -->
+            </div>
+
+            <div class="pt-2 border-t border-slate-100 space-y-2">
+                <span class="text-[8px] font-black uppercase text-slate-400 block">Oppure inserisci codice manuale</span>
+                <div class="flex gap-2">
+                    <input type="text" id="manualProductSkuInput" placeholder="Identificativo Articolo..." class="flex-1 bg-slate-50 border border-slate-200 px-3 py-2 rounded-xl text-xs font-mono text-slate-800 outline-none focus:border-black">
+                    <button onclick="applyManualProductSku()" class="bg-black text-white text-[9px] font-black uppercase px-3 py-2 rounded-xl active:scale-95 transition">Collega</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- FUNZIONI DI CONTROLLO SALVATAGGIO -->
     <div class="fixed bottom-0 left-0 w-full p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-[100]">
         <div class="flex items-center gap-3 max-w-md mx-auto">
@@ -215,6 +252,18 @@
 
         let currentData = null, initialDataString = "", stageSortable = null;
         let bomItems = [];
+        let availableDocTemplates = [];
+        let activeMaterialPickerTarget = null;
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
 
         window.goBackToMenu = function() {
             if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
@@ -233,9 +282,39 @@
                     goBackToMenu();
                 });
             }
-            await loadBlueprint();
+            await Promise.all([loadBlueprint(), loadDocTemplates()]);
             document.getElementById('btnAddStageBtn').onclick = addStage;
             document.getElementById('saveBtn').onclick = handleSave;
+        }
+
+        async function loadDocTemplates() {
+            try {
+                const res = await fetch("https://prod.workflow.trinai.it/webhook/doc-engine", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_doc_templates', ash: ash, _auth: tg.initData })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const list = Array.isArray(data) ? data : (data.templates || data.doc_templates || []);
+                    if (Array.isArray(list) && list.length > 0) {
+                        availableDocTemplates = list.map(d => ({
+                            id: d.doc_template_id || d._id || d.id || d.template_id,
+                            name: d.name || d.title || d.doc_name || 'Documento Senza Titolo',
+                            route: d.compliance_route || d.route || 'VIA_B'
+                        }));
+                        if (currentData) renderStages();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Impossibile recuperare i template documento dal backend:", e);
+            }
+            // Nessun fallback con documenti finti: se la fetch fallisce o l'owner non ha ancora
+            // creato template, la lista resta vuota e l'editor mostra uno stato onesto
+            // ("Nessun documento disponibile"), invece di offrire id inventati che non esistono
+            // in doc_templates e romperebbero silenziosamente il flusso di firma.
+            if (!availableDocTemplates) availableDocTemplates = [];
         }
 
         async function loadBlueprint() {
@@ -636,38 +715,104 @@
             return steps.map((step, stIdx) => {
                 const isOpen = step._ui_open === true;
                 const evType = step.quality_check?.evidence_type || 'NONE';
-                
-                // Render list of checkbox for material consumption inside this step (if PRODUCT_FLOW)
-                let materialsConsumptionHTML = "";
-                if (currentData.blueprint_type === 'PRODUCT_FLOW' && bomItems.length > 0) {
-                    let checkboxList = bomItems.map(item => {
-                        const sku = item.material_sku || item.item_sku;
-                        const friendlyName = item.name || (sku.startsWith('MAT_') ? sku.replace('MAT_', '').replace(/_/g, ' ') : sku);
-                        
-                        let isChecked = false;
-                        if (step.resources_needed && Array.isArray(step.resources_needed.materials)) {
-                            isChecked = step.resources_needed.materials.some(m => {
-                                const stepMaterialSku = (typeof m === 'object' && m !== null) ? m.material_sku : m;
-                                return stepMaterialSku === sku;
-                            });
-                        }
-                        
+                const selectedDocId = step.quality_check?.document_template_id || '';
+
+                // QC Document Dropdown Options
+                let docOptionsHtml = `<option value="" ${!selectedDocId ? 'selected' : ''}>Firma Semplice Senza Documento Specifico</option>`;
+                let foundSelected = false;
+                availableDocTemplates.forEach(doc => {
+                    const isSelected = (selectedDocId === doc.id);
+                    if (isSelected) foundSelected = true;
+                    docOptionsHtml += `<option value="${escapeHtml(doc.id)}" ${isSelected ? 'selected' : ''}>${escapeHtml(doc.name)}</option>`;
+                });
+                if (selectedDocId && !foundSelected) {
+                    docOptionsHtml += `<option value="${escapeHtml(selectedDocId)}" selected>${escapeHtml(selectedDocId)}</option>`;
+                }
+
+                // Materials List HTML
+                const materials = Array.isArray(step.resources_needed?.materials) ? step.resources_needed.materials : [];
+                let materialsListHtml = "";
+                if (materials.length === 0) {
+                    materialsListHtml = `<p class="text-[9px] text-slate-400 italic text-center py-2">Nessun materiale specificato per questo passaggio.</p>`;
+                } else {
+                    materialsListHtml = materials.map((m, mIdx) => {
+                        const mat = (typeof m === 'object' && m !== null) ? m : { description: String(m || ''), quantity_per_use: 1, unit_of_measure: 'pz' };
+                        const desc = mat.description || mat.name || mat.material_sku || '';
+                        const qty = mat.quantity_per_use !== undefined ? mat.quantity_per_use : (mat.quantity || mat.qty || 1);
+                        const uom = mat.unit_of_measure || mat.unit || 'pz';
+                        const canonId = mat.canonical_product_id || (mat.material_sku ? mat.material_sku : null);
+                        const unitPrice = mat.unit_price_net !== undefined ? mat.unit_price_net : (mat.unit_cost || mat.cost);
+                        const stationId = mat.station_id;
+
                         return `
-                            <label class="flex items-center gap-2 text-[9px] text-neutral-300 select-none cursor-pointer">
-                                <input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleStepMaterial(${sIdx}, ${stIdx}, '${sku}', this.checked)">
-                                <span>${friendlyName}</span>
-                            </label>
+                            <div class="p-3 bg-white border border-slate-200 rounded-xl space-y-2.5 shadow-xs">
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex-1 min-w-0">
+                                        <label class="text-[7px] font-black uppercase text-slate-400 block mb-0.5">Descrizione Materiale</label>
+                                        <input type="text" value="${escapeHtml(desc)}" oninput="updateStepMaterial(${sIdx}, ${stIdx}, ${mIdx}, 'description', this.value)" class="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-xs font-bold text-slate-800 focus:border-black outline-none transition" placeholder="Descrizione materiale...">
+                                    </div>
+                                    <button type="button" onclick="deleteStepMaterial(${sIdx}, ${stIdx}, ${mIdx})" class="text-slate-300 hover:text-red-500 active:scale-90 transition p-1 mt-3" title="Rimuovi Materiale">
+                                        <i class="fas fa-trash-alt text-[10px]"></i>
+                                    </button>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="text-[7px] font-black uppercase text-slate-400 block mb-0.5">Quantità per Uso</label>
+                                        <input type="number" step="0.01" min="0.001" value="${qty}" oninput="updateStepMaterial(${sIdx}, ${stIdx}, ${mIdx}, 'quantity_per_use', this.value)" class="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-xs font-black text-slate-800 text-center focus:border-black outline-none transition">
+                                    </div>
+                                    <div>
+                                        <label class="text-[7px] font-black uppercase text-slate-400 block mb-0.5">Unità di Misura</label>
+                                        <select onchange="updateStepMaterial(${sIdx}, ${stIdx}, ${mIdx}, 'unit_of_measure', this.value)" class="w-full bg-slate-50 border border-slate-200 p-2 rounded-lg text-xs font-bold text-slate-800 focus:border-black outline-none transition">
+                                            <option value="pz" ${uom === 'pz' ? 'selected' : ''}>Pezzi</option>
+                                            <option value="ml" ${uom === 'ml' ? 'selected' : ''}>Millilitri</option>
+                                            <option value="cl" ${uom === 'cl' ? 'selected' : ''}>Centilitri</option>
+                                            <option value="l" ${uom === 'l' ? 'selected' : ''}>Litri</option>
+                                            <option value="g" ${uom === 'g' ? 'selected' : ''}>Grammi</option>
+                                            <option value="kg" ${uom === 'kg' ? 'selected' : ''}>Chilogrammi</option>
+                                            <option value="m" ${uom === 'm' ? 'selected' : ''}>Metri</option>
+                                            <option value="cm" ${uom === 'cm' ? 'selected' : ''}>Centimetri</option>
+                                            <option value="dose" ${uom === 'dose' ? 'selected' : ''}>Dose</option>
+                                            <option value="confezione" ${uom === 'confezione' ? 'selected' : ''}>Confezione</option>
+                                            <option value="altro" ${uom === 'altro' ? 'selected' : ''}>Altro</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                                    ${canonId ? `
+                                        <div class="flex items-center gap-1.5 flex-wrap">
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[8px] font-black uppercase tracking-wider">
+                                                <i class="fas fa-circle-check text-[7px]"></i> Collegato a Magazzino: ${escapeHtml(canonId)}
+                                            </span>
+                                            ${unitPrice !== null && unitPrice !== undefined ? `
+                                                <span class="inline-flex items-center px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[8px] font-mono font-bold">
+                                                    € ${parseFloat(unitPrice).toFixed(2)}
+                                                </span>
+                                            ` : ''}
+                                            ${stationId ? `
+                                                <span class="inline-flex items-center px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[8px] font-bold">
+                                                    ${escapeHtml(stationId)}
+                                                </span>
+                                            ` : ''}
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button type="button" onclick="openProductPickerForMaterial(${sIdx}, ${stIdx}, ${mIdx})" class="text-[8px] font-bold text-slate-500 hover:text-black transition">
+                                                Cambia
+                                            </button>
+                                            <button type="button" onclick="unlinkMaterialProduct(${sIdx}, ${stIdx}, ${mIdx})" class="text-[8px] font-bold text-red-500 hover:text-red-700 transition">
+                                                Scollega
+                                            </button>
+                                        </div>
+                                    ` : `
+                                        <button type="button" onclick="openProductPickerForMaterial(${sIdx}, ${stIdx}, ${mIdx})" class="text-[8px] font-bold text-slate-500 hover:text-black bg-slate-50 hover:bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg flex items-center gap-1 transition">
+                                            <i class="fas fa-link text-[8px]"></i> Collega a Prodotto di Magazzino
+                                        </button>
+                                    `}
+                                </div>
+                            </div>
                         `;
                     }).join('');
-                    
-                    materialsConsumptionHTML = `
-                        <div class="bg-neutral-900 border border-neutral-800 p-4 rounded-xl space-y-2 mt-2">
-                            <span class="text-[7px] font-black uppercase text-neutral-500 italic block">Materiali / Semilavorati Consumati in questo step</span>
-                            <div class="grid grid-cols-2 gap-2">
-                                ${checkboxList}
-                            </div>
-                        </div>
-                    `;
                 }
 
                 return `
@@ -675,7 +820,7 @@
                         <div class="flex items-center p-3 gap-3">
                             <div class="drag-handle-step text-gray-200 text-xs"><i class="fas fa-grip-vertical"></i></div>
                             <div class="flex-1 cursor-pointer" onclick="toggleStep(${sIdx}, ${stIdx})">
-                                <h4 class="text-[10px] font-black uppercase tracking-tight truncate max-w-[150px]">${step.step_name || 'Step'}</h4>
+                                <h4 class="text-[10px] font-black uppercase tracking-tight truncate max-w-[150px]">${escapeHtml(step.step_name || 'Step')}</h4>
                             </div>
                             <div class="flex items-center bg-gray-50 rounded-lg px-2 py-1 border border-gray-100">
                                 <input type="number" value="${step.estimated_time_minutes || 0}" oninput="updateStepData(${sIdx}, ${stIdx}, 'estimated_time_minutes', this.value)" class="w-5 bg-transparent text-[9px] font-black outline-none text-center">
@@ -684,25 +829,47 @@
                             <button onclick="deleteStep(${sIdx}, ${stIdx})" class="text-gray-200 hover:text-red-500"><i class="fas fa-times-circle text-xs"></i></button>
                         </div>
                         <div class="${isOpen ? 'block' : 'hidden'} p-4 pt-0 space-y-4">
-                            <input type="text" value="${step.step_name || ''}" oninput="updateStepData(${sIdx}, ${stIdx}, 'step_name', this.value)" class="w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none" placeholder="Titolo Step">
-                            <textarea rows="2" oninput="updateStepData(${sIdx}, ${stIdx}, 'instructions', this.value)" class="w-full bg-gray-50 p-3 rounded-xl text-[10px] font-medium outline-none resize-none leading-relaxed" placeholder="Istruzioni operative...">${step.instructions || ''}</textarea>
+                            <input type="text" value="${escapeHtml(step.step_name || '')}" oninput="updateStepData(${sIdx}, ${stIdx}, 'step_name', this.value)" class="w-full bg-gray-50 p-3 rounded-xl text-[10px] font-bold outline-none" placeholder="Titolo Step">
+                            <textarea rows="2" oninput="updateStepData(${sIdx}, ${stIdx}, 'instructions', this.value)" class="w-full bg-gray-50 p-3 rounded-xl text-[10px] font-medium outline-none resize-none leading-relaxed" placeholder="Istruzioni operative...">${escapeHtml(step.instructions || '')}</textarea>
                             
-                            ${materialsConsumptionHTML}
+                            <!-- EDITOR MATERIALI NECESSARI -->
+                            <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">
+                                        <i class="fas fa-boxes-stacked mr-1"></i> Materiali Necessari
+                                    </span>
+                                    <button type="button" onclick="addStepMaterial(${sIdx}, ${stIdx})" class="text-[8px] font-black uppercase bg-black text-white px-2.5 py-1 rounded-full shadow-xs active:scale-95 transition">
+                                        + Aggiungi Materiale
+                                    </button>
+                                </div>
+                                ${materialsListHtml}
+                            </div>
 
                             <div class="bg-black text-white p-4 rounded-xl space-y-3">
                                 <div class="flex justify-between items-center">
                                     <span class="text-[7px] font-black uppercase text-neutral-500 italic">Quality Protocol</span>
-                                    <select onchange="updateStepQC(${sIdx}, ${stIdx}, 'evidence_type', this.value)" class="bg-neutral-900 text-[8px] font-black uppercase py-1 px-2 rounded-full outline-none border border-neutral-800">
-                                        <option value="NONE" ${evType === 'NONE' ? 'selected' : ''}>Nessuno</option>
-                                        <option value="TEXT" ${evType === 'TEXT' ? 'selected' : ''}>Note Testo</option>
-                                        <option value="VISION" ${evType === 'VISION' ? 'selected' : ''}>Vision (Foto)</option>
-                                        <option value="FILE" ${evType === 'FILE' ? 'selected' : ''}>Allegato File</option>
+                                    <select onchange="updateStepQC(${sIdx}, ${stIdx}, 'evidence_type', this.value)" class="bg-neutral-900 text-[8px] font-black uppercase py-1 px-2 rounded-full outline-none border border-neutral-800 text-neutral-200">
+                                        <option value="NONE" ${evType === 'NONE' ? 'selected' : ''}>Nessuna Verifica</option>
+                                        <option value="TEXT" ${evType === 'TEXT' ? 'selected' : ''}>Nota di Testo</option>
+                                        <option value="VISION" ${evType === 'VISION' ? 'selected' : ''}>Verifica Visiva</option>
+                                        <option value="FILE" ${evType === 'FILE' ? 'selected' : ''}>Allegato Documentale</option>
                                         <option value="SIGNATURE" ${evType === 'SIGNATURE' ? 'selected' : ''}>Firma Operatore</option>
                                     </select>
                                 </div>
                                 <div class="${evType === 'NONE' ? 'hidden' : 'space-y-2'}">
-                                    <textarea oninput="updateStepQC(${sIdx}, ${stIdx}, 'check_description', this.value)" class="w-full bg-neutral-900 p-2 rounded-lg text-[9px] outline-none border border-transparent focus:border-neutral-700 h-12 text-neutral-300" placeholder="Cosa verificare...">${step.quality_check?.check_description || ''}</textarea>
+                                    <textarea oninput="updateStepQC(${sIdx}, ${stIdx}, 'check_description', this.value)" class="w-full bg-neutral-900 p-2 rounded-lg text-[9px] outline-none border border-transparent focus:border-neutral-700 h-12 text-neutral-300" placeholder="Cosa verificare...">${escapeHtml(step.quality_check?.check_description || '')}</textarea>
                                 </div>
+                                ${evType === 'SIGNATURE' ? `
+                                    <div class="space-y-1.5 pt-2 border-t border-neutral-800">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-[7px] font-black uppercase text-neutral-400 italic">Documento da Firmare</span>
+                                            ${selectedDocId ? `<button type="button" onclick="updateStepQC(${sIdx}, ${stIdx}, 'document_template_id', '')" class="text-[8px] font-bold text-neutral-500 hover:text-red-400 transition">Rimuovi Documento</button>` : ''}
+                                        </div>
+                                        <select onchange="updateStepQC(${sIdx}, ${stIdx}, 'document_template_id', this.value)" class="w-full bg-neutral-900 text-[9px] font-bold py-2 px-2.5 rounded-lg outline-none border border-neutral-800 text-neutral-200 focus:border-neutral-600 transition">
+                                            ${docOptionsHtml}
+                                        </select>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -738,40 +905,221 @@
         function updateStepQC(si, sti, k, v) { 
             if (!currentData.stages[si].steps[sti].quality_check) currentData.stages[si].steps[sti].quality_check = { is_required: true }; 
             currentData.stages[si].steps[sti].quality_check[k] = v; 
-            currentData.stages[si].steps[sti].quality_check.is_required = (v !== 'NONE'); 
-            if (k === 'evidence_type') renderStages(); 
+            currentData.stages[si].steps[sti].quality_check.is_required = (currentData.stages[si].steps[sti].quality_check.evidence_type !== 'NONE'); 
+            if (k === 'evidence_type' || k === 'document_template_id') renderStages(); 
             checkDirty(); 
         }
 
-        function toggleStepMaterial(si, sti, materialSku, isChecked) {
+        // Gestione Materiali Step
+        function addStepMaterial(si, sti) {
             const step = currentData.stages[si].steps[sti];
             if (!step.resources_needed) step.resources_needed = { labor: {}, materials: [], assets: [] };
             if (!Array.isArray(step.resources_needed.materials)) step.resources_needed.materials = [];
-            
-            if (isChecked) {
-                const alreadyExists = step.resources_needed.materials.some(m => {
-                    const stepMaterialSku = (typeof m === 'object' && m !== null) ? m.material_sku : m;
-                    return stepMaterialSku === materialSku;
-                });
-                
-                if (!alreadyExists) {
-                    const bomMatch = bomItems.find(item => (item.material_sku || item.item_sku) === materialSku);
-                    const quantity = bomMatch ? (bomMatch.quantity || bomMatch.qty || 1) : 1;
-                    const um = bomMatch ? (bomMatch.unit_of_measure || 'unit') : 'unit';
-                    
-                    step.resources_needed.materials.push({
-                        material_sku: materialSku,
-                        quantity: quantity,
-                        unit_of_measure: um
-                    });
-                }
+            step.resources_needed.materials.push({
+                description: "Nuovo Materiale",
+                quantity_per_use: 1,
+                unit_of_measure: "pz",
+                canonical_product_id: null,
+                predicted_keywords: []
+            });
+            renderStages();
+            checkDirty();
+        }
+
+        function updateStepMaterial(si, sti, mi, field, value) {
+            const step = currentData.stages[si]?.steps?.[sti];
+            if (!step?.resources_needed?.materials?.[mi]) return;
+            let mat = step.resources_needed.materials[mi];
+            if (typeof mat === 'string') {
+                mat = { description: mat, quantity_per_use: 1, unit_of_measure: 'pz', canonical_product_id: null };
+                step.resources_needed.materials[mi] = mat;
+            }
+            if (field === 'quantity_per_use') {
+                const parsed = parseFloat(value);
+                mat.quantity_per_use = isNaN(parsed) ? 1 : parsed;
             } else {
-                step.resources_needed.materials = step.resources_needed.materials.filter(m => {
-                    const stepMaterialSku = (typeof m === 'object' && m !== null) ? m.material_sku : m;
-                    return stepMaterialSku !== materialSku;
-                });
+                mat[field] = value;
             }
             checkDirty();
+        }
+
+        function deleteStepMaterial(si, sti, mi) {
+            const step = currentData.stages[si]?.steps?.[sti];
+            if (step?.resources_needed && Array.isArray(step.resources_needed.materials)) {
+                step.resources_needed.materials.splice(mi, 1);
+                renderStages();
+                checkDirty();
+            }
+        }
+
+        function unlinkMaterialProduct(si, sti, mi) {
+            const step = currentData.stages[si]?.steps?.[sti];
+            if (step?.resources_needed?.materials?.[mi]) {
+                let mat = step.resources_needed.materials[mi];
+                if (typeof mat === 'string') {
+                    mat = { description: mat, quantity_per_use: 1, unit_of_measure: 'pz' };
+                    step.resources_needed.materials[mi] = mat;
+                }
+                delete mat.canonical_product_id;
+                delete mat.unit_price_net;
+                delete mat.station_id;
+                renderStages();
+                checkDirty();
+            }
+        }
+
+        function getAllAvailableProducts() {
+            const products = [];
+            const seen = new Set();
+            
+            // 1. From bomItems if present
+            if (typeof bomItems !== 'undefined' && Array.isArray(bomItems)) {
+                bomItems.forEach(item => {
+                    const sku = item.material_sku || item.item_sku;
+                    if (sku && !seen.has(sku)) {
+                        seen.add(sku);
+                        products.push({
+                            id: sku,
+                            name: item.name || sku,
+                            category: item.relation_type === 'semilavorato' ? 'Semilavorato Distinta' : 'Distinta Componenti'
+                        });
+                    }
+                });
+            }
+
+            // 2. From parent fullCatalog
+            if (window.parent && Array.isArray(window.parent.fullCatalog)) {
+                window.parent.fullCatalog.forEach(cat => {
+                    (cat.subcategories || []).forEach(sub => {
+                        const sku = sub.callback_data || sub.sku || sub.id;
+                        if (sku && !seen.has(sku)) {
+                            seen.add(sku);
+                            products.push({
+                                id: sku,
+                                name: sub.name || sku,
+                                category: cat.name || cat.macrocategories || 'Catalogo'
+                            });
+                        }
+                    });
+                });
+            }
+
+            // 3. From current blueprint materials
+            if (currentData && Array.isArray(currentData.stages)) {
+                currentData.stages.forEach(s => {
+                    (s.steps || []).forEach(st => {
+                        (st.resources_needed?.materials || []).forEach(m => {
+                            if (m && typeof m === 'object' && m.canonical_product_id && !seen.has(m.canonical_product_id)) {
+                                seen.add(m.canonical_product_id);
+                                products.push({
+                                    id: m.canonical_product_id,
+                                    name: m.description || m.canonical_product_id,
+                                    category: 'Magazzino Globale'
+                                });
+                            }
+                        });
+                    });
+                });
+            }
+            return products;
+        }
+
+        function openProductPickerForMaterial(sIdx, stIdx, mIdx) {
+            activeMaterialPickerTarget = { sIdx, stIdx, mIdx };
+            const modal = document.getElementById('productPickerModal');
+            const searchInput = document.getElementById('productPickerSearch');
+            const manualInput = document.getElementById('manualProductSkuInput');
+            if (!modal) return;
+            if (searchInput) searchInput.value = '';
+            if (manualInput) manualInput.value = '';
+            renderProductPickerList('');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                const card = modal.querySelector('div');
+                if (card) card.classList.remove('scale-95');
+            }, 10);
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeProductPickerModal() {
+            const modal = document.getElementById('productPickerModal');
+            if (!modal) return;
+            modal.classList.add('opacity-0');
+            const card = modal.querySelector('div');
+            if (card) card.classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                activeMaterialPickerTarget = null;
+            }, 200);
+        }
+
+        function filterProductPickerList(query) {
+            renderProductPickerList(query);
+        }
+
+        function renderProductPickerList(query) {
+            const listEl = document.getElementById('productPickerList');
+            if (!listEl) return;
+            const all = getAllAvailableProducts();
+            const q = (query || '').toLowerCase().trim();
+            const filtered = all.filter(p => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || p.category.toLowerCase().includes(q));
+            if (filtered.length === 0) {
+                listEl.innerHTML = `
+                    <div class="text-center py-6 text-slate-400">
+                        <i class="fas fa-box-open text-xl mb-1 text-slate-300"></i>
+                        <p class="text-[9px] font-bold">Nessun articolo trovato</p>
+                        <p class="text-[8px]">Usa il campo in basso per inserire un codice manuale</p>
+                    </div>
+                `;
+                return;
+            }
+            listEl.innerHTML = filtered.map(p => `
+                <div onclick="selectProductForMaterial('${escapeHtml(p.id)}', '${escapeHtml(p.name)}')" class="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-xl cursor-pointer transition flex items-center justify-between gap-2 active:scale-98">
+                    <div class="min-w-0 flex-1">
+                        <h4 class="text-[10px] font-black text-slate-800 truncate">${escapeHtml(p.name)}</h4>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                            <span class="text-[8px] font-mono text-slate-500">${escapeHtml(p.id)}</span>
+                            <span class="text-[7px] font-bold text-slate-400 uppercase tracking-wider">${escapeHtml(p.category)}</span>
+                        </div>
+                    </div>
+                    <i class="fas fa-chevron-right text-[9px] text-slate-400"></i>
+                </div>
+            `).join('');
+        }
+
+        function selectProductForMaterial(prodId, prodName) {
+            if (!activeMaterialPickerTarget) return;
+            const { sIdx, stIdx, mIdx } = activeMaterialPickerTarget;
+            linkMaterialProduct(sIdx, stIdx, mIdx, prodId, prodName);
+            closeProductPickerModal();
+        }
+
+        function applyManualProductSku() {
+            const input = document.getElementById('manualProductSkuInput');
+            const val = (input?.value || '').trim();
+            if (!val) return;
+            if (!activeMaterialPickerTarget) return;
+            const { sIdx, stIdx, mIdx } = activeMaterialPickerTarget;
+            linkMaterialProduct(sIdx, stIdx, mIdx, val, val);
+            closeProductPickerModal();
+        }
+
+        function linkMaterialProduct(sIdx, stIdx, mIdx, prodId, prodName) {
+            const step = currentData.stages[sIdx]?.steps?.[stIdx];
+            if (!step?.resources_needed?.materials?.[mIdx]) return;
+            let mat = step.resources_needed.materials[mIdx];
+            if (typeof mat === 'string') {
+                mat = { description: mat, quantity_per_use: 1, unit_of_measure: 'pz' };
+                step.resources_needed.materials[mIdx] = mat;
+            }
+            mat.canonical_product_id = prodId;
+            if (!mat.description || mat.description === 'Nuovo Materiale') {
+                mat.description = prodName || prodId;
+            }
+            renderStages();
+            checkDirty();
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         }
 
         function updateLiveTime() { 

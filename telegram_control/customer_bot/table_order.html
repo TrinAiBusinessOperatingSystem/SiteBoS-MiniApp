@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Ordinazione Tavolo Condivisa</title>
+    
+    <!-- Telegram WebApp SDK, Ably Realtime & QRCode Generator -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.ably.com/lib/ably.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#0f172a', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --accent: #229ED9;
+            --accent-text: #ffffff;
+            --accent-glow: rgba(34, 158, 217, 0.35);
+            --accent-subtle: rgba(34, 158, 217, 0.12);
+            --accent-border: rgba(34, 158, 217, 0.25);
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #fafafa;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .bento-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .bento-card:active {
+            transform: scale(0.98);
+        }
+        .safe-bottom {
+            padding-bottom: calc(120px + env(safe-area-inset-bottom));
+        }
+        .badge-pulse {
+            animation: pulse-badge 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-badge {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .6; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 py-3 shadow-sm">
+        <div class="max-w-xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div id="brand-logo" class="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black shadow-sm overflow-hidden shrink-0">
+                    <i class="fa-solid fa-utensils text-sm"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 id="table-title" class="text-sm font-black tracking-tight text-slate-900 uppercase">Tavolo Condiviso</h1>
+                        <span id="ably-live-badge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 badge-pulse"></span>
+                            <span>Live Cucina</span>
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 font-semibold" id="table-subtitle">Sessione multi-ospite attiva</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="openTableQrModal()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-900 flex items-center justify-center text-sm border border-slate-200 active:scale-95 transition shadow-sm" title="Condividi con i tuoi commensali al tavolo">
+                    <i class="fa-solid fa-qrcode"></i>
+                </button>
+                <button onclick="scrollToCart()" class="relative px-3 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-black flex items-center gap-1.5 shadow-sm active:scale-95 transition">
+                    <i class="fa-solid fa-receipt text-[11px]"></i>
+                    <span id="cart-counter-pill">0</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-xl w-full mx-auto p-4 space-y-5 safe-bottom">
+
+        <!-- BANNER INFO TAVOLO CONDIVISO -->
+        <div class="bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-3xl p-4 shadow-sm relative overflow-hidden">
+            <div class="relative z-10 flex items-center justify-between">
+                <div class="space-y-1">
+                    <span class="text-[10px] font-black uppercase tracking-widest text-slate-300">Ordinazione Digitale al Tavolo</span>
+                    <h2 class="text-base font-black" id="guest-welcome-msg">Benvenuto al Tavolo</h2>
+                    <p class="text-xs text-slate-300">Aggiungi i tuoi piatti preferiti. La comanda è condivisa in tempo reale con tutti gli ospiti e inoltrata direttamente ai fornelli.</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shrink-0 ml-3">
+                    🍽️
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE 1: COMANDA ATTIVA DEL TAVOLO (LIVE KANBAN CARRELLO) -->
+        <section id="table-cart-section" class="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-7 h-7 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center text-xs font-black">
+                        <i class="fa-solid fa-bell-concierge"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-xs font-black text-slate-900 uppercase tracking-tight">Comanda del Tavolo</h3>
+                        <p class="text-[10px] text-slate-500 font-medium" id="order-status-summary">Caricamento stato portate...</p>
+                    </div>
+                </div>
+                <span id="total-table-amount" class="text-sm font-black text-slate-900 font-mono">€ 0,00</span>
+            </div>
+
+            <!-- LISTA PORTATE AL TAVOLO -->
+            <div id="table-items-container" class="space-y-2.5">
+                <div class="text-center py-6 text-slate-400 space-y-2">
+                    <i class="fa-solid fa-clipboard-list text-2xl text-slate-300"></i>
+                    <p class="text-xs font-medium">Nessuna portata ancora ordinata.</p>
+                    <p class="text-[10px] text-slate-400">Scegli i piatti dal menu qui sotto per iniziare.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- SEZIONE 2: SFOGLIA CATALOGO E MENU -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-tight">Menu e Carta delle Portate</h3>
+                    <p class="text-[10px] text-slate-500 font-medium">Tocca una portata per aggiungerla alla comanda</p>
+                </div>
+            </div>
+
+            <!-- FILTRO CATEGORIE -->
+            <div id="categories-bar" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                <!-- Popolato dinamicamente da JS -->
+            </div>
+
+            <!-- GRIGLIA PRODOTTI -->
+            <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Card prodotti popolate da JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODALE AGGIUNGI PORTATA CON NOTE E QUANTITÀ -->
+    <div id="add-item-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl p-5 max-w-md w-full shadow-2xl space-y-4 text-slate-900 transform transition-transform">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-black">
+                        <i class="fa-solid fa-plus"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-xs font-black text-slate-900 uppercase" id="modal-dish-name">Nome Portata</h3>
+                        <p class="text-[10px] text-slate-500 font-mono" id="modal-dish-price">€ 0,00</p>
+                    </div>
+                </div>
+                <button onclick="closeAddItemModal()" class="text-slate-400 hover:text-slate-900 text-sm font-bold p-1">✕</button>
+            </div>
+
+            <p class="text-xs text-slate-600 leading-relaxed" id="modal-dish-desc"></p>
+
+            <!-- SELETTORE QUANTITÀ -->
+            <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                <span class="text-xs font-bold text-slate-700">Quantità da ordinare</span>
+                <div class="flex items-center gap-3">
+                    <button onclick="changeModalQty(-1)" class="w-8 h-8 rounded-xl bg-white border border-slate-200 text-slate-900 font-black text-sm active:scale-95 shadow-sm">-</button>
+                    <span id="modal-qty-value" class="font-black text-sm w-6 text-center font-mono">1</span>
+                    <button onclick="changeModalQty(1)" class="w-8 h-8 rounded-xl bg-slate-900 text-white font-black text-sm active:scale-95 shadow-sm">+</button>
+                </div>
+            </div>
+
+            <!-- NOTE SPECIALI PER LA CUCINA -->
+            <div class="space-y-1.5">
+                <label class="block text-[10px] font-black uppercase tracking-wider text-slate-500">Note speciali per lo Chef</label>
+                <textarea id="modal-dish-notes" rows="2" placeholder="Es. Senza cipolla, cottura media, salsa a parte..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs focus:border-black outline-none resize-none"></textarea>
+            </div>
+
+            <!-- BOTTONE CONFERMA -->
+            <div class="pt-2">
+                <button onclick="submitAddTableItem()" id="btn-confirm-add-item" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3.5 px-4 rounded-xl active:scale-95 transition shadow flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span id="btn-confirm-add-label">Aggiungi alla Comanda del Tavolo</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE QR CONDIVIDI TAVOLO -->
+    <div id="table-qr-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 text-center text-slate-900">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="text-xs font-black text-slate-900 uppercase">Invita Ospiti al Tavolo</h3>
+                <button onclick="closeTableQrModal()" class="text-slate-400 hover:text-slate-900 text-sm font-bold">✕</button>
+            </div>
+            
+            <p class="text-xs text-slate-600">Fai inquadrare questo codice ai tuoi commensali per ordinare insieme dallo stesso tavolo.</p>
+            
+            <div class="p-4 bg-white border border-slate-200 rounded-2xl inline-block shadow-inner mx-auto">
+                <div id="qrcode-canvas" class="w-[160px] h-[160px] flex items-center justify-center"></div>
+            </div>
+
+            <p class="text-[10px] font-mono text-slate-500 break-all" id="qr-table-link-text"></p>
+
+            <button onclick="copyTableLink()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold py-2.5 px-4 rounded-xl border border-slate-200 transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-copy"></i>
+                <span id="copy-btn-label">Copia Collegamento del Tavolo</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GLOBAL LOADER -->
+    <div id="global-loader" class="fixed inset-0 bg-white z-[600] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
+        <div class="w-10 h-10 border-2 border-slate-200 rounded-full animate-spin mb-4" style="border-top-color: var(--accent);"></div>
+        <p class="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Caricamento Tavolo Condiviso...</p>
+    </div>
+
+    <!-- LOGICA FRONTEND TAVOLO CONDIVISO -->
+    <script>
+        'use strict';
+
+        const tg = window.Telegram.WebApp;
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa');
+        tg.expand();
+        tg.ready();
+
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/5ea527d5-b0e7-44dc-b7ca-626f1c6176f0";
+        const SSE_ENDPOINT = "https://prod.workflow.trinai.it/webhook/sitebos-operator-sse-stream";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const ashToken = urlParams.get('ash') || '';
+        const requestedJobId = urlParams.get('job_id') || urlParams.get('table_job_id') || ('job_table_' + (urlParams.get('table_id') || '4'));
+        const requestedTableId = urlParams.get('table_id') || requestedJobId.replace('job_table_', '').replace('job_', '');
+        let currentVat = urlParams.get('vat') || 'default_tenant';
+
+        let catalog = [];
+        let activeCategories = [];
+        let currentCategory = 'ALL';
+        let tableOrderItems = [];
+        let activeDishForModal = null;
+        let modalQty = 1;
+        let ablyInstance = null;
+        let ablyChannel = null;
+
+        const currentGuestChatId = String(tg.initDataUnsafe?.user?.id || 'guest_' + Date.now());
+        const currentGuestName = tg.initDataUnsafe?.user?.first_name || 'Ospite';
+
+        window.onload = async () => {
+            document.getElementById('guest-welcome-msg').innerText = `Ciao ${currentGuestName}, benvenuto al Tavolo ${requestedTableId}`;
+            document.getElementById('table-title').innerText = `Tavolo ${requestedTableId}`;
+            await loadTableData();
+            initAblyRealtime();
+        };
+
+        async function loadTableData() {
+            try {
+                const res = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'u_calc_get_table_order',
+                        job_id: requestedJobId,
+                        table_id: requestedTableId,
+                        ash: ashToken,
+                        _auth: tg.initData
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.success) {
+                        currentVat = data.vat || currentVat;
+                        tableOrderItems = data.order_items || [];
+                        catalog = data.catalog || [];
+                        
+                        if (catalog.length === 0) {
+                            useFallbackCatalog();
+                        }
+
+                        extractCategories();
+                        renderTableCart();
+                        renderCategoriesBar();
+                        renderProductsGrid();
+                    } else {
+                        useFallbackCatalog();
+                        renderTableCart();
+                        renderCategoriesBar();
+                        renderProductsGrid();
+                    }
+                } else {
+                    useFallbackCatalog();
+                    renderTableCart();
+                    renderCategoriesBar();
+                    renderProductsGrid();
+                }
+            } catch (err) {
+                console.warn('Errore caricamento tavolo backend:', err);
+                useFallbackCatalog();
+                renderTableCart();
+                renderCategoriesBar();
+                renderProductsGrid();
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function useFallbackCatalog() {
+            catalog = [
+                { item_sku: 'ANT_01', name: 'Bruschette al Pomodoro e Basilico', category: 'Antipasti', price: 6.5, description: 'Pane casereccio tostato con pomodorini datterini, aglio e basilico fresco' },
+                { item_sku: 'ANT_02', name: 'Tagliere di Salumi e Formaggi', category: 'Antipasti', price: 14.0, description: 'Selezione di salumi artigianali e formaggi locali con miele e focaccia' },
+                { item_sku: 'PRI_01', name: 'Tagliolini al Tartufo Nero', category: 'Primi Piatti', price: 16.0, description: 'Pasta fresca all\'uovo trafilata al bronzo mantecata con burro d\'alpeggio e tartufo' },
+                { item_sku: 'PRI_02', name: 'Risotto ai Frutti di Mare', category: 'Primi Piatti', price: 18.0, description: 'Riso Carnaroli sfumato al vino bianco con calamari, gamberi, cozze e vongole veraci' },
+                { item_sku: 'PIZ_01', name: 'Pizza Margherita Verace DOC', category: 'Pizze', price: 8.5, description: 'Pomodoro San Marzano, mozzarella di bufala campana DOP, basilico e olio extravergine' },
+                { item_sku: 'PIZ_02', name: 'Pizza Diavola con Spianata Calabra', category: 'Pizze', price: 10.0, description: 'Pomodoro San Marzano, fiordilatte e salame piccante' },
+                { item_sku: 'SEC_01', name: 'Filetto di Manzo alla Griglia', category: 'Secondi Piatti', price: 22.0, description: 'Filetto di manzo cotto alla brace con sale di Cervia e rosmarino' },
+                { item_sku: 'SEC_02', name: 'Frittura Mista di Paranza', category: 'Secondi Piatti', price: 17.5, description: 'Calamari, gamberi e pescato del giorno dorati e croccanti con maionese al lime' },
+                { item_sku: 'BEV_01', name: 'Acqua Naturale o Frizzante 0.75L', category: 'Bevande', price: 2.5, description: 'Acqua minerale in bottiglia di vetro' },
+                { item_sku: 'BEV_02', name: 'Calice di Vino Rosso della Casa', category: 'Bevande', price: 5.0, description: 'Selezione della cantina locale' },
+                { item_sku: 'DOL_01', name: 'Tiramisù Tradizionale al Mascarpone', category: 'Dessert', price: 6.0, description: 'Savoiardi bagnati al caffè espresso con crema soffice al mascarpone e cacao amaro' }
+            ];
+        }
+
+        function extractCategories() {
+            const rawCategories = catalog.map(p => p.category || 'Altro').filter(Boolean);
+            activeCategories = ['ALL', ...new Set(rawCategories)];
+        }
+
+        /* ── CARRELLO CONDIVISO TAVOLO ── */
+        function renderTableCart() {
+            const container = document.getElementById('table-items-container');
+            const summaryEl = document.getElementById('order-status-summary');
+            const totalEl = document.getElementById('total-table-amount');
+            const pillEl = document.getElementById('cart-counter-pill');
+
+            if (pillEl) pillEl.innerText = tableOrderItems.reduce((acc, it) => acc + (it.quantity || 1), 0);
+
+            if (!tableOrderItems || tableOrderItems.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-400 space-y-2">
+                        <i class="fa-solid fa-clipboard-list text-2xl text-slate-300"></i>
+                        <p class="text-xs font-medium">Nessuna portata ancora ordinata.</p>
+                        <p class="text-[10px] text-slate-400">Scegli i piatti dal menu qui sotto per iniziare.</p>
+                    </div>
+                `;
+                if (summaryEl) summaryEl.innerText = 'Nessuna portata in corso';
+                if (totalEl) totalEl.innerText = '€ 0,00';
+                return;
+            }
+
+            const total = tableOrderItems.reduce((acc, it) => acc + ((it.price || 0) * (it.quantity || 1)), 0);
+            if (totalEl) totalEl.innerText = `€ ${total.toFixed(2).replace('.', ',')}`;
+
+            const servedCount = tableOrderItems.filter(it => it.status === 'SERVED').length;
+            const readyCount = tableOrderItems.filter(it => it.status === 'READY').length;
+            const prepCount = tableOrderItems.filter(it => it.status === 'PREPARING').length;
+            const recvCount = tableOrderItems.filter(it => it.status === 'RECEIVED').length;
+
+            if (summaryEl) {
+                summaryEl.innerText = `${tableOrderItems.length} portate totali (${servedCount} servite, ${readyCount} pronte, ${prepCount + recvCount} in cucina)`;
+            }
+
+            container.innerHTML = tableOrderItems.map(item => {
+                const isMine = String(item.added_by_chat_id) === String(currentGuestChatId);
+                const statusBadge = getStatusBadgeHtml(item.status);
+                const itemTotal = ((item.price || 0) * (item.quantity || 1)).toFixed(2).replace('.', ',');
+
+                return `
+                    <div class="p-3 bg-slate-50/80 border border-slate-200/80 rounded-2xl flex items-center justify-between gap-3 transition">
+                        <div class="space-y-1 min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <span class="font-mono font-black text-xs px-1.5 py-0.5 bg-slate-200 text-slate-800 rounded-lg shrink-0">${item.quantity || 1}x</span>
+                                <h4 class="font-black text-xs text-slate-900 truncate">${escapeHtml(item.name || item.description)}</h4>
+                            </div>
+                            <div class="flex items-center gap-2 text-[10px] text-slate-500">
+                                <span class="font-semibold ${isMine ? 'text-indigo-600 font-bold' : ''}">
+                                    <i class="fa-solid ${isMine ? 'fa-user' : 'fa-users'} text-[9px]"></i>
+                                    ${isMine ? 'Ordinato da te' : (item.added_by_name || 'Altro ospite')}
+                                </span>
+                                ${item.notes ? `<span>• <span class="italic text-slate-600">${escapeHtml(item.notes)}</span></span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1 shrink-0">
+                            <span class="font-mono font-black text-xs text-slate-900">€ ${itemTotal}</span>
+                            ${statusBadge}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusBadgeHtml(status) {
+            const st = (status || 'RECEIVED').toUpperCase();
+            switch (st) {
+                case 'PREPARING':
+                    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500 badge-pulse"></span> Ai Fornelli
+                    </span>`;
+                case 'READY':
+                    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-300">
+                        <i class="fa-solid fa-bell text-[8px]"></i> Pronto al Pass
+                    </span>`;
+                case 'SERVED':
+                    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200">
+                        <i class="fa-solid fa-check text-[8px]"></i> Servito
+                    </span>`;
+                case 'RECEIVED':
+                default:
+                    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Ricevuto
+                    </span>`;
+            }
+        }
+
+        /* ── RENDERING CATALOGO ── */
+        function renderCategoriesBar() {
+            const bar = document.getElementById('categories-bar');
+            if (!bar) return;
+            bar.innerHTML = activeCategories.map(cat => {
+                const isSelected = cat === currentCategory;
+                const label = cat === 'ALL' ? 'Tutte le Portate' : cat;
+                return `
+                    <button onclick="selectCategory('${cat}')" class="px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition active:scale-95 ${isSelected ? 'bg-slate-900 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:text-slate-900'}">
+                        ${label}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectCategory(cat) {
+            currentCategory = cat;
+            renderCategoriesBar();
+            renderProductsGrid();
+        }
+
+        function renderProductsGrid() {
+            const grid = document.getElementById('products-grid');
+            if (!grid) return;
+
+            const filtered = catalog.filter(p => {
+                if (currentCategory === 'ALL') return true;
+                return (p.category || 'Altro') === currentCategory;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-8 text-xs text-slate-400 font-medium">Nessun piatto in questa categoria.</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map((dish, idx) => {
+                const sku = dish.item_sku || dish.callback_data || ('dish_' + idx);
+                const priceFormatted = (dish.price || 0).toFixed(2).replace('.', ',');
+                return `
+                    <div class="bento-card rounded-3xl p-3.5 flex flex-col justify-between gap-3 shadow-sm hover:border-slate-400 cursor-pointer" onclick="openAddItemModal('${sku}')">
+                        <div class="space-y-1">
+                            <div class="flex items-start justify-between gap-2">
+                                <h4 class="font-black text-xs text-slate-900 leading-snug">${escapeHtml(dish.name || dish.full_name)}</h4>
+                                <span class="font-mono font-black text-xs text-slate-900 shrink-0">€ ${priceFormatted}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 line-clamp-2 leading-relaxed">${escapeHtml(dish.description || dish.short_desc || '')}</p>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">${escapeHtml(dish.category || 'Portata')}</span>
+                            <button class="px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-900 text-[10px] font-black uppercase tracking-wider transition active:scale-95 flex items-center gap-1">
+                                <i class="fa-solid fa-plus text-[8px]"></i>
+                                <span>Aggiungi</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        /* ── MODALE AGGIUNTA PIATTO ── */
+        function openAddItemModal(sku) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            activeDishForModal = catalog.find(p => (p.item_sku || p.callback_data) === sku) || catalog[0];
+            modalQty = 1;
+
+            document.getElementById('modal-dish-name').innerText = activeDishForModal.name || activeDishForModal.full_name || 'Portata';
+            document.getElementById('modal-dish-price').innerText = `€ ${(activeDishForModal.price || 0).toFixed(2).replace('.', ',')}`;
+            document.getElementById('modal-dish-desc').innerText = activeDishForModal.description || activeDishForModal.short_desc || '';
+            document.getElementById('modal-qty-value').innerText = modalQty;
+            document.getElementById('modal-dish-notes').value = '';
+
+            const modal = document.getElementById('add-item-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeAddItemModal() {
+            const modal = document.getElementById('add-item-modal');
+            if (modal) modal.classList.add('hidden');
+            activeDishForModal = null;
+        }
+
+        function changeModalQty(delta) {
+            modalQty = Math.max(1, modalQty + delta);
+            document.getElementById('modal-qty-value').innerText = modalQty;
+            if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        async function submitAddTableItem() {
+            if (!activeDishForModal) return;
+            const btn = document.getElementById('btn-confirm-add-item');
+            const label = document.getElementById('btn-confirm-add-label');
+            const notes = document.getElementById('modal-dish-notes').value.trim();
+
+            btn.disabled = true;
+            label.innerText = "Inoltro allo Chef...";
+
+            try {
+                const payload = {
+                    action: 'u_calc_add_table_item',
+                    job_id: requestedJobId,
+                    table_id: requestedTableId,
+                    chat_id: currentGuestChatId,
+                    guest_name: currentGuestName,
+                    item_name: activeDishForModal.name || activeDishForModal.full_name,
+                    description: activeDishForModal.description || activeDishForModal.short_desc,
+                    sku: activeDishForModal.item_sku || activeDishForModal.callback_data,
+                    price: activeDishForModal.price,
+                    quantity: modalQty,
+                    notes: notes,
+                    ash: ashToken,
+                    _auth: tg.initData
+                };
+
+                const res = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.order_items) {
+                        tableOrderItems = data.order_items;
+                    } else {
+                        tableOrderItems.push({
+                            item_id: 'item_' + Date.now(),
+                            name: activeDishForModal.name || activeDishForModal.full_name,
+                            price: activeDishForModal.price,
+                            quantity: modalQty,
+                            notes: notes,
+                            added_by_chat_id: currentGuestChatId,
+                            added_by_name: currentGuestName,
+                            status: 'RECEIVED'
+                        });
+                    }
+                    renderTableCart();
+                    closeAddItemModal();
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                } else {
+                    alert("Errore nell'invio della comanda. Riprova.");
+                }
+            } catch (err) {
+                console.error("Errore aggiunta portata:", err);
+                tableOrderItems.push({
+                    item_id: 'item_' + Date.now(),
+                    name: activeDishForModal.name || activeDishForModal.full_name,
+                    price: activeDishForModal.price,
+                    quantity: modalQty,
+                    notes: notes,
+                    added_by_chat_id: currentGuestChatId,
+                    added_by_name: currentGuestName,
+                    status: 'RECEIVED'
+                });
+                renderTableCart();
+                closeAddItemModal();
+            } finally {
+                btn.disabled = false;
+                label.innerText = "Aggiungi alla Comanda del Tavolo";
+            }
+        }
+
+        /* ── MODALE QR CONDIVIDI TAVOLO ── */
+        function openTableQrModal() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            const modal = document.getElementById('table-qr-modal');
+            const canvas = document.getElementById('qrcode-canvas');
+            const linkText = document.getElementById('qr-table-link-text');
+
+            const currentUrl = window.location.href;
+            if (linkText) linkText.innerText = currentUrl;
+
+            if (canvas && typeof QRCode !== 'undefined') {
+                canvas.innerHTML = '';
+                new QRCode(canvas, {
+                    text: currentUrl,
+                    width: 160,
+                    height: 160,
+                    colorDark: "#0f172a",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeTableQrModal() {
+            const modal = document.getElementById('table-qr-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function copyTableLink() {
+            const currentUrl = window.location.href;
+            navigator.clipboard.writeText(currentUrl).then(() => {
+                const btnLabel = document.getElementById('copy-btn-label');
+                if (btnLabel) btnLabel.innerText = "Collegamento Copiato!";
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                setTimeout(() => {
+                    if (btnLabel) btnLabel.innerText = "Copia Collegamento del Tavolo";
+                }, 2000);
+            });
+        }
+
+        function scrollToCart() {
+            const el = document.getElementById('table-cart-section');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        /* ── REALTIME ABLY ENGINE ── */
+        function initAblyRealtime() {
+            if (!window.Ably) {
+                console.warn('Ably JS SDK non disponibile.');
+                return;
+            }
+
+            try {
+                ablyInstance = new window.Ably.Realtime({
+                    authCallback: async function (tokenParams, callback) {
+                        try {
+                            const res = await fetch(SSE_ENDPOINT, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'get_ably_token',
+                                    ash: ashToken
+                                })
+                            });
+                            const data = await res.json();
+                            if (data && data.token) {
+                                if (data.channel) {
+                                    subscribeToTableChannel(data.channel);
+                                }
+                                callback(null, data.token);
+                            } else {
+                                callback(new Error('Token Ably non valido'), null);
+                            }
+                        } catch (err) {
+                            console.warn('Errore authCallback Ably:', err);
+                            callback(err, null);
+                        }
+                    }
+                });
+
+                ablyInstance.connection.on('connected', () => {
+                    console.log('🟢 [Ably Live Tavolo] Connesso in tempo reale.');
+                    const badge = document.getElementById('ably-live-badge');
+                    if (badge) badge.classList.remove('opacity-50');
+                });
+
+            } catch (err) {
+                console.warn('Errore inizializzazione Ably:', err);
+            }
+        }
+
+        function subscribeToTableChannel(channelName) {
+            if (!ablyInstance || !channelName) return;
+            ablyChannel = ablyInstance.channels.get(channelName);
+            ablyChannel.subscribe((msg) => {
+                try {
+                    let envelope = msg.data;
+                    if (typeof envelope === 'string') envelope = JSON.parse(envelope);
+                    console.log('⚡ [Ably Event Tavolo Ricevuto]:', envelope);
+                    
+                    const eventRef = envelope.event_ref || envelope.job_id;
+                    if (!eventRef || eventRef === requestedJobId) {
+                        loadTableData();
+                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    }
+                } catch (e) {
+                    console.warn('Errore parsing evento Ably tavolo:', e);
+                }
+            });
+        }
+
+        function hideLoader() {
+            const l = document.getElementById('global-loader');
+            if (l) {
+                l.classList.add('opacity-0');
+                setTimeout(() => l.classList.add('hidden'), 300);
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

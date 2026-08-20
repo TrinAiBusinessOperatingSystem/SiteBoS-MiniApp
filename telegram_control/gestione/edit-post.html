@@ -323,6 +323,7 @@
                 const info = Array.isArray(raw) ? raw[0] : raw;
 
                 currentVatNumber = info.vat_number || info.vatnumber || info.vat || '';
+                populateRealProductImage();
 
                 if (info.post) {
                     currentSocialData = info.post;
@@ -481,9 +482,56 @@
                 if (uploadBox) uploadBox.classList.add('hidden');
                 if (previewArea) previewArea.classList.remove('hidden');
                 if (previewImg) { previewImg.src = fullDataUrl; previewImg.classList.remove('hidden'); }
+
+                // L'owner ha sostituito l'immagine: oltre a usarla come riferimento per l'AI
+                // di questo post, la salviamo anche come nuova immagine reale del prodotto
+                // su dashboard.trinai.it (stesso storage usato da saveProduct_processor.workflow.ts),
+                // sovrascrivendo quella generata automaticamente. Fire-and-forget: non blocca l'editor.
+                replaceProductImage(rawBase64, mimeType);
             };
             reader.readAsDataURL(file);
         };
+
+        // L'immagine del prodotto è già stata generata da saveProduct_processor.workflow.ts
+        // (stesso file per SOP/PRO/SER) e serve direttamente l'e-commerce — non ne generiamo
+        // una seconda qui, la riusiamo. Stesso URL già in uso in produzione in ecommerce.html.
+        function populateRealProductImage() {
+            if (!currentVatNumber || !sopId || referenceImageData) return;
+
+            const uploadBox = document.getElementById('mediaUploadBox');
+            const previewArea = document.getElementById('mediaPreviewArea');
+            const previewImg = document.getElementById('mediaPreviewImage');
+            if (!previewImg) return;
+
+            previewImg.onerror = () => {
+                previewImg.classList.add('hidden');
+                if (previewArea) previewArea.classList.add('hidden');
+                if (uploadBox) uploadBox.classList.remove('hidden');
+            };
+            previewImg.src = `https://dashboard.trinai.it/images/minisite/${currentVatNumber}/${sopId}.jpg`;
+            previewImg.classList.remove('hidden');
+            if (uploadBox) uploadBox.classList.add('hidden');
+            if (previewArea) previewArea.classList.remove('hidden');
+        }
+
+        async function replaceProductImage(base64, mimeType) {
+            if (!currentVatNumber || !sopId) return;
+            try {
+                await fetch("https://prod.workflow.trinai.it/webhook/2c6416b1-32c6-4661-bd8f-b175d24fd035", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: tg ? tg.initData : '',
+                        action: 'replace_product_image',
+                        sop_id: sopId,
+                        image_base64: base64,
+                        mime_type: mimeType
+                    })
+                });
+            } catch (e) {
+                console.error('Errore sostituzione immagine prodotto:', e);
+            }
+        }
 
         window.removeReferenceMedia = function(event) {
             if (event) event.stopPropagation();

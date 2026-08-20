@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Profilo Soft Skill Personale | SiteBoS</title>
+    <meta name="description" content="Autovalutazione e profilo delle competenze psico-attitudinali del titolare aziendale.">
+
+    <!-- Telegram WebApp SDK & Global Launch Controller -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script>
+    (function() {
+        const tempTg = window.Telegram?.WebApp;
+        const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+
+        if (!isTelegramSession) {
+            const currentPath = window.location.pathname;
+            let redirectPath = "index.html";
+
+            if (currentPath.includes('/telegram_control/')) {
+                const parts = currentPath.split('/telegram_control/');
+                const subPath = parts[1] || '';
+                if (subPath.includes('/')) {
+                    redirectPath = "../../index.html";
+                } else {
+                    redirectPath = "../index.html";
+                }
+            }
+
+            window.location.replace(redirectPath);
+        }
+    })();
+    </script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        html,
+        body {
+            background-color: #fafafa !important;
+            color: #000000 !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card-noir {
+            background: white !important;
+            border: 1px solid #eeeeee !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.02);
+            border-radius: 1.5rem;
+        }
+
+        .label-micro {
+            font-size: 8.5px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: #9ca3af;
+        }
+
+        .loader-spin {
+            border: 3px solid #e5e7eb;
+            border-top: 3px solid #000000;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .progress-bar-fill {
+            transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.35s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+
+<body class="flex flex-col min-h-screen pb-10 bg-[#fafafa] text-black">
+
+    <!-- LOADER OVERLAY -->
+    <div id="loader-overlay" class="fixed inset-0 bg-white/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center space-y-3">
+        <div class="loader-spin"></div>
+        <div class="text-center">
+            <h3 class="text-xs font-black uppercase tracking-[0.2em] text-black" id="loader-title">Caricamento Profilo</h3>
+            <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Verifica stato questionario e soft skills...</p>
+        </div>
+    </div>
+
+    <!-- STICKY HEADER SITEBOS (Standard 3 Pulsanti) -->
+    <header class="sticky top-0 z-50 px-4 py-3 bg-white/90 backdrop-blur-md border-b border-gray-200">
+        <div class="max-w-xl mx-auto flex items-center justify-between gap-3">
+            <!-- Pulsante 1: Torna alla Dashboard -->
+            <button id="btn-nav-back" onclick="window.history.back()"
+                class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-black active:scale-95 transition shadow-2xs">
+                <i class="fas fa-arrow-left text-sm"></i>
+            </button>
+
+            <!-- Titolo Centrale con Badge INTELLIGENCE -->
+            <div class="flex-1 text-center select-none">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[9px] font-extrabold uppercase tracking-widest text-blue-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+                    SITEBOS INTELLIGENCE
+                </div>
+                <h1 class="text-sm font-black uppercase tracking-wider text-black mt-0.5">Profilo Soft Skill</h1>
+            </div>
+
+            <!-- Pulsanti 2 & 3: Audio Guide & Guida Utente -->
+            <div class="flex items-center gap-2">
+                <button id="btn-nav-audio" onclick="toggleAudioGuide()"
+                    class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-blue-600 active:scale-95 transition shadow-2xs"
+                    title="Guida Vocale">
+                    <i class="fas fa-volume-high text-xs"></i>
+                </button>
+                <button id="btn-nav-guide" onclick="openUserGuide('userguide/06_team.html')"
+                    class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-black active:scale-95 transition shadow-2xs"
+                    title="Guida Utente">
+                    <i class="fas fa-book-open text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-xl w-full mx-auto px-4 pt-4 flex flex-col gap-4 fade-in">
+
+        <!-- CARD STATO DI COMPLETAMENTO GLOBALE -->
+        <div class="card-noir p-5 relative overflow-hidden">
+            <div class="flex items-start justify-between gap-4">
+                <div class="space-y-1 flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded">Autovalutazione Owner</span>
+                        <span class="text-[9px] font-bold text-gray-400" id="sync-timestamp">Sincronizzato</span>
+                    </div>
+                    <h2 class="text-base font-black uppercase tracking-tight text-black mt-1">Stato Profilo Personale</h2>
+                    <p class="text-xs text-gray-600 font-medium leading-relaxed" id="profile-summary-text">
+                        Caricamento dello stato dei 4 moduli psicometrici...
+                    </p>
+                </div>
+                <div class="text-right shrink-0">
+                    <span class="label-micro block">Completamento</span>
+                    <span id="global-pct-label" class="text-2xl font-black tracking-tight text-black">0%</span>
+                </div>
+            </div>
+
+            <!-- Barra di Avanzamento Globale -->
+            <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden mt-4">
+                <div id="global-progress-bar" class="h-full bg-black rounded-full progress-bar-fill" style="width: 0%"></div>
+            </div>
+
+            <!-- Badge Stato Scheda -->
+            <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100 text-[10px]">
+                <div class="flex items-center gap-1.5">
+                    <span id="status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span id="status-badge-text" class="font-black uppercase tracking-wider text-gray-700">In attesa di compilazione</span>
+                </div>
+                <span class="text-gray-400 font-bold" id="completed-count-text">0 di 4 Moduli Completati</span>
+            </div>
+        </div>
+
+        <!-- CALL TO ACTION: COMPILAZIONE QUESTIONARIO -->
+        <div class="card-noir p-5 bg-gradient-to-br from-black to-zinc-900 text-white space-y-3">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white text-base shrink-0">
+                    <i class="fas fa-clipboard-question"></i>
+                </div>
+                <div>
+                    <h3 class="text-xs font-black uppercase tracking-wider text-white">Questionario Psico-Attitudinale</h3>
+                    <p class="text-[10px] text-gray-300 font-medium">150 quesiti suddivisi in 4 aree chiave di leadership e gestione</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-300 font-normal leading-relaxed">
+                La compilazione del profilo personale consente al motore di Intelligenza Artificiale di effettuare il matching tra il tuo stile gestionale e quello del tuo team, producendo raccomandazioni tattiche personalizzate nell'HR Advisor.
+            </p>
+
+            <button onclick="openQuestionnaire()" id="btn-questionnaire"
+                class="w-full py-3.5 px-4 bg-white text-black hover:bg-gray-100 active:scale-[0.98] rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition">
+                <i class="fas fa-play text-xs"></i>
+                <span id="btn-questionnaire-text">Compila il Questionario</span>
+            </button>
+        </div>
+
+        <!-- SEZIONE: STATO DEI 4 MODULI SOFT SKILLS -->
+        <div class="space-y-2.5">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-xs font-black uppercase tracking-wider text-black">Aree di Valutazione Soft Skills</h3>
+                <span class="text-[9px] font-bold text-gray-400 uppercase">4 Moduli</span>
+            </div>
+
+            <!-- Modulo 1 -->
+            <div class="card-noir p-4 space-y-2" id="module-card-1">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-black font-black text-xs" id="module-icon-1">
+                            1
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-tight text-black">Efficacia Personale & Stress Management</h4>
+                            <p class="text-[10px] text-gray-400 font-medium">Gestione dello stress, resilienza, autodisciplina e autocritica</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border bg-gray-100 text-gray-600 border-gray-200" id="module-badge-1">
+                        Da Completare
+                    </span>
+                </div>
+                <div class="text-[9px] text-gray-400 font-medium pl-10.5 hidden" id="module-date-1"></div>
+            </div>
+
+            <!-- Modulo 2 -->
+            <div class="card-noir p-4 space-y-2" id="module-card-2">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-black font-black text-xs" id="module-icon-2">
+                            2
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-tight text-black">Problem Solving & Decision Making</h4>
+                            <p class="text-[10px] text-gray-400 font-medium">Fiducia in se stessi, sviluppo personale e pianificazione</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border bg-gray-100 text-gray-600 border-gray-200" id="module-badge-2">
+                        Da Completare
+                    </span>
+                </div>
+                <div class="text-[9px] text-gray-400 font-medium pl-10.5 hidden" id="module-date-2"></div>
+            </div>
+
+            <!-- Modulo 3 -->
+            <div class="card-noir p-4 space-y-2" id="module-card-3">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-black font-black text-xs" id="module-icon-3">
+                            3
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-tight text-black">Comunicazione & Relazioni Interpersonali</h4>
+                            <p class="text-[10px] text-gray-400 font-medium">Empatia, ascolto attivo, negoziazione e gestione del conflitto</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border bg-gray-100 text-gray-600 border-gray-200" id="module-badge-3">
+                        Da Completare
+                    </span>
+                </div>
+                <div class="text-[9px] text-gray-400 font-medium pl-10.5 hidden" id="module-date-3"></div>
+            </div>
+
+            <!-- Modulo 4 -->
+            <div class="card-noir p-4 space-y-2" id="module-card-4">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-black font-black text-xs" id="module-icon-4">
+                            4
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-tight text-black">Leadership & Team Building</h4>
+                            <p class="text-[10px] text-gray-400 font-medium">Delega strategica, visione aziendale e motivazione del personale</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border bg-gray-100 text-gray-600 border-gray-200" id="module-badge-4">
+                        Da Completare
+                    </span>
+                </div>
+                <div class="text-[9px] text-gray-400 font-medium pl-10.5 hidden" id="module-date-4"></div>
+            </div>
+        </div>
+
+        <!-- SEZIONE INFORMATIVA: VALORE STRATEGICO PER L'OWNER -->
+        <div class="card-noir p-5 space-y-3 bg-gray-50 border-gray-200">
+            <span class="label-micro text-black block">Integrazione HR Advisor</span>
+            <h3 class="text-xs font-black uppercase tracking-tight text-black">Come SiteBoS utilizza il tuo Profilo</h3>
+
+            <div class="space-y-2.5 text-xs text-gray-700 font-medium">
+                <div class="flex items-start gap-2.5">
+                    <div class="w-5 h-5 rounded-lg bg-black text-white flex items-center justify-center text-[9px] shrink-0 mt-0.5">
+                        <i class="fas fa-arrows-split-up-and-left"></i>
+                    </div>
+                    <p class="leading-relaxed">
+                        <strong>Matching Owner-Collaboratori:</strong> Incrocia le tue inclinazioni relazionali con quelle di ogni singolo collaboratore per identificare sinergie e punti di attrito prima che impattino sull'operatività.
+                    </p>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <div class="w-5 h-5 rounded-lg bg-black text-white flex items-center justify-center text-[9px] shrink-0 mt-0.5">
+                        <i class="fas fa-bullseye"></i>
+                    </div>
+                    <p class="leading-relaxed">
+                        <strong>Guida Personalizzata alla Delega:</strong> Fornisce indicazioni precise su come comunicare le priorità aziendali e quali leve motivazionali impiegare con ciascun membro dello staff.
+                    </p>
+                </div>
+
+                <div class="flex items-start gap-2.5">
+                    <div class="w-5 h-5 rounded-lg bg-black text-white flex items-center justify-center text-[9px] shrink-0 mt-0.5">
+                        <i class="fas fa-shield-halved"></i>
+                    </div>
+                    <p class="leading-relaxed">
+                        <strong>Clima Aziendale e Retention:</strong> Riduce il turnover del personale migliorando la soddisfazione lavorativa e la chiarezza dei ruoli.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- LOGICA JAVASCRIPT -->
+    <script>
+        const tg = window.Telegram?.WebApp;
+        const currentUrlParams = new URLSearchParams(window.location.search);
+        const ash = currentUrlParams.get('ash') || '';
+        const msgId = currentUrlParams.get('msg_id') || '1';
+        const alone = currentUrlParams.get('alone') || '';
+        const authData = tg?.initData || '';
+
+        const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/80d663ea-be4b-4d42-8cc1-05f4ada52ced';
+
+        let profileState = {
+            completion_percentage: 0,
+            modules_completed: {
+                modulo1: { completed: false, date: null, time: null },
+                modulo2: { completed: false, date: null, time: null },
+                modulo3: { completed: false, date: null, time: null },
+                modulo4: { completed: false, date: null, time: null }
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            setupTelegramEvents();
+            await loadProfileProgress();
+            renderProfile();
+            hideLoader();
+        });
+
+        function setupTelegramEvents() {
+            if (tg) {
+                try { tg.ready(); } catch (_) {}
+                try { if (typeof tg.expand === 'function') tg.expand(); } catch (_) {}
+                if (tg.BackButton) {
+                    tg.BackButton.show();
+                    tg.BackButton.onClick(() => {
+                        window.history.back();
+                    });
+                }
+            }
+        }
+
+        async function loadProfileProgress() {
+            showLoader("Caricamento Profilo", "Recupero stato moduli soft skills...");
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: "get_progress",
+                        ash: ash,
+                        msg_id: msgId,
+                        _auth: authData,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && data.success) {
+                        if (typeof data.completion_percentage === 'number') {
+                            profileState.completion_percentage = data.completion_percentage;
+                        }
+                        if (data.modules_completed && typeof data.modules_completed === 'object') {
+                            profileState.modules_completed = {
+                                ...profileState.modules_completed,
+                                ...data.modules_completed
+                            };
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn("Impossibile recuperare progresso dal webhook, utilizzo stato default:", err);
+            }
+        }
+
+        function renderProfile() {
+            const pct = Math.round(profileState.completion_percentage || 0);
+            const modules = profileState.modules_completed || {};
+            
+            const completedCount = Object.values(modules).filter(m => m && m.completed === true).length;
+            const totalModules = 4;
+
+            // Aggiorna KPI e Barra
+            document.getElementById('global-pct-label').textContent = `${pct}%`;
+            document.getElementById('global-progress-bar').style.width = `${pct}%`;
+            document.getElementById('completed-count-text').textContent = `${completedCount} di ${totalModules} Moduli Completati`;
+            document.getElementById('sync-timestamp').textContent = `Aggiornato alle ${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}`;
+
+            // Testo di sintesi e stato
+            const summaryEl = document.getElementById('profile-summary-text');
+            const statusDot = document.getElementById('status-dot');
+            const statusBadgeText = document.getElementById('status-badge-text');
+            const btnText = document.getElementById('btn-questionnaire-text');
+
+            if (completedCount === 4) {
+                summaryEl.textContent = "Tutti i 4 moduli sono stati completati con successo. Il tuo profilo psico-attitudinale è attivo e integrato nell'HR Advisor.";
+                statusDot.className = "w-2 h-2 rounded-full bg-emerald-500";
+                statusBadgeText.textContent = "Profilo Completo (Attivo in HR Advisor)";
+                btnText.textContent = "Rivedi o Aggiorna Questionario";
+            } else if (completedCount > 0) {
+                summaryEl.textContent = `Hai completato ${completedCount} su ${totalModules} moduli. Completa i moduli rimanenti per sbloccare l'analisi di matching completa.`;
+                statusDot.className = "w-2 h-2 rounded-full bg-blue-500";
+                statusBadgeText.textContent = "Compilazione in Corso";
+                btnText.textContent = "Continua Questionario";
+            } else {
+                summaryEl.textContent = "Nessun modulo ancora completato. Avvia il questionario per profilare le tue soft skills e abilitare il matching del team.";
+                statusDot.className = "w-2 h-2 rounded-full bg-amber-500";
+                statusBadgeText.textContent = "In Attesa di Compilazione";
+                btnText.textContent = "Inizia Questionario (150 Domande)";
+            }
+
+            // Renderizza i 4 moduli
+            for (let i = 1; i <= 4; i++) {
+                const modKey = `modulo${i}`;
+                const modData = modules[modKey];
+                const isCompleted = modData && modData.completed === true;
+
+                const badge = document.getElementById(`module-badge-${i}`);
+                const icon = document.getElementById(`module-icon-${i}`);
+                const dateEl = document.getElementById(`module-date-${i}`);
+
+                if (isCompleted) {
+                    badge.className = "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border bg-emerald-100 text-emerald-800 border-emerald-200";
+                    badge.innerHTML = '<i class="fas fa-check mr-1"></i> Completato';
+                    icon.className = "w-8 h-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center font-black text-xs shadow-xs";
+                    icon.innerHTML = '<i class="fas fa-check"></i>';
+                    
+                    if (modData.date) {
+                        dateEl.textContent = `Completato il: ${modData.date} ${modData.time || ''}`;
+                        dateEl.classList.remove('hidden');
+                    }
+                } else {
+                    badge.className = "px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider border bg-gray-100 text-gray-600 border-gray-200";
+                    badge.textContent = "Da Completare";
+                    icon.className = "w-8 h-8 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-black font-black text-xs";
+                    icon.textContent = `${i}`;
+                    dateEl.classList.add('hidden');
+                }
+            }
+        }
+
+        function openQuestionnaire() {
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            const params = new URLSearchParams();
+            if (ash) params.set('ash', ash);
+            params.set('msg_id', msgId || '1');
+            if (alone) params.set('alone', alone);
+
+            window.location.href = `../softskill/complete-profile.html?${params.toString()}`;
+        }
+
+        function showLoader(title, subtitle) {
+            const loader = document.getElementById('loader-overlay');
+            if (title) document.getElementById('loader-title').textContent = title;
+            loader.classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('loader-overlay');
+            loader.classList.add('hidden');
+        }
+    </script>
+
+    <!-- User Guide and Audio Guide Integration Engine -->
+    <script>
+    (function() {
+        if (document.getElementById('userguide-drawer-overlay')) return;
+
+        const pathParts = window.location.pathname.split('/');
+        const pageName = pathParts[pathParts.length - 1] || 'index.html';
+        const baseName = pageName.replace('.html', '');
+        
+        let audioSrc = baseName + '.wav';
+        let guidePage = 'userguide/06_team.html';
+
+        const tcIndex = window.location.pathname.indexOf('/telegram_control/');
+        let rootPath = '';
+        if (tcIndex !== -1) {
+            const subPath = window.location.pathname.substring(tcIndex + '/telegram_control/'.length);
+            const slashCount = (subPath.match(/\//g) || []).length;
+            rootPath = '../'.repeat(slashCount);
+        }
+        
+        const finalGuideUrl = rootPath + guidePage;
+        const finalAudioUrl = audioSrc;
+
+        const drawerHtml = `
+        <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
+            <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
+                <div class="w-full flex items-center justify-between p-4 border-b border-slate-100 shrink-0 select-none">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full bg-black animate-pulse"></div>
+                        <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente · Profilo Soft Skill</span>
+                    </div>
+                    <button onclick="closeUserGuide()" class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-90 transition">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+                <div class="flex-1 w-full overflow-hidden bg-slate-50 relative">
+                    <iframe id="userguide-iframe" class="w-full h-full border-none" src=""></iframe>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', drawerHtml);
+
+        let voiceAudio = null;
+        let isAudioPlaying = false;
+
+        window.openUserGuide = function(url) {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            const iframe = document.getElementById('userguide-iframe');
+            if (!overlay || !drawer || !iframe) return;
+
+            window.stopAudio();
+            iframe.src = url || finalGuideUrl;
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                drawer.classList.remove('translate-y-full');
+            }, 10);
+        };
+
+        window.closeUserGuide = function() {
+            const overlay = document.getElementById('userguide-drawer-overlay');
+            const drawer = document.getElementById('userguide-drawer');
+            if (!overlay || !drawer) return;
+
+            overlay.classList.add('opacity-0');
+            drawer.classList.add('translate-y-full');
+            setTimeout(() => {
+                overlay.classList.add('hidden');
+                document.getElementById('userguide-iframe').src = "";
+            }, 300);
+        };
+
+        window.stopAudio = function() {
+            if (isAudioPlaying && voiceAudio) {
+                voiceAudio.pause();
+                voiceAudio.currentTime = 0;
+            }
+            isAudioPlaying = false;
+            voiceAudio = null;
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (icon) icon.className = 'fas fa-volume-high text-xs';
+            if (btn) {
+                btn.classList.remove('bg-black', 'text-white', 'border-black');
+                btn.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-200');
+            }
+        };
+
+        window.toggleAudioGuide = function() {
+            const btn = document.getElementById('btn-nav-audio');
+            const icon = btn ? btn.querySelector('i') : null;
+
+            if (!voiceAudio) {
+                voiceAudio = new Audio(finalAudioUrl);
+                voiceAudio.addEventListener('ended', () => {
+                    isAudioPlaying = false;
+                    voiceAudio.currentTime = 0;
+                    if (icon) icon.className = 'fas fa-volume-high text-xs';
+                    if (btn) {
+                        btn.classList.remove('bg-black', 'text-white', 'border-black');
+                        btn.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-200');
+                    }
+                });
+            }
+
+            if (isAudioPlaying) {
+                window.stopAudio();
+            } else {
+                voiceAudio.play().then(() => {
+                    isAudioPlaying = true;
+                    if (icon) icon.className = 'fas fa-stop text-xs';
+                    if (btn) {
+                        btn.classList.remove('bg-gray-100', 'text-gray-700', 'border-gray-200');
+                        btn.classList.add('bg-black', 'text-white', 'border-black');
+                    }
+                }).catch(err => {
+                    console.warn("Audio non ancora disponibile per questa pagina:", err);
+                });
+            }
+        };
+    })();
+    </script>
+</body>
+</html>

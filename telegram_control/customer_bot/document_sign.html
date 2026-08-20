@@ -1,0 +1,418 @@
+﻿<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Firma Documento | SiteBoS</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #fafafa !important;
+            color: #000000 !important;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass-card {
+            background: #ffffff !important;
+            border: 1px solid #eeeeee !important;
+            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+        }
+        .canvas-container {
+            touch-action: none;
+            background: #ffffff;
+            border-radius: 1rem;
+            position: relative;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 180px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-6 text-black bg-[#fafafa]">
+    <!-- Header -->
+    <header class="p-4 glass-card sticky top-0 z-50 flex items-center justify-between border-b border-gray-200">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold text-sm">
+                <i class="fa-solid fa-pen-nib"></i>
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-black tracking-tight" id="header-title">Firma Documento</h1>
+                <p class="text-[11px] text-gray-500 font-medium" id="header-sub">SiteBoS Digital Signature</p>
+            </div>
+        </div>
+        <button id="btn-close-app" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:text-black">
+            <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="p-4 space-y-4 flex-grow max-w-lg mx-auto w-full">
+        <!-- Scheda Pratica / Step -->
+        <div class="glass-card rounded-2xl p-4 space-y-2.5">
+            <div class="flex justify-between items-center text-xs">
+                <span class="text-gray-500">Pratica / Riferimento:</span>
+                <strong class="text-black font-mono font-bold" id="lbl-job-id">--</strong>
+            </div>
+            <div class="border-t border-gray-100 pt-2 flex justify-between items-center text-xs">
+                <span class="text-gray-500">Oggetto / Attività:</span>
+                <strong class="text-black text-right" id="lbl-step-name">--</strong>
+            </div>
+        </div>
+
+        <!-- Contenuto Documento / Presa Visione -->
+        <div class="glass-card rounded-2xl p-4 space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xs font-bold text-gray-600 uppercase tracking-wider flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-lines text-black"></i>
+                    <span id="lbl-doc-section-title">Testo del Documento</span>
+                </h2>
+                <span id="badge-route" class="px-2.5 py-0.5 bg-gray-100 text-gray-700 rounded-full text-[10px] font-semibold">
+                    Convalida Digitale
+                </span>
+            </div>
+            <div id="doc-body-container" class="bg-slate-50 p-4 rounded-xl text-xs text-gray-800 max-h-56 overflow-y-auto border border-gray-200 leading-relaxed">
+                <div id="doc-content-loader" class="flex items-center justify-center py-6 text-gray-400 space-x-2">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                    <span>Caricamento documento in corso...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modulo di Firma -->
+        <div id="signing-form-card" class="glass-card rounded-2xl p-4 space-y-4 border border-gray-200">
+            <!-- Consenso Checkbox -->
+            <label class="flex items-start space-x-3 cursor-pointer select-none">
+                <input type="checkbox" id="chk-accept" class="mt-0.5 w-4 h-4 rounded border-gray-300 text-black focus:ring-black accent-black">
+                <span class="text-xs text-gray-700 leading-snug">
+                    Dichiaro di aver preso visione, compreso e approvato integralmente quanto sopra indicato.
+                </span>
+            </label>
+
+            <!-- Box Canvas -->
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-gray-800">Traccia la tua firma:</span>
+                    <button type="button" id="btn-clear-canvas" class="text-xs text-red-600 font-medium hover:underline flex items-center space-x-1">
+                        <i class="fa-solid fa-rotate-left text-[10px]"></i>
+                        <span>Cancella</span>
+                    </button>
+                </div>
+                <div class="canvas-container border-2 border-gray-300 overflow-hidden shadow-inner bg-white">
+                    <canvas id="sign-canvas"></canvas>
+                    <div id="canvas-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none text-gray-400 text-xs font-medium">
+                        Firma qui con il dito o il pennino
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schermata di Successo (Hidden Inizialmente) -->
+        <div id="success-card" class="hidden glass-card rounded-2xl p-6 text-center space-y-4 border border-emerald-200 bg-emerald-50/50">
+            <div class="w-14 h-14 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center justify-center mx-auto text-2xl font-bold">
+                <i class="fa-solid fa-check"></i>
+            </div>
+            <div>
+                <h3 class="text-base font-bold text-emerald-900">Documento Firmato con Successo!</h3>
+                <p class="text-xs text-emerald-700 mt-1">
+                    La tua firma è stata registrata e l'operatore è stato aggiornato in tempo reale.
+                </p>
+            </div>
+            <div class="p-3 bg-white rounded-xl text-left font-mono text-[11px] text-gray-700 border border-emerald-200 space-y-1">
+                <div>JOB: <strong id="lbl-success-job">--</strong></div>
+                <div>DATA/ORA: <span id="lbl-success-time">--</span></div>
+                <div>STATO: <strong class="text-emerald-700">NOTARIZZATO</strong></div>
+            </div>
+            <button id="btn-success-close" class="w-full py-3.5 bg-black hover:bg-neutral-800 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition">
+                Chiudi Schermata
+            </button>
+        </div>
+    </main>
+
+    <!-- Fixed Action Footer -->
+    <footer id="form-footer" class="p-4 glass-card sticky bottom-0 z-50 border-t border-gray-200 max-w-lg mx-auto w-full">
+        <button id="btn-submit-sign" class="w-full py-4 bg-black hover:bg-neutral-800 text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center space-x-2 text-sm tracking-wide active:scale-[0.99]">
+            <i class="fa-solid fa-signature"></i>
+            <span>Conferma e Apponi Firma</span>
+        </button>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                tg.ready();
+                tg.expand();
+            }
+
+            const DOC_ENGINE_ENDPOINT = 'https://prod.workflow.trinai.it/webhook/doc-engine';
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const jobId = urlParams.get('job_id') || ('JOB_' + Date.now().toString(16).toUpperCase());
+            const docTemplateId = urlParams.get('doc_template_id') || urlParams.get('template_id') || '';
+            const vat = urlParams.get('vat') || urlParams.get('owner_id') || urlParams.get('vat_number') || 'TENANT_DEFAULT';
+            const customerChatId = urlParams.get('customer_chat_id') || urlParams.get('chat_id') || (tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'CUSTOMER_DIRECT');
+            const ash = urlParams.get('ash') || ('0xASH' + Date.now().toString(16));
+            const stepName = urlParams.get('step_name') || urlParams.get('step_title') || urlParams.get('context') || 'Firma di Conformità';
+            const complianceRoute = urlParams.get('compliance_route') || 'SIMPLE_STAMP';
+            const operatorId = urlParams.get('operator_id') || 'OP_CURRENT';
+
+            // Elementi DOM
+            const lblJobId = document.getElementById('lbl-job-id');
+            const lblStepName = document.getElementById('lbl-step-name');
+            const docBodyContainer = document.getElementById('doc-body-container');
+            const lblDocSectionTitle = document.getElementById('lbl-doc-section-title');
+            const badgeRoute = document.getElementById('badge-route');
+            const chkAccept = document.getElementById('chk-accept');
+            const btnClearCanvas = document.getElementById('btn-clear-canvas');
+            const canvasPlaceholder = document.getElementById('canvas-placeholder');
+            const btnSubmitSign = document.getElementById('btn-submit-sign');
+            const btnCloseApp = document.getElementById('btn-close-app');
+
+            const signingFormCard = document.getElementById('signing-form-card');
+            const formFooter = document.getElementById('form-footer');
+            const successCard = document.getElementById('success-card');
+            const lblSuccessJob = document.getElementById('lbl-success-job');
+            const lblSuccessTime = document.getElementById('lbl-success-time');
+            const btnSuccessClose = document.getElementById('btn-success-close');
+
+            // Init Header / Data
+            lblJobId.innerText = jobId;
+            lblStepName.innerText = stepName;
+            badgeRoute.innerText = complianceRoute.replace('_', ' ');
+
+            // Close button
+            if (btnCloseApp) {
+                btnCloseApp.addEventListener('click', function () {
+                    if (tg?.close) tg.close();
+                    else window.close();
+                });
+            }
+            if (btnSuccessClose) {
+                btnSuccessClose.addEventListener('click', function () {
+                    if (tg?.close) tg.close();
+                    else window.close();
+                });
+            }
+
+            // Setup Canvas
+            const canvas = document.getElementById('sign-canvas');
+            const ctx = canvas.getContext('2d');
+            let isDrawing = false;
+            let hasDrawn = false;
+
+            function resizeCanvas() {
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * window.devicePixelRatio || rect.width;
+                canvas.height = rect.height * window.devicePixelRatio || rect.height;
+                ctx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 2.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            }
+
+            // Esegui resize dopo rendering iniziale
+            setTimeout(resizeCanvas, 100);
+            window.addEventListener('resize', resizeCanvas);
+
+            function getPos(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: clientX - rect.left,
+                    y: clientY - rect.top
+                };
+            }
+
+            function startDraw(e) {
+                isDrawing = true;
+                hasDrawn = true;
+                if (canvasPlaceholder) canvasPlaceholder.style.display = 'none';
+                const pos = getPos(e);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            }
+
+            function drawMove(e) {
+                if (!isDrawing) return;
+                const pos = getPos(e);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            }
+
+            function stopDraw() {
+                isDrawing = false;
+            }
+
+            canvas.addEventListener('mousedown', startDraw);
+            canvas.addEventListener('mousemove', drawMove);
+            canvas.addEventListener('mouseup', stopDraw);
+            canvas.addEventListener('mouseleave', stopDraw);
+
+            canvas.addEventListener('touchstart', startDraw, { passive: true });
+            canvas.addEventListener('touchmove', drawMove, { passive: true });
+            canvas.addEventListener('touchend', stopDraw);
+
+            btnClearCanvas.addEventListener('click', function () {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                hasDrawn = false;
+                if (canvasPlaceholder) canvasPlaceholder.style.display = 'flex';
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            });
+
+            // Caricamento Documento Reale o Fallback Generico
+            async function loadDocument() {
+                if (!docTemplateId) {
+                    // Fallback sign generico (senza template documentale specifico)
+                    lblDocSectionTitle.innerText = 'Dichiarazione di Presa Visione';
+                    docBodyContainer.innerHTML = `
+                        <div class="space-y-2 text-gray-800">
+                            <p class="font-bold text-sm text-black">Conferma di Esecuzione e Presa Visione</p>
+                            <p>
+                                Il sottoscritto dichiara di aver preso visione delle attività svolte e dei relativi dettagli operativi per la pratica <strong>${jobId}</strong> (Fase: <strong>${stepName}</strong>).
+                            </p>
+                            <p class="text-[11px] text-gray-500">
+                                La sottoscrizione mediante apposizione della firma sul proprio dispositivo conferma l'accettazione e ha valore probatorio ai fini dell'adempimento contrattuale e normativo.
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                try {
+                    const response = await fetch(DOC_ENGINE_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'get_doc_template',
+                            doc_template_id: docTemplateId,
+                            owner_id: vat,
+                            ash: ash
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    const data = await response.json();
+                    const template = data?.data || data?.template || {};
+
+                    if (template.name) {
+                        lblDocSectionTitle.innerText = template.name;
+                    }
+
+                    if (template.body_html || template.rendered_html) {
+                        docBodyContainer.innerHTML = template.body_html || template.rendered_html;
+                    } else {
+                        docBodyContainer.innerHTML = `
+                            <div class="space-y-2">
+                                <p class="font-bold">${template.name || docTemplateId}</p>
+                                <p>${template.description || 'Documento associato alla pratica ' + jobId}</p>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    console.warn('Avviso caricamento template:', err);
+                    docBodyContainer.innerHTML = `
+                        <div class="space-y-2 text-gray-800">
+                            <p class="font-bold text-sm text-black">Dichiarazione per: ${stepName}</p>
+                            <p>
+                                Conferma e presa visione della procedura <strong>${stepName}</strong> per la pratica <strong>${jobId}</strong>.
+                            </p>
+                        </div>
+                    `;
+                }
+            }
+
+            loadDocument();
+
+            // Invio Firma (Callback al backend n8n)
+            btnSubmitSign.addEventListener('click', async function () {
+                if (!chkAccept.checked) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+                    if (tg?.showAlert) tg.showAlert('Per favore, seleziona la casella di presa visione prima di procedere.');
+                    else alert('Per favore, seleziona la casella di presa visione prima di procedere.');
+                    return;
+                }
+
+                if (!hasDrawn) {
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+                    if (tg?.showAlert) tg.showAlert('Per favore, traccia la tua firma nel riquadro bianco.');
+                    else alert('Per favore, traccia la tua firma nel riquadro bianco.');
+                    return;
+                }
+
+                if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+                const signatureBase64 = canvas.toDataURL('image/png');
+                const nowIso = new Date().toISOString();
+
+                btnSubmitSign.disabled = true;
+                btnSubmitSign.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i><span>Registrazione firma in corso...</span>`;
+
+                try {
+                    const response = await fetch(DOC_ENGINE_ENDPOINT, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'sign_callback',
+                            doc_template_id: docTemplateId || null,
+                            job_id: jobId,
+                            execution_id: jobId,
+                            owner_id: vat,
+                            vat_number: vat,
+                            customer_chat_id: customerChatId,
+                            operator_id: operatorId,
+                            compliance_route: complianceRoute,
+                            signature_data: signatureBase64,
+                            document_signature: signatureBase64,
+                            step_name: stepName,
+                            ash: ash,
+                            ash_hash: ash,
+                            blueprint_name: stepName,
+                            blueprint_description: 'Firma apposta dal cliente via Telegram WebApp',
+                            started_at: nowIso,
+                            duration_minutes: 1,
+                            total_steps_executed: 1
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok || result?.success === false) {
+                        throw new Error(result?.error || result?.message || 'Errore durante la registrazione della firma');
+                    }
+
+                    // Successo
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+                    signingFormCard.classList.add('hidden');
+                    formFooter.classList.add('hidden');
+                    successCard.classList.remove('hidden');
+
+                    lblSuccessJob.innerText = jobId;
+                    lblSuccessTime.innerText = new Date().toLocaleTimeString('it-IT') + ' del ' + new Date().toLocaleDateString('it-IT');
+                } catch (err) {
+                    console.error('❌ Errore sign_callback:', err);
+                    btnSubmitSign.disabled = false;
+                    btnSubmitSign.innerHTML = `<i class="fa-solid fa-signature"></i><span>Conferma e Apponi Firma</span>`;
+                    if (tg?.showAlert) {
+                        tg.showAlert('Errore durante il salvataggio della firma: ' + (err.message || 'Riprova.'));
+                    } else {
+                        alert('Errore durante il salvataggio della firma: ' + (err.message || 'Riprova.'));
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

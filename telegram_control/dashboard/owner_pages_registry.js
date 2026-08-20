@@ -332,6 +332,16 @@
 
             { 
                 category: "agents", 
+                name: "Profilo Soft Skill Personale", 
+                url: "agents/soft-skill-owner.html", 
+                mod_id: "intel_softskill_owner", 
+                user_utterances: [
+                    "profilo soft skill", "questionario soft skill", "il mio profilo psicologico",
+                    "test soft skill owner", "profilo personale", "soft skill", "autovalutazione"
+                ] 
+            },
+            { 
+                category: "agents", 
                 name: "Assistente Sicurezza & DVR", 
                 url: "agents/assistente-sicurezza.html", 
                 mod_id: "intel_safety", 

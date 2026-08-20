@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SiteBoS | Console Cucina Live</title>
+    
+    <!-- Telegram WebApp SDK, Ably Realtime -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.ably.com/lib/ably.min.js"></script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .kanban-col {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .ticket-card {
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            transition: all 0.15s ease;
+        }
+        .ticket-card:hover {
+            border-color: #0f172a;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+        }
+        .pulse-prep {
+            animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-sm bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER CONSOLE CUCINA LIVE (100% LIGHT TAILWIND THEME) -->
+    <header class="bg-white border-b border-slate-200 px-6 py-3 flex items-center justify-between gap-4 backdrop-blur shrink-0 shadow-sm">
+        <!-- Logo & Titolo -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center font-black shadow-sm">
+                <i class="fa-solid fa-fire-burner text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-black text-slate-900 text-base tracking-tight" id="kitchen-brand-name">SiteBoS Kitchen Desk</h1>
+                    <span class="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full uppercase">Vista Cucina</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span id="ably-live-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600 pulse-prep"></span>
+                        <span id="ably-status-text">Live Ably Attivo</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-semibold">• Zero Dati Personali Cliente</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- KPI LIVE CUCINA (LIGHT TAILWIND) -->
+        <div class="flex items-center gap-6 bg-slate-50 border border-slate-200 px-5 py-2 rounded-2xl text-xs text-slate-900">
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span class="text-slate-600">Da Preparare:</span>
+                <span id="kpi-received" class="font-black text-slate-900 text-sm">0</span>
+            </div>
+            <div class="w-px h-4 bg-slate-200"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-600 pulse-prep"></span>
+                <span class="text-slate-600">Ai Fornelli:</span>
+                <span id="kpi-preparing" class="font-black text-slate-900 text-sm">0</span>
+            </div>
+            <div class="w-px h-4 bg-slate-200"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
+                <span class="text-slate-600">Pronti al Pass:</span>
+                <span id="kpi-ready" class="font-black text-slate-900 text-sm">0</span>
+            </div>
+            <div class="w-px h-4 bg-slate-200"></div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-slate-400"></span>
+                <span class="text-slate-600">Serviti:</span>
+                <span id="kpi-served" class="font-black text-slate-900 text-sm">0</span>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-3">
+            <!-- Selettore modalità di visualizzazione -->
+            <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button onclick="setViewMode('status')" id="btn-view-status" class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm">
+                    Per Stato
+                </button>
+                <button onclick="setViewMode('table')" id="btn-view-table" class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+                    Per Tavolo
+                </button>
+            </div>
+
+            <button onclick="refreshKitchenData()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5 active:scale-95">
+                <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                <span>Aggiorna</span>
+            </button>
+
+            <button onclick="location.href='desk_board.html'" class="bg-slate-900 hover:bg-black text-white text-xs font-black px-4 py-2 rounded-xl transition shadow-sm flex items-center gap-2">
+                <i class="fa-solid fa-desktop"></i>
+                <span>Desk Board</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- WORKSPACE PRINCIPALE CONSOLE CUCINA -->
+    <main class="flex-1 overflow-hidden p-6 flex flex-col">
+        <!-- VISTA KANBAN PER STATO -->
+        <div id="view-by-status" class="flex-1 grid grid-cols-4 gap-4 overflow-hidden">
+            <!-- COLONNA 1: RICEVUTI IN CUCINA (RECEIVED) -->
+            <div class="kanban-col rounded-3xl p-4 flex flex-col overflow-hidden shadow-sm border-t-4 border-t-amber-500">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+                        <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Ricevuti in Cucina</h3>
+                    </div>
+                    <span id="badge-col-received" class="text-xs font-black px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-mono">0</span>
+                </div>
+                <div id="col-received-items" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <!-- Ticket popolati dinamicamente -->
+                </div>
+            </div>
+
+            <!-- COLONNA 2: AI FORNELLI / IN PREPARAZIONE (PREPARING) -->
+            <div class="kanban-col rounded-3xl p-4 flex flex-col overflow-hidden shadow-sm border-t-4 border-t-blue-600">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-blue-600 pulse-prep"></span>
+                        <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Ai Fornelli</h3>
+                    </div>
+                    <span id="badge-col-preparing" class="text-xs font-black px-2 py-0.5 rounded-full bg-blue-100 text-blue-900 font-mono">0</span>
+                </div>
+                <div id="col-preparing-items" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <!-- Ticket popolati dinamicamente -->
+                </div>
+            </div>
+
+            <!-- COLONNA 3: PRONTI AL PASS (READY) -->
+            <div class="kanban-col rounded-3xl p-4 flex flex-col overflow-hidden shadow-sm border-t-4 border-t-emerald-600">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-600"></span>
+                        <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">3. Pronti al Pass</h3>
+                    </div>
+                    <span id="badge-col-ready" class="text-xs font-black px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-mono">0</span>
+                </div>
+                <div id="col-ready-items" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <!-- Ticket popolati dinamicamente -->
+                </div>
+            </div>
+
+            <!-- COLONNA 4: SERVITI AL TAVOLO (SERVED) -->
+            <div class="kanban-col rounded-3xl p-4 flex flex-col overflow-hidden shadow-sm border-t-4 border-t-slate-400 bg-slate-50/50">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-slate-400"></span>
+                        <h3 class="font-black text-xs text-slate-700 uppercase tracking-wider">4. Serviti</h3>
+                    </div>
+                    <span id="badge-col-served" class="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono">0</span>
+                </div>
+                <div id="col-served-items" class="flex-1 overflow-y-auto space-y-3 pr-1">
+                    <!-- Ticket popolati dinamicamente -->
+                </div>
+            </div>
+        </div>
+
+        <!-- VISTA PER TAVOLO (CARD GRIGLIA) -->
+        <div id="view-by-table" class="flex-1 hidden overflow-y-auto">
+            <div id="tables-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                <!-- Card Tavolo popolate dinamicamente -->
+            </div>
+        </div>
+    </main>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="kitchen-toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <i class="fa-solid fa-bell text-amber-400"></i>
+        <span id="toast-message" class="text-xs font-bold">Notifica Cucina</span>
+    </div>
+
+    <!-- LOGICA FRONTEND KITCHEN DESK -->
+    <script>
+        'use strict';
+
+        const tg = window.Telegram.WebApp;
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
+        tg.expand();
+        tg.ready();
+
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/5ea527d5-b0e7-44dc-b7ca-626f1c6176f0";
+        const SSE_ENDPOINT = "https://prod.workflow.trinai.it/webhook/sitebos-operator-sse-stream";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const ashToken = urlParams.get('ash') || '';
+        let currentVat = urlParams.get('vat') || 'default_tenant';
+
+        let activeTableJobs = [];
+        let viewMode = 'status'; // 'status' | 'table'
+        let ablyInstance = null;
+        let ablyChannel = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initKitchenDesk();
+        });
+
+        async function initKitchenDesk() {
+            await refreshKitchenData();
+            initAblyRealtime();
+            setInterval(() => refreshKitchenData(true), 15000);
+        }
+
+        async function refreshKitchenData(silent = false) {
+            try {
+                const res = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'u_calc_get_table_order',
+                        ash: ashToken,
+                        _auth: tg.initData
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    currentVat = data.vat || currentVat;
+                    if (data.brand && data.brand.name) {
+                        const brandEl = document.getElementById('kitchen-brand-name');
+                        if (brandEl) brandEl.innerText = `${data.brand.name} • Cucina Live`;
+                    }
+                    if (data.all_table_jobs && data.all_table_jobs.length > 0) {
+                        activeTableJobs = data.all_table_jobs;
+                    } else if (data.job) {
+                        activeTableJobs = [data.job];
+                    } else {
+                        useFallbackKitchenJobs();
+                    }
+                } else {
+                    useFallbackKitchenJobs();
+                }
+            } catch (err) {
+                console.warn('Caricamento dati cucina in fallback:', err);
+                useFallbackKitchenJobs();
+            }
+
+            renderKitchenViews();
+        }
+
+        function useFallbackKitchenJobs() {
+            if (activeTableJobs.length === 0) {
+                activeTableJobs = [
+                    {
+                        job_id: 'job_table_1',
+                        station_id: '1',
+                        station_name: 'Tavolo 1',
+                        created_at: new Date(Date.now() - 15 * 60000).toISOString(),
+                        order_items: [
+                            { item_id: 'it_101', name: 'Bruschette al Pomodoro e Basilico', quantity: 2, notes: 'Senza aglio', status: 'RECEIVED', created_at: new Date(Date.now() - 12 * 60000).toISOString() },
+                            { item_id: 'it_102', name: 'Tagliolini al Tartufo Nero', quantity: 1, notes: 'Cottura molto al dente', status: 'PREPARING', created_at: new Date(Date.now() - 10 * 60000).toISOString() }
+                        ]
+                    },
+                    {
+                        job_id: 'job_table_4',
+                        station_id: '4',
+                        station_name: 'Tavolo 4',
+                        created_at: new Date(Date.now() - 8 * 60000).toISOString(),
+                        order_items: [
+                            { item_id: 'it_401', name: 'Pizza Margherita Verace DOC', quantity: 2, notes: 'Ben cotta', status: 'PREPARING', created_at: new Date(Date.now() - 8 * 60000).toISOString() },
+                            { item_id: 'it_402', name: 'Pizza Diavola con Spianata Calabra', quantity: 1, notes: '', status: 'READY', created_at: new Date(Date.now() - 8 * 60000).toISOString() },
+                            { item_id: 'it_403', name: 'Frittura Mista di Paranza', quantity: 1, notes: 'Maionese al lime a parte', status: 'RECEIVED', created_at: new Date(Date.now() - 4 * 60000).toISOString() }
+                        ]
+                    },
+                    {
+                        job_id: 'job_table_7',
+                        station_id: '7',
+                        station_name: 'Tavolo 7',
+                        created_at: new Date(Date.now() - 25 * 60000).toISOString(),
+                        order_items: [
+                            { item_id: 'it_701', name: 'Filetto di Manzo alla Griglia', quantity: 1, notes: 'Cottura al sangue', status: 'READY', created_at: new Date(Date.now() - 20 * 60000).toISOString() },
+                            { item_id: 'it_702', name: 'Tagliere di Salumi e Formaggi', quantity: 1, notes: '', status: 'SERVED', created_at: new Date(Date.now() - 25 * 60000).toISOString() }
+                        ]
+                    }
+                ];
+            }
+        }
+
+        /* ── RENDERING DELLE VISTE CUCINA ── */
+        function renderKitchenViews() {
+            // Estrazione di tutti i ticket con riferimento al tavolo
+            const allTickets = [];
+            activeTableJobs.forEach(job => {
+                const tableName = job.station_name || ('Tavolo ' + (job.station_id || job.job_id.replace('job_table_', '')));
+                const items = job.order_items || job.items || [];
+                items.forEach((item, idx) => {
+                    allTickets.push({
+                        job_id: job.job_id,
+                        table_name: tableName,
+                        table_id: job.station_id || 'Tavolo',
+                        item_id: item.item_id || ('item_' + idx),
+                        item_index: idx,
+                        name: item.name || item.description || 'Portata',
+                        quantity: item.quantity || 1,
+                        notes: item.notes || '',
+                        status: (item.status || 'RECEIVED').toUpperCase(),
+                        created_at: item.created_at || job.created_at || new Date().toISOString()
+                    });
+                });
+            });
+
+            // Calcolo KPI
+            const countRecv = allTickets.filter(t => t.status === 'RECEIVED').length;
+            const countPrep = allTickets.filter(t => t.status === 'PREPARING').length;
+            const countReady = allTickets.filter(t => t.status === 'READY').length;
+            const countServed = allTickets.filter(t => t.status === 'SERVED').length;
+
+            document.getElementById('kpi-received').innerText = countRecv;
+            document.getElementById('kpi-preparing').innerText = countPrep;
+            document.getElementById('kpi-ready').innerText = countReady;
+            document.getElementById('kpi-served').innerText = countServed;
+
+            document.getElementById('badge-col-received').innerText = countRecv;
+            document.getElementById('badge-col-preparing').innerText = countPrep;
+            document.getElementById('badge-col-ready').innerText = countReady;
+            document.getElementById('badge-col-served').innerText = countServed;
+
+            // Render Colonne Kanban per Stato
+            renderStatusColumn('received', allTickets.filter(t => t.status === 'RECEIVED'));
+            renderStatusColumn('preparing', allTickets.filter(t => t.status === 'PREPARING'));
+            renderStatusColumn('ready', allTickets.filter(t => t.status === 'READY'));
+            renderStatusColumn('served', allTickets.filter(t => t.status === 'SERVED'));
+
+            // Render Vista per Tavolo
+            renderTableGrid();
+        }
+
+        function renderStatusColumn(colKey, tickets) {
+            const container = document.getElementById(`col-${colKey}-items`);
+            if (!container) return;
+
+            if (tickets.length === 0) {
+                container.innerHTML = `
+                    <div class="h-32 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-300 text-xs gap-1">
+                        <i class="fa-solid fa-check text-sm"></i>
+                        <span>Nessun ticket</span>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = tickets.map(ticket => {
+                const elapsedMin = Math.floor((Date.now() - new Date(ticket.created_at).getTime()) / 60000);
+                const elapsedLabel = elapsedMin > 0 ? `${elapsedMin} min fa` : 'Adesso';
+
+                let actionBtnHtml = '';
+                if (ticket.status === 'RECEIVED') {
+                    actionBtnHtml = `
+                        <button onclick="advanceTicketStatus('${ticket.job_id}', '${ticket.item_id}', 'PREPARING')" class="w-full bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-black py-2.5 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-fire text-xs"></i>
+                            <span>Inizia Preparazione</span>
+                        </button>
+                    `;
+                } else if (ticket.status === 'PREPARING') {
+                    actionBtnHtml = `
+                        <button onclick="advanceTicketStatus('${ticket.job_id}', '${ticket.item_id}', 'READY')" class="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black py-2.5 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-bell text-xs"></i>
+                            <span>Segna Pronto al Pass</span>
+                        </button>
+                    `;
+                } else if (ticket.status === 'READY') {
+                    actionBtnHtml = `
+                        <button onclick="advanceTicketStatus('${ticket.job_id}', '${ticket.item_id}', 'SERVED')" class="w-full bg-slate-900 hover:bg-black active:scale-95 text-white text-xs font-black py-2.5 px-3 rounded-xl transition shadow flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-check text-xs"></i>
+                            <span>Servito al Tavolo</span>
+                        </button>
+                    `;
+                } else {
+                    actionBtnHtml = `
+                        <div class="text-center py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                            Completato
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="ticket-card rounded-2xl p-3.5 space-y-2.5 shadow-sm">
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                            <span class="font-black text-xs text-slate-900 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">
+                                📍 ${escapeHtml(ticket.table_name)}
+                            </span>
+                            <span class="text-[10px] font-mono text-slate-400 font-semibold flex items-center gap-1">
+                                <i class="fa-regular fa-clock text-[9px]"></i> ${elapsedLabel}
+                            </span>
+                        </div>
+
+                        <div class="space-y-1">
+                            <div class="flex items-start gap-2">
+                                <span class="font-mono font-black text-sm px-2 py-0.5 bg-slate-900 text-white rounded-lg shrink-0">
+                                    ${ticket.quantity}x
+                                </span>
+                                <h4 class="font-black text-xs text-slate-900 leading-snug">${escapeHtml(ticket.name)}</h4>
+                            </div>
+                            ${ticket.notes ? `
+                                <div class="p-2 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 font-semibold flex items-start gap-1.5">
+                                    <i class="fa-solid fa-circle-exclamation text-amber-600 text-xs mt-0.5 shrink-0"></i>
+                                    <span>${escapeHtml(ticket.notes)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="pt-1">
+                            ${actionBtnHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTableGrid() {
+            const container = document.getElementById('tables-grid-container');
+            if (!container) return;
+
+            if (activeTableJobs.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400 text-xs font-semibold">Nessun tavolo aperto al momento.</div>`;
+                return;
+            }
+
+            container.innerHTML = activeTableJobs.map(job => {
+                const tableName = job.station_name || ('Tavolo ' + (job.station_id || job.job_id.replace('job_table_', '')));
+                const items = job.order_items || job.items || [];
+                const activeItems = items.filter(it => it.status !== 'SERVED');
+
+                return `
+                    <div class="bg-white border border-slate-200 rounded-3xl p-4 shadow-sm space-y-3 flex flex-col justify-between">
+                        <div class="space-y-2.5">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                                <div>
+                                    <h3 class="font-black text-sm text-slate-900">${escapeHtml(tableName)}</h3>
+                                    <p class="text-[10px] text-slate-400 font-mono">${job.job_id}</p>
+                                </div>
+                                <span class="text-[10px] font-black px-2.5 py-1 rounded-full bg-slate-100 text-slate-800">
+                                    ${activeItems.length} da servire
+                                </span>
+                            </div>
+
+                            <div class="space-y-2">
+                                ${items.map(it => {
+                                    const stBadge = getStatusBadgeSmall(it.status);
+                                    return `
+                                        <div class="p-2 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between text-xs gap-2">
+                                            <div class="truncate">
+                                                <span class="font-black font-mono mr-1">${it.quantity || 1}x</span>
+                                                <span class="font-bold text-slate-800">${escapeHtml(it.name || it.description)}</span>
+                                                ${it.notes ? `<p class="text-[10px] text-amber-700 italic truncate">${escapeHtml(it.notes)}</p>` : ''}
+                                            </div>
+                                            <div class="shrink-0">
+                                                ${stBadge}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getStatusBadgeSmall(status) {
+            const st = (status || 'RECEIVED').toUpperCase();
+            switch (st) {
+                case 'PREPARING': return `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-100 text-blue-800">Ai Fornelli</span>`;
+                case 'READY': return `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800">Pronto</span>`;
+                case 'SERVED': return `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-200 text-slate-700">Servito</span>`;
+                case 'RECEIVED':
+                default: return `<span class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-100 text-amber-800">In Coda</span>`;
+            }
+        }
+
+        /* ── AVANZAMENTO STATO TICKET ── */
+        async function advanceTicketStatus(jobId, itemId, newStatus) {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+            // Aggiornamento ottimistico locale
+            const targetJob = activeTableJobs.find(j => j.job_id === jobId);
+            if (targetJob) {
+                const items = targetJob.order_items || targetJob.items || [];
+                const targetItem = items.find(it => it.item_id === itemId);
+                if (targetItem) {
+                    targetItem.status = newStatus;
+                    targetItem.updated_at = new Date().toISOString();
+                }
+            }
+            renderKitchenViews();
+            showToast(`Portata avanzata a: ${newStatus}`);
+
+            try {
+                const res = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'u_calc_update_item_status',
+                        job_id: jobId,
+                        item_id: itemId,
+                        new_status: newStatus,
+                        status: newStatus,
+                        ash: ashToken,
+                        _auth: tg.initData
+                    })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.order_items && targetJob) {
+                        targetJob.order_items = data.order_items;
+                    }
+                    renderKitchenViews();
+                }
+            } catch (err) {
+                console.warn('Errore invio aggiornamento stato cucina:', err);
+            }
+        }
+
+        /* ── GESTIONE VISTE ── */
+        function setViewMode(mode) {
+            viewMode = mode;
+            const btnStatus = document.getElementById('btn-view-status');
+            const btnTable = document.getElementById('btn-view-table');
+            const viewStatus = document.getElementById('view-by-status');
+            const viewTable = document.getElementById('view-by-table');
+
+            if (mode === 'status') {
+                btnStatus.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm';
+                btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+                viewStatus.classList.remove('hidden');
+                viewTable.classList.add('hidden');
+            } else {
+                btnTable.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-white text-slate-900 shadow-sm';
+                btnStatus.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+                viewTable.classList.remove('hidden');
+                viewStatus.classList.add('hidden');
+            }
+        }
+
+        /* ── REALTIME ABLY ENGINE ── */
+        function initAblyRealtime() {
+            if (!window.Ably) {
+                console.warn('Ably SDK non presente.');
+                return;
+            }
+
+            try {
+                ablyInstance = new window.Ably.Realtime({
+                    authCallback: async function (tokenParams, callback) {
+                        try {
+                            const res = await fetch(SSE_ENDPOINT, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    action: 'get_ably_token',
+                                    ash: ashToken
+                                })
+                            });
+                            const data = await res.json();
+                            if (data && data.token) {
+                                if (data.channel) {
+                                    subscribeKitchenChannel(data.channel);
+                                }
+                                callback(null, data.token);
+                            } else {
+                                callback(new Error('Token Ably non disponibile'), null);
+                            }
+                        } catch (err) {
+                            callback(err, null);
+                        }
+                    }
+                });
+
+                ablyInstance.connection.on('connected', () => {
+                    console.log('🟢 [Ably Live Cucina] Connesso in tempo reale.');
+                    const statusText = document.getElementById('ably-status-text');
+                    if (statusText) statusText.innerText = "Live Ably Connesso";
+                });
+
+            } catch (e) {
+                console.warn('Errore connessione Ably:', e);
+            }
+        }
+
+        function subscribeKitchenChannel(channelName) {
+            if (!ablyInstance || !channelName) return;
+            ablyChannel = ablyInstance.channels.get(channelName);
+            ablyChannel.subscribe((msg) => {
+                try {
+                    let envelope = msg.data;
+                    if (typeof envelope === 'string') envelope = JSON.parse(envelope);
+                    console.log('⚡ [Ably Event Cucina]:', envelope);
+                    
+                    refreshKitchenData();
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+                    showToast('Nuovo aggiornamento comande in cucina!');
+                } catch (e) {
+                    console.warn('Errore parsing messaggio Ably cucina:', e);
+                }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('kitchen-toast');
+            const msgEl = document.getElementById('toast-message');
+            if (toast && msgEl) {
+                msgEl.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 3000);
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

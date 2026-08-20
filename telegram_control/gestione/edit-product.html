@@ -145,7 +145,17 @@
             <!-- 1. IDENTITÀ -->
             <div class="bg-white rounded-3xl p-5 border border-border shadow-sm space-y-4">
                 <span class="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 block" data-i18n="secIdentity">📋 Identità</span>
-                
+
+                <div id="productImageBox" class="hidden space-y-1">
+                    <label class="text-[9px] font-black text-gray-500 uppercase ml-1">Immagine Generata (E-Commerce)</label>
+                    <img id="productImagePreview" class="w-full aspect-square object-cover rounded-2xl border border-border" alt="Immagine prodotto generata">
+                    <input type="file" id="productImageUploadInput" accept="image/*" class="hidden" onchange="handleProductImageUpload(this)">
+                    <button type="button" onclick="document.getElementById('productImageUploadInput').click()" class="w-full py-2.5 rounded-xl border border-border text-[10px] font-black uppercase tracking-wider text-gray-600 hover:text-black transition">
+                        Sostituisci Immagine
+                    </button>
+                    <p id="productImageUploadStatus" class="hidden text-[9px] text-gray-400 text-center"></p>
+                </div>
+
                 <div class="space-y-1">
                     <label class="text-[9px] font-black text-gray-500 uppercase ml-1" data-i18n="lblName">Nome Prodotto *</label>
                     <input type="text" id="itemName" required class="w-full bg-gray-50 p-3.5 rounded-xl text-sm font-bold border border-transparent focus:border-black outline-none transition">
@@ -402,6 +412,7 @@
         const langParam = tg.initDataUnsafe?.user?.language_code || 'it';
 
         let currentData = null, initialDataString = "", skillTags = [], keywords = [], extraOptions = [], bomItems = [], assetItems = [], supplierItems = [], locationItems = [];
+        let currentProductVat = null;
 
         const i18n = {
             it: { 
@@ -478,6 +489,7 @@
                 const productData = d.catalog_item || d.catalog_item_draft || d;
                 currentData = JSON.parse(JSON.stringify(productData));
                 populateForm(productData);
+                populateProductImage(d, productData);
                 initialDataString = JSON.stringify(collectDataFromForm());
                 setupTagInput(dom.skillInput, dom.skillContainer, skillTags);
                 dom.form.addEventListener('input', checkDirty);
@@ -489,6 +501,59 @@
                 }
             } catch (e) { console.error(e); }
         }
+
+        function populateProductImage(rawResponse, data) {
+            const box = document.getElementById('productImageBox');
+            const img = document.getElementById('productImagePreview');
+            if (!box || !img) return;
+
+            const vat = rawResponse?.owner_data?.vat_number || rawResponse?.vat_number || data?.owner_data?.vat_number;
+            const callbackData = data?.ui_node_draft?.callback_data;
+            currentProductVat = vat || null;
+            if (!vat || !callbackData) { box.classList.add('hidden'); return; }
+
+            img.onerror = () => { box.classList.add('hidden'); };
+            img.src = `https://dashboard.trinai.it/images/minisite/${vat}/${callbackData}.jpg`;
+            box.classList.remove('hidden');
+        }
+
+        window.handleProductImageUpload = function(input) {
+            const file = input.files && input.files[0];
+            if (!file || !sopId) return;
+
+            const statusEl = document.getElementById('productImageUploadStatus');
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const fullDataUrl = e.target.result;
+                const rawBase64 = fullDataUrl.split(';base64,')[1] || '';
+                const mimeType = file.type || 'image/jpeg';
+
+                const previewImg = document.getElementById('productImagePreview');
+                if (previewImg) previewImg.src = fullDataUrl;
+
+                if (statusEl) { statusEl.classList.remove('hidden'); statusEl.innerText = 'Salvataggio in corso...'; }
+
+                try {
+                    await fetch(WEBHOOK_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            _auth: tg.initData,
+                            action: 'replace_product_image',
+                            sop_id: sopId,
+                            image_base64: rawBase64,
+                            mime_type: mimeType
+                        })
+                    });
+                    if (statusEl) statusEl.innerText = 'Immagine salvata.';
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                } catch (err) {
+                    console.error('Errore sostituzione immagine:', err);
+                    if (statusEl) statusEl.innerText = 'Errore nel salvataggio, riprova.';
+                }
+            };
+            reader.readAsDataURL(file);
+        };
 
         function populateForm(data) {
             const val = (id, v) => { if (document.getElementById(id)) document.getElementById(id).value = v || ''; };
