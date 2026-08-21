@@ -8,6 +8,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Esecuzione Documento | SiteBoS Trust & Stamp</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -80,32 +81,30 @@
         <!-- DOCUMENT INFO HEADER -->
         <div class="glass-card p-4 rounded-2xl flex items-center justify-between border border-gray-200">
             <div>
-                <h1 class="text-sm font-bold text-black" id="doc-title">Consenso Trattamento Dati GDPR</h1>
-                <p class="text-[11px] text-gray-500" id="doc-norma">Regolamento UE 2016/679 (GDPR Art. 13)</p>
+                <h1 class="text-sm font-bold text-black" id="doc-title">Caricamento...</h1>
+                <p class="text-[11px] text-gray-500" id="doc-norma">—</p>
             </div>
             <div class="text-right text-[10px] text-gray-500">
                 <div>Stato: <span class="font-bold text-amber-600" id="doc-status">IN ATTESA</span></div>
-                <div class="font-mono mt-0.5 text-gray-400" id="doc-id">ID: EVIDENCE_20260812_001</div>
+                <div class="font-mono mt-0.5 text-gray-400" id="doc-id"></div>
             </div>
         </div>
 
-        <!-- A4 RENDERED DOCUMENT VIEW -->
+        <!-- A4 RENDERED DOCUMENT VIEW (popolato da loadTemplate() con dati reali, mai testo finto) -->
         <div class="a4-document-sheet p-6 rounded-xl border border-gray-200 space-y-4">
             <div class="border-b border-gray-200 pb-3 flex justify-between items-start">
                 <div>
-                    <h2 class="text-xs font-bold uppercase tracking-tight text-slate-900" id="render-title">CONSENSO TRATTAMENTO DATI GDPR</h2>
-                    <p class="text-[10px] text-slate-500 italic" id="render-norma">Riferimento: Regolamento UE 2016/679</p>
+                    <h2 class="text-xs font-bold uppercase tracking-tight text-slate-900" id="render-title">—</h2>
+                    <p class="text-[10px] text-slate-500 italic" id="render-norma">—</p>
                 </div>
                 <div class="text-right text-[10px] text-slate-600">
-                    <div class="font-bold">STUDIO TEST S.R.L.</div>
-                    <div>Data: <span id="render-date">12/08/2026</span></div>
+                    <div>Data: <span id="render-date"></span></div>
                 </div>
             </div>
 
             <!-- INJECTED BODY -->
             <div class="text-xs text-slate-800 leading-relaxed py-2" id="render-body">
-                <p class="mb-2">Spett.le <strong>Mario Rossi</strong> (CF: RSSMRA80A01H501U),</p>
-                <p class="mb-2">Il sottoscritto rilascia il proprio consenso al trattamento dei dati personali ed alla conservazione della documentazione relativa alle prestazioni ricevute, secondo le finalità previste dalla normativa vigente.</p>
+                <p class="text-gray-400 italic">Caricamento del documento in corso...</p>
             </div>
         </div>
 
@@ -143,11 +142,11 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                     <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-1">Email Firmatario</label>
-                    <input type="email" id="signer-email" value="mario.rossi@email.it" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-black focus:outline-none focus:border-black">
+                    <input type="email" id="signer-email" placeholder="email@cliente.it" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-black focus:outline-none focus:border-black">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold uppercase tracking-wider text-gray-600 mb-1">Telefono (OTP SMS)</label>
-                    <input type="tel" id="signer-phone" value="+39 333 1234567" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-black focus:outline-none focus:border-black">
+                    <input type="tel" id="signer-phone" placeholder="+39 3XX XXXXXXX" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs text-black focus:outline-none focus:border-black">
                 </div>
             </div>
 
@@ -189,7 +188,12 @@
         }
 
         const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash') || '';
+        const docTemplateId = urlParams.get('doc_template_id') || '';
         let route = urlParams.get('route') || 'VIA_B';
+        let currentTemplate = null;
+
+        const DOC_ENGINE_URL = 'https://prod.workflow.trinai.it/webhook/doc-engine';
 
         function initRoutePanels(currentRoute) {
             route = currentRoute;
@@ -204,26 +208,74 @@
             document.getElementById('route-badge-top').innerText = currentRoute.replace('_', ' ');
         }
 
-        initRoutePanels(route);
+        // Carica il documento REALE: la produzione oggi espone solo get_doc_templates
+        // (plurale) — filtriamo lato client per name/doc_template_id, dato che l'azione
+        // get_doc_template (singolare, lookup diretto per id) esiste solo nella bozza
+        // new_doc_engine.workflow.ts, non ancora messa in produzione. Nessun testo finto:
+        // se il template non si trova, lo diciamo esplicitamente.
+        async function loadTemplate() {
+            if (!docTemplateId) {
+                document.getElementById('render-body').innerHTML = '<p class="text-red-500">Nessun modello documentale specificato nell\'indirizzo.</p>';
+                return;
+            }
+            try {
+                const res = await fetch(DOC_ENGINE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_doc_templates', ash: ash, _auth: tg?.initData || '' })
+                });
+                const result = await res.json();
+                let templates = result?.data ?? result?.templates ?? [];
+                if (!Array.isArray(templates)) templates = templates ? [templates] : [];
+
+                const decodedId = decodeURIComponent(docTemplateId);
+                currentTemplate = templates.find(t => (t.name || t._id) === decodedId) || null;
+
+                if (!currentTemplate) {
+                    document.getElementById('render-body').innerHTML = '<p class="text-red-500">Modello documentale non trovato. Potrebbe essere stato rimosso.</p>';
+                    return;
+                }
+
+                document.getElementById('doc-title').innerText = currentTemplate.name || 'Documento';
+                document.getElementById('doc-norma').innerText = currentTemplate.norma_riferimento || 'Non specificato';
+                document.getElementById('doc-id').innerText = 'Modello: ' + (currentTemplate.name || '');
+                document.getElementById('render-title').innerText = (currentTemplate.name || '').toUpperCase();
+                document.getElementById('render-norma').innerText = 'Riferimento: ' + (currentTemplate.norma_riferimento || 'Non specificato');
+                document.getElementById('render-date').innerText = new Date().toLocaleDateString('it-IT');
+                document.getElementById('render-body').innerHTML = currentTemplate.body_html || '<p class="text-gray-400 italic">Il modello non ha un corpo testuale salvato.</p>';
+
+                initRoutePanels(currentTemplate.compliance_route || route);
+            } catch (err) {
+                console.error('Errore caricamento modello documentale:', err);
+                document.getElementById('render-body').innerHTML = '<p class="text-red-500">Errore di connessione durante il caricamento del documento.</p>';
+            }
+        }
+
+        loadTemplate();
 
         // VIA A LOGIC
+        // NOTA: generazione PDF non ancora collegata a nessun backend reale — usa la stampa
+        // nativa del browser sul contenuto già caricato in render-body, non un finto "download".
         function downloadPDF() {
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-            alert('Generazione e Download PDF in corso...');
+            window.print();
         }
 
+        // NOTA: nessuna azione backend per la conferma/persistenza definitiva della firma
+        // Via A esiste ancora in produzione oggi (solo nella bozza new_doc_engine.workflow.ts,
+        // non ancora in cutover) — questo bottone resta solo UI locale finché il cutover non
+        // viene fatto dall'Architetto. Non promettiamo un salvataggio che non avviene.
         function confirmViaA() {
-            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            document.getElementById('doc-status').innerText = 'FIRMATO (VIA A)';
-            document.getElementById('doc-status').className = 'font-bold text-emerald-400';
-            alert('Documento confermato da External Pad!');
-            setTimeout(() => window.location.href = 'doc-engine-library.html', 1000);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            alert('Questa funzione richiede un aggiornamento del backend non ancora in produzione. Il documento NON è stato salvato.');
         }
 
-        // VIA B LOGIC
-        function requestOpenApiSignature() {
-            const email = document.getElementById('signer-email').value;
-            const phone = document.getElementById('signer-phone').value;
+        // VIA B LOGIC — request_certified_sign è realmente attivo in produzione oggi
+        // (doc_engine.workflow.ts, ramo Openapibridgecall), a differenza di VIA A/VIA C
+        // sotto che dipendono da azioni presenti solo nella bozza new_doc_engine.workflow.ts.
+        async function requestOpenApiSignature() {
+            const email = document.getElementById('signer-email').value.trim();
+            const phone = document.getElementById('signer-phone').value.trim();
 
             if (!email || !phone) {
                 alert('Inserisci email e numero di telefono del firmatario.');
@@ -236,13 +288,36 @@
 
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
-            setTimeout(() => {
+            try {
+                const res = await fetch(DOC_ENGINE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'request_certified_sign',
+                        ash: ash,
+                        _auth: tg?.initData || '',
+                        sign_level: 'FEA',
+                        document_title: currentTemplate?.name || '',
+                        signer_email: email,
+                        signer_phone: phone
+                    })
+                });
+                const result = await res.json();
+                if (!res.ok || result?.success === false) {
+                    throw new Error(result?.error || result?.message || 'Richiesta rifiutata dal server.');
+                }
                 btn.innerHTML = '<i class="fas fa-check-circle"></i> OTP SMS Inviato con Successo';
                 document.getElementById('doc-status').innerText = 'IN ATTESA OTP';
                 document.getElementById('doc-status').className = 'font-bold text-cyan-400';
                 if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 alert('Richiesta inviata ad OpenAPI eSignature! Il cliente riceverà l\'OTP via SMS al ' + phone);
-            }, 1800);
+            } catch (err) {
+                console.error('Errore richiesta firma certificata:', err);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-paper-plane text-sm"></i> Invia Richiesta Firma OTP (OpenAPI)';
+                if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                alert('Errore durante l\'invio della richiesta di firma: ' + err.message);
+            }
         }
 
         // VIA C CANVAS LOGIC
@@ -302,12 +377,11 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
+        // Stessa nota di confirmViaA(): il timbro ASH definitivo richiede un'azione backend
+        // presente solo nella bozza new_doc_engine.workflow.ts, non ancora in produzione.
         function confirmViaC() {
-            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-            document.getElementById('doc-status').innerText = 'FIRMATO (TIMBRO ASH)';
-            document.getElementById('doc-status').className = 'font-bold text-indigo-400';
-            alert('Documento Notarizzato con Timbro HMAC-SHA256!');
-            setTimeout(() => window.location.href = 'doc-engine-library.html', 1000);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+            alert('Questa funzione richiede un aggiornamento del backend non ancora in produzione. Il documento NON è stato salvato.');
         }
     </script>
 </body>

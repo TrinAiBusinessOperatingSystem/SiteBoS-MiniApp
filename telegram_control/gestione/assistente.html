@@ -9,6 +9,7 @@
 
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -738,21 +739,18 @@
             });
         }
 
-        // Webhook Telegram Relay Lock/Unlock
+        // Blocco/sblocco pulsanti inline Telegram durante l'elaborazione — DISATTIVATO
+        // 2026-08-21: chiamava per errore il webhook di Lock-Manager.workflow.ts (id
+        // 17a1bf79-..., gestisce SOLO acquire/release/force_release per il lock cross-tab
+        // delle pagine owner) con azioni 'lock_buttons'/'unlock_buttons' che quel workflow
+        // non riconosce — nella migliore delle ipotesi falliva silenziosamente, nel peggiore
+        // inquinava active_actions con scope spuri. Nessun backend reale di editMessageReplyMarkup
+        // esiste oggi per questo scopo specifico. Funzione neutralizzata (no-op sicuro): il
+        // resto del flusso (analisi multimodale, ingegnerizzazione) non dipende da questa UX
+        // cosmetica per funzionare. Da ricostruire come vera azione Telegram Bot API se/quando
+        // serve davvero bloccare i pulsanti — non qui, non sotto fretta.
         async function toggleTelegramButtons(actionType, customMessage) {
-            try {
-                await fetch(WEBHOOK_TELEGRAM_RELAY, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        action: actionType,
-                        ash: ash,
-                        _auth: tg.initData,
-                        msg: customMessage || (actionType === 'lock_buttons' ? 'Operazione in corso...' : 'Operazione completata'),
-                        add_home_btn: true
-                    })
-                });
-            } catch(e) { console.warn("Telegram Relay error:", e); }
+            // Intenzionalmente vuoto.
         }
 
         // Submit Multimodal Ingestion (Stato 2 -> Stato 3)

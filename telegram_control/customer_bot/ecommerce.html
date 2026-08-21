@@ -171,6 +171,16 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     </div>
                 </div>
 
+                <!-- ALLERGENS SECTION (FOOD REG. UE 1169/2011) -->
+                <div id="modal-allergens-container" class="hidden space-y-2 pt-2">
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-amber-800 flex items-center gap-1">
+                        <i class="fas fa-wheat-awn text-xs text-amber-600"></i> Allergeni (Reg. UE 1169/2011)
+                    </h3>
+                    <div id="modal-allergens-list" class="flex flex-wrap gap-1.5">
+                        <!-- Allergen badges injected here -->
+                    </div>
+                </div>
+
                 <!-- CUSTOMER NOTE SECTION -->
                 <div id="modal-notes-container" class="hidden space-y-2 pt-2">
                     <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-500">Note / Modifiche</h3>
@@ -550,6 +560,40 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 noteInput.value = config.note || "";
             } else {
                 notesContainer.classList.add('hidden');
+            }
+
+            // Handle Allergens (Reg. UE 1169/2011)
+            const allergensContainer = document.getElementById('modal-allergens-container');
+            const allergensList = document.getElementById('modal-allergens-list');
+            const productAllergens = Array.isArray(p.identity?.allergens) ? p.identity.allergens : (Array.isArray(p.allergens) ? p.allergens : []);
+            
+            const allergenLabels = {
+                'glutine': '🌾 Glutine',
+                'crostacei': '🦐 Crostacei',
+                'uova': '🥚 Uova',
+                'pesce': '🐟 Pesce',
+                'arachidi': '🥜 Arachidi',
+                'soia': '🌱 Soia',
+                'latte': '🥛 Latte/Lattosio',
+                'frutta_a_guscio': '🌰 Frutta a guscio',
+                'sedano': '🥬 Sedano',
+                'senape': '🟡 Senape',
+                'sesamo': '⚪ Sesamo',
+                'anidride_solforosa': '🍷 Solfiti',
+                'lupini': '🌾 Lupini',
+                'molluschi': '🐙 Molluschi'
+            };
+
+            if (allergensContainer && allergensList) {
+                if (productAllergens.length > 0) {
+                    allergensContainer.classList.remove('hidden');
+                    allergensList.innerHTML = productAllergens.map(code => {
+                        const label = allergenLabels[code] || ('⚠️ ' + code);
+                        return `<span class="px-2.5 py-1 bg-amber-50 border border-amber-200 text-amber-900 text-[10px] font-bold rounded-lg">${label}</span>`;
+                    }).join('');
+                } else {
+                    allergensContainer.classList.add('hidden');
+                }
             }
 
             document.getElementById('modal-confirm-btn').innerText = "Aggiungi all'ordine";

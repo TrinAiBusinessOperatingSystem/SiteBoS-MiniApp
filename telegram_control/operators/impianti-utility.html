@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Agente Utility Impianti & Fotovoltaico (Construction)</title>
+    
+    <!-- Telegram WebApp SDK & SiteBoS TWA Guard -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    
+    <!-- Tailwind CSS, Google Fonts & FontAwesome 6 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        construction: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
+                        },
+                        amberbrand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                        }
+                    }
+                }
+            }
+        };
+
+        // Inizializzazione sessione Telegram WebApp reale all'avvio
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const ash = urlParams.get('ash');
+            
+            if (!isTelegramSession && !ash) {
+                console.log('ℹ️ [Impianti Utility] Inizializzazione sessione operatore impianti.');
+            }
+        })();
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        }
+
+        .tab-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+        .tab-inactive:hover {
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .card-interactive {
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-interactive:active {
+            transform: scale(0.98);
+        }
+
+        .pulse-soft {
+            animation: pulseSoft 2s infinite ease-in-out;
+        }
+        @keyframes pulseSoft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.88; transform: scale(1.01); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER PRINCIPALE CONSTRUCTION DESK (100% LIGHT THEME) -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur shrink-0 shadow-sm">
+        <!-- Logo & Titolo -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 text-white flex items-center justify-center font-black shadow-sm shrink-0">
+                <i class="fa-solid fa-bolt text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="font-black text-slate-900 text-base tracking-tight">SiteBoS Impianti Desk</h1>
+                    <span class="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Verticale Construction</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Calcolo Deterministico • 100% Client-Side</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-semibold hidden md:inline">• Norme CEI 64-8, CEI-UNEL 35024/1 & CEI EN 62548 (FV)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button onclick="resetActiveTab()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 active:scale-95 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5" title="Reimposta la scheda corrente ai valori predefiniti">
+                <i class="fa-solid fa-rotate-left text-xs"></i>
+                <span class="hidden sm:inline">Reimposta</span>
+            </button>
+
+            <button onclick="goToDeskBoard()" class="bg-slate-900 hover:bg-black text-white text-xs font-black px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-desktop"></i>
+                <span>Desk Board</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- BARRA DI NAVIGAZIONE TAB UTILITY IMPIANTI -->
+    <div class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sticky top-[69px] z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+            <button type="button" id="tab-btn-cables" onclick="switchTab('cables')" class="tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-bolt-lightning"></i>
+                <span>1. Sezione Cavi & Caduta Tensione (CEI 64-8)</span>
+            </button>
+
+            <button type="button" id="tab-btn-solar" onclick="switchTab('solar')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-solar-panel"></i>
+                <span>2. Voc/Isc Stringa Fotovoltaica & Temperatura</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WORKSPACE PRINCIPALE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- BANNER ASSISTIVO ANTI-RESPONSABILITÀ (REGOLA ASSOLUTA PROGETTO) -->
+        <div class="bg-amber-50/80 border border-amber-300/80 rounded-2xl p-3.5 flex items-start gap-3 text-xs text-amber-950 shadow-sm">
+            <div class="w-6 h-6 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-xs shrink-0 mt-0.5 font-bold">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="space-y-0.5">
+                <p class="font-black text-amber-900 uppercase tracking-wide text-[11px]">
+                    Strumento Puramente Assistivo • Supporto Operativo di Cantiere
+                </p>
+                <p class="text-amber-900/90 leading-relaxed text-[11px]">
+                    I calcolatori integrati forniscono stime e verifiche orientative basate su tabelle e formule standard (CEI 64-8, CEI-UNEL 35024/1, CEI EN 62548). Non costituiscono progetto esecutivo, asseverazione né dichiarazione di conformità (D.M. 37/08) e non sostituiscono il giudizio, il dimensionamento e le verifiche ufficiali a cura di un professionista tecnico abilitato.
+                </p>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 1: CALCOLATORE SEZIONE CAVI & CADUTA TENSIONE (TAB CABLES)  -->
+        <!-- =================================================================== -->
+        <div id="section-cables" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- COLONNA SINISTRA: SELEZIONE PARAMETRI ELETTRICI & POSA (7 Colonne Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1.1 TENSIONE & POTENZA CARICO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-plug"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Parametri Elettrici del Carico</h2>
+                                <p class="text-[11px] text-slate-500">Tensione di rete, potenza attiva e fattore di potenza (cosφ)</p>
+                            </div>
+                        </div>
+                        <span id="system-type-badge" class="text-xs font-black text-amber-900 bg-amber-100 border border-amber-300 px-3 py-1 rounded-xl font-mono">230V Monofase</span>
+                    </div>
+
+                    <!-- Sistema Elettrico (Monofase vs Trifase) -->
+                    <div class="grid grid-cols-2 gap-3 mb-4">
+                        <button type="button" onclick="setVoltageSystem('mono_230')" id="btn-volt-mono" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Domestico / Residenziale</span>
+                                <span class="font-mono font-black text-sm">230V</span>
+                            </div>
+                            <h3 class="font-black text-xs">Monofase (Fase + Neutro)</h3>
+                            <p class="text-[10px] text-slate-300 mt-0.5">Utenze standard 230V AC (2 conduttori)</p>
+                        </button>
+
+                        <button type="button" onclick="setVoltageSystem('tri_400')" id="btn-volt-tri" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">Industriale / Commerciale</span>
+                                <span class="font-mono font-black text-sm text-amber-600">400V</span>
+                            </div>
+                            <h3 class="font-black text-xs">Trifase (3 Fasi + Neutro)</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Linee forza motrice 400V AC (3 conduttori)</p>
+                        </button>
+                    </div>
+
+                    <!-- Input Potenza & cosφ -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Potenza Carico kW -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-power-kw">
+                                    Potenza Attiva (kW)
+                                </label>
+                                <span class="text-[10px] font-bold text-slate-400">Potenza Nominale</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="stepNumberInput('input-power-kw', -0.5, 0.5, 500)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="0.5" min="0.1" max="500" id="input-power-kw" value="6.0" oninput="recalcCableSizing()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepNumberInput('input-power-kw', 0.5, 0.5, 500)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <!-- Preset Potenze Comuni -->
+                            <div class="flex flex-wrap gap-1 pt-1.5">
+                                <button type="button" onclick="setPowerPreset(3.0)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">3 kW</button>
+                                <button type="button" onclick="setPowerPreset(4.5)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">4.5 kW</button>
+                                <button type="button" onclick="setPowerPreset(6.0)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">6 kW</button>
+                                <button type="button" onclick="setPowerPreset(10.0)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">10 kW</button>
+                                <button type="button" onclick="setPowerPreset(15.0)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">15 kW</button>
+                                <button type="button" onclick="setPowerPreset(30.0)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">30 kW</button>
+                            </div>
+                        </div>
+
+                        <!-- Fattore di Potenza (cos phi) -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-cosphi">
+                                    Fattore di Potenza (cos φ)
+                                </label>
+                                <span class="text-[10px] font-bold text-slate-400">Sfasamento</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="stepNumberInput('input-cosphi', -0.05, 0.60, 1.00)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="0.01" min="0.60" max="1.00" id="input-cosphi" value="0.90" oninput="recalcCableSizing()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepNumberInput('input-cosphi', 0.05, 0.60, 1.00)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <div class="flex justify-between text-[10px] text-slate-500 pt-1.5">
+                                <span>0.80 Motori induttivi</span>
+                                <span class="font-bold text-slate-800">0.90 Tipico</span>
+                                <span>1.00 Resistivo</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.2 TRATTA, TIPO DI POSA & ISOLANTE (CEI-UNEL 35024/1) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-route"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Tratta & Modalità di Posa (CEI-UNEL 35024/1)</h2>
+                                <p class="text-[11px] text-slate-500">Lunghezza linea, metodo di posa termica e declassamenti</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lunghezza Tratta Linea -->
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div>
+                            <span class="text-xs font-black text-slate-800 block uppercase">Lunghezza della Tratta (L in metri)</span>
+                            <span class="text-[10px] text-slate-500">Distanza dal quadro elettrico al carico terminale</span>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <button type="button" onclick="stepNumberInput('input-length-m', -5, 1, 1000)" class="w-9 h-9 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-base active:scale-95 transition">-</button>
+                            <input type="number" step="1" min="1" max="1000" id="input-length-m" value="30" oninput="recalcCableSizing()" class="w-24 text-center font-mono font-black text-lg bg-white border border-slate-300 rounded-xl py-1.5 px-2 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                            <button type="button" onclick="stepNumberInput('input-length-m', 5, 1, 1000)" class="w-9 h-9 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-base active:scale-95 transition">+</button>
+                            <span class="text-xs font-bold text-slate-600 font-mono ml-1">metri</span>
+                        </div>
+                    </div>
+
+                    <!-- Selezione Metodo di Posa -->
+                    <div class="space-y-2">
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                            Tipo di Posa Norma CEI-UNEL 35024/1
+                        </label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                            <button type="button" onclick="setInstallationMethod('conduit_wall')" id="btn-posa-conduit" class="p-3 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Metodo A1 / B1</span>
+                                    <i class="fa-solid fa-cubes-stacked text-xs"></i>
+                                </div>
+                                <h4 class="font-black text-xs">Tubo Incassato</h4>
+                                <p class="text-[10px] text-slate-300 mt-0.5">In parete o muratura (scambio termico ridotto)</p>
+                            </button>
+
+                            <button type="button" onclick="setInstallationMethod('tray_air')" id="btn-posa-tray" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">Metodo C / E</span>
+                                    <i class="fa-solid fa-bars text-xs"></i>
+                                </div>
+                                <h4 class="font-black text-xs">Canalina a Vista</h4>
+                                <p class="text-[10px] text-slate-500 mt-0.5">Su passerella o parete a vista (aerato)</p>
+                            </button>
+
+                            <button type="button" onclick="setInstallationMethod('underground')" id="btn-posa-underground" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">Metodo D1 / D2</span>
+                                    <i class="fa-solid fa-earth-europe text-xs"></i>
+                                </div>
+                                <h4 class="font-black text-xs">Interrato in Tubo</h4>
+                                <p class="text-[10px] text-slate-500 mt-0.5">Cavidotto interrato nel terreno</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Isolante e Declassamento Raggruppamento -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <!-- Isolante Cavo -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-insulation-type">
+                                Isolante Cavo (Rame Cu)
+                            </label>
+                            <select id="select-insulation-type" onchange="onInsulationChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="pvc_70" selected>⚡ PVC / FS17 / N07V-K (Max 70°C • ρ=0.0225 Ω·mm²/m)</option>
+                                <option value="epr_90">🛡️ Gomma EPR / FG16OR16 (Max 90°C • Portata termica +25%)</option>
+                            </select>
+                        </div>
+
+                        <!-- Circuiti Raggruppati (k2) -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-grouping-factor">
+                                Circuiti Nello Stesso Tubo/Fascio
+                            </label>
+                            <select id="select-grouping-factor" onchange="onGroupingChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="1.00" selected>1 Circuito Singolo (k2 = 1.00 • 100% Portata)</option>
+                                <option value="0.80">2 Circuiti Adiacenti (k2 = 0.80 • Riduzione 20%)</option>
+                                <option value="0.70">3 Circuiti Adiacenti (k2 = 0.70 • Riduzione 30%)</option>
+                                <option value="0.65">4+ Circuiti in Fascio (k2 = 0.65 • Riduzione 35%)</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.3 TABELLA COMPARATIVA SEZIONI COMMERCIALI (CEI 64-8) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-table-cells text-slate-700 text-xs"></i>
+                            <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">Tabella Sezioni Commerciali di Settore</h3>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-mono">Limite di Legge: ΔV ≤ 4.0%</span>
+                    </div>
+
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-[10px] font-black text-slate-400 uppercase border-b border-slate-100">
+                                    <th class="py-2 px-2">Sezione</th>
+                                    <th class="py-2 px-2 text-right">Portata Iz (A)</th>
+                                    <th class="py-2 px-2 text-right">Caduta ΔV (V)</th>
+                                    <th class="py-2 px-2 text-right">ΔV (%)</th>
+                                    <th class="py-2 px-2 text-center">Verifica CEI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quick-cables-table-body" class="divide-y divide-slate-100 font-mono">
+                                <!-- Popolato dinamicamente da JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: LETTURA LIVE SEZIONE & DIAGNOSI CADUTA (5 Colonne Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-36">
+
+                <!-- CARD PRINCIPALE SEZIONE RACCOMANDATA -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-500 pulse-soft" id="cable-status-dot"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Sezione Minima Conforme</h2>
+                        </div>
+                        <span id="cable-norm-badge" class="text-[10px] font-mono font-black text-amber-900 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-lg">CEI 64-8</span>
+                    </div>
+
+                    <!-- Box Display Digitale Sezione Ottimale -->
+                    <div class="bg-slate-950 rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-slate-800">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Sezione Cavo di Rame (Cu)</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span id="cable-section-val" class="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">6</span>
+                                    <span class="text-lg sm:text-xl font-black text-amber-400 font-mono">mm²</span>
+                                </div>
+                            </div>
+                            <div class="text-right font-mono">
+                                <span class="text-[10px] text-slate-400 uppercase block">Corrente d'Impiego</span>
+                                <div id="cable-ib-val" class="text-sm font-black text-emerald-400">Ib: 28.99 A</div>
+                                <div id="cable-iz-val" class="text-xs font-bold text-slate-300">Iz: 34.0 A</div>
+                            </div>
+                        </div>
+
+                        <!-- Barra Diagnostica Caduta di Tensione % -->
+                        <div class="mt-4 pt-3 border-t border-slate-800">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <span class="text-[11px] text-slate-400 font-bold">Caduta di Tensione Risultante:</span>
+                                <span id="cable-drop-badge-val" class="font-mono font-black text-emerald-400 text-xs">ΔV: 2.17% (5.0 V)</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden flex">
+                                <div id="cable-drop-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 54%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] font-mono text-slate-400 mt-1">
+                                <span>0% (Ideale)</span>
+                                <span class="text-amber-400 font-bold">Max Legge 4.0%</span>
+                                <span>&gt; 4% (Fuori Norma)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confronto Doppio Criterio (Portata vs Caduta) -->
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-[11px]">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Criterio Portata Termica</span>
+                            <span id="spec-section-iz" class="font-black text-slate-800 font-mono">Min 6 mm² (Iz ≥ Ib)</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Criterio Caduta Tensione</span>
+                            <span id="spec-section-dv" class="font-black text-slate-800 font-mono">Min 4 mm² (ΔV &lt; 4%)</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Tensione al Carico Finale</span>
+                            <span id="spec-v-end" class="font-black text-slate-800 font-mono">225.0 V AC</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Protezione Magnetotermica</span>
+                            <span id="spec-breaker" class="font-black text-amber-700 font-mono">In = 32 A (Curva C)</span>
+                        </div>
+                    </div>
+
+                    <!-- Protocollo Sicurezza Impianti CEI 64-8 -->
+                    <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-1.5 text-xs text-amber-950">
+                        <div class="font-black flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-amber-900">
+                            <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                            <span>Regola d'Arte CEI 64-8 (Ib ≤ In ≤ Iz)</span>
+                        </div>
+                        <p id="cable-rule-text" class="text-[11px] text-amber-800 leading-relaxed font-medium">
+                            La sezione adottata rispetta la condizione fondamentale di sicurezza contro i sovraccarichi. L'interruttore automatico a monte deve avere corrente nominale In compresa tra la corrente di impiego Ib e la portata Iz del cavo.
+                        </p>
+                    </div>
+
+                    <!-- Azione Copia Dati Dimensionamento -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="copyCableReportToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-4 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Riepilogo Calcolo Cavi (Supporto Operatore)</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 2: CALCOLATORE STRINGA FOTOVOLTAICA (TAB SOLAR)            -->
+        <!-- =================================================================== -->
+        <div id="section-solar" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hidden">
+            
+            <!-- COLONNA SINISTRA: MODULI FV, TEMPERATURA & LIMITI INVERTER (7 Colonne Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 2.1 CONFIGURAZIONE MODULI & STRINGA -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-solar-panel"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Configurazione Moduli FV in Serie</h2>
+                                <p class="text-[11px] text-slate-500">Parametri elettrici a STC (25°C, 1000 W/m²) e coefficiente β</p>
+                            </div>
+                        </div>
+                        <span id="pv-string-badge" class="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full uppercase font-mono">14 Moduli in Serie</span>
+                    </div>
+
+                    <!-- Preset Moduli Commerciali Comuni -->
+                    <div class="mb-4">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-2">Preset Moduli Fotovoltaici Diffusi:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <button type="button" onclick="applyPvPreset(41.5, 34.5, 13.8, -0.28, +0.045, '430W TOPCon Monocristallino')" class="p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50 text-left transition card-interactive">
+                                <div class="flex justify-between items-center text-xs font-black text-slate-900">
+                                    <span>☀️ 430W TOPCon Tier-1</span>
+                                    <span class="font-mono text-amber-700">Voc 41.5V</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">β = -0.28%/°C • Isc 13.8A</div>
+                            </button>
+
+                            <button type="button" onclick="applyPvPreset(52.2, 44.3, 10.8, -0.24, +0.040, '445W Trina Vertex S+ (Alto Voltaggio)')" class="p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50 text-left transition card-interactive">
+                                <div class="flex justify-between items-center text-xs font-black text-slate-900">
+                                    <span>☀️ 445W Trina Vertex S+</span>
+                                    <span class="font-mono text-amber-700">Voc 52.2V</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">β = -0.24%/°C • Voc elevata</div>
+                            </button>
+
+                            <button type="button" onclick="applyPvPreset(43.6, 36.6, 12.8, -0.28, +0.048, '435W Longi Hi-MO 6')" class="p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50 text-left transition card-interactive">
+                                <div class="flex justify-between items-center text-xs font-black text-slate-900">
+                                    <span>☀️ 435W Longi Hi-MO 6</span>
+                                    <span class="font-mono text-amber-700">Voc 43.6V</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">β = -0.28%/°C • HPBC Cell</div>
+                            </button>
+
+                            <button type="button" onclick="applyPvPreset(37.5, 31.2, 13.9, -0.34, +0.050, '410W PERC Standard')" class="p-2.5 rounded-xl border border-slate-200 hover:border-slate-400 bg-slate-50 text-left transition card-interactive">
+                                <div class="flex justify-between items-center text-xs font-black text-slate-900">
+                                    <span>☀️ 410W PERC Standard</span>
+                                    <span class="font-mono text-amber-700">Voc 37.5V</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 mt-0.5">β = -0.34%/°C • Bassa tensione</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Input Numero Moduli & Specifiche Singolo Modulo -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Numero Moduli in Serie -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-pv-count">
+                                    Moduli in Serie (N)
+                                </label>
+                                <span class="text-[10px] font-bold text-slate-400">Lunghezza Stringa</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="stepNumberInput('input-pv-count', -1, 1, 40)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="1" min="1" max="40" id="input-pv-count" value="14" oninput="recalcPvString()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepNumberInput('input-pv-count', 1, 1, 40)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">Pannelli collegati elettricamente in serie su singolo MPPT.</p>
+                        </div>
+
+                        <!-- Voc STC Singolo Modulo -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-pv-voc">
+                                    Voc Modulo a STC (V)
+                                </label>
+                                <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">Targa Modulo</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="stepNumberInput('input-pv-voc', -0.5, 10, 100)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="0.1" min="10" max="100" id="input-pv-voc" value="41.5" oninput="recalcPvString()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepNumberInput('input-pv-voc', 0.5, 10, 100)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">Tensione a vuoto a 25°C da scheda tecnica costruttore.</p>
+                        </div>
+                    </div>
+
+                    <!-- Coefficiente Termico beta & Vmpp -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <!-- Coefficiente Beta %/°C -->
+                        <div class="space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-pv-beta">
+                                Coeff. Termico Voc (β in %/°C)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" step="0.01" max="0" min="-1.0" id="input-pv-beta" value="-0.28" oninput="recalcPvString()" class="w-full text-center font-mono font-bold text-sm bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <span class="text-xs font-bold text-slate-600 font-mono">%/°C</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500">Valore tipico negativo: da -0.24% a -0.35%/°C.</p>
+                        </div>
+
+                        <!-- Vmpp STC (Opzionale / Finestra MPPT) -->
+                        <div class="space-y-1.5 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                            <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-pv-vmpp">
+                                Vmpp Modulo a STC (V)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" step="0.1" min="10" max="100" id="input-pv-vmpp" value="34.5" oninput="recalcPvString()" class="w-full text-center font-mono font-bold text-sm bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <span class="text-xs font-bold text-slate-600 font-mono">Volt</span>
+                            </div>
+                            <p class="text-[10px] text-slate-500">Tensione al punto di massima potenza a 25°C.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2.2 TEMPERATURA MINIMA INVERNALE & LIMITI INVERTER -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-temperature-arrow-down"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Temperatura Minima & Limiti Inverter</h2>
+                                <p class="text-[11px] text-slate-500">Zona climatica di progetto e tensione massima MPPT inverter</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Temperatura Minima Invernale -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-temp-min">
+                                Temp. Minima Invernale di Progetto (Tmin in °C)
+                            </label>
+                            <span id="climate-zone-tag" class="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-md">Centro Nord (-10°C)</span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="stepNumberInput('input-temp-min', -1, -30, 20)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                            <input type="number" step="1" min="-30" max="20" id="input-temp-min" value="-10" oninput="recalcPvString()" class="flex-1 text-center font-mono font-black text-xl bg-slate-50 border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                            <button type="button" onclick="stepNumberInput('input-temp-min', 1, -30, 20)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                        </div>
+
+                        <!-- Preset Zone Climatiche Italiane -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-1">
+                            <button type="button" onclick="setTempPreset(-15, 'Zona Alpina / Montagna (-15°C)')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[10px] font-bold text-slate-700 text-center transition">
+                                🏔️ Alpi (-15°C)
+                            </button>
+                            <button type="button" onclick="setTempPreset(-10, 'Pianura Padana / Centro Nord (-10°C)')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[10px] font-bold text-slate-700 text-center transition">
+                                ❄️ Valpadana (-10°C)
+                            </button>
+                            <button type="button" onclick="setTempPreset(-5, 'Centro / Coste Tirreniche (-5°C)')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[10px] font-bold text-slate-700 text-center transition">
+                                🌤️ Centro (-5°C)
+                            </button>
+                            <button type="button" onclick="setTempPreset(0, 'Sud Italia / Isole (0°C)')" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-[10px] font-bold text-slate-700 text-center transition">
+                                🌴 Sud/Isole (0°C)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Limite Tensione Massima Inverter -->
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-inv-max-v">
+                                Tensione Massima Assoluta Inverter (Vmax)
+                            </label>
+                            <span class="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-md">Limite Blocco Inverter</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="number" step="50" min="400" max="1500" id="input-inv-max-v" value="1000" oninput="recalcPvString()" class="w-full text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                            <span class="text-xs font-bold text-slate-600 font-mono">Volt</span>
+                        </div>
+                        <!-- Preset Inverter -->
+                        <div class="flex flex-wrap gap-1.5 pt-1">
+                            <button type="button" onclick="setInverterPreset(600)" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-bold text-slate-700">600V (Monofase)</button>
+                            <button type="button" onclick="setInverterPreset(800)" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-bold text-slate-700">800V (Ibrido)</button>
+                            <button type="button" onclick="setInverterPreset(1000)" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-bold text-slate-700">1000V (Trifase Std)</button>
+                            <button type="button" onclick="setInverterPreset(1100)" class="px-2.5 py-1 rounded-lg bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-bold text-slate-700">1100V (Commerciale)</button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: VERDETTO SOVRATENSIONE & LIVE MPPT (5 Colonne Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-36">
+
+                <!-- CARD VERDETTO SOVRATENSIONE LIVE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 pulse-soft" id="pv-status-dot"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Verifica Sovratensione a Freddo</h2>
+                        </div>
+                        <span id="pv-inv-tag" class="text-[10px] font-mono font-black text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">INV MAX: 1000V</span>
+                    </div>
+
+                    <!-- Box Verdetto Dinamico (Verde / Giallo / Rosso) -->
+                    <div id="pv-verdict-box" class="rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-emerald-600 border border-emerald-500">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white/80 block mb-1">Diagnosi Stringa FV</span>
+                                <div id="pv-verdict-title" class="text-2xl sm:text-3xl font-black tracking-tight drop-shadow-sm">CONFORME 🟢</div>
+                            </div>
+                            <div id="pv-verdict-icon" class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl text-white">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs">
+                            <div>
+                                <span class="text-[10px] uppercase text-white/70 block">Voc Massima a Freddo:</span>
+                                <span id="pv-voc-cold-val" class="text-lg font-black font-mono">637.9 V</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] uppercase text-white/70 block">Margine Sicurezza:</span>
+                                <span id="pv-margin-val" class="text-xs font-mono font-bold text-white/90">+362.1 V (36%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barra Grafica Voc vs Limite Inverter -->
+                    <div class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-600 font-bold">Rapporto Tensione Voc / Inverter:</span>
+                            <span id="pv-voltage-ratio-lbl" class="font-mono font-black text-slate-900">64% del Limite</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden flex">
+                            <div id="pv-progress-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 64%;"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                            <span>0V</span>
+                            <span id="pv-string-stc-lbl" class="text-slate-700 font-bold">STC: 581.0V</span>
+                            <span id="pv-inv-limit-lbl" class="text-rose-600 font-bold">1000V Max</span>
+                        </div>
+                    </div>
+
+                    <!-- Dettagli Elettrici Stringa -->
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-[11px]">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Voc Modulo a Freddo</span>
+                            <span id="pv-spec-voc-single" class="font-black text-slate-800 font-mono">45.57 V (+9.8%)</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Max Moduli Ammessi</span>
+                            <span id="pv-spec-max-modules" class="font-black text-emerald-700 font-mono">Max 21 Moduli</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Vmpp Stringa a Caldo (70°C)</span>
+                            <span id="pv-spec-vmpp-hot" class="font-black text-slate-800 font-mono">422.1 V</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Incremento Termico ΔT</span>
+                            <span id="pv-spec-delta-t" class="font-black text-slate-800 font-mono">-35 °C da STC</span>
+                        </div>
+                    </div>
+
+                    <!-- Indicazioni Tecniche Fotovoltaico -->
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-950 space-y-1">
+                        <div class="font-black text-[11px] uppercase flex items-center gap-1.5 text-blue-900">
+                            <i class="fa-solid fa-circle-info text-blue-600"></i>
+                            <span>Prescrizione Guida CEI 82-25 / CEI EN 62548</span>
+                        </div>
+                        <p id="pv-advice-text" class="text-[11px] text-blue-800 leading-relaxed font-medium">
+                            La tensione Voc corretta alla temperatura minima di progetto non supera la tensione massima assoluta dell'inverter. Stringa idonea e protetta contro sovratensioni a vuoto nei giorni invernali di pieno sole.
+                        </p>
+                    </div>
+
+                    <!-- Azione Copia Scheda Stringa -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="copyPvReportToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-4 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Scheda Verifica Stringa FV</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="impianti-toast" class="fixed bottom-6 right-6 z-50 transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toast-text">Dati copiati negli appunti!</span>
+        </div>
+    </div>
+
+    <!-- LOGICA JAVASCRIPT DETERMINISTICA IMPIANTI -->
+    <script>
+        /* ── INIZIALIZZAZIONE TELEGRAM WEBAPP ── */
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            if (tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(() => goToDeskBoard());
+            }
+        }
+
+        /* ── STATO APPLICATIVO IMPIANTI ── */
+        let activeTab = 'cables'; // 'cables' | 'solar'
+
+        // Stato Calcolatore Cavi
+        let selectedVoltageSystem = 'mono_230'; // 'mono_230' (230V) | 'tri_400' (400V)
+        let selectedPosaMethod = 'conduit_wall'; // 'conduit_wall' | 'tray_air' | 'underground'
+        let selectedInsulation = 'pvc_70'; // 'pvc_70' | 'epr_90'
+        let selectedGroupingFactor = 1.00; // 1.00, 0.80, 0.70, 0.65
+
+        // Tabelle Portate Standard di Settore CEI-UNEL 35024/1 (Conduttori Rame Cu a 30°C in Ampere)
+        // Sezioni commerciali standard: 1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70 mm²
+        const CABLE_SECTIONS = [1.5, 2.5, 4, 6, 10, 16, 25, 35, 50, 70];
+
+        // Portata Iz base (A) per Metodo di Posa a 30°C
+        const BASE_AMPACITY_TABLE = {
+            'conduit_wall': { // Metodo A1/B1 (Tubo incassato)
+                'pvc_70': {
+                    'mono_230': { 1.5: 14.5, 2.5: 19.5, 4: 26, 6: 34, 10: 46, 16: 61, 25: 80, 35: 99, 50: 119, 70: 151 },
+                    'tri_400':  { 1.5: 13.5, 2.5: 18.0, 4: 24, 6: 31, 10: 42, 16: 56, 25: 73, 35: 89, 50: 108, 70: 136 }
+                },
+                'epr_90': {
+                    'mono_230': { 1.5: 18.5, 2.5: 25.0, 4: 33, 6: 43, 10: 59, 16: 79, 25: 104, 35: 129, 50: 155, 70: 196 },
+                    'tri_400':  { 1.5: 17.0, 2.5: 23.0, 4: 30, 6: 40, 10: 54, 16: 72, 25: 95, 35: 117, 50: 141, 70: 179 }
+                }
+            },
+            'tray_air': { // Metodo C / E (Canalina / Passerella a vista)
+                'pvc_70': {
+                    'mono_230': { 1.5: 17.5, 2.5: 24.0, 4: 32, 6: 41, 10: 57, 16: 76, 25: 101, 35: 125, 50: 151, 70: 192 },
+                    'tri_400':  { 1.5: 15.5, 2.5: 21.0, 4: 28, 6: 36, 10: 50, 16: 68, 25: 89, 35: 110, 50: 134, 70: 171 }
+                },
+                'epr_90': {
+                    'mono_230': { 1.5: 22.0, 2.5: 30.0, 4: 40, 6: 52, 10: 72, 16: 97, 25: 128, 35: 157, 50: 190, 70: 242 },
+                    'tri_400':  { 1.5: 19.5, 2.5: 26.0, 4: 35, 6: 46, 10: 64, 16: 86, 25: 113, 35: 139, 50: 169, 70: 215 }
+                }
+            },
+            'underground': { // Metodo D1 / D2 (Cavidotto interrato)
+                'pvc_70': {
+                    'mono_230': { 1.5: 18.0, 2.5: 24.0, 4: 31, 6: 39, 10: 52, 16: 67, 25: 86, 35: 103, 50: 122, 70: 151 },
+                    'tri_400':  { 1.5: 15.0, 2.5: 20.0, 4: 27, 6: 34, 10: 46, 16: 59, 25: 76, 35: 90, 50: 106, 70: 132 }
+                },
+                'epr_90': {
+                    'mono_230': { 1.5: 22.0, 2.5: 29.0, 4: 38, 6: 47, 10: 63, 16: 81, 25: 104, 35: 125, 50: 148, 70: 183 },
+                    'tri_400':  { 1.5: 19.0, 2.5: 25.0, 4: 33, 6: 41, 10: 55, 16: 71, 25: 91, 35: 109, 50: 129, 70: 160 }
+                }
+            }
+        };
+
+        // Resistività rame a caldo: rho = 0.0225 ohm*mm2/m (PVC 70°C) / 0.0235 ohm*mm2/m (EPR 90°C)
+        const COPPER_RESISTIVITY = {
+            'pvc_70': 0.0225,
+            'epr_90': 0.0235
+        };
+
+        /* ── AVVIO DOM ── */
+        document.addEventListener('DOMContentLoaded', () => {
+            recalcCableSizing();
+            recalcPvString();
+        });
+
+        /* ── GESTIONE TABS ── */
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const btnCables = document.getElementById('tab-btn-cables');
+            const btnSolar = document.getElementById('tab-btn-solar');
+            const secCables = document.getElementById('section-cables');
+            const secSolar = document.getElementById('section-solar');
+
+            if (tabId === 'cables') {
+                btnCables.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                btnSolar.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                secCables.classList.remove('hidden');
+                secSolar.classList.add('hidden');
+            } else {
+                btnCables.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                btnSolar.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                secCables.classList.add('hidden');
+                secSolar.classList.remove('hidden');
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── STEPPER GENERICO NUMERI ── */
+        function stepNumberInput(id, step, min, max) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let val = parseFloat(el.value) || 0;
+            val = Math.round((val + step) * 100) / 100;
+            if (min !== undefined && val < min) val = min;
+            if (max !== undefined && val > max) val = max;
+            el.value = val;
+            
+            if (id.startsWith('input-pv') || id === 'input-temp-min' || id === 'input-inv-max-v') {
+                recalcPvString();
+            } else {
+                recalcCableSizing();
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── GESTIONE PARAMETRI CAVI ── */
+        function setVoltageSystem(sys) {
+            selectedVoltageSystem = sys;
+            const btnMono = document.getElementById('btn-volt-mono');
+            const btnTri = document.getElementById('btn-volt-tri');
+            const badge = document.getElementById('system-type-badge');
+
+            const activeClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+            const inactiveClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+
+            if (btnMono) btnMono.className = sys === 'mono_230' ? activeClass : inactiveClass;
+            if (btnTri) btnTri.className = sys === 'tri_400' ? activeClass : inactiveClass;
+            if (badge) badge.innerText = sys === 'mono_230' ? '230V Monofase' : '400V Trifase';
+
+            recalcCableSizing();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setInstallationMethod(method) {
+            selectedPosaMethod = method;
+            const btnConduit = document.getElementById('btn-posa-conduit');
+            const btnTray = document.getElementById('btn-posa-tray');
+            const btnUnderground = document.getElementById('btn-posa-underground');
+
+            const activeClass = 'p-3 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+            const inactiveClass = 'p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+
+            if (btnConduit) btnConduit.className = method === 'conduit_wall' ? activeClass : inactiveClass;
+            if (btnTray) btnTray.className = method === 'tray_air' ? activeClass : inactiveClass;
+            if (btnUnderground) btnUnderground.className = method === 'underground' ? activeClass : inactiveClass;
+
+            recalcCableSizing();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onInsulationChanged(val) {
+            selectedInsulation = val;
+            recalcCableSizing();
+        }
+
+        function onGroupingChanged(val) {
+            selectedGroupingFactor = parseFloat(val) || 1.0;
+            recalcCableSizing();
+        }
+
+        function setPowerPreset(kw) {
+            const inp = document.getElementById('input-power-kw');
+            if (inp) inp.value = kw;
+            recalcCableSizing();
+            showToast(`Impostata potenza ${kw} kW`);
+        }
+
+        /* ── CALCOLO DETERMINISTICO SEZIONE CAVI & CADUTA DI TENSIONE (CEI 64-8) ── */
+        function recalcCableSizing() {
+            const powerKw = parseFloat(document.getElementById('input-power-kw')?.value) || 6.0;
+            const cosPhi = parseFloat(document.getElementById('input-cosphi')?.value) || 0.90;
+            const lengthM = parseFloat(document.getElementById('input-length-m')?.value) || 30;
+
+            const isMono = selectedVoltageSystem === 'mono_230';
+            const voltage = isMono ? 230 : 400;
+            const rho = COPPER_RESISTIVITY[selectedInsulation] || 0.0225;
+
+            // 1. Calcolo Corrente d'Impiego Ib (A)
+            // Monofase: Ib = (P * 1000) / (V * cosPhi)
+            // Trifase:  Ib = (P * 1000) / (sqrt(3) * V * cosPhi)
+            let ib = 0;
+            if (isMono) {
+                ib = (powerKw * 1000) / (voltage * cosPhi);
+            } else {
+                ib = (powerKw * 1000) / (Math.sqrt(3) * voltage * cosPhi);
+            }
+            ib = Math.round(ib * 100) / 100;
+
+            // 2. Calcolo Tabellare Portata Iz per ciascuna sezione commerciale con declassamento k2
+            const ampacityTable = BASE_AMPACITY_TABLE[selectedPosaMethod][selectedInsulation][selectedVoltageSystem];
+            
+            let minSectionForAmpacity = null;
+            let minSectionForVoltDrop = null;
+
+            // Calcolo caduta di tensione massima ammessa in Volt (4.0% secondo CEI 64-8)
+            const maxDeltaVVolt = (voltage * 0.04);
+
+            const sectionAnalysis = [];
+
+            CABLE_SECTIONS.forEach(s => {
+                const baseIz = ampacityTable[s] || 10;
+                const declassedIz = Math.round((baseIz * selectedGroupingFactor) * 10) / 10;
+
+                // Formula Caduta Tensione CEI 64-8:
+                // Monofase: deltaV = (2 * L * Ib * rho * cosPhi) / S
+                // Trifase:  deltaV = (sqrt(3) * L * Ib * rho * cosPhi) / S
+                let deltaV = 0;
+                if (isMono) {
+                    deltaV = (2 * lengthM * ib * rho * cosPhi) / s;
+                } else {
+                    deltaV = (Math.sqrt(3) * lengthM * ib * rho * cosPhi) / s;
+                }
+                deltaV = Math.round(deltaV * 100) / 100;
+                const deltaVPct = Math.round((deltaV / voltage * 100) * 100) / 100;
+
+                const isIzOk = declassedIz >= ib;
+                const isDvOk = deltaVPct <= 4.0;
+                const isFullyOk = isIzOk && isDvOk;
+
+                if (isIzOk && !minSectionForAmpacity) minSectionForAmpacity = s;
+                if (isDvOk && !minSectionForVoltDrop) minSectionForVoltDrop = s;
+
+                sectionAnalysis.push({
+                    section: s,
+                    iz: declassedIz,
+                    deltaV: deltaV,
+                    deltaVPct: deltaVPct,
+                    isIzOk: isIzOk,
+                    isDvOk: isDvOk,
+                    isFullyOk: isFullyOk
+                });
+            });
+
+            // Sezione minima finale conforme (la maggiore tra criterio portata e criterio caduta)
+            let recommendedSection = Math.max(minSectionForAmpacity || 70, minSectionForVoltDrop || 70);
+            const activeResult = sectionAnalysis.find(x => x.section === recommendedSection) || sectionAnalysis[sectionAnalysis.length - 1];
+
+            // Aggiorna UI Output
+            const secValEl = document.getElementById('cable-section-val');
+            const ibValEl = document.getElementById('cable-ib-val');
+            const izValEl = document.getElementById('cable-iz-val');
+            const dropBadgeEl = document.getElementById('cable-drop-badge-val');
+            const dropBarEl = document.getElementById('cable-drop-bar');
+            const statusDotEl = document.getElementById('cable-status-dot');
+
+            if (secValEl) secValEl.innerText = activeResult.section;
+            if (ibValEl) ibValEl.innerText = `Ib: ${ib.toFixed(2)} A`;
+            if (izValEl) izValEl.innerText = `Iz: ${activeResult.iz.toFixed(1)} A`;
+            if (dropBadgeEl) {
+                dropBadgeEl.innerText = `ΔV: ${activeResult.deltaVPct.toFixed(2)}% (${activeResult.deltaV.toFixed(1)} V)`;
+                dropBadgeEl.className = activeResult.deltaVPct <= 2.0 ? 'font-mono font-black text-emerald-400 text-xs' : activeResult.deltaVPct <= 4.0 ? 'font-mono font-black text-amber-400 text-xs' : 'font-mono font-black text-rose-400 text-xs';
+            }
+
+            if (dropBarEl) {
+                // Barra normalizzata su scala 0-6%
+                let barWidth = (activeResult.deltaVPct / 6.0) * 100;
+                if (barWidth > 100) barWidth = 100;
+                dropBarEl.style.width = `${barWidth}%`;
+                dropBarEl.className = activeResult.deltaVPct <= 2.0 ? 'bg-emerald-500 h-full rounded-full transition-all duration-300' : activeResult.deltaVPct <= 4.0 ? 'bg-amber-500 h-full rounded-full transition-all duration-300' : 'bg-rose-500 h-full rounded-full transition-all duration-300';
+            }
+
+            // Specifiche tecniche secondarie
+            const specIz = document.getElementById('spec-section-iz');
+            const specDv = document.getElementById('spec-section-dv');
+            const specVEnd = document.getElementById('spec-v-end');
+            const specBreaker = document.getElementById('spec-breaker');
+
+            if (specIz) specIz.innerText = `Min ${minSectionForAmpacity || '>70'} mm² (Iz ≥ ${ib.toFixed(1)}A)`;
+            if (specDv) specDv.innerText = `Min ${minSectionForVoltDrop || '>70'} mm² (ΔV ≤ 4%)`;
+            
+            const vEnd = Math.round((voltage - activeResult.deltaV) * 10) / 10;
+            if (specVEnd) specVEnd.innerText = `${vEnd.toFixed(1)} V AC (-${activeResult.deltaV.toFixed(1)}V)`;
+
+            // Taglia commerciale magnetotermico consigliata (In <= Iz)
+            const breakerSizes = [6, 10, 16, 20, 25, 32, 40, 50, 63, 80, 100, 125, 160];
+            let suggestedBreaker = breakerSizes.filter(b => b >= ib && b <= activeResult.iz)[0];
+            if (!suggestedBreaker) suggestedBreaker = breakerSizes.filter(b => b >= ib)[0] || 63;
+            if (specBreaker) specBreaker.innerText = `In = ${suggestedBreaker} A (Curva C)`;
+
+            // Render Tabella Rapida Comparativa Sezioni
+            renderQuickCablesTable(sectionAnalysis, recommendedSection);
+        }
+
+        function renderQuickCablesTable(analysis, recommendedSec) {
+            const tbody = document.getElementById('quick-cables-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = analysis.map(row => {
+                const isSelected = row.section === recommendedSec;
+                const rowClass = isSelected ? 'bg-amber-50/80 font-bold text-slate-950 ring-1 ring-amber-300' : 'hover:bg-slate-50 text-slate-700';
+
+                let statusBadge = '';
+                if (row.isFullyOk) {
+                    statusBadge = '<span class="text-[9px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">CONFORME</span>';
+                } else if (!row.isIzOk && !row.isDvOk) {
+                    statusBadge = '<span class="text-[9px] font-black text-rose-800 bg-rose-100 border border-rose-300 px-2 py-0.5 rounded-full">NO Iz & ΔV</span>';
+                } else if (!row.isIzOk) {
+                    statusBadge = '<span class="text-[9px] font-black text-rose-800 bg-rose-100 border border-rose-300 px-2 py-0.5 rounded-full">SOVRACCARICO</span>';
+                } else {
+                    statusBadge = '<span class="text-[9px] font-black text-amber-800 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full">ΔV &gt; 4%</span>';
+                }
+
+                return `
+                    <tr class="${rowClass} transition cursor-pointer" onclick="highlightSection(${row.section})">
+                        <td class="py-2.5 px-2 font-black ${isSelected ? 'text-amber-900' : 'text-slate-900'}">${row.section} mm²</td>
+                        <td class="py-2.5 px-2 text-right ${row.isIzOk ? 'text-slate-800' : 'text-rose-600 font-bold'}">${row.iz.toFixed(1)} A</td>
+                        <td class="py-2.5 px-2 text-right text-slate-600">${row.deltaV.toFixed(2)} V</td>
+                        <td class="py-2.5 px-2 text-right font-black ${row.deltaVPct <= 4.0 ? 'text-emerald-700' : 'text-rose-600'}">${row.deltaVPct.toFixed(2)}%</td>
+                        <td class="py-2.5 px-2 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function highlightSection(sec) {
+            showToast(`Sezione selezionata: ${sec} mm²`);
+        }
+
+        /* ── GESTIONE FOTOVOLTAICO STRINGA (TAB SOLAR) ── */
+        function setTempPreset(temp, desc) {
+            const inp = document.getElementById('input-temp-min');
+            if (inp) inp.value = temp;
+            const tag = document.getElementById('climate-zone-tag');
+            if (tag) tag.innerText = desc;
+            recalcPvString();
+            showToast(`Impostata Tmin ${temp}°C (${desc})`);
+        }
+
+        function setInverterPreset(vmax) {
+            const inp = document.getElementById('input-inv-max-v');
+            if (inp) inp.value = vmax;
+            recalcPvString();
+            showToast(`Limite inverter impostato a ${vmax}V`);
+        }
+
+        function applyPvPreset(voc, vmpp, isc, beta, alpha, name) {
+            const inpVoc = document.getElementById('input-pv-voc');
+            const inpVmpp = document.getElementById('input-pv-vmpp');
+            const inpBeta = document.getElementById('input-pv-beta');
+
+            if (inpVoc) inpVoc.value = voc;
+            if (inpVmpp) inpVmpp.value = vmpp;
+            if (inpBeta) inpBeta.value = beta;
+
+            recalcPvString();
+            showToast(`Modulo applicato: ${name}`);
+        }
+
+        /* ── CALCOLO DETERMINISTICO VOC STRINGA FV CON TEMPERATURA (CEI EN 62548) ── */
+        function recalcPvString() {
+            const modCount = parseInt(document.getElementById('input-pv-count')?.value) || 14;
+            const vocStc = parseFloat(document.getElementById('input-pv-voc')?.value) || 41.5;
+            const vmppStc = parseFloat(document.getElementById('input-pv-vmpp')?.value) || 34.5;
+            const beta = parseFloat(document.getElementById('input-pv-beta')?.value) || -0.28;
+            const tMin = parseFloat(document.getElementById('input-temp-min')?.value) || -10;
+            const invMaxV = parseFloat(document.getElementById('input-inv-max-v')?.value) || 1000;
+
+            const badge = document.getElementById('pv-string-badge');
+            if (badge) badge.innerText = `${modCount} Moduli in Serie`;
+
+            // 1. Delta Temperatura a Freddo vs STC (25°C)
+            const deltaTCold = tMin - 25; // Es: -10 - 25 = -35 °C
+
+            // 2. Voc Singolo Modulo alla Temperatura Minima:
+            // Voc(Tmin) = Voc_stc * (1 + (beta / 100) * deltaTCold)
+            const vocModuleCold = vocStc * (1 + (beta / 100) * deltaTCold);
+            const vocModuleColdRounded = Math.round(vocModuleCold * 100) / 100;
+
+            // 3. Voc Totale Massima di Stringa a Freddo:
+            const stringVocCold = Math.round((vocModuleCold * modCount) * 10) / 10;
+            const stringVocStc = Math.round((vocStc * modCount) * 10) / 10;
+
+            // 4. Vmpp di Stringa a Caldo (Tcell = 70°C sotto irraggiamento estivo):
+            const deltaTHot = 70 - 25; // +45 °C
+            const vmppModuleHot = vmppStc * (1 + (beta / 100) * deltaTHot);
+            const stringVmppHot = Math.round((vmppModuleHot * modCount) * 10) / 10;
+
+            // 5. Verifica Sovratensione rispetto al Limite Inverter
+            const marginV = Math.round((invMaxV - stringVocCold) * 10) / 10;
+            const marginPct = Math.round((marginV / invMaxV * 100) * 10) / 10;
+
+            // Numero Massimo di Moduli Ammessi dall'Inverter a questa Tmin:
+            const maxAllowedModules = Math.floor(invMaxV / vocModuleCold);
+
+            // Aggiornamento Elementi UI
+            const verdictBox = document.getElementById('pv-verdict-box');
+            const verdictTitle = document.getElementById('pv-verdict-title');
+            const verdictIcon = document.getElementById('pv-verdict-icon');
+            const statusDot = document.getElementById('pv-status-dot');
+            const vocColdValEl = document.getElementById('pv-voc-cold-val');
+            const marginValEl = document.getElementById('pv-margin-val');
+            const invTagEl = document.getElementById('pv-inv-tag');
+            const adviceText = document.getElementById('pv-advice-text');
+            const ratioLbl = document.getElementById('pv-voltage-ratio-lbl');
+            const progressBar = document.getElementById('pv-progress-bar');
+            const stcLbl = document.getElementById('pv-string-stc-lbl');
+            const invLimitLbl = document.getElementById('pv-inv-limit-lbl');
+
+            if (vocColdValEl) vocColdValEl.innerText = `${stringVocCold.toFixed(1)} V`;
+            if (invTagEl) invTagEl.innerText = `INV MAX: ${invMaxV}V`;
+            if (stcLbl) stcLbl.innerText = `STC: ${stringVocStc.toFixed(1)}V`;
+            if (invLimitLbl) invLimitLbl.innerText = `${invMaxV}V Max`;
+
+            const voltageRatio = Math.round((stringVocCold / invMaxV) * 100);
+            if (ratioLbl) ratioLbl.innerText = `${voltageRatio}% del Limite Inverter`;
+
+            if (progressBar) {
+                let barW = voltageRatio > 100 ? 100 : voltageRatio;
+                progressBar.style.width = `${barW}%`;
+            }
+
+            if (marginValEl) {
+                const sign = marginV >= 0 ? '+' : '';
+                marginValEl.innerText = `${sign}${marginV.toFixed(1)} V (${marginPct}%)`;
+            }
+
+            // Diagnosi di Sicurezza
+            if (stringVocCold > invMaxV) {
+                // ROSSO: Sovratensione Critica
+                if (verdictBox) verdictBox.className = 'rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-rose-600 border border-rose-500';
+                if (verdictTitle) verdictTitle.innerText = 'SOVRATENSIONE CRITICA 🔴';
+                if (verdictIcon) verdictIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-600 pulse-soft';
+                if (progressBar) progressBar.className = 'bg-rose-500 h-full rounded-full transition-all duration-300';
+                if (adviceText) {
+                    adviceText.innerText = `PERICOLO: La tensione a vuoto a freddo (${stringVocCold}V) supera il limite massimo dell'inverter (${invMaxV}V) di ${Math.abs(marginV)}V. Rischio distruzione stadi MPPT. RIDURRE LA STRINGA a massimo ${maxAllowedModules} moduli.`;
+                }
+            } else if (marginPct < 5.0) {
+                // GIALLO: Margine ridotto
+                if (verdictBox) verdictBox.className = 'rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-amber-500 border border-amber-400';
+                if (verdictTitle) verdictTitle.innerText = 'MARGINE RISICATO 🟡';
+                if (verdictIcon) verdictIcon.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i>';
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 pulse-soft';
+                if (progressBar) progressBar.className = 'bg-amber-500 h-full rounded-full transition-all duration-300';
+                if (adviceText) {
+                    adviceText.innerText = `ATTENZIONE: Margine di sicurezza inferiore al 5% (${marginV}V). Eventuali picchi di irraggiamento (effetto nuvola/edge of cloud) potrebbero superare la soglia inverter. Si consiglia stringa da ${maxAllowedModules - 1} moduli.`;
+                }
+            } else {
+                // VERDE: Conforme
+                if (verdictBox) verdictBox.className = 'rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-emerald-600 border border-emerald-500';
+                if (verdictTitle) verdictTitle.innerText = 'CONFORME 🟢';
+                if (verdictIcon) verdictIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-600 pulse-soft';
+                if (progressBar) progressBar.className = 'bg-emerald-500 h-full rounded-full transition-all duration-300';
+                if (adviceText) {
+                    adviceText.innerText = `La tensione Voc corretta alla temperatura minima di progetto (${tMin}°C) non supera la tensione massima assoluta dell'inverter (${invMaxV}V). Stringa idonea e protetta contro sovratensioni a vuoto nei giorni invernali di pieno sole.`;
+                }
+            }
+
+            // Aggiorna specifiche secondarie
+            const specVocSingle = document.getElementById('pv-spec-voc-single');
+            const specMaxMod = document.getElementById('pv-spec-max-modules');
+            const specVmppHot = document.getElementById('pv-spec-vmpp-hot');
+            const specDeltaT = document.getElementById('pv-spec-delta-t');
+
+            const pctIncrease = Math.round(((vocModuleCold - vocStc) / vocStc * 100) * 10) / 10;
+            if (specVocSingle) specVocSingle.innerText = `${vocModuleColdRounded.toFixed(2)} V (+${pctIncrease}%)`;
+            if (specMaxMod) specMaxMod.innerText = `Max ${maxAllowedModules} Moduli`;
+            if (specVmppHot) specVmppHot.innerText = `${stringVmppHot.toFixed(1)} V`;
+            if (specDeltaT) specDeltaT.innerText = `${deltaTCold} °C da STC (25°C)`;
+        }
+
+        /* ── CLIPBOARD: COPIA RELAZIONE CAVI ── */
+        function copyCableReportToClipboard() {
+            const powerKw = document.getElementById('input-power-kw')?.value || '';
+            const cosPhi = document.getElementById('input-cosphi')?.value || '';
+            const lengthM = document.getElementById('input-length-m')?.value || '';
+            const secVal = document.getElementById('cable-section-val')?.innerText || '';
+            const ibVal = document.getElementById('cable-ib-val')?.innerText || '';
+            const izVal = document.getElementById('cable-iz-val')?.innerText || '';
+            const dropVal = document.getElementById('cable-drop-badge-val')?.innerText || '';
+            const vEnd = document.getElementById('spec-v-end')?.innerText || '';
+            const breaker = document.getElementById('spec-breaker')?.innerText || '';
+
+            const dateStr = new Date().toLocaleDateString('it-IT');
+
+            const text = `⚡ SITEBOS CONSTRUCTION — PROMEMORIA ASSISTIVO DIMENSIONAMENTO CAVI (CEI 64-8)
+Data: ${dateStr}
+Sistema: ${selectedVoltageSystem === 'mono_230' ? '230V Monofase' : '400V Trifase'}
+Potenza Attiva: ${powerKw} kW (cosφ = ${cosPhi})
+Lunghezza Tratta: ${lengthM} metri
+Tipo di Posa: ${selectedPosaMethod === 'conduit_wall' ? 'Tubo Incassato (A1/B1)' : selectedPosaMethod === 'tray_air' ? 'Canalina a Vista (C/E)' : 'Interrato (D1/D2)'}
+Isolante: ${selectedInsulation === 'pvc_70' ? 'PVC 70°C (FS17/N07V-K)' : 'EPR 90°C (FG16OR16)'}
+--------------------------------------------------
+🎯 SEZIONE MINIMA INDICATIVA: ${secVal} mm² Cu
+📊 ${ibVal} | ${izVal}
+📉 Caduta di Tensione: ${dropVal} (Limite CEI 4.0%)
+🔌 Tensione al Carico: ${vEnd}
+🛡️ Protezione Consigliata: ${breaker}
+--------------------------------------------------
+⚠️ NOTA ASSISTIVA: Calcolo orientativo ad uso esclusivo dell'operatore. Non costituisce progetto esecutivo, dichiarazione di conformità (D.M. 37/08) né asseverazione tecnica ufficiale.`;
+
+            copyTextToClipboard(text, 'Riepilogo calcolo cavi copiato!');
+        }
+
+        /* ── CLIPBOARD: COPIA SCHEDA FV ── */
+        function copyPvReportToClipboard() {
+            const modCount = document.getElementById('input-pv-count')?.value || '';
+            const vocStc = document.getElementById('input-pv-voc')?.value || '';
+            const beta = document.getElementById('input-pv-beta')?.value || '';
+            const tMin = document.getElementById('input-temp-min')?.value || '';
+            const invMaxV = document.getElementById('input-inv-max-v')?.value || '';
+            const vocCold = document.getElementById('pv-voc-cold-val')?.innerText || '';
+            const margin = document.getElementById('pv-margin-val')?.innerText || '';
+            const verdict = document.getElementById('pv-verdict-title')?.innerText || '';
+            const maxMod = document.getElementById('pv-spec-max-modules')?.innerText || '';
+
+            const dateStr = new Date().toLocaleDateString('it-IT');
+
+            const text = `☀️ SITEBOS CONSTRUCTION — PROMEMORIA ASSISTIVO STRINGA FV (CEI EN 62548)
+Data: ${dateStr}
+Configurazione: ${modCount} Moduli in Serie
+Specifiche Modulo: Voc(STC) = ${vocStc}V | β = ${beta}%/°C
+Temperatura Minima di Progetto: ${tMin} °C
+Limite Inverter: Vmax = ${invMaxV}V
+--------------------------------------------------
+🎯 VOC MASSIMA A FREDDO (${tMin}°C): ${vocCold}
+📊 Margine di Sicurezza: ${margin}
+⚙️ Limite Massimo Stringa: ${maxMod}
+VERDETTO INDICATIVO: ${verdict}
+--------------------------------------------------
+⚠️ NOTA ASSISTIVA: Calcolo orientativo ad uso esclusivo dell'operatore. Non sostituisce il progetto esecutivo né le verifiche strumentali obbligatorie a cura di personale qualificato.`;
+
+            copyTextToClipboard(text, 'Scheda verifica FV copiata!');
+        }
+
+        function copyTextToClipboard(text, successMsg) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(successMsg);
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => {
+                    fallbackCopyText(text, successMsg);
+                });
+            } else {
+                fallbackCopyText(text, successMsg);
+            }
+        }
+
+        function fallbackCopyText(text, successMsg) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(successMsg);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        /* ── REIMPOSTAZIONE SCHEDE ── */
+        function resetActiveTab() {
+            if (activeTab === 'cables') {
+                selectedVoltageSystem = 'mono_230';
+                selectedPosaMethod = 'conduit_wall';
+                selectedInsulation = 'pvc_70';
+                selectedGroupingFactor = 1.00;
+
+                setVoltageSystem('mono_230');
+                setInstallationMethod('conduit_wall');
+
+                const pInp = document.getElementById('input-power-kw');
+                const cInp = document.getElementById('input-cosphi');
+                const lInp = document.getElementById('input-length-m');
+                const iSel = document.getElementById('select-insulation-type');
+                const gSel = document.getElementById('select-grouping-factor');
+
+                if (pInp) pInp.value = '6.0';
+                if (cInp) cInp.value = '0.90';
+                if (lInp) lInp.value = '30';
+                if (iSel) iSel.value = 'pvc_70';
+                if (gSel) gSel.value = '1.00';
+
+                recalcCableSizing();
+                showToast('Calcolatore cavi reimpostato!');
+            } else {
+                const countInp = document.getElementById('input-pv-count');
+                const vocInp = document.getElementById('input-pv-voc');
+                const vmppInp = document.getElementById('input-pv-vmpp');
+                const betaInp = document.getElementById('input-pv-beta');
+                const tminInp = document.getElementById('input-temp-min');
+                const invInp = document.getElementById('input-inv-max-v');
+
+                if (countInp) countInp.value = '14';
+                if (vocInp) vocInp.value = '41.5';
+                if (vmppInp) vmppInp.value = '34.5';
+                if (betaInp) betaInp.value = '-0.28';
+                if (tminInp) tminInp.value = '-10';
+                if (invInp) invInp.value = '1000';
+
+                recalcPvString();
+                showToast('Calcolatore fotovoltaico reimpostato!');
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        /* ── NAVIGAZIONE DESK BOARD ── */
+        function goToDeskBoard() {
+            const urlParams = window.location.search || '';
+            window.location.href = 'desk_board.html' + urlParams;
+        }
+
+        /* ── UTILITY TOAST ── */
+        function showToast(msg) {
+            const toast = document.getElementById('impianti-toast');
+            const text = document.getElementById('toast-text');
+            if (toast && text) {
+                text.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -130,31 +130,42 @@
             loadOwnerStations();
         });
 
+        // EDIT_OWNER_URL/get_owner_data/save_owner_data: stesso identico pattern reale già
+        // verificato funzionante in identity/location-scanner.html — le postazioni vivono in
+        // owner_data.location_scanner_output.stations[], non in un'azione dedicata get_stations
+        // (che non è mai esistita nel backend). Nessun dato finto di fallback: se il caricamento
+        // fallisce, mostriamo un errore onesto invece di 3 postazioni inventate.
+        const EDIT_OWNER_URL = "https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4";
+        let currentMachinery = [];
+        let currentLayoutSummary = '';
+
         async function loadOwnerStations() {
             const container = document.getElementById('stations-list-container');
             try {
-                const response = await fetch('/webhook/edit_owner?action=get_stations');
-                if (response.ok) {
-                    const data = await response.json();
-                    stationsData = data.stations || [
-                        { station_id: 'poltrona_1', station_name: 'Sedia Clinica 1' },
-                        { station_id: 'poltrona_2', station_name: 'Ambulatorio Chirurgia B' },
-                        { station_id: 'poltrona_3', station_name: 'Cabina Estetica Lux' }
-                    ];
-                } else {
-                    stationsData = [
-                        { station_id: 'poltrona_1', station_name: 'Sedia Clinica 1' },
-                        { station_id: 'poltrona_2', station_name: 'Ambulatorio Chirurgia B' },
-                        { station_id: 'poltrona_3', station_name: 'Cabina Estetica Lux' }
-                    ];
-                }
+                const response = await fetch(EDIT_OWNER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: window.Telegram?.WebApp?.initData || '',
+                        action: 'get_owner_data'
+                    })
+                });
+
+                if (!response.ok) throw new Error('Risposta server non valida (' + response.status + ')');
+
+                const resData = await response.json().catch(() => ({}));
+                const rawObj = Array.isArray(resData) ? (resData[0] || {}) : (resData || {});
+                const ownerData = rawObj.owner_data || rawObj;
+                const savedScan = ownerData?.location_scanner_output || rawObj?.location_scanner_output || {};
+
+                stationsData = savedScan?.stations || ownerData?.stations || ownerData?.operational_units || [];
+                currentMachinery = savedScan?.machinery || ownerData?.machinery || ownerData?.assets || [];
+                currentLayoutSummary = savedScan?.layout_summary || ownerData?.layout_summary || '';
             } catch (err) {
-                console.warn('Uso postazioni predefinite di fallback:', err);
-                stationsData = [
-                    { station_id: 'poltrona_1', station_name: 'Sedia Clinica 1' },
-                    { station_id: 'poltrona_2', station_name: 'Ambulatorio Chirurgia B' },
-                    { station_id: 'poltrona_3', station_name: 'Cabina Estetica Lux' }
-                ];
+                console.error('Errore caricamento postazioni:', err);
+                container.innerHTML = `<div class="text-center py-8 glass-card border-dashed border-gray-200 text-red-500 text-xs">Errore durante il caricamento delle postazioni. Riprova, o usa "Scansione Live" per crearle da zero.</div>`;
+                document.getElementById('capacity-subtitle').textContent = 'Errore di caricamento';
+                return;
             }
             renderStations();
         }
@@ -228,12 +239,26 @@
             btn.innerHTML = `<i class="fas fa-circle-notch fa-spin text-xs"></i><span>Salvataggio in corso...</span>`;
 
             try {
-                const response = await fetch('/webhook/edit_owner', {
+                const response = await fetch(EDIT_OWNER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        action: 'save_stations',
-                        stations: stationsData
+                        _auth: window.Telegram?.WebApp?.initData || '',
+                        action: 'save_owner_data',
+                        data_update: {
+                            machinery: currentMachinery,
+                            reuniti_count: stationsData.length,
+                            number_of_chairs: stationsData.length,
+                            stations: stationsData,
+                            operational_units: stationsData,
+                            assets: currentMachinery,
+                            layout_summary: currentLayoutSummary,
+                            location_scanner_output: {
+                                stations: stationsData,
+                                machinery: currentMachinery,
+                                layout_summary: currentLayoutSummary
+                            }
+                        }
                     })
                 });
 

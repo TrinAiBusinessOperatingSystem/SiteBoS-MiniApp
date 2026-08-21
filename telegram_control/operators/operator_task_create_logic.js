@@ -12,7 +12,7 @@ const tg = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram.WebApp;
 const ash = window.TwaGuard?.requireAsh?.();
 window.TwaGuard?.cleanupUrl?.(['ash']);
 
-const WEBHOOK_URL = 'https://trinai.api.workflow.dcmake.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639';
+const WEBHOOK_URL = 'https://prod.workflow.trinai.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639';
 const BASE_URL = 'https://simonaiit.github.io/SiteBoS-MiniApp';
 
 const MAX_TOTAL_SIZE_MB = 4; // Max 4MB totale per tutte le foto

@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Agente Utility Officina (Workshop)</title>
+    
+    <!-- Telegram WebApp SDK & SiteBoS TWA Guard -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    
+    <!-- Tailwind CSS, Google Fonts & FontAwesome 6 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        workshop: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                        amberbrand: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                        }
+                    }
+                }
+            }
+        };
+
+        // Inizializzazione sessione Telegram WebApp reale all'avvio
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const ash = urlParams.get('ash');
+            
+            if (!isTelegramSession && !ash) {
+                console.log('ℹ️ [Workshop Utility] Inizializzazione sessione operatore officina.');
+            }
+        })();
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        }
+
+        .tab-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+        .tab-inactive:hover {
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .card-interactive {
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-interactive:active {
+            transform: scale(0.98);
+        }
+
+        .pulse-soft {
+            animation: pulseSoft 2s infinite ease-in-out;
+        }
+        @keyframes pulseSoft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.88; transform: scale(1.01); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER PRINCIPALE WORKSHOP DESK (100% LIGHT THEME) -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur shrink-0 shadow-sm">
+        <!-- Logo & Titolo -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center font-black shadow-sm shrink-0">
+                <i class="fa-solid fa-wrench text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="font-black text-slate-900 text-base tracking-tight">SiteBoS Workshop Desk</h1>
+                    <span class="text-[10px] font-black text-blue-900 bg-blue-100 border border-blue-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Verticale Workshop</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Calcolo Deterministico • 100% Client-Side</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-semibold hidden md:inline">• Norme ISO 898-1 / VDI 2230 & Diagnosi Freni</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button onclick="resetActiveTab()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 active:scale-95 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5" title="Reimposta la scheda corrente ai valori predefiniti">
+                <i class="fa-solid fa-rotate-left text-xs"></i>
+                <span class="hidden sm:inline">Reimposta</span>
+            </button>
+
+            <button onclick="goToDeskBoard()" class="bg-slate-900 hover:bg-black text-white text-xs font-black px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-desktop"></i>
+                <span>Desk Board</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- BARRA DI NAVIGAZIONE TAB WORKSHOP -->
+    <div class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sticky top-[69px] z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+            <button type="button" id="tab-btn-torque" onclick="switchTab('torque')" class="tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-bolt"></i>
+                <span>1. Tabella Dinamometrica & Filetti</span>
+            </button>
+
+            <button type="button" id="tab-btn-brakes" onclick="switchTab('brakes')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-circle-dot"></i>
+                <span>2. Calcolatore Usura Freni (Dischi/Tamburi)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WORKSPACE PRINCIPALE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 1: TABELLA DINAMOMETRICA & TOLLERANZE FILETTI (TAB TORQUE) -->
+        <!-- =================================================================== -->
+        <div id="section-torque" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- COLONNA SINISTRA: SELEZIONE PARAMETRI MECCANICI (7 Colonne Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1.1 DIAMETRO NOMINALE BULLONE (M4 - M20) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-ruler-combined"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Diametro Nominale Filetto (ISO Metrico)</h2>
+                                <p class="text-[11px] text-slate-500">Filettatura metrica standard a passo grosso (Coarse Pitch)</p>
+                            </div>
+                        </div>
+                        <span id="selected-diameter-badge" class="text-xs font-black text-blue-900 bg-blue-100 border border-blue-300 px-3 py-1 rounded-xl font-mono">M10 × 1.50</span>
+                    </div>
+
+                    <!-- Griglia Pulsanti Diametri -->
+                    <div id="diameter-buttons-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                        <!-- Popolato dinamicamente da JS -->
+                    </div>
+                </section>
+
+                <!-- 1.2 CLASSE DI RESISTENZA (ISO 898-1) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Classe di Resistenza Bullone</h2>
+                                <p class="text-[11px] text-slate-500">Incisione stampigliata sulla testa della vite (Norma ISO 898-1)</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-black text-slate-600 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">Acciaio Bonificato</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <!-- Classe 8.8 -->
+                        <button type="button" onclick="setBoltClass('8.8')" id="btn-class-88" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Standard</span>
+                                <span class="font-mono font-black text-sm">8.8</span>
+                            </div>
+                            <h3 class="font-black text-xs">Acciaio Medio</h3>
+                            <p class="text-[11px] text-slate-300 mt-0.5">Uso generale & telaio standard</p>
+                            <div class="mt-2 text-[10px] font-mono bg-black/30 rounded-lg px-2 py-1 flex items-center justify-between">
+                                <span>Rm: 800 N/mm²</span>
+                                <span class="text-slate-300">Rp0.2: 640 N/mm²</span>
+                            </div>
+                        </button>
+
+                        <!-- Classe 10.9 -->
+                        <button type="button" onclick="setBoltClass('10.9')" id="btn-class-109" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-100 text-blue-900">Alta Resistenza</span>
+                                <span class="font-mono font-black text-sm text-blue-600">10.9</span>
+                            </div>
+                            <h3 class="font-black text-xs">Acciaio Legato</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Sospensioni, pinze freno, bielle</p>
+                            <div class="mt-2 text-[10px] font-mono bg-slate-50 rounded-lg px-2 py-1 flex items-center justify-between">
+                                <span>Rm: 1000 N/mm²</span>
+                                <span class="text-slate-500">Rp0.2: 900 N/mm²</span>
+                            </div>
+                        </button>
+
+                        <!-- Classe 12.9 -->
+                        <button type="button" onclick="setBoltClass('12.9')" id="btn-class-129" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">Massima Sollec.</span>
+                                <span class="font-mono font-black text-sm text-amber-600">12.9</span>
+                            </div>
+                            <h3 class="font-black text-xs">Super-Lega</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Testate, volani, carichi critici</p>
+                            <div class="mt-2 text-[10px] font-mono bg-slate-50 rounded-lg px-2 py-1 flex items-center justify-between">
+                                <span>Rm: 1200 N/mm²</span>
+                                <span class="text-slate-500">Rp0.2: 1080 N/mm²</span>
+                            </div>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 1.3 LUBRIFICAZIONE & MATERIALE MADREVITE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-oil-can"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">3. Condizione Filetto & Materiale del Foro</h2>
+                                <p class="text-[11px] text-slate-500">Coefficiente di attrito (μ) e resistenza della madrevite</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Toggle Lubrificazione -->
+                        <div class="space-y-2">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                                Stato Lubrificazione Filetto
+                            </label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button type="button" onclick="setLubrication('dry')" id="btn-lub-dry" class="p-3 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-black">A Secco / Zincato</span>
+                                        <i class="fa-solid fa-wind text-xs"></i>
+                                    </div>
+                                    <div class="text-[10px] text-slate-300 mt-1 font-mono">μ ≈ 0.14 - 0.15 (100%)</div>
+                                </button>
+                                <button type="button" onclick="setLubrication('lubricated')" id="btn-lub-oiled" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-xs font-black">Lubrificato / Olio</span>
+                                        <i class="fa-solid fa-droplet text-blue-600 text-xs"></i>
+                                    </div>
+                                    <div class="text-[10px] text-slate-500 mt-1 font-mono">μ ≈ 0.10 - 0.12 (-18%)</div>
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 italic">⚠️ L'olio riduce l'attrito: a parità di coppia si sviluppa più carico assiale. La coppia richiesta è inferiore.</p>
+                        </div>
+
+                        <!-- Selezione Materiale Madrevite -->
+                        <div class="space-y-2">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-base-material">
+                                Materiale Pezzo / Foro Filettato
+                            </label>
+                            <select id="select-base-material" onchange="onMaterialChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="steel" selected>⚙️ Acciaio / Ghisa Sferoidale (Fattore 1.0 • Piena Coppia)</option>
+                                <option value="cast_iron">🔩 Ghisa Grigia (Fattore 0.88 • Riduzione 12%)</option>
+                                <option value="aluminum">🪶 Alluminio / Leghe Leggere (Fattore 0.70 • Riduzione 30%)</option>
+                            </select>
+                            <div id="material-warning-box" class="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[10px] text-blue-900 flex items-start gap-2">
+                                <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 shrink-0"></i>
+                                <span id="material-warning-text">Accoppiamento standard acciaio-acciaio. Tenuta nominale 100%.</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.4 TABELLA PANORAMICA COMPARATIVA COARSE PITCH -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-table-cells text-slate-700 text-xs"></i>
+                            <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">Tabella Rapida Metrica (Classe <span id="table-summary-class">8.8</span>)</h3>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-mono">Valori Nominali in Nm</span>
+                    </div>
+
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-[10px] font-black text-slate-400 uppercase border-b border-slate-100">
+                                    <th class="py-2 px-2">Misura</th>
+                                    <th class="py-2 px-2">Passo</th>
+                                    <th class="py-2 px-2">Chiave</th>
+                                    <th class="py-2 px-2 text-right">8.8 (Nm)</th>
+                                    <th class="py-2 px-2 text-right">10.9 (Nm)</th>
+                                    <th class="py-2 px-2 text-right">12.9 (Nm)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="quick-torque-table-body" class="divide-y divide-slate-100 font-mono">
+                                <!-- Popolato dinamicamente da JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: LETTURA LIVE DINAMOMETRICA & SAFETY (5 Colonne Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-36">
+
+                <!-- CARD PRINCIPALE COPPIA RISULTANTE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-600 pulse-soft"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Coppia Raccomandata</h2>
+                        </div>
+                        <span id="card-torque-status-badge" class="text-[10px] font-mono font-black text-blue-900 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-lg">ISO 898-1</span>
+                    </div>
+
+                    <!-- Box Display Digitale Dinamometrico -->
+                    <div class="bg-slate-950 rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-slate-800">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Target Chiave Dinamometrica</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span id="torque-main-val" class="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">48.5</span>
+                                    <span class="text-lg sm:text-xl font-black text-blue-400 font-mono">Nm</span>
+                                </div>
+                            </div>
+                            <div class="text-right font-mono">
+                                <span class="text-[10px] text-slate-400 uppercase block">Conversione</span>
+                                <div id="torque-lbft-val" class="text-sm font-black text-amber-300">35.8 lb·ft</div>
+                                <div id="torque-kgfm-val" class="text-xs font-bold text-slate-300">4.9 kgf·m</div>
+                            </div>
+                        </div>
+
+                        <!-- Barra Range di Tolleranza Conservativo -->
+                        <div class="mt-4 pt-3 border-t border-slate-800">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <span class="text-[11px] text-slate-400 font-bold">Intervallo di Tolleranza (±10%):</span>
+                                <span id="torque-range-val" class="font-mono font-black text-blue-300 text-xs">43.7 – 53.4 Nm</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden flex">
+                                <div class="bg-slate-700 w-[15%]"></div>
+                                <div class="bg-blue-500 w-[70%] rounded-full shadow-sm"></div>
+                                <div class="bg-slate-700 w-[15%]"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] font-mono text-slate-500 mt-1">
+                                <span>Minimo Ammesso</span>
+                                <span>Target Ideale</span>
+                                <span>Massimo Limite</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Parametri Meccanici Specifici del Filetto -->
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-[11px]">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Passo Filetto ISO</span>
+                            <span id="spec-pitch" class="font-black text-slate-800 font-mono">1.50 mm (Grosso)</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Punta Pre-Foro Maschio</span>
+                            <span id="spec-drill" class="font-black text-slate-800 font-mono">Ø 8.5 mm</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Bussola / Chiave Esag.</span>
+                            <span id="spec-socket" class="font-black text-slate-800 font-mono">16 / 17 mm</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Precarico F0 (90% Snervamento)</span>
+                            <span id="spec-preload" class="font-black text-slate-800 font-mono">28.8 kN</span>
+                        </div>
+                    </div>
+
+                    <!-- Protocollo Sicurezza Operativa -->
+                    <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-1.5 text-xs text-amber-950">
+                        <div class="font-black flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-amber-900">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                            <span>Procedura di Serraggio Professionale</span>
+                        </div>
+                        <p class="text-[11px] text-amber-800 leading-relaxed font-medium">
+                            Eseguire sempre il serraggio in 3 stadi progressivi (30% ➔ 60% ➔ 100% coppia finale) con sequenza incrociata. Se si usa frenafiletti liquido, considerare la condizione lubrificata.
+                        </p>
+                    </div>
+
+                    <!-- Azione Copia Scheda Dinamometrica -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="copyTorqueDataToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-4 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Dati Serraggio per Scheda Lavoro</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 2: CALCOLATORE USURA DISCHI E TAMBURI FRENO (TAB BRAKES)   -->
+        <!-- =================================================================== -->
+        <div id="section-brakes" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hidden">
+            
+            <!-- COLONNA SINISTRA: MISURAZIONI E SPECIFICHE COMPONENTI (7 Colonne Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 2.1 SELEZIONE TIPO COMPONENTE FRENO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-compact-disc"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Tipo di Componente Freno</h2>
+                                <p class="text-[11px] text-slate-500">Seleziona la tipologia di freno e l'assale di misura</p>
+                            </div>
+                        </div>
+                        <span id="brake-component-badge" class="text-[10px] font-black text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">Disco Autoventilato</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <button type="button" onclick="setBrakeType('disc_ventilated')" id="btn-brake-vent" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Anteriore / Sport</span>
+                                <i class="fa-solid fa-fan text-xs"></i>
+                            </div>
+                            <h3 class="font-black text-xs">Disco Ventilato</h3>
+                            <p class="text-[11px] text-slate-300 mt-0.5">Spessore tipico: 20 – 34 mm</p>
+                        </button>
+
+                        <button type="button" onclick="setBrakeType('disc_solid')" id="btn-brake-solid" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">Posteriore / City</span>
+                                <i class="fa-solid fa-compact-disc text-xs"></i>
+                            </div>
+                            <h3 class="font-black text-xs">Disco Pieno (Solido)</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Spessore tipico: 9 – 14 mm</p>
+                        </button>
+
+                        <button type="button" onclick="setBrakeType('drum')" id="btn-brake-drum" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">Posteriore</span>
+                                <i class="fa-solid fa-drum text-xs"></i>
+                            </div>
+                            <h3 class="font-black text-xs">Tamburo Freno</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Diametro interno: 180 – 250 mm</p>
+                        </button>
+                    </div>
+
+                    <!-- Posizione Ruota -->
+                    <div class="mt-4 pt-3 border-t border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <button type="button" onclick="setWheelPosition('FL')" id="btn-pos-FL" class="p-2 rounded-xl border text-center transition bg-slate-900 text-white border-slate-900 text-xs font-black">
+                            Ant. Sinistro (SX)
+                        </button>
+                        <button type="button" onclick="setWheelPosition('FR')" id="btn-pos-FR" class="p-2 rounded-xl border text-center transition bg-white text-slate-700 border-slate-200 hover:border-slate-400 text-xs font-black">
+                            Ant. Destro (DX)
+                        </button>
+                        <button type="button" onclick="setWheelPosition('RL')" id="btn-pos-RL" class="p-2 rounded-xl border text-center transition bg-white text-slate-700 border-slate-200 hover:border-slate-400 text-xs font-black">
+                            Post. Sinistro (SX)
+                        </button>
+                        <button type="button" onclick="setWheelPosition('RR')" id="btn-pos-RR" class="p-2 rounded-xl border text-center transition bg-white text-slate-700 border-slate-200 hover:border-slate-400 text-xs font-black">
+                            Post. Destro (DX)
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 2.2 MISURAZIONI CALIBRO / MICROMETRO & LIMITI COSTRUTTORE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-gauge-high"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Rilevamento Misure Fisiche (mm)</h2>
+                                <p class="text-[11px] text-slate-500">Inserisci i valori rilevati con calibro a corsoio o micrometro per dischi</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Spessore Rilevato -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label id="lbl-measured-field" class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-brake-measured">
+                                    Spessore Misurato (mm)
+                                </label>
+                                <span class="text-[10px] font-bold text-slate-400">Calibro / Micrometro</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <button type="button" onclick="stepBrakeInput('input-brake-measured', -0.1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="0.05" id="input-brake-measured" value="23.40" oninput="recalcBrakeWear()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepBrakeInput('input-brake-measured', 0.1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">Misurare su almeno 4 punti della pista frenante a 10mm dal bordo esterno.</p>
+                        </div>
+
+                        <!-- Spessore Minimo Costruttore (Min TH / Max Dia) -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label id="lbl-limit-field" class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-brake-limit">
+                                    Limite Minimo Costruttore (Min TH)
+                                </label>
+                                <span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">Incisione Disco</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <button type="button" onclick="stepBrakeInput('input-brake-limit', -0.1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="0.1" id="input-brake-limit" value="22.00" oninput="recalcBrakeWear()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepBrakeInput('input-brake-limit', 0.1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1">Stampigliato sul bordo ("MIN TH XX.X mm") o da manuale ricambi.</p>
+                        </div>
+                    </div>
+
+                    <!-- Spessore a Nuovo (Opzionale) -->
+                    <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div>
+                            <span id="lbl-new-field" class="text-xs font-black text-slate-800 block">Spessore a Nuovo / Nominale (Opzionale)</span>
+                            <span class="text-[10px] text-slate-500">Permette di calcolare la percentuale esatta di vita residua</span>
+                        </div>
+                        <div class="flex items-center gap-2 w-full sm:w-auto">
+                            <input type="number" step="0.1" id="input-brake-new" value="25.00" oninput="recalcBrakeWear()" class="w-32 text-center font-mono font-bold text-sm bg-white border border-slate-300 rounded-xl py-1.5 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition" placeholder="Es: 25.0">
+                            <span class="text-xs font-bold text-slate-600 font-mono">mm</span>
+                        </div>
+                    </div>
+
+                    <!-- Preset Rapidi Standard -->
+                    <div class="pt-2">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-2">Preset Rapidi Veicoli Comuni:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button type="button" onclick="applyBrakePreset(25.0, 22.0, 24.2, 'disc_ventilated')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition">
+                                🚗 Berlina Ant (25.0 / Min 22.0)
+                            </button>
+                            <button type="button" onclick="applyBrakePreset(30.0, 27.0, 28.1, 'disc_ventilated')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition">
+                                🚙 SUV / Furgone Ant (30.0 / Min 27.0)
+                            </button>
+                            <button type="button" onclick="applyBrakePreset(12.0, 10.0, 10.8, 'disc_solid')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition">
+                                🛵 Posteriore Pieno (12.0 / Min 10.0)
+                            </button>
+                            <button type="button" onclick="applyBrakePreset(200.0, 203.2, 201.5, 'drum')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700 transition">
+                                🥁 Tamburo (200.0 / Max 203.2)
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: VERDETTO SICUREZZA & REFERTO FRENI (5 Colonne Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-36">
+
+                <!-- CARD VERDETTO SICUREZZA LIVE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 pulse-soft" id="brake-status-dot"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Diagnosi di Sicurezza</h2>
+                        </div>
+                        <span id="brake-position-tag" class="text-[10px] font-mono font-black text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg">ANT. SX (FL)</span>
+                    </div>
+
+                    <!-- Box Verdetto Semaforico Dinamico (Verde / Giallo / Rosso) -->
+                    <div id="brake-verdict-box" class="rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-emerald-600 border border-emerald-500">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white/80 block mb-1">Verdetto Operativo</span>
+                                <div id="brake-verdict-title" class="text-2xl sm:text-3xl font-black tracking-tight drop-shadow-sm">CONFORME</div>
+                            </div>
+                            <div id="brake-verdict-icon" class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center text-xl text-white">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs">
+                            <div>
+                                <span class="text-[10px] uppercase text-white/70 block">Margine Residuo:</span>
+                                <span id="brake-margin-value" class="text-lg font-black font-mono">+1.40 mm</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] uppercase text-white/70 block">Soglia Allarme:</span>
+                                <span id="brake-alarm-threshold-text" class="text-xs font-mono font-bold text-white/90">1.50 mm dal limite</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Visualizzatore Avanzamento Usura Percentuale -->
+                    <div id="brake-life-container" class="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-slate-600 font-bold">Stato Usura Disco:</span>
+                            <span id="brake-wear-percentage" class="font-mono font-black text-slate-900">53% Consumato</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden flex">
+                            <div id="brake-progress-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 47%;"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-mono text-slate-500">
+                            <span>Nuovo (100% Vita)</span>
+                            <span id="brake-remaining-life-lbl" class="font-bold text-emerald-700">47% Vita Residua</span>
+                            <span>Min TH (0% Vita)</span>
+                        </div>
+                    </div>
+
+                    <!-- Linee Guida Operative Officina -->
+                    <div class="mt-4 space-y-2 text-xs">
+                        <div id="brake-action-advice" class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-950 space-y-1">
+                            <div class="font-black text-[11px] uppercase flex items-center gap-1.5 text-blue-900">
+                                <i class="fa-solid fa-clipboard-check text-blue-600"></i>
+                                <span>Istruzioni Tecniche d'Officina</span>
+                            </div>
+                            <p id="brake-advice-text" class="text-[11px] text-blue-800 leading-relaxed font-medium">
+                                Spessore conforme. Disco idoneo per l'installazione di pastiglie nuove se la superficie non presenta solchi profondi o sfarfallio assiale superiore a 0.05 mm.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Azione Copia Scheda Freni -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="copyBrakeReportToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-4 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Referto Freni per Cliente / WhatsApp</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="workshop-toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toast-text" class="text-xs font-bold">Dati copiati negli appunti!</span>
+    </div>
+
+    <!-- MOTORE CALCOLI & LOGICA APPLICATIVA JAVASCRIPT (100% VANILLA CLIENT-SIDE) -->
+    <script>
+        'use strict';
+
+        /* ── INIZIALIZZAZIONE TELEGRAM WEBAPP ── */
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            try {
+                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
+                if (tg.expand) tg.expand();
+                if (tg.ready) tg.ready();
+            } catch (e) {
+                console.warn('Errore init Telegram WebApp:', e);
+            }
+        }
+
+        /* ── STATO REATTIVO TAB & PARAMETRI ── */
+        let activeTab = 'torque'; // 'torque' | 'brakes'
+
+        // 1. STATO TABELLA DINAMOMETRICA
+        let selectedDiameter = 'M10'; // M4 .. M20
+        let selectedBoltClass = '8.8'; // '8.8' | '10.9' | '12.9'
+        let selectedLubrication = 'dry'; // 'dry' | 'lubricated'
+        let selectedMaterial = 'steel'; // 'steel' | 'cast_iron' | 'aluminum'
+
+        // 2. STATO CALCOLATORE FRENI
+        let selectedBrakeType = 'disc_ventilated'; // 'disc_ventilated' | 'disc_solid' | 'drum'
+        let selectedWheelPosition = 'FL'; // 'FL' | 'FR' | 'RL' | 'RR'
+
+        /* ── DATABASE STANDARD FILETTATURE ISO METRICHE (ISO 898-1 / VDI 2230) ── */
+        // Dati ingegneristici reali: Passo (mm), Area Resistente As (mm²), Preforo (mm), Bussola esagonale (mm),
+        // Coppie nominali di riferimento a secco (μ=0.14) per classi 8.8, 10.9, 12.9
+        const METRIC_BOLTS_DB = {
+            'M4': {
+                pitch: 0.70,
+                as_mm2: 8.78,
+                drill_mm: 3.3,
+                socket_mm: '7 mm',
+                torques_dry_nm: { '8.8': 3.0, '10.9': 4.3, '12.9': 5.1 },
+                preload_kn: { '8.8': 4.3, '10.9': 6.0, '12.9': 7.2 }
+            },
+            'M5': {
+                pitch: 0.80,
+                as_mm2: 14.2,
+                drill_mm: 4.2,
+                socket_mm: '8 mm',
+                torques_dry_nm: { '8.8': 5.9, '10.9': 8.4, '12.9': 10.0 },
+                preload_kn: { '8.8': 7.0, '10.9': 9.8, '12.9': 11.8 }
+            },
+            'M6': {
+                pitch: 1.00,
+                as_mm2: 20.1,
+                drill_mm: 5.0,
+                socket_mm: '10 mm',
+                torques_dry_nm: { '8.8': 10.1, '10.9': 14.3, '12.9': 17.2 },
+                preload_kn: { '8.8': 9.9, '10.9': 13.9, '12.9': 16.7 }
+            },
+            'M8': {
+                pitch: 1.25,
+                as_mm2: 36.6,
+                drill_mm: 6.8,
+                socket_mm: '13 mm',
+                torques_dry_nm: { '8.8': 24.6, '10.9': 35.0, '12.9': 42.0 },
+                preload_kn: { '8.8': 18.1, '10.9': 25.5, '12.9': 30.6 }
+            },
+            'M10': {
+                pitch: 1.50,
+                as_mm2: 58.0,
+                drill_mm: 8.5,
+                socket_mm: '16 / 17 mm',
+                torques_dry_nm: { '8.8': 48.5, '10.9': 69.0, '12.9': 83.0 },
+                preload_kn: { '8.8': 28.8, '10.9': 40.5, '12.9': 48.6 }
+            },
+            'M12': {
+                pitch: 1.75,
+                as_mm2: 84.3,
+                drill_mm: 10.2,
+                socket_mm: '18 / 19 mm',
+                torques_dry_nm: { '8.8': 84.5, '10.9': 120.0, '12.9': 144.0 },
+                preload_kn: { '8.8': 42.2, '10.9': 59.5, '12.9': 71.4 }
+            },
+            'M14': {
+                pitch: 2.00,
+                as_mm2: 115.0,
+                drill_mm: 12.0,
+                socket_mm: '21 / 22 mm',
+                torques_dry_nm: { '8.8': 135.0, '10.9': 192.0, '12.9': 230.0 },
+                preload_kn: { '8.8': 57.5, '10.9': 81.0, '12.9': 97.2 }
+            },
+            'M16': {
+                pitch: 2.00,
+                as_mm2: 157.0,
+                drill_mm: 14.0,
+                socket_mm: '24 mm',
+                torques_dry_nm: { '8.8': 210.0, '10.9': 298.0, '12.9': 358.0 },
+                preload_kn: { '8.8': 78.5, '10.9': 110.5, '12.9': 132.6 }
+            },
+            'M18': {
+                pitch: 2.50,
+                as_mm2: 192.0,
+                drill_mm: 15.5,
+                socket_mm: '27 mm',
+                torques_dry_nm: { '8.8': 290.0, '10.9': 410.0, '12.9': 495.0 },
+                preload_kn: { '8.8': 96.0, '10.9': 135.0, '12.9': 162.0 }
+            },
+            'M20': {
+                pitch: 2.50,
+                as_mm2: 245.0,
+                drill_mm: 17.5,
+                socket_mm: '30 mm',
+                torques_dry_nm: { '8.8': 410.0, '10.9': 580.0, '12.9': 700.0 },
+                preload_kn: { '8.8': 122.5, '10.9': 172.5, '12.9': 207.0 }
+            }
+        };
+
+        // Moltiplicatori reali verificati:
+        // Lubrificazione con olio motore (μ ≈ 0.11): coppia richiesta ~82% della coppia a secco
+        const LUBRICATION_FACTORS = {
+            'dry': 1.0,
+            'lubricated': 0.82
+        };
+
+        // Materiale del pezzo filettato (madrevite):
+        // Acciaio: 1.0 (100% coppia nominale del bullone)
+        // Ghisa grigia: 0.88 (riduzione ~12% per non sovraccaricare il filetto in ghisa)
+        // Alluminio: 0.70 (riduzione ~30% per prevenire estrazione filetto in lega tenera)
+        const MATERIAL_FACTORS = {
+            'steel': 1.0,
+            'cast_iron': 0.88,
+            'aluminum': 0.70
+        };
+
+        const WHEEL_POSITION_NAMES = {
+            'FL': 'Anteriore Sinistro (SX)',
+            'FR': 'Anteriore Destro (DX)',
+            'RL': 'Posteriore Sinistro (SX)',
+            'RR': 'Posteriore Destro (DX)'
+        };
+
+        /* ── AVVIO DOM ── */
+        document.addEventListener('DOMContentLoaded', () => {
+            renderDiameterButtons();
+            renderQuickTorqueTable();
+            recalcTorque();
+            recalcBrakeWear();
+        });
+
+        /* ── GESTIONE TABS ── */
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const btnTorque = document.getElementById('tab-btn-torque');
+            const btnBrakes = document.getElementById('tab-btn-brakes');
+            const secTorque = document.getElementById('section-torque');
+            const secBrakes = document.getElementById('section-brakes');
+
+            if (tabId === 'torque') {
+                btnTorque.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                btnBrakes.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                secTorque.classList.remove('hidden');
+                secBrakes.classList.add('hidden');
+            } else {
+                btnTorque.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                btnBrakes.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                secTorque.classList.add('hidden');
+                secBrakes.classList.remove('hidden');
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── GESTIONE DINAMOMETRICA: DIAMETRO ── */
+        function renderDiameterButtons() {
+            const container = document.getElementById('diameter-buttons-grid');
+            if (!container) return;
+
+            const diameters = ['M4', 'M5', 'M6', 'M8', 'M10', 'M12', 'M14', 'M16', 'M18', 'M20'];
+            container.innerHTML = diameters.map(d => {
+                const info = METRIC_BOLTS_DB[d];
+                const isSelected = d === selectedDiameter;
+                const activeClass = isSelected
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                    : 'bg-white text-slate-800 border-slate-200 hover:border-slate-400';
+
+                return `
+                    <button type="button" onclick="setDiameter('${d}')" class="p-2.5 rounded-2xl border-2 text-center transition ${activeClass} card-interactive">
+                        <div class="font-mono font-black text-sm">${d}</div>
+                        <div class="text-[10px] ${isSelected ? 'text-slate-300' : 'text-slate-500'} font-mono mt-0.5">p ${info.pitch.toFixed(2)}</div>
+                        <div class="text-[9px] ${isSelected ? 'text-blue-300' : 'text-slate-400'} font-semibold mt-0.5">${info.socket_mm}</div>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function setDiameter(d) {
+            selectedDiameter = d;
+            const info = METRIC_BOLTS_DB[d];
+            const badge = document.getElementById('selected-diameter-badge');
+            if (badge && info) {
+                badge.innerText = `${d} × ${info.pitch.toFixed(2)}`;
+            }
+
+            renderDiameterButtons();
+            recalcTorque();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── GESTIONE DINAMOMETRICA: CLASSE BULLONE ── */
+        function setBoltClass(cls) {
+            selectedBoltClass = cls;
+
+            const btn88 = document.getElementById('btn-class-88');
+            const btn109 = document.getElementById('btn-class-109');
+            const btn129 = document.getElementById('btn-class-129');
+
+            const activeClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+            const inactiveClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+
+            if (btn88) btn88.className = cls === '8.8' ? activeClass : inactiveClass;
+            if (btn109) btn109.className = cls === '10.9' ? activeClass : inactiveClass;
+            if (btn129) btn129.className = cls === '12.9' ? activeClass : inactiveClass;
+
+            const summaryClassLbl = document.getElementById('table-summary-class');
+            if (summaryClassLbl) summaryClassLbl.innerText = cls;
+
+            renderQuickTorqueTable();
+            recalcTorque();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── GESTIONE DINAMOMETRICA: LUBRIFICAZIONE ── */
+        function setLubrication(mode) {
+            selectedLubrication = mode;
+
+            const btnDry = document.getElementById('btn-lub-dry');
+            const btnOiled = document.getElementById('btn-lub-oiled');
+
+            const activeClass = 'p-3 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+            const inactiveClass = 'p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+
+            if (btnDry) btnDry.className = mode === 'dry' ? activeClass : inactiveClass;
+            if (btnOiled) btnOiled.className = mode === 'lubricated' ? activeClass : inactiveClass;
+
+            renderQuickTorqueTable();
+            recalcTorque();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── GESTIONE DINAMOMETRICA: MATERIALE MADREVITE ── */
+        function onMaterialChanged(mat) {
+            selectedMaterial = mat;
+            const warningText = document.getElementById('material-warning-text');
+            const warningBox = document.getElementById('material-warning-box');
+
+            if (mat === 'steel') {
+                if (warningBox) warningBox.className = 'p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-[10px] text-blue-900 flex items-start gap-2';
+                if (warningText) warningText.innerText = 'Accoppiamento standard acciaio-acciaio. Tenuta nominale 100%.';
+            } else if (mat === 'cast_iron') {
+                if (warningBox) warningBox.className = 'p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-[10px] text-slate-900 flex items-start gap-2';
+                if (warningText) warningText.innerText = 'Ghisa: coppia ridotta del 12% per proteggere le creste del filetto femmina.';
+            } else if (mat === 'aluminum') {
+                if (warningBox) warningBox.className = 'p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-[10px] text-amber-950 flex items-start gap-2';
+                if (warningText) warningText.innerText = '⚠️ Alluminio: coppia ridotta del 30% per prevenire lo strappo dei filetti. Consigliate boccole Helicoil per coppie gravose.';
+            }
+
+            renderQuickTorqueTable();
+            recalcTorque();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── CALCOLO FINALE COPPIA DI SERRAGGIO (DETERMINISTICO) ── */
+        function recalcTorque() {
+            const info = METRIC_BOLTS_DB[selectedDiameter];
+            if (!info) return;
+
+            const baseTorqueDry = info.torques_dry_nm[selectedBoltClass] || 10.0;
+            const lubFactor = LUBRICATION_FACTORS[selectedLubrication] || 1.0;
+            const matFactor = MATERIAL_FACTORS[selectedMaterial] || 1.0;
+
+            // Calcolo finale coppia nominale (arrotondato a 1 decimale)
+            const targetTorque = Math.round((baseTorqueDry * lubFactor * matFactor) * 10) / 10;
+            
+            // Range conservativo ±10% esplicitamente dichiarato in UI
+            const minTorque = Math.round((targetTorque * 0.90) * 10) / 10;
+            const maxTorque = Math.round((targetTorque * 1.10) * 10) / 10;
+
+            // Conversioni standard di settore
+            const lbftTorque = Math.round((targetTorque * 0.73756) * 10) / 10;
+            const kgfmTorque = Math.round((targetTorque * 0.10197) * 10) / 10;
+
+            // Aggiorna elementi UI
+            const mainValEl = document.getElementById('torque-main-val');
+            const lbftEl = document.getElementById('torque-lbft-val');
+            const kgfmEl = document.getElementById('torque-kgfm-val');
+            const rangeEl = document.getElementById('torque-range-val');
+
+            if (mainValEl) mainValEl.innerText = targetTorque.toFixed(1);
+            if (lbftEl) lbftEl.innerText = `${lbftTorque.toFixed(1)} lb·ft`;
+            if (kgfmEl) kgfmEl.innerText = `${kgfmTorque.toFixed(1)} kgf·m`;
+            if (rangeEl) rangeEl.innerText = `${minTorque.toFixed(1)} – ${maxTorque.toFixed(1)} Nm`;
+
+            // Specifiche tecniche
+            const specPitch = document.getElementById('spec-pitch');
+            const specDrill = document.getElementById('spec-drill');
+            const specSocket = document.getElementById('spec-socket');
+            const specPreload = document.getElementById('spec-preload');
+
+            if (specPitch) specPitch.innerText = `${info.pitch.toFixed(2)} mm (Grosso)`;
+            if (specDrill) specDrill.innerText = `Ø ${info.drill_mm.toFixed(1)} mm`;
+            if (specSocket) specSocket.innerText = info.socket_mm;
+            
+            const basePreloadKn = info.preload_kn[selectedBoltClass] || 10.0;
+            const adjustedPreload = Math.round((basePreloadKn * matFactor) * 10) / 10;
+            if (specPreload) specPreload.innerText = `${adjustedPreload.toFixed(1)} kN`;
+        }
+
+        /* ── RENDERING TABELLA RAPIDA DINAMOMETRICA ── */
+        function renderQuickTorqueTable() {
+            const tbody = document.getElementById('quick-torque-table-body');
+            if (!tbody) return;
+
+            const diameters = ['M4', 'M5', 'M6', 'M8', 'M10', 'M12', 'M14', 'M16'];
+            const lubFactor = LUBRICATION_FACTORS[selectedLubrication] || 1.0;
+            const matFactor = MATERIAL_FACTORS[selectedMaterial] || 1.0;
+
+            tbody.innerHTML = diameters.map(d => {
+                const info = METRIC_BOLTS_DB[d];
+                const t88 = (info.torques_dry_nm['8.8'] * lubFactor * matFactor).toFixed(1);
+                const t109 = (info.torques_dry_nm['10.9'] * lubFactor * matFactor).toFixed(1);
+                const t129 = (info.torques_dry_nm['12.9'] * lubFactor * matFactor).toFixed(1);
+
+                const isCurrent = d === selectedDiameter;
+                const rowClass = isCurrent ? 'bg-blue-50/70 font-bold text-slate-950' : 'hover:bg-slate-50 text-slate-700';
+
+                return `
+                    <tr class="${rowClass} transition cursor-pointer" onclick="setDiameter('${d}')">
+                        <td class="py-2 px-2 font-black ${isCurrent ? 'text-blue-900' : 'text-slate-900'}">${d}</td>
+                        <td class="py-2 px-2 text-slate-500">${info.pitch.toFixed(2)}</td>
+                        <td class="py-2 px-2 text-slate-500">${info.socket_mm}</td>
+                        <td class="py-2 px-2 text-right ${selectedBoltClass === '8.8' ? 'font-black text-blue-900' : ''}">${t88}</td>
+                        <td class="py-2 px-2 text-right ${selectedBoltClass === '10.9' ? 'font-black text-blue-900' : ''}">${t109}</td>
+                        <td class="py-2 px-2 text-right ${selectedBoltClass === '12.9' ? 'font-black text-blue-900' : ''}">${t129}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        /* ── GESTIONE FRENI: TIPO & POSIZIONE ── */
+        function setBrakeType(type) {
+            selectedBrakeType = type;
+
+            const btnVent = document.getElementById('btn-brake-vent');
+            const btnSolid = document.getElementById('btn-brake-solid');
+            const btnDrum = document.getElementById('btn-brake-drum');
+            const badge = document.getElementById('brake-component-badge');
+
+            const activeClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+            const inactiveClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+
+            if (btnVent) btnVent.className = type === 'disc_ventilated' ? activeClass : inactiveClass;
+            if (btnSolid) btnSolid.className = type === 'disc_solid' ? activeClass : inactiveClass;
+            if (btnDrum) btnDrum.className = type === 'drum' ? activeClass : inactiveClass;
+
+            const lblMeasured = document.getElementById('lbl-measured-field');
+            const lblLimit = document.getElementById('lbl-limit-field');
+            const lblNew = document.getElementById('lbl-new-field');
+
+            if (type === 'drum') {
+                if (badge) badge.innerText = 'Tamburo Posteriore';
+                if (lblMeasured) lblMeasured.innerText = 'Diametro Interno Misurato (mm)';
+                if (lblLimit) lblLimit.innerText = 'Diametro Massimo Ammesso (Max Dia)';
+                if (lblNew) lblNew.innerText = 'Diametro a Nuovo / Nominale (mm)';
+                
+                const inpMeas = document.getElementById('input-brake-measured');
+                const inpLim = document.getElementById('input-brake-limit');
+                const inpNew = document.getElementById('input-brake-new');
+                if (inpMeas && parseFloat(inpMeas.value) < 100) inpMeas.value = '201.50';
+                if (inpLim && parseFloat(inpLim.value) < 100) inpLim.value = '203.20';
+                if (inpNew && parseFloat(inpNew.value) < 100) inpNew.value = '200.00';
+            } else if (type === 'disc_solid') {
+                if (badge) badge.innerText = 'Disco Posteriore Pieno';
+                if (lblMeasured) lblMeasured.innerText = 'Spessore Misurato (mm)';
+                if (lblLimit) lblLimit.innerText = 'Spessore Minimo Costruttore (Min TH)';
+                if (lblNew) lblNew.innerText = 'Spessore a Nuovo / Nominale (mm)';
+
+                const inpMeas = document.getElementById('input-brake-measured');
+                const inpLim = document.getElementById('input-brake-limit');
+                const inpNew = document.getElementById('input-brake-new');
+                if (inpMeas && parseFloat(inpMeas.value) > 50) inpMeas.value = '10.80';
+                if (inpLim && parseFloat(inpLim.value) > 50) inpLim.value = '10.00';
+                if (inpNew && parseFloat(inpNew.value) > 50) inpNew.value = '12.00';
+            } else {
+                if (badge) badge.innerText = 'Disco Autoventilato';
+                if (lblMeasured) lblMeasured.innerText = 'Spessore Misurato (mm)';
+                if (lblLimit) lblLimit.innerText = 'Spessore Minimo Costruttore (Min TH)';
+                if (lblNew) lblNew.innerText = 'Spessore a Nuovo / Nominale (mm)';
+
+                const inpMeas = document.getElementById('input-brake-measured');
+                const inpLim = document.getElementById('input-brake-limit');
+                const inpNew = document.getElementById('input-brake-new');
+                if (inpMeas && parseFloat(inpMeas.value) > 50) inpMeas.value = '23.40';
+                if (inpLim && parseFloat(inpLim.value) > 50) inpLim.value = '22.00';
+                if (inpNew && parseFloat(inpNew.value) > 50) inpNew.value = '25.00';
+            }
+
+            recalcBrakeWear();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setWheelPosition(pos) {
+            selectedWheelPosition = pos;
+
+            const positions = ['FL', 'FR', 'RL', 'RR'];
+            positions.forEach(p => {
+                const btn = document.getElementById(`btn-pos-${p}`);
+                if (btn) {
+                    if (p === pos) {
+                        btn.className = 'p-2 rounded-xl border text-center transition bg-slate-900 text-white border-slate-900 text-xs font-black';
+                    } else {
+                        btn.className = 'p-2 rounded-xl border text-center transition bg-white text-slate-700 border-slate-200 hover:border-slate-400 text-xs font-black';
+                    }
+                }
+            });
+
+            const tag = document.getElementById('brake-position-tag');
+            if (tag) tag.innerText = pos === 'FL' ? 'ANT. SX (FL)' : pos === 'FR' ? 'ANT. DX (FR)' : pos === 'RL' ? 'POST. SX (RL)' : 'POST. DX (RR)';
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function stepBrakeInput(inputId, delta) {
+            const el = document.getElementById(inputId);
+            if (!el) return;
+            let val = parseFloat(el.value) || 0;
+            val = Math.round((val + delta) * 100) / 100;
+            if (val < 0) val = 0;
+            el.value = val.toFixed(2);
+            recalcBrakeWear();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function applyBrakePreset(newTh, minTh, measTh, type) {
+            setBrakeType(type);
+            const inpNew = document.getElementById('input-brake-new');
+            const inpLim = document.getElementById('input-brake-limit');
+            const inpMeas = document.getElementById('input-brake-measured');
+
+            if (inpNew) inpNew.value = newTh.toFixed(2);
+            if (inpLim) inpLim.value = minTh.toFixed(2);
+            if (inpMeas) inpMeas.value = measTh.toFixed(2);
+
+            recalcBrakeWear();
+            showToast('Preset veicolo applicato!');
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        /* ── CALCOLO E DIAGNOSI DETERMINISTICA USURA FRENI ── */
+        function recalcBrakeWear() {
+            const inpMeas = document.getElementById('input-brake-measured');
+            const inpLim = document.getElementById('input-brake-limit');
+            const inpNew = document.getElementById('input-brake-new');
+
+            const measured = parseFloat(inpMeas?.value) || 0;
+            const limit = parseFloat(inpLim?.value) || 0;
+            const newNominal = parseFloat(inpNew?.value) || 0;
+
+            const isDrum = selectedBrakeType === 'drum';
+
+            // Per i dischi freno: l'usura RIDUCE lo spessore (Margin = measured - limit)
+            // Per i tamburi freno: l'usura AUMENTA il diametro interno (Margin = limit - measured)
+            const margin = isDrum ? (limit - measured) : (measured - limit);
+            const roundedMargin = Math.round(margin * 100) / 100;
+
+            // Soglia allarme deterministica ingegneristica: 1.5mm per dischi, 1.0mm per tamburi
+            const alarmThreshold = isDrum ? 1.0 : 1.5;
+
+            const verdictBox = document.getElementById('brake-verdict-box');
+            const verdictTitle = document.getElementById('brake-verdict-title');
+            const verdictIcon = document.getElementById('brake-verdict-icon');
+            const statusDot = document.getElementById('brake-status-dot');
+            const marginValueEl = document.getElementById('brake-margin-value');
+            const alarmThresholdEl = document.getElementById('brake-alarm-threshold-text');
+            const adviceBox = document.getElementById('brake-action-advice');
+            const adviceText = document.getElementById('brake-advice-text');
+
+            if (alarmThresholdEl) {
+                alarmThresholdEl.innerText = `${alarmThreshold.toFixed(2)} mm dal limite`;
+            }
+
+            if (marginValueEl) {
+                const sign = roundedMargin > 0 ? '+' : '';
+                marginValueEl.innerText = `${sign}${roundedMargin.toFixed(2)} mm`;
+            }
+
+            let status = 'safe'; // 'safe' (verde) | 'warning' (giallo) | 'danger' (rosso)
+
+            if (roundedMargin < 0) {
+                status = 'danger';
+            } else if (roundedMargin < alarmThreshold) {
+                status = 'warning';
+            } else {
+                status = 'safe';
+            }
+
+            if (status === 'danger') {
+                if (verdictBox) verdictBox.className = 'rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-rose-600 border border-rose-500';
+                if (verdictTitle) verdictTitle.innerText = 'FUORI LIMITE 🔴';
+                if (verdictIcon) verdictIcon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-rose-600 pulse-soft';
+
+                if (adviceBox) adviceBox.className = 'p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-950 space-y-1';
+                if (adviceText) {
+                    adviceText.innerText = isDrum
+                        ? 'PERICOLO CRITICO: Diametro interno oltre il massimo ammesso dal costruttore. Rischio corsa a vuoto ganasce e rottura tamburo. SOSTITUZIONE IMMEDIATA IN COPPIA.'
+                        : 'PERICOLO CRITICO: Spessore sotto il limite minimo di sicurezza (Min TH). Rischio elevato di fading termico, cricche strutturali e fuoriuscita pistoncino pinza. SOSTITUZIONE OBBLIGATORIA IMMEDIATA.';
+                }
+            } else if (status === 'warning') {
+                if (verdictBox) verdictBox.className = 'rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-amber-500 border border-amber-400';
+                if (verdictTitle) verdictTitle.innerText = 'USURA CRITICA 🟡';
+                if (verdictIcon) verdictIcon.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i>';
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-amber-500 pulse-soft';
+
+                if (adviceBox) adviceBox.className = 'p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-950 space-y-1';
+                if (adviceText) {
+                    adviceText.innerText = isDrum
+                        ? `ATTENZIONE: Margine residuo inferiore a ${alarmThreshold}mm. Il tamburo non supererà il prossimo ciclo tagliando. Si raccomanda la sostituzione delle ganasce e tamburi.`
+                        : `ATTENZIONE: Margine residuo inferiore a ${alarmThreshold}mm. Usura avanzata: si sconsiglia l'installazione di pastiglie nuove senza sostituire i dischi, poiché si raggiungerebbe il limite minimo prima dell'usura pastiglie.`;
+                }
+            } else {
+                if (verdictBox) verdictBox.className = 'rounded-2xl p-5 text-white shadow-md transition-all duration-200 relative overflow-hidden bg-emerald-600 border border-emerald-500';
+                if (verdictTitle) verdictTitle.innerText = 'CONFORME 🟢';
+                if (verdictIcon) verdictIcon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-600 pulse-soft';
+
+                if (adviceBox) adviceBox.className = 'p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-950 space-y-1';
+                if (adviceText) {
+                    adviceText.innerText = isDrum
+                        ? 'Tamburo conforme. Superficie rettificabile solo se il diametro post-lavorazione rimane almeno 0.5mm inferiore al limite Max Dia.'
+                        : 'Spessore conforme e in tolleranza. Disco idoneo per l\'installazione di pastiglie nuove previa verifica planarità e assenza solchi radiali.';
+                }
+            }
+
+            // Calcolo percentuale di usura (se spessore a nuovo fornito)
+            const wearPercentageEl = document.getElementById('brake-wear-percentage');
+            const progressBarEl = document.getElementById('brake-progress-bar');
+            const lifeLabelEl = document.getElementById('brake-remaining-life-lbl');
+
+            if (newNominal > 0 && Math.abs(newNominal - limit) > 0.05) {
+                let totalSpan = isDrum ? (limit - newNominal) : (newNominal - limit);
+                let consumedSpan = isDrum ? (measured - newNominal) : (newNominal - measured);
+
+                let wearPct = Math.round((consumedSpan / totalSpan) * 100);
+                if (wearPct < 0) wearPct = 0;
+                if (wearPct > 100) wearPct = 100;
+
+                let lifePct = 100 - wearPct;
+
+                if (wearPercentageEl) wearPercentageEl.innerText = `${wearPct}% Consumato`;
+                if (progressBarEl) {
+                    progressBarEl.style.width = `${lifePct}%`;
+                    progressBarEl.className = status === 'danger' ? 'bg-rose-500 h-full rounded-full transition-all duration-300' : status === 'warning' ? 'bg-amber-500 h-full rounded-full transition-all duration-300' : 'bg-emerald-500 h-full rounded-full transition-all duration-300';
+                }
+                if (lifeLabelEl) {
+                    lifeLabelEl.innerText = `${lifePct}% Vita Residua`;
+                    lifeLabelEl.className = status === 'danger' ? 'font-bold text-rose-700' : status === 'warning' ? 'font-bold text-amber-700' : 'font-bold text-emerald-700';
+                }
+            } else {
+                if (wearPercentageEl) wearPercentageEl.innerText = 'Spessore Nuovo non impostato';
+                if (progressBarEl) progressBarEl.style.width = status === 'safe' ? '100%' : status === 'warning' ? '30%' : '0%';
+                if (lifeLabelEl) lifeLabelEl.innerText = status === 'safe' ? 'In Tolleranza' : 'Fine Vita';
+            }
+        }
+
+        /* ── CLIPBOARD: COPIA DATI DINAMOMETRICA ── */
+        function copyTorqueDataToClipboard() {
+            const info = METRIC_BOLTS_DB[selectedDiameter];
+            const mainVal = document.getElementById('torque-main-val')?.innerText || '';
+            const rangeVal = document.getElementById('torque-range-val')?.innerText || '';
+            const lbftVal = document.getElementById('torque-lbft-val')?.innerText || '';
+            const matSelect = document.getElementById('select-base-material');
+            const matName = matSelect ? matSelect.options[matSelect.selectedIndex].text : selectedMaterial;
+
+            const text = `🔧 SITEBOS WORKSHOP — SPECIFICA SERRAGGIO DINAMOMETRICO
+--------------------------------------------------
+Filettatura: ${selectedDiameter} (Passo ISO: ${info.pitch.toFixed(2)} mm)
+Classe di Resistenza: ${selectedBoltClass} (ISO 898-1)
+Condizione: ${selectedLubrication === 'dry' ? 'A Secco / Zincato (μ=0.14)' : 'Lubrificato / Olio (μ=0.11)'}
+Materiale Pezzo: ${matName}
+Bussola Esagonale: ${info.socket_mm}
+Punta Pre-foro: Ø ${info.drill_mm.toFixed(1)} mm
+--------------------------------------------------
+🎯 COPPIA RACCOMANDATA: ${mainVal} Nm (${lbftVal})
+📊 RANGE TOLLERANZA: ${rangeVal}
+Precarico Assiale Nominale: ${document.getElementById('spec-preload')?.innerText || ''}
+--------------------------------------------------
+⚠️ Eseguire serraggio a croce progressivo in 3 stadi.`;
+
+            copyTextToClipboard(text, 'Scheda dinamometrica copiata!');
+        }
+
+        /* ── CLIPBOARD: COPIA REFERTO USURA FRENI ── */
+        function copyBrakeReportToClipboard() {
+            const isDrum = selectedBrakeType === 'drum';
+            const compName = isDrum ? 'Tamburo Freno Posteriore' : selectedBrakeType === 'disc_solid' ? 'Disco Freno Posteriore Pieno' : 'Disco Freno Autoventilato';
+            const posName = WHEEL_POSITION_NAMES[selectedWheelPosition] || selectedWheelPosition;
+            const measured = document.getElementById('input-brake-measured')?.value || '';
+            const limit = document.getElementById('input-brake-limit')?.value || '';
+            const nominal = document.getElementById('input-brake-new')?.value || 'N/D';
+            const margin = document.getElementById('brake-margin-value')?.innerText || '';
+            const verdict = document.getElementById('brake-verdict-title')?.innerText || '';
+            const advice = document.getElementById('brake-advice-text')?.innerText || '';
+            const wearPct = document.getElementById('brake-wear-percentage')?.innerText || '';
+
+            const dateStr = new Date().toLocaleDateString('it-IT');
+
+            const text = `🛑 REFERTO DIAGNOSI FRENI — SITEBOS WORKSHOP
+Data Controllo: ${dateStr}
+Componente: ${compName}
+Posizione: ${posName}
+--------------------------------------------------
+Misura Rilevata: ${measured} mm
+Limite Costruttore: ${limit} mm (${isDrum ? 'Max Dia' : 'Min TH'})
+Spessore a Nuovo: ${nominal} mm
+Margine Residuo: ${margin}
+Percentuale Usura: ${wearPct}
+--------------------------------------------------
+VERDETTO: ${verdict}
+RACCOMANDAZIONE OFFICINA:
+${advice}
+--------------------------------------------------
+Scheda generata con SiteBoS Workshop Assistant.`;
+
+            copyTextToClipboard(text, 'Referto freni copiato negli appunti!');
+        }
+
+        function copyTextToClipboard(text, successMsg) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(successMsg);
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => {
+                    fallbackCopyText(text, successMsg);
+                });
+            } else {
+                fallbackCopyText(text, successMsg);
+            }
+        }
+
+        function fallbackCopyText(text, successMsg) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(successMsg);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        /* ── REIMPOSTAZIONE AI VALORI DI FABBRICA ── */
+        function resetActiveTab() {
+            if (activeTab === 'torque') {
+                selectedDiameter = 'M10';
+                selectedBoltClass = '8.8';
+                selectedLubrication = 'dry';
+                selectedMaterial = 'steel';
+
+                const matSelect = document.getElementById('select-base-material');
+                if (matSelect) matSelect.value = 'steel';
+
+                renderDiameterButtons();
+                setBoltClass('8.8');
+                setLubrication('dry');
+                onMaterialChanged('steel');
+                showToast('Tabella dinamometrica reimpostata!');
+            } else {
+                selectedBrakeType = 'disc_ventilated';
+                selectedWheelPosition = 'FL';
+
+                setBrakeType('disc_ventilated');
+                setWheelPosition('FL');
+
+                const inpNew = document.getElementById('input-brake-new');
+                const inpLim = document.getElementById('input-brake-limit');
+                const inpMeas = document.getElementById('input-brake-measured');
+
+                if (inpNew) inpNew.value = '25.00';
+                if (inpLim) inpLim.value = '22.00';
+                if (inpMeas) inpMeas.value = '23.40';
+
+                recalcBrakeWear();
+                showToast('Calcolatore freni reimpostato!');
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        /* ── NAVIGAZIONE DESK BOARD ── */
+        function goToDeskBoard() {
+            const urlParams = window.location.search || '';
+            window.location.href = 'desk_board.html' + urlParams;
+        }
+
+        /* ── UTILITY TOAST ── */
+        function showToast(msg) {
+            const toast = document.getElementById('workshop-toast');
+            const text = document.getElementById('toast-text');
+            if (toast && text) {
+                text.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>

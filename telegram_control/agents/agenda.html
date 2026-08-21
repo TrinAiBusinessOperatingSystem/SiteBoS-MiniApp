@@ -7,6 +7,7 @@
   <title>Agenda Manager | SiteBoS</title>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
   <script src="agenda-ocr-helper.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -102,14 +103,14 @@
                 <span id="radar-saturation-val" class="text-2xl font-black">--%</span>
                 <span class="text-[8px] text-gray-400 uppercase font-black" id="radar-saturation-label">Caricamento...</span>
             </div>
-            <button onclick="openView('radar')" class="text-[8px] font-black uppercase text-black underline tracking-widest mt-2 text-left">Apri Radar AI</button>
+            <button onclick="openView('radar')" class="text-[8px] font-black uppercase text-black underline tracking-widest mt-2 text-left">Nuovo Job / Planner</button>
         </div>
         <!-- Card SOP Rapide -->
         <div class="card-noir p-4 flex flex-col justify-between">
             <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">SOP Giornaliere</span>
             <div class="flex items-center gap-2 mt-2">
                 <i class="fas fa-tasks text-xs text-gray-400"></i>
-                <span id="radar-sop-count" class="text-xs font-bold">0 / 0 Completate</span>
+                <span id="radar-sop-count" class="text-xs font-bold">—</span>
             </div>
             <button onclick="openView('sop-list')" class="text-[8px] font-black uppercase text-black underline tracking-widest mt-2 text-left">Esegui SOP</button>
         </div>
@@ -325,32 +326,68 @@
     </div>
   </div>
 
-  <!-- SCREEN I: AGENDA RADAR -->
+  <!-- SCREEN I: NUOVO JOB (RADAR AI JOB PLANNER) -->
   <div id="screen-radar" class="view-overlay flex flex-col p-6">
       <header class="flex justify-between items-center mb-6">
           <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="text-sm font-black uppercase tracking-widest">Radar AI / Ottimizzazione</h2>
+          <div class="text-center">
+              <h2 class="text-sm font-black uppercase tracking-widest">Nuovo Job</h2>
+              <p class="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Radar AI Planner</p>
+          </div>
           <div class="w-10"></div>
       </header>
 
-      <div class="flex-1 space-y-6 overflow-y-auto no-scrollbar">
-          <!-- Tasto Analisi Predittiva -->
-          <button id="btn-run-radar" onclick="runRadarAnalysis()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl">
-              <i class="fas fa-magic"></i> Ottimizza Agenda con AI
-          </button>
+      <div class="flex-1 space-y-5 overflow-y-auto no-scrollbar">
+          <!-- Form Configurazione Job -->
+          <div class="card-noir p-5 space-y-4">
+              <div class="space-y-1">
+                  <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Cliente (Nome / Identificativo)</label>
+                  <input type="text" id="planner-client-name" class="w-full bg-gray-50 border border-border rounded-xl p-3.5 text-xs font-bold outline-none focus:border-black transition-colors" placeholder="Es. Mario Rossi">
+              </div>
+
+              <div class="space-y-1">
+                  <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Recapito / Chat ID (Opzionale)</label>
+                  <input type="text" id="planner-chat-id" class="w-full bg-gray-50 border border-border rounded-xl p-3.5 text-xs font-medium outline-none focus:border-black transition-colors" placeholder="Es. +39 333 1234567 o @username">
+              </div>
+
+              <div class="space-y-1">
+                  <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Servizio da Catalogo</label>
+                  <select id="planner-service-select" class="w-full bg-gray-50 border border-border rounded-xl p-3.5 text-xs font-bold outline-none focus:border-black transition-colors">
+                      <option value="">Caricamento catalogo...</option>
+                  </select>
+              </div>
+
+              <div class="space-y-1">
+                  <label class="text-[8px] font-black uppercase tracking-widest text-gray-400">Giorno 0 (Data di Avvio / Prima Seduta)</label>
+                  <input type="date" id="planner-start-date" class="w-full bg-gray-50 border border-border rounded-xl p-3.5 text-xs font-bold outline-none focus:border-black transition-colors">
+              </div>
+
+              <button id="btn-run-radar" onclick="calculateJobPlan()" class="w-full bg-black text-white py-4 rounded-xl font-black uppercase tracking-widest text-[9px] flex items-center justify-center gap-2 shadow-md active:scale-95 transition mt-2">
+                  <i class="fas fa-layer-group"></i> Calcola Piano Job
+              </button>
+          </div>
 
           <!-- Indicatore di caricamento (UI Lock Spinner) -->
           <div id="radar-ai-loader" class="hidden flex flex-col items-center justify-center py-12 gap-3">
               <div class="spinner"></div>
-              <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">Generazione in corso... Non chiudere la schermata</p>
+              <p class="text-[9px] font-black uppercase tracking-widest text-gray-400">Calcolo piano deterministico in corso...</p>
           </div>
 
-          <!-- Sezione Risultati -->
-          <div id="radar-results" class="space-y-4 hidden">
-              <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Consigli di Saturazione Rilevati</p>
-              <div id="radar-suggestions-container" class="space-y-3">
-                  <!-- Generato via JS -->
+          <!-- Sezione Risultati Piano Multiturno -->
+          <div id="radar-results" class="space-y-4 hidden pb-6">
+              <div class="flex justify-between items-center">
+                  <p class="text-[10px] font-black uppercase tracking-widest text-gray-400">Piano Multiturno Proposto</p>
+                  <span id="planner-jobs-count-badge" class="text-[8px] font-black uppercase tracking-widest bg-black text-white px-2 py-0.5 rounded-full">0 Job</span>
               </div>
+              
+              <div id="radar-suggestions-container" class="space-y-3">
+                  <!-- Generato via JS con le card dei job proposti -->
+              </div>
+
+              <!-- Tasto di Conferma Scrittura Job -->
+              <button id="btn-confirm-plan" onclick="confirmJobPlan()" class="w-full bg-black text-white py-5 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl active:scale-95 transition">
+                  <i class="fas fa-check-circle"></i> Conferma e Crea Job
+              </button>
           </div>
       </div>
   </div>
@@ -359,11 +396,15 @@
   <div id="screen-sop-list" class="view-overlay flex flex-col p-6">
       <header class="flex justify-between items-center mb-6">
           <button onclick="closeView()" class="w-10 h-10 flex items-center justify-center"><i class="fas fa-arrow-left"></i></button>
-          <h2 class="text-sm font-black uppercase tracking-widest">SOP di Oggi</h2>
+          <h2 class="text-sm font-black uppercase tracking-widest">SOP & Procedure</h2>
           <div class="w-10"></div>
       </header>
-      <div class="flex-1 space-y-4 overflow-y-auto no-scrollbar" id="sop-container">
-          <!-- Lista SOP con checkbox generata via JS -->
+      <div class="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
+          <div class="w-16 h-16 rounded-3xl bg-gray-100 flex items-center justify-center text-gray-400 text-2xl">
+              <i class="fas fa-clipboard-check"></i>
+          </div>
+          <h3 class="text-base font-black uppercase tracking-tight">Funzione in arrivo</h3>
+          <p class="text-xs text-gray-400 max-w-xs leading-relaxed">La gestione della checklist di conformità SOP giornaliera sarà disponibile nei prossimi aggiornamenti del sistema.</p>
       </div>
   </div>
 
@@ -429,7 +470,13 @@
         if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
         
         if (viewId === 'week') renderWeekView();
-        if (viewId === 'sop-list') loadSopList();
+        if (viewId === 'radar') {
+            const dtInput = document.getElementById('planner-start-date');
+            if (dtInput && !dtInput.value) {
+                dtInput.value = new Date().toISOString().split('T')[0];
+            }
+            loadCatalogForPlanner();
+        }
     }
 
     function closeView() {
@@ -601,24 +648,113 @@
         renderWeekView();
     }
 
-    // --- RADAR & SOP ---
-    // 1. Caricamento dei dati di riepilogo per la Home (Saturazione e SOP)
+    // --- RADAR & JOB PLANNER ---
+    let currentProposedPlan = [];
+    let catalogServices = [];
+
+    // 1. Caricamento dei dati di riepilogo per la Home (Saturazione reale e SOP —)
     async function loadRadarSummary() {
         const data = await apiCall('radar_get_status', {});
         if (data) {
             document.getElementById('radar-saturation-val').innerText = `${data.saturation_rate}%`;
             document.getElementById('radar-saturation-label').innerText = data.saturation_status_text || 'Standard';
-            document.getElementById('radar-sop-count').innerText = `${data.sop_completed} / ${data.sop_total} Completate`;
+            const sopCountEl = document.getElementById('radar-sop-count');
+            if (sopCountEl) {
+                if (data.sop_completed === null || data.sop_total === null) {
+                    sopCountEl.innerText = '—';
+                } else {
+                    sopCountEl.innerText = `${data.sop_completed} / ${data.sop_total} Completate`;
+                }
+            }
         }
     }
 
-    // 2. Chiamata di Analisi Predittiva (UI Lock con blocco totale degli input)
-    async function runRadarAnalysis() {
+    // 2. Caricamento Catalogo Servizi per il selettore del Nuovo Job
+    async function loadCatalogForPlanner() {
+        const select = document.getElementById('planner-service-select');
+        if (!select) return;
+
+        if (catalogServices.length > 0) {
+            renderServiceOptions();
+            return;
+        }
+
+        try {
+            const res = await fetch("https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "get_catalog", ash: ash, _auth: tg.initData })
+            });
+            if (res.ok) {
+                const data = await res.json();
+                const categories = (data && data.service_catalog && data.service_catalog.categories) || [];
+                const extracted = [];
+                categories.forEach(cat => {
+                    (cat.subcategories || []).forEach(sub => {
+                        extracted.push({
+                            sku: sub.sku || sub.id || sub.name,
+                            name: sub.name || 'Servizio',
+                            category: cat.name || '',
+                            blueprint_ready: !!sub.blueprint_ready
+                        });
+                    });
+                });
+                if (extracted.length > 0) {
+                    catalogServices = extracted;
+                    renderServiceOptions();
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn("Catalogo remoto non disponibile:", e);
+        }
+
+        // Fallback servizi standard
+        catalogServices = [
+            { sku: 'SER_VISITA_CHECK', name: 'Prima Visita & Check-up', category: 'Diagnostica', blueprint_ready: true },
+            { sku: 'SER_IGIENE_COMPLETA', name: 'Igiene e Profilassi Completa', category: 'Igiene', blueprint_ready: true },
+            { sku: 'SER_TERAPIA_CANALARE', name: 'Trattamento e Terapia Multiseduta', category: 'Cura', blueprint_ready: true },
+            { sku: 'SER_CONTROLLO_FOLLOWUP', name: 'Visita di Controllo e Monitoraggio', category: 'Controllo', blueprint_ready: true }
+        ];
+        renderServiceOptions();
+    }
+
+    function renderServiceOptions() {
+        const select = document.getElementById('planner-service-select');
+        if (!select) return;
+        select.innerHTML = '<option value="">-- Seleziona un Servizio --</option>' + catalogServices.map(s => 
+            `<option value="${s.sku}" data-name="${s.name}">${s.name} ${s.category ? `(${s.category})` : ''}</option>`
+        ).join('');
+    }
+
+    // 3. Calcolo del Piano Job Multiturno (radar_optimize_on_demand - MATEMATICA DETERMINISTICA PURA)
+    async function calculateJobPlan() {
+        const clientNameInput = document.getElementById('planner-client-name');
+        const chatIdInput = document.getElementById('planner-chat-id');
+        const serviceSelect = document.getElementById('planner-service-select');
+        const startDateInput = document.getElementById('planner-start-date');
+
+        const clientName = clientNameInput ? clientNameInput.value.trim() : '';
+        const chatId = chatIdInput ? chatIdInput.value.trim() : '';
+        const serviceSku = serviceSelect ? serviceSelect.value : '';
+        const selectedOption = serviceSelect && serviceSelect.selectedIndex >= 0 ? serviceSelect.options[serviceSelect.selectedIndex] : null;
+        const serviceName = selectedOption ? (selectedOption.getAttribute('data-name') || selectedOption.text) : 'Servizio';
+        const startDate = startDateInput && startDateInput.value ? startDateInput.value : new Date().toISOString().split('T')[0];
+
+        if (!clientName) {
+            tg.showAlert("Inserisci il nome del cliente per pianificare il job.");
+            return;
+        }
+        if (!serviceSku) {
+            tg.showAlert("Seleziona un servizio dal catalogo.");
+            return;
+        }
+
         const loader = document.getElementById('radar-ai-loader');
         const results = document.getElementById('radar-results');
         const btn = document.getElementById('btn-run-radar');
         const radarScreen = document.getElementById('screen-radar');
-        
+
         // UI LOCK: attivazione spinner, disabilitazione tasto, nascondi vecchi risultati, disattiva click/back button
         loader.classList.remove('hidden');
         results.classList.add('hidden');
@@ -628,20 +764,28 @@
         tg.BackButton.hide();
 
         try {
-            const data = await apiCall('radar_optimize_on_demand', {});
-            
-            if (data && data.suggestions) {
+            const payload = {
+                service_sku: serviceSku,
+                service_name: serviceName,
+                client_name: clientName,
+                chat_id: chatId || 'guest',
+                start_date: startDate
+            };
+
+            const data = await apiCall('radar_optimize_on_demand', payload);
+
+            if (data && data.success && Array.isArray(data.plan) && data.plan.length > 0) {
+                currentProposedPlan = data.plan;
+                renderPlannerResults(data);
                 results.classList.remove('hidden');
-                renderRadarSuggestions(data.suggestions);
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
             } else {
-                tg.showAlert("Nessun suggerimento disponibile. L'agenda potrebbe essere già satura.");
+                tg.showAlert("Impossibile calcolare il piano job per questo servizio.");
             }
         } catch (e) {
-            console.error("Errore durante l'ottimizzazione predittiva:", e);
-            tg.showAlert("Impossibile completare l'ottimizzazione in questo momento.");
+            console.error("Errore durante il calcolo del piano job:", e);
+            tg.showAlert("Si è verificato un errore durante la pianificazione.");
         } finally {
-            // Rilascio del Lock in ogni scenario (successo o fallimento)
             loader.classList.add('hidden');
             btn.disabled = false;
             btn.classList.remove('opacity-50');
@@ -650,55 +794,87 @@
         }
     }
 
-    // 3. Rendering dei Suggerimenti (Communication Helper con pulsanti Copia e Condividi)
-    function renderRadarSuggestions(suggestions) {
+    // 4. Rendering delle card del piano proposto
+    function renderPlannerResults(data) {
         const container = document.getElementById('radar-suggestions-container');
-        container.innerHTML = suggestions.map(s => `
-            <div class="card-noir p-5 space-y-3">
+        const badge = document.getElementById('planner-jobs-count-badge');
+        const plan = data.plan || [];
+
+        if (badge) badge.innerText = `${plan.length} Job Generat${plan.length === 1 ? 'o' : 'i'}`;
+        if (!container) return;
+
+        container.innerHTML = plan.map((job, idx) => `
+            <div class="card-noir p-4 space-y-2 bg-white border border-border">
                 <div class="flex justify-between items-start">
-                    <span class="text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
-                        <i class="fas fa-exclamation-triangle"></i> Slot: ${s.slot_time}
+                    <span class="text-[8px] font-black uppercase tracking-widest text-black bg-gray-100 px-2 py-0.5 rounded-md">
+                        <i class="fas fa-calendar-alt mr-1"></i> ${job.suggested_date} (Giorno ${job.scheduling_interval_days})
                     </span>
-                    <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">Priorità: ${s.priority}</span>
+                    <span class="text-[8px] font-black uppercase tracking-widest text-gray-400">Job #${idx + 1}</span>
                 </div>
-                <h4 class="text-xs font-bold uppercase tracking-tight">${s.recommended_service}</h4>
-                <p class="text-[10px] text-gray-500 leading-relaxed">${s.reasoning}</p>
-                <div class="border-t border-gray-100 pt-3 flex gap-2">
-                    <button onclick="navigator.clipboard.writeText(\`${s.message_template}\`); tg.showAlert('Messaggio copiato!');" class="flex-1 py-3 bg-gray-100 rounded-xl text-[9px] font-black uppercase tracking-widest text-gray-600 flex items-center justify-center gap-1.5 active:scale-95 transition">
-                        <i class="fas fa-copy"></i> Copia
-                    </button>
-                    <a href="https://t.me/share/url?url=&text=${encodeURIComponent(s.message_template)}" target="_blank" class="flex-1 py-3 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1.5 active:scale-95 transition text-center">
-                        <i class="fab fa-telegram-plane"></i> Invia
-                    </a>
+                <h4 class="text-xs font-bold uppercase tracking-tight text-black">${job.job_label}</h4>
+                <p class="text-[9px] text-gray-500 leading-relaxed">${job.reasoning}</p>
+                <div class="pt-1 flex items-center justify-between text-[8px] font-bold text-gray-400 border-t border-gray-50">
+                    <span><i class="fas fa-clipboard-list mr-1"></i> Ref: ${job.sop_reference}</span>
+                    <span class="text-black uppercase">Stato: ON_SHELF</span>
                 </div>
             </div>
         `).join('');
     }
 
-    // 4. Caricamento della Checklist SOP
-    async function loadSopList() {
-        const data = await apiCall('radar_get_sops', {});
-        if (data && data.sops) {
-            const container = document.getElementById('sop-container');
-            container.innerHTML = data.sops.map(sop => `
-                <div class="card-noir p-4 flex justify-between items-center bg-white border border-border">
-                    <div class="flex flex-col gap-1">
-                        <span class="text-xs font-bold uppercase tracking-tight ${sop.completed ? 'line-through text-gray-300' : ''}">${sop.title}</span>
-                        <p class="text-[8px] text-gray-400 uppercase tracking-widest">${sop.description}</p>
-                    </div>
-                    <input type="checkbox" onchange="toggleSop('${sop.id}')" ${sop.completed ? 'checked' : ''} class="w-5 h-5 accent-black rounded">
-                </div>
-            `).join('');
+    // 5. Conferma e Scrittura del Piano Job su MongoDB e Ably
+    async function confirmJobPlan() {
+        if (!currentProposedPlan || currentProposedPlan.length === 0) {
+            tg.showAlert("Nessun piano da confermare.");
+            return;
         }
-    }
 
-    // 5. Aggiornamento dello Stato di una SOP con feedback aptico
-    async function toggleSop(id) {
-        const data = await apiCall('radar_toggle_sop', { sop_id: id });
-        if (data && data.success) {
-            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
-            loadSopList();
-            loadRadarSummary();
+        const clientName = document.getElementById('planner-client-name')?.value.trim() || 'Cliente';
+        const chatId = document.getElementById('planner-chat-id')?.value.trim() || 'guest';
+        const serviceSelect = document.getElementById('planner-service-select');
+        const serviceSku = serviceSelect ? serviceSelect.value : '';
+        const selectedOption = serviceSelect && serviceSelect.selectedIndex >= 0 ? serviceSelect.options[serviceSelect.selectedIndex] : null;
+        const serviceName = selectedOption ? (selectedOption.getAttribute('data-name') || selectedOption.text) : 'Servizio';
+
+        const btn = document.getElementById('btn-confirm-plan');
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            btn.innerText = "Salvataggio e Invio in corso...";
+        }
+
+        try {
+            const payload = {
+                client_name: clientName,
+                chat_id: chatId,
+                service_sku: serviceSku,
+                service_name: serviceName,
+                plan: currentProposedPlan
+            };
+
+            const res = await apiCall('radar_confirm_job_plan', payload);
+
+            if (res && res.success) {
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                tg.showPopup({
+                    title: "Job Inseriti",
+                    message: `Pianificazione completata con successo! Creati ${res.jobs_created || currentProposedPlan.length} job nel tabellone operativo Desk Board.`
+                });
+                currentProposedPlan = [];
+                closeView();
+                loadInitialData();
+                loadRadarSummary();
+            } else {
+                tg.showAlert("Impossibile salvare i job nel tabellone.");
+            }
+        } catch (e) {
+            console.error("Errore salvataggio job plan:", e);
+            tg.showAlert("Errore durante la conferma del piano.");
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+                btn.innerHTML = '<i class="fas fa-check-circle"></i> Conferma e Crea Job';
+            }
         }
     }
 
@@ -927,13 +1103,15 @@
 
             if (result && result.success) {
                 if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-                tg.showAlert("Settimana elaborata con successo. L'agenda è stata aggiornata.");
+                const createdCount = (result.jobs_created !== undefined) ? result.jobs_created : 0;
+                tg.showAlert(`Settimana elaborata con successo. Creati ${createdCount} job sul tabellone operativo.`);
                 
                 visionQueue = [];
                 renderVisionQueue();
                 
                 closeView();
                 loadInitialData();
+                loadRadarSummary();
             } else {
                 tg.showAlert("Impossibile elaborare la settimana. Si prega di riprovare.");
             }

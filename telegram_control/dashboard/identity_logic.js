@@ -41,6 +41,13 @@
             desc: "Scansione live dell'attività per aggiungere automaticamente Asset e Postazioni.", 
             url: "identity/location-scanner.html", 
             icon: "fa-camera-retro" 
+        },
+        { 
+            id: "connettori", 
+            label: "Hub Connettori & Delivery", 
+            desc: "Configura credenziali API per piattaforme delivery (Glovo, Deliveroo, Just Eat) e pagamenti.", 
+            url: "identity/connettori.html", 
+            icon: "fa-network-wired" 
         }
     ];
 

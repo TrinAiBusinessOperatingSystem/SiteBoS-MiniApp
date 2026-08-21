@@ -10,7 +10,7 @@ window.TwaGuard?.cleanupUrl?.(['ash']);
 
 
 // Config API Endpoint
-const API_ENDPOINT = 'https://trinai.api.workflow.dcmake.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
+const API_ENDPOINT = 'https://prod.workflow.trinai.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
 
 // Soft-required: ash is the only URL context
 if (!ash) {
@@ -674,7 +674,7 @@ async function refreshOperatorShelf() {
   if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
 
   try {
-    const response = await fetch('https://trinai.api.workflow.dcmake.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639', {
+    const response = await fetch('https://prod.workflow.trinai.it/webhook/d253f855-ce1a-43ee-81aa-38fa11a9d639', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'get_tasks', status: 'ON_SHELF', ash: ash, _auth: tg.initData })
@@ -829,7 +829,7 @@ function launchJobExecution() {
   closePreJobModal();
   
   const isOnsite = activeClaimedJob?.is_onsite !== false;
-  const targetPage = isOnsite ? 'operator_task_create.html' : 'outbound_mission.html';
+  const targetPage = isOnsite ? 'operator_job_execution.html' : 'outbound_mission.html';
   window.location.href = `${targetPage}?job_id=${encodeURIComponent(activeClaimedJob?._id || activeClaimedJob?.job_id || '')}&ash=${encodeURIComponent(ash || '')}`;
 }
 
@@ -1027,13 +1027,13 @@ async function handleNextJobTrigger(jobId, operatorId, activeSopDurationMin) {
     }
 }
 
-/* ── ESECUZIONE STEP ED EVIDENZE RESILIENTI PER JOB FUORI SEDE (IS_ONSITE: FALSE) ── */
+/* ── ESECUZIONE STEP ED EVIDENZE RESILIENTI PER JOB (ONSITE ED OFFSITE) ── */
 async function submitJobStepEvidence(jobId, stepId, evidenceType, evidenceData, isOffsite = false) {
     const payload = {
         action: 'save_step_evidence',
         job_id: jobId,
         step_id: stepId,
-        evidence_type: evidenceType, // 'SIGNATURE' | 'PHOTO' | 'INSPECTION'
+        evidence_type: evidenceType, // 'SIGNATURE' | 'PHOTO' | 'VISION' | 'TEXT' | 'FILE'
         evidence_data: evidenceData,
         is_onsite: !isOffsite,
         ash: ash,
@@ -1043,7 +1043,7 @@ async function submitJobStepEvidence(jobId, stepId, evidenceType, evidenceData, 
 
     if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function') {
         const result = await window.OfflineQueue.executeOrEnqueue({
-            url: 'https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint',
+            url: API_ENDPOINT,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: payload,
@@ -1061,7 +1061,7 @@ async function submitJobStepEvidence(jobId, stepId, evidenceType, evidenceData, 
     }
 
     try {
-        const res = await fetch('https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint', {
+        const res = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -1087,7 +1087,7 @@ async function completeJobStep(jobId, stepId, stepData = {}, isOffsite = false) 
 
     if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function') {
         const result = await window.OfflineQueue.executeOrEnqueue({
-            url: 'https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint',
+            url: API_ENDPOINT,
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: payload,
@@ -1102,7 +1102,7 @@ async function completeJobStep(jobId, stepId, stepData = {}, isOffsite = false) 
     }
 
     try {
-        const res = await fetch('https://prod.workflow.trinai.it/webhook/sitebos-operator-sync-checkpoint', {
+        const res = await fetch(API_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -1153,8 +1153,53 @@ const slotLockManager = {
     }
 };
 
+async function completeJobSession(jobId, sessionNumber, notes = '') {
+    const payload = {
+        action: 'complete_job_session',
+        job_id: jobId,
+        session_number: sessionNumber,
+        notes: notes,
+        ash: ash,
+        _auth: window.Telegram?.WebApp?.initData,
+        completed_at: new Date().toISOString()
+    };
+
+    if (window.OfflineQueue && typeof window.OfflineQueue.executeOrEnqueue === 'function') {
+        const result = await window.OfflineQueue.executeOrEnqueue({
+            url: API_ENDPOINT,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: payload,
+            action_type: 'COMPLETE_JOB_SESSION',
+            metadata: { job_id: jobId, session_number: sessionNumber }
+        });
+
+        if (result.queued) {
+            console.log(`📦 [Session] Completamento seduta ${sessionNumber} salvato in memoria locale.`);
+        }
+        return result;
+    }
+
+    try {
+        const res = await fetch(API_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return { ok: true, data: data };
+        }
+        return { ok: false, status: res.status };
+    } catch (e) {
+        console.warn('Errore completamento seduta pacchetto:', e);
+        return { ok: false, network_error: true };
+    }
+}
+
 window.submitJobStepEvidence = submitJobStepEvidence;
 window.completeJobStep = completeJobStep;
+window.completeJobSession = completeJobSession;
 window.handleNextJobTrigger = handleNextJobTrigger;
 
 // 3 REACTIVE SYNC TRIGGERS

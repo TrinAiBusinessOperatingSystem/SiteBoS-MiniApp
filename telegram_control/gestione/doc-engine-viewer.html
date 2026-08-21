@@ -8,6 +8,7 @@
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Viewer Documento Notarizzato | SiteBoS</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -110,46 +111,34 @@
             <span class="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">FIRMATO</span>
         </div>
 
-        <!-- A4 DOCUMENT PAPER RENDER -->
+        <!-- A4 DOCUMENT PAPER RENDER (popolato da loadEvidence(), mai dati finti) -->
         <div class="a4-print-sheet p-8 rounded-xl border border-gray-200 space-y-6 relative" id="printable-area">
-            
+
             <!-- WATERMARK STAMP -->
-            <div class="ash-watermark">
-                ASH-HMAC: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855<br>
-                NOTARIZED: 12/08/2026 13:40:00 ISO+02:00 | TENANT: 2041408875
-            </div>
+            <div class="ash-watermark" id="ash-watermark" style="display:none;"></div>
 
             <div class="border-b border-slate-300 pb-4 flex justify-between items-start">
                 <div>
-                    <h1 class="text-sm font-bold text-slate-900 uppercase tracking-tight">CONSENSO TRATTAMENTO DATI GDPR</h1>
-                    <p class="text-[10px] text-slate-600 italic mt-0.5">Riferimento Normativo: Regolamento UE 2016/679 (GDPR Art. 13)</p>
+                    <h1 class="text-sm font-bold text-slate-900 uppercase tracking-tight" id="view-title">Caricamento...</h1>
+                    <p class="text-[10px] text-slate-600 italic mt-0.5" id="view-norma">—</p>
                 </div>
                 <div class="text-right text-[10px] text-slate-700">
-                    <div class="font-bold text-slate-900">AZIENDA DI PROVA S.R.L.</div>
-                    <div>P.IVA: 12485671007</div>
-                    <div class="text-slate-500">Doc ID: EVIDENCE_20260812_001</div>
+                    <div class="text-slate-500" id="view-doc-id"></div>
                 </div>
             </div>
 
-            <div class="text-xs text-slate-800 leading-relaxed space-y-3 min-h-[300px]">
-                <p>Spett.le <strong>Mario Rossi</strong> (CF: RSSMRA80A01H501U),</p>
-                <p>Con la presente si attesta il rilascio del consenso al trattamento dei dati personali relativi ai servizi erogati, secondo i principi di liceità, correttezza e trasparenza previsti dal Regolamento Europeo GDPR UE 2016/679.</p>
-                <p>I dati raccolti saranno utilizzati esclusivamente per l'esecuzione della prestazione richiesta e per gli adempimenti fiscali e normativi previsti dalla legge.</p>
+            <div class="text-xs text-slate-800 leading-relaxed space-y-3 min-h-[300px]" id="view-body">
+                <p class="text-gray-400 italic">Caricamento del documento in corso...</p>
             </div>
 
-            <div class="border-t border-slate-300 pt-6 grid grid-cols-2 gap-8 text-[10px] text-slate-800">
+            <div class="border-t border-slate-300 pt-6 grid grid-cols-2 gap-8 text-[10px] text-slate-800 hidden" id="view-signature-block">
                 <div class="space-y-6">
                     <p class="font-bold uppercase text-slate-900">Firma Titolare / Esecutore:</p>
-                    <div class="border-b border-slate-400 h-8 font-mono text-[9px] text-slate-600 flex items-end">
-                        [Firmato Digitalmente da Esecutore]
-                    </div>
+                    <div class="border-b border-slate-400 h-8 font-mono text-[9px] text-slate-600 flex items-end" id="view-sign-operator"></div>
                 </div>
                 <div class="space-y-6">
                     <p class="font-bold uppercase text-slate-900">Firma Cliente per Accettazione:</p>
-                    <div class="border-b border-slate-400 h-8 font-mono text-[9px] text-emerald-700 flex items-end justify-between">
-                        <span>[OpenAPI eSignature OTP OK]</span>
-                        <span>12/08/2026</span>
-                    </div>
+                    <div class="border-b border-slate-400 h-8 font-mono text-[9px] text-emerald-700 flex items-end justify-between" id="view-sign-client"></div>
                 </div>
             </div>
         </div>
@@ -179,6 +168,61 @@
             if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
             window.print();
         }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash') || '';
+        const evidenceId = urlParams.get('evidence_id') || urlParams.get('doc_id') || '';
+        const DOC_ENGINE_URL = 'https://prod.workflow.trinai.it/webhook/doc-engine';
+
+        // NOTA: get_doc_history (lettura di un evidence_docs già firmato/notarizzato) esiste
+        // solo nella bozza new_doc_engine.workflow.ts, non ancora in produzione — questa pagina
+        // non può mostrare un documento firmato reale finché l'Architetto non fa il cutover.
+        // Mai sostituire con dati finti nel frattempo: mostriamo lo stato reale.
+        async function loadEvidence() {
+            const bodyEl = document.getElementById('view-body');
+            if (!evidenceId) {
+                bodyEl.innerHTML = '<p class="text-red-500">Nessun documento specificato nell\'indirizzo.</p>';
+                document.getElementById('view-title').innerText = 'Documento non specificato';
+                return;
+            }
+            try {
+                const res = await fetch(DOC_ENGINE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'get_doc_history', ash: ash, _auth: tg?.initData || '', evidence_id: evidenceId })
+                });
+                const result = await res.json();
+
+                if (!res.ok || result?.success === false || !result?.data) {
+                    document.getElementById('view-title').innerText = 'Documento non disponibile';
+                    bodyEl.innerHTML = '<p class="text-amber-600">Questa funzione richiede un aggiornamento del backend non ancora in produzione — il documento firmato non può essere ancora recuperato qui.</p>';
+                    return;
+                }
+
+                const doc = result.data;
+                document.getElementById('view-title').innerText = (doc.name || doc.document_title || 'Documento').toUpperCase();
+                document.getElementById('view-norma').innerText = 'Riferimento Normativo: ' + (doc.norma_riferimento || 'Non specificato');
+                document.getElementById('view-doc-id').innerText = 'Doc ID: ' + evidenceId;
+                bodyEl.innerHTML = doc.rendered_html || doc.body_html || '<p class="text-gray-400 italic">Nessun contenuto salvato.</p>';
+
+                if (doc.ash_stamp) {
+                    const wm = document.getElementById('ash-watermark');
+                    wm.style.display = 'block';
+                    wm.innerHTML = `ASH-HMAC: ${doc.ash_stamp}<br>NOTARIZED: ${doc.created_at || ''}`;
+                }
+                if (doc.sign_status) {
+                    document.getElementById('view-signature-block').classList.remove('hidden');
+                    document.getElementById('view-sign-operator').innerText = doc.sign_status.operator || '';
+                    document.getElementById('view-sign-client').innerText = doc.sign_status.client || '';
+                }
+            } catch (err) {
+                console.error('Errore caricamento documento firmato:', err);
+                document.getElementById('view-title').innerText = 'Errore di caricamento';
+                bodyEl.innerHTML = '<p class="text-red-500">Errore di connessione durante il caricamento del documento.</p>';
+            }
+        }
+
+        loadEvidence();
     </script>
 </body>
 

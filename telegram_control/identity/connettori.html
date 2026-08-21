@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Hub Connettori | SiteBoS</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
+    <script src="../sitebos_dirty_guard.js"></script>
+    <script>
+(function() {
+    const tempTg = window.Telegram?.WebApp;
+    const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+
+    if (!isTelegramSession) {
+        const currentPath = window.location.pathname;
+        let redirectPath = "index.html";
+
+        if (currentPath.includes('/telegram_control/')) {
+            const parts = currentPath.split('/telegram_control/');
+            const subPath = parts[1] || '';
+            if (subPath.includes('/')) {
+                redirectPath = "../../index.html";
+            } else {
+                redirectPath = "../index.html";
+            }
+        }
+
+        window.location.replace(redirectPath);
+    }
+})();
+
+        (function () {
+            if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+                document.documentElement.innerHTML = `
+                    <body style="background-color: #fafafa; color: #000000;" class="bg-[#fafafa] text-black flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div style="background: white; border: 1px solid #eeeeee; border-radius: 1.5rem; padding: 2rem; max-width: 24rem; width: 100%; box-shadow: none;">
+                            <h1 style="font-size: 3.75rem; margin-bottom: 1rem;">🚫</h1>
+                            <h2 style="font-size: 1.125rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #000000;">Accesso Proibito</h2>
+                            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem; font-weight: 500;">Questa applicazione è accessibile solo tramite Telegram.</p>
+                        </div>
+                    </body>`;
+                window.stop();
+            }
+        })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #fafafa !important; color: #000000 !important; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .card, .section-card { background: white !important; border: 1px solid #eeeeee !important; box-shadow: none !important; border-radius: 1.5rem; padding: 1.25rem; }
+        input:focus, textarea:focus, select:focus { border-color: #000000 !important; box-shadow: none !important; outline: none !important; }
+        .label-micro { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #6b7280; margin-left: 0.25rem; margin-bottom: 0.25rem; display: block; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .3s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #000; }
+        input:checked + .slider:before { transform: translateX(18px); }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loader-spin { border: 3px solid #f3f3f3; border-top: 3px solid #000; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+    </style>
+</head>
+<body class="safe-area-inset h-screen flex flex-col overflow-hidden">
+
+    <!-- HEADER -->
+    <header class="p-5 bg-white border-b border-gray-100 flex justify-between items-center z-50 shadow-sm shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white">
+                <i class="fas fa-network-wired text-sm"></i>
+            </div>
+            <div>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">Architect Desk</h1>
+                <p class="text-sm font-black tracking-tight">Hub Connettori</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <!-- Back to Menu Button -->
+            <button id="btn-nav-back" onclick="goBackToMenu()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Torna al Menu">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <!-- Speech Audio Button -->
+            <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Guida Vocale">
+                <i class="fas fa-volume-high text-xs"></i>
+            </button>
+            <!-- User Guide Button -->
+            <button id="btn-nav-guide" onclick="openUserGuide('../userguide/02_onboarding.html')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition" title="Manuale Utente">
+                <i class="fas fa-globe text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="flex-1 overflow-y-auto p-5 space-y-6 pb-32">
+        <form id="connectors-form" class="max-w-md mx-auto space-y-6">
+
+            <!-- BANNER INFORMATIVO PRINCIPALE -->
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2">
+                <div class="flex items-center gap-2 text-amber-900 font-black text-xs uppercase tracking-wider">
+                    <i class="fas fa-circle-info text-amber-600"></i>
+                    <span>Integrazioni Esterne Self-Service</span>
+                </div>
+                <p class="text-[11px] text-amber-900/90 leading-relaxed font-medium">
+                    SiteBoS offre lo <strong>spinotto universale</strong> per collegare i tuoi account partner esterni. L'ottenimento e il mantenimento delle credenziali API sono a carico della tua azienda secondo i tuoi accordi commerciali con i singoli provider.
+                </p>
+            </div>
+
+            <!-- SEZIONE 1: PIATTAFORME DELIVERY (DOPPIO BINARIO) -->
+            <section class="section-card space-y-5">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-motorcycle text-slate-800 text-sm"></i>
+                        <h2 class="font-black uppercase tracking-widest text-[11px]">Piattaforme Delivery</h2>
+                    </div>
+                    <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-amber-100 text-amber-900 rounded-full">Doppio Binario</span>
+                </div>
+
+                <p class="text-[10px] text-gray-500 leading-normal">
+                    Se disponi di credenziali API fornite dalla piattaforma, inseriscile qui sotto per ricevere gli ordini automaticamente via webhook in Console Cucina. Se <strong>non</strong> le hai configurate, puoi sempre usare il riconoscimento istantaneo da foto schermo/tablet.
+                </p>
+
+                <!-- CARD 1.1: GLOVO PARTNER API -->
+                <div class="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-amber-400 text-amber-950 flex items-center justify-center font-black text-xs shadow-xs">
+                                <i class="fas fa-burger"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-xs text-slate-900">Glovo Partner API</h3>
+                                <span class="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">Schema Verificato</span>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="glovo_enabled" name="glovo_enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <label class="label-micro">Glovo Webhook Token / Secret</label>
+                        <input type="password" id="glovo_token" name="glovo_token" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono font-bold focus:border-black outline-none transition" placeholder="Incolla il token generato nel Glovo Vendor Portal">
+                    </div>
+
+                    <div class="space-y-1 pt-1">
+                        <label class="label-micro">Store ID / Indirizzo Negozio Glovo</label>
+                        <input type="text" id="glovo_store_id" name="glovo_store_id" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition" placeholder="Es. GLOVO-STORE-10928">
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl p-3 space-y-1.5">
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-wider block">Endpoint Webhook da configurare su Glovo:</span>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="glovo_wh_url" readonly class="flex-1 bg-gray-50 border border-transparent rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-gray-700 outline-none select-all truncate">
+                            <button type="button" onclick="copyWebhookUrl('glovo_wh_url', 'Glovo Webhook')" class="px-2.5 py-1.5 bg-black text-white rounded-lg text-[10px] font-black active:scale-95 transition shrink-0">
+                                <i class="fas fa-copy mr-1"></i> Copia
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 1.2: DELIVEROO PARTNER API -->
+                <div class="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-teal-500 text-white flex items-center justify-center font-black text-xs shadow-xs">
+                                <i class="fas fa-bag-shopping"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-xs text-slate-900">Deliveroo Order API</h3>
+                                <span class="text-[9px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.2 rounded">Modalità Difensiva</span>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="deliveroo_enabled" name="deliveroo_enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <label class="label-micro">Deliveroo Webhook Secret / API Key</label>
+                        <input type="password" id="deliveroo_token" name="deliveroo_token" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono font-bold focus:border-black outline-none transition" placeholder="Incolla il webhook secret Deliveroo Partner">
+                    </div>
+
+                    <div class="space-y-1 pt-1">
+                        <label class="label-micro">Deliveroo Location / Brand ID</label>
+                        <input type="text" id="deliveroo_location_id" name="deliveroo_location_id" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition" placeholder="Es. LOC-88219">
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl p-3 space-y-1.5">
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-wider block">Endpoint Webhook da configurare su Deliveroo:</span>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="deliveroo_wh_url" readonly class="flex-1 bg-gray-50 border border-transparent rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-gray-700 outline-none select-all truncate">
+                            <button type="button" onclick="copyWebhookUrl('deliveroo_wh_url', 'Deliveroo Webhook')" class="px-2.5 py-1.5 bg-black text-white rounded-lg text-[10px] font-black active:scale-95 transition shrink-0">
+                                <i class="fas fa-copy mr-1"></i> Copia
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CARD 1.3: JUST EAT (JET CONNECT) -->
+                <div class="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-orange-500 text-white flex items-center justify-center font-black text-xs shadow-xs">
+                                <i class="fas fa-utensils"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-xs text-slate-900">Just Eat (JET Connect)</h3>
+                                <span class="text-[9px] font-bold text-orange-700 bg-orange-100 px-1.5 py-0.2 rounded">JET Connect</span>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="justeat_enabled" name="justeat_enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <label class="label-micro">Just Eat API Key / Secret</label>
+                        <input type="password" id="justeat_token" name="justeat_token" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono font-bold focus:border-black outline-none transition" placeholder="Incolla l'API Key fornita dal portale Just Eat">
+                    </div>
+
+                    <div class="space-y-1 pt-1">
+                        <label class="label-micro">Restaurant ID Just Eat</label>
+                        <input type="text" id="justeat_restaurant_id" name="justeat_restaurant_id" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold focus:border-black outline-none transition" placeholder="Es. JE-REST-4019">
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl p-3 space-y-1.5">
+                        <span class="text-[9px] font-black text-gray-500 uppercase tracking-wider block">Endpoint Webhook da configurare su Just Eat:</span>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="justeat_wh_url" readonly class="flex-1 bg-gray-50 border border-transparent rounded-lg px-2.5 py-1.5 text-[10px] font-mono text-gray-700 outline-none select-all truncate">
+                            <button type="button" onclick="copyWebhookUrl('justeat_wh_url', 'Just Eat Webhook')" class="px-2.5 py-1.5 bg-black text-white rounded-lg text-[10px] font-black active:scale-95 transition shrink-0">
+                                <i class="fas fa-copy mr-1"></i> Copia
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- SEZIONE 2: PROVIDER PAGAMENTI & POS ESTERNI -->
+            <section class="section-card space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-credit-card text-slate-800 text-sm"></i>
+                        <h2 class="font-black uppercase tracking-widest text-[11px]">Provider Pagamenti & POS</h2>
+                    </div>
+                    <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full">Multi-Provider</span>
+                </div>
+
+                <p class="text-[10px] text-gray-500 leading-normal">
+                    Collega il tuo gateway di pagamento o POS per abilitare gli incassi diretti su conto corrente aziendale tramite link e Telegram WebApp.
+                </p>
+
+                <!-- CARD 2.1: STRIPE / GATEWAY -->
+                <div class="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
+                                <i class="fab fa-stripe-s"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-xs text-slate-900">Stripe Direct Gateway</h3>
+                                <span class="text-[9px] font-bold text-slate-500">Carta, Apple Pay, Google Pay</span>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="stripe_enabled" name="stripe_enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-micro">Stripe Secret Key / Restricted Key</label>
+                        <input type="password" id="stripe_secret_key" name="stripe_secret_key" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono font-bold focus:border-black outline-none transition" placeholder="sk_live_...">
+                    </div>
+                </div>
+
+                <!-- CARD 2.2: SATISPAY BUSINESS -->
+                <div class="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-xl bg-red-500 text-white flex items-center justify-center font-black text-xs shadow-xs">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-xs text-slate-900">Satispay Business</h3>
+                                <span class="text-[9px] font-bold text-slate-500">Micropagamenti diretti</span>
+                            </div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="satispay_enabled" name="satispay_enabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-micro">Satispay Activation Code / Token</label>
+                        <input type="password" id="satispay_token" name="satispay_token" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono font-bold focus:border-black outline-none transition" placeholder="Inserisci il codice di attivazione Satispay...">
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEZIONE 3: CANALE OFFERTE TELEGRAM (sola lettura, rilevamento automatico) -->
+            <section class="section-card space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-bullhorn text-slate-800 text-sm"></i>
+                        <h2 class="font-black uppercase tracking-widest text-[11px]">Canale Offerte</h2>
+                    </div>
+                    <span id="channel-status-badge" class="text-[9px] font-black uppercase px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">Non Collegato</span>
+                </div>
+
+                <p class="text-[10px] text-gray-500 leading-normal">
+                    Un canale Telegram, non messaggi diretti: chi vuole ricevere le tue offerte si iscrive volontariamente, senza nessun rischio che il bot venga bloccato o segnalato. Segui questi passaggi:
+                </p>
+
+                <ol class="text-[10px] text-gray-700 leading-relaxed list-decimal list-inside space-y-1.5 bg-gray-50/50 border border-gray-100 rounded-2xl p-4">
+                    <li>Apri Telegram e crea un <strong>nuovo Canale</strong> (menu → Nuovo Canale).</li>
+                    <li>Dai un nome al canale (es. "Offerte [Nome Attività]") e pubblicalo pubblico o privato, come preferisci.</li>
+                    <li>Vai su Amministratori del canale → Aggiungi Amministratore → cerca <span id="channel-bot-username" class="font-mono font-bold text-black">il tuo bot</span> e rendilo amministratore con permesso di pubblicare messaggi.</li>
+                    <li>Fatto! Il collegamento viene rilevato automaticamente entro pochi secondi — questa pagina mostrerà "Canale Collegato" con il nome del canale.</li>
+                </ol>
+
+                <div id="channel-linked-info" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
+                    <i class="fas fa-circle-check text-emerald-600"></i>
+                    <div>
+                        <p class="text-[10px] font-black text-emerald-900">Canale collegato</p>
+                        <p id="channel-linked-title" class="text-[10px] text-emerald-700"></p>
+                    </div>
+                </div>
+            </section>
+
+        </form>
+    </main>
+
+    <!-- FOOTER STICKY (Appare solo se ci sono modifiche) -->
+    <div id="save-footer" class="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-50 hidden transition-all duration-300">
+        <div class="max-w-md mx-auto">
+            <button onclick="saveData()" class="w-full h-12 bg-black text-white rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition shadow-sm flex items-center justify-center gap-2">
+                <span>Salva Configurazioni Connettori</span>
+                <i class="fas fa-save text-[10px]"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- LOADER GLOBALE -->
+    <div id="global-loader" class="fixed inset-0 bg-white/95 z-[100] hidden flex flex-col items-center justify-center p-10 text-center transition-opacity">
+        <div class="loader-spin mb-4"></div>
+        <h3 id="loader-title" class="text-sm font-black uppercase tracking-tighter mb-1">Caricamento...</h3>
+        <p id="loader-msg" class="text-[10px] text-gray-500 font-medium italic">Sincronizzazione parametri connettori</p>
+    </div>
+
+    <script>
+        'use strict';
+
+        const tg = window.Telegram.WebApp;
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa');
+        tg.expand(); tg.ready();
+
+        window.goBackToMenu = function() {
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+            const currentParams = new URLSearchParams(window.location.search);
+            const ashVal = currentParams.get('ash') || ash || '';
+            const msgVal = currentParams.get('msg') || msg || '';
+            location.href = `../dashboard/dashboard.html?ash=${ashVal}&msg=${msgVal}&menu=identity_hub`;
+        };
+
+        if (tg.BackButton) {
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => goBackToMenu());
+        }
+
+        // NOTA: punta al webhook di bozza (new_edit_owner.workflow.ts), non a produzione.
+        // L'azione save_integrations è stata aggiunta oggi da un dispatch che ha editato
+        // edit_owner.workflow.ts (produzione, live) in place — vietato dalla regola del
+        // progetto — ed è stata spostata in new_edit_owner.workflow.ts. Aggiornare questa
+        // costante all'URL di produzione solo dopo che l'Architetto avrà testato e deciso
+        // il cutover di new_edit_owner.workflow.ts.
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/new-83acc670-15ae-4da0-ae0e-3587c85bd5f4";
+        const DELIVERY_BASE_WH = "https://prod.workflow.trinai.it/webhook/delivery-platform-inbound";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        let ash = urlParams.get('ash');
+        let msg = urlParams.get('msg') || urlParams.get('message_id');
+
+        if (ash && ash.includes('?msg=')) {
+            const parts = ash.split('?msg=');
+            ash = parts[0];
+            if (!msg) msg = parts[1];
+        }
+
+        let ownerData = {};
+        let initialFormState = "";
+
+        function buildEnvelope(payload) {
+            return { _auth: tg.initData, ash: ash, msg: msg, ...payload };
+        }
+
+        function showLoader(title, msg) {
+            document.getElementById('loader-title').innerText = title;
+            document.getElementById('loader-msg').innerText = msg;
+            document.getElementById('global-loader').classList.remove('hidden');
+        }
+
+        function hideLoader() {
+            document.getElementById('global-loader').classList.add('hidden');
+        }
+
+        window.onload = async () => {
+            if (!ash) {
+                document.body.innerHTML = `
+                    <div style="background-color: #fafafa; color: #000000;" class="bg-[#fafafa] text-black flex items-center justify-center h-screen text-center p-10 font-sans">
+                        <div style="background: white; border: 1px solid #eeeeee; border-radius: 1.5rem; padding: 2rem; max-width: 24rem; width: 100%; box-shadow: none;">
+                            <h1 style="font-size: 3.75rem; margin-bottom: 1rem;">⚠️</h1>
+                            <h2 style="font-size: 1.125rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; color: #000000;">Sessione Non Valida</h2>
+                            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem; font-weight: 500;">Parametro di autenticazione (ASH) non trovato.</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+            showLoader("Recupero", "Caricamento connettori...");
+            await fetchOwnerData();
+            hideLoader();
+        };
+
+        async function fetchOwnerData() {
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildEnvelope({ action: 'get_owner_data' }))
+                });
+                const result = await response.json();
+                if (result.status === 'success' && result.owner_data) {
+                    ownerData = result.owner_data;
+                    populateForm(ownerData);
+                }
+            } catch (error) {
+                console.error(error);
+                tg.showAlert("Errore caricamento dati connettori.");
+            }
+        }
+
+        function populateForm(data) {
+            const vat = data.vat_number || data.vat || 'TENANT';
+            
+            // Popolamento Webhook URLs
+            document.getElementById('glovo_wh_url').value = `${DELIVERY_BASE_WH}?platform=glovo&tenant=${vat}`;
+            document.getElementById('deliveroo_wh_url').value = `${DELIVERY_BASE_WH}?platform=deliveroo&tenant=${vat}`;
+            document.getElementById('justeat_wh_url').value = `${DELIVERY_BASE_WH}?platform=justeat&tenant=${vat}`;
+
+            const integrations = data.integrations || {};
+            const delivery = integrations.delivery || data.delivery_platforms || {};
+            const payments = integrations.payments || {};
+
+            // Glovo
+            const glovo = delivery.glovo || {};
+            document.getElementById('glovo_enabled').checked = !!glovo.enabled;
+            document.getElementById('glovo_token').value = glovo.token || glovo.api_key || '';
+            document.getElementById('glovo_store_id').value = glovo.store_id || '';
+
+            // Deliveroo
+            const deliveroo = delivery.deliveroo || {};
+            document.getElementById('deliveroo_enabled').checked = !!deliveroo.enabled;
+            document.getElementById('deliveroo_token').value = deliveroo.token || deliveroo.api_key || '';
+            document.getElementById('deliveroo_location_id').value = deliveroo.location_id || '';
+
+            // Just Eat
+            const justeat = delivery.justeat || {};
+            document.getElementById('justeat_enabled').checked = !!justeat.enabled;
+            document.getElementById('justeat_token').value = justeat.token || justeat.api_key || '';
+            document.getElementById('justeat_restaurant_id').value = justeat.restaurant_id || '';
+
+            // Payments
+            const stripe = payments.stripe || {};
+            document.getElementById('stripe_enabled').checked = !!stripe.enabled;
+            document.getElementById('stripe_secret_key').value = stripe.secret_key || '';
+
+            const satispay = payments.satispay || {};
+            document.getElementById('satispay_enabled').checked = !!satispay.enabled;
+            document.getElementById('satispay_token').value = satispay.token || '';
+
+            // Canale Offerte — rilevamento automatico (my_chat_member), sola lettura
+            const botUsernameEl = document.getElementById('channel-bot-username');
+            if (botUsernameEl) botUsernameEl.textContent = data.bot_username ? `@${data.bot_username}` : 'il tuo bot';
+
+            // Stato reale: broadcast_enabled riflette se siamo TUTTORA admin del canale,
+            // non solo se un canale è mai stato collegato in passato (se l'owner toglie
+            // l'admin al bot, broadcast_enabled torna false anche se il canale resta noto).
+            const badge = document.getElementById('channel-status-badge');
+            const linkedInfo = document.getElementById('channel-linked-info');
+            const linkedTitle = document.getElementById('channel-linked-title');
+            if (data.broadcast_enabled && data.broadcast_channel_id) {
+                if (badge) {
+                    badge.textContent = 'Canale Collegato';
+                    badge.classList.remove('bg-gray-100', 'text-gray-600', 'bg-amber-100', 'text-amber-800');
+                    badge.classList.add('bg-emerald-100', 'text-emerald-800');
+                }
+                if (linkedInfo) linkedInfo.classList.remove('hidden');
+                if (linkedTitle) linkedTitle.textContent = data.broadcast_channel_title || `ID: ${data.broadcast_channel_id}`;
+            } else if (data.broadcast_channel_id) {
+                // Un canale era collegato ma il bot non è più admin lì.
+                if (badge) {
+                    badge.textContent = 'Admin Rimosso';
+                    badge.classList.remove('bg-gray-100', 'text-gray-600', 'bg-emerald-100', 'text-emerald-800');
+                    badge.classList.add('bg-amber-100', 'text-amber-800');
+                }
+                if (linkedInfo) linkedInfo.classList.add('hidden');
+            }
+
+            setTimeout(() => {
+                initialFormState = JSON.stringify(getFormData());
+                const form = document.getElementById('connectors-form');
+                form.removeEventListener('input', checkDirtyState);
+                form.removeEventListener('change', checkDirtyState);
+                form.addEventListener('input', checkDirtyState);
+                form.addEventListener('change', checkDirtyState);
+                checkDirtyState();
+            }, 100);
+        }
+
+        function getFormData() {
+            return {
+                delivery: {
+                    glovo: {
+                        enabled: document.getElementById('glovo_enabled').checked,
+                        token: document.getElementById('glovo_token').value.trim(),
+                        store_id: document.getElementById('glovo_store_id').value.trim()
+                    },
+                    deliveroo: {
+                        enabled: document.getElementById('deliveroo_enabled').checked,
+                        token: document.getElementById('deliveroo_token').value.trim(),
+                        location_id: document.getElementById('deliveroo_location_id').value.trim()
+                    },
+                    justeat: {
+                        enabled: document.getElementById('justeat_enabled').checked,
+                        token: document.getElementById('justeat_token').value.trim(),
+                        restaurant_id: document.getElementById('justeat_restaurant_id').value.trim()
+                    }
+                },
+                payments: {
+                    stripe: {
+                        enabled: document.getElementById('stripe_enabled').checked,
+                        secret_key: document.getElementById('stripe_secret_key').value.trim()
+                    },
+                    satispay: {
+                        enabled: document.getElementById('satispay_enabled').checked,
+                        token: document.getElementById('satispay_token').value.trim()
+                    }
+                }
+            };
+        }
+
+        window.checkDirtyState = function() {
+            if (!initialFormState) return;
+            const currentState = JSON.stringify(getFormData());
+            const isDirty = currentState !== initialFormState;
+            const footer = document.getElementById('save-footer');
+            if (footer) {
+                if (isDirty) {
+                    footer.classList.remove('hidden');
+                } else {
+                    footer.classList.add('hidden');
+                }
+            }
+        };
+
+        window.copyWebhookUrl = function(elementId, platformName) {
+            const el = document.getElementById(elementId);
+            if (!el || !el.value) return;
+            navigator.clipboard.writeText(el.value).then(() => {
+                tg.showAlert(`URL ${platformName} copiato negli appunti! Incollalo nel tuo portale partner.`);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }).catch(() => {
+                tg.showAlert("Seleziona e copia manualmente l'URL.");
+            });
+        };
+
+        async function saveData() {
+            showLoader("Salvataggio", "Aggiornamento connettori...");
+            const currentConnectorData = getFormData();
+
+            const existingIntegrations = ownerData.integrations || {};
+            const updatedIntegrations = {
+                ...existingIntegrations,
+                delivery: currentConnectorData.delivery,
+                payments: currentConnectorData.payments
+            };
+
+            const dataUpdate = {
+                ...ownerData,
+                integrations: updatedIntegrations,
+                delivery_platforms: currentConnectorData.delivery
+            };
+
+            try {
+                const response = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(buildEnvelope({
+                        action: 'save_integrations',
+                        integrations: updatedIntegrations,
+                        delivery_platforms: currentConnectorData.delivery,
+                        data_update: dataUpdate
+                    }))
+                });
+
+                if (response.ok) {
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    ownerData.integrations = updatedIntegrations;
+                    ownerData.delivery_platforms = currentConnectorData.delivery;
+                    initialFormState = JSON.stringify(getFormData());
+                    const btnSpan = document.querySelector('#save-footer button span');
+                    const originalText = btnSpan.innerText;
+                    btnSpan.innerText = "CONNETTORI AGGIORNATI ✅";
+                    setTimeout(() => {
+                        btnSpan.innerText = originalText;
+                        checkDirtyState();
+                    }, 1500);
+                } else {
+                    tg.showAlert("Errore durante il salvataggio dei connettori.");
+                }
+            } catch (error) {
+                console.error(error);
+                tg.showAlert("Errore di connessione durante il salvataggio.");
+            } finally {
+                hideLoader();
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Console Esecuzione Job</title>
+    
+    <!-- Telegram WebApp SDK & Guard -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    <script src="job_sync_queue.js"></script>
+    
+    <!-- Tailwind CSS, Google Fonts & FontAwesome 6 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Logic Core & Offline Handlers -->
+    <script src="operator_dashboard_logic.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .step-card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .step-done {
+            background-color: #f0fdf4 !important;
+            border-color: #86efac !important;
+        }
+
+        .signature-canvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 pb-20 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER FISSO CONSOLE -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 px-4 py-3 shadow-sm">
+        <div class="max-w-xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2.5">
+                <button onclick="goBackToDashboard()" class="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 flex items-center justify-center text-slate-700 active:scale-95 transition" title="Torna alla Dashboard">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </button>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span id="job-mode-badge" class="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[9px] font-black uppercase rounded-md">🏛️ ON-SITE</span>
+                        <span id="job-sop-code-badge" class="text-[10px] font-bold text-slate-400">SOP</span>
+                    </div>
+                    <h1 id="job-header-title" class="font-black text-slate-900 text-sm leading-tight truncate max-w-[210px] sm:max-w-xs">Caricamento Job...</h1>
+                </div>
+            </div>
+
+            <!-- BADGE STATO & ETA -->
+            <div class="text-right shrink-0">
+                <div class="flex items-center gap-1 justify-end">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="job-station-badge" class="text-[10px] font-black text-slate-700 uppercase">SALA 1</span>
+                </div>
+                <div id="job-eta-badge" class="text-[9px] font-bold text-slate-400">~15 MIN</div>
+            </div>
+        </div>
+
+        <!-- PROGRESS BAR AVANZAMENTO STEP -->
+        <div class="max-w-xl mx-auto mt-2.5 pt-1">
+            <div class="flex justify-between items-center text-[10px] font-bold text-slate-500 mb-1">
+                <span id="progress-text">Avanzamento: 0/0 Step</span>
+                <span id="progress-percentage" class="font-black text-slate-900">0%</span>
+            </div>
+            <div class="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div id="progress-bar-fill" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENUTO PRINCIPALE -->
+    <main class="flex-1 max-w-xl w-full mx-auto px-4 py-4 space-y-4">
+
+        <!-- SCHEDA INFO JOB & SICUREZZA -->
+        <div id="job-summary-card" class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black uppercase tracking-widest text-slate-400">Dettaglio Procedura Operativa</span>
+                <span id="safety-alert-pill" class="hidden px-2 py-0.5 bg-rose-100 text-rose-700 text-[9px] font-black uppercase rounded-md flex items-center gap-1">
+                    <i class="fa-solid fa-shield-halved"></i> HSE 81/08
+                </span>
+            </div>
+            <h2 id="job-title-full" class="text-base font-black text-slate-900 uppercase leading-snug">Inizializzazione sessione...</h2>
+            <p id="job-instruction-note" class="text-xs text-slate-500 leading-relaxed">Caricamento delle istruzioni e dei controlli di qualità dal blueprint di sistema...</p>
+        </div>
+
+        <!-- AREA SALDO SEDUTE PACCHETTI PREPAGATI (BEAUTY / TREATMENT) -->
+        <div id="package-sessions-section" class="hidden bg-white border border-pink-200 rounded-2xl p-4 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-xs font-black text-pink-950 uppercase">
+                    <i class="fa-solid fa-spa text-pink-600"></i>
+                    <span>Pacchetto Sedute Prepagate</span>
+                </div>
+                <span id="package-saldo-badge" class="px-2.5 py-0.5 bg-pink-100 text-pink-800 text-[10px] font-black uppercase rounded-full">0 di 0 Rimanenti</span>
+            </div>
+            <div class="w-full bg-pink-100 h-2 rounded-full overflow-hidden">
+                <div id="package-progress-bar" class="bg-pink-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div id="package-sessions-list" class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                <!-- Session items rendered here -->
+            </div>
+        </div>
+
+        <!-- AREA STRUMENTI DI MESTIERE (GATING CONTESTUALE VERTICALI) -->
+        <div id="tools-section" class="hidden bg-white border border-slate-200 rounded-2xl p-3.5 shadow-sm space-y-2.5">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-xs font-black text-slate-900 uppercase">
+                    <i class="fa-solid fa-toolbox text-indigo-600"></i>
+                    <span>Strumenti & Utility di Mestiere</span>
+                </div>
+                <span class="text-[9px] font-bold text-slate-400">CONTESTUALE</span>
+            </div>
+            
+            <div id="tools-buttons-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <!-- Bottone Tintometria (visibile solo se verticale include beauty) -->
+                <a id="tool-btn-tintometria" href="#" onclick="openTintometriaUtility(event)" class="hidden p-2.5 bg-pink-50 border border-pink-200 hover:bg-pink-100 rounded-xl flex items-center gap-3 transition active:scale-98">
+                    <div class="w-8 h-8 rounded-lg bg-pink-600 text-white flex items-center justify-center text-sm shrink-0">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div class="text-left overflow-hidden">
+                        <div class="text-xs font-black text-pink-950 uppercase truncate">Agente Tintometria</div>
+                        <div class="text-[9px] font-bold text-pink-700">Calcolo Grammature & Ciuffi</div>
+                    </div>
+                </a>
+                <!-- Bottone Workshop Utility (visibile solo se verticale include workshop) -->
+                <a id="tool-btn-workshop" href="#" onclick="openWorkshopUtility(event)" class="hidden p-2.5 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-xl flex items-center gap-3 transition active:scale-98">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm shrink-0">
+                        <i class="fa-solid fa-wrench"></i>
+                    </div>
+                    <div class="text-left overflow-hidden">
+                        <div class="text-xs font-black text-blue-950 uppercase truncate">Utility Officina</div>
+                        <div class="text-[9px] font-bold text-blue-700">Dinamometrica & Freni</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- LISTA STEP DEL BLUEPRINT (CHECKLIST OPERATIVA) -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between px-1">
+                <span class="text-xs font-black uppercase text-slate-800 tracking-wider">Passaggi Esecutivi</span>
+                <span id="steps-counter-badge" class="px-2 py-0.5 bg-slate-200 text-slate-700 text-[10px] font-black rounded-lg">0 STEP</span>
+            </div>
+
+            <!-- CONTAINER DINAMICO STEP -->
+            <div id="steps-container" class="space-y-2.5">
+                <!-- Skeleton Loader -->
+                <div class="p-4 bg-white border border-slate-200 rounded-2xl animate-pulse space-y-3">
+                    <div class="h-4 bg-slate-200 rounded w-1/3"></div>
+                    <div class="h-3 bg-slate-100 rounded w-3/4"></div>
+                    <div class="h-8 bg-slate-100 rounded"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BANNER CELEBRAZIONE JOB COMPLETATO -->
+        <div id="job-completed-banner" class="hidden p-6 bg-emerald-500 text-white rounded-2xl shadow-lg text-center space-y-3">
+            <div class="w-14 h-14 mx-auto rounded-full bg-white/20 flex items-center justify-center text-3xl">
+                <i class="fa-solid fa-trophy text-amber-300"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-black uppercase">Job Completato con Successo!</h3>
+                <p class="text-xs text-emerald-100 mt-1 max-w-sm mx-auto">Tutti gli step e le evidenze sono stati registrati. La postazione è stata sanificata e rilasciata.</p>
+            </div>
+            <button onclick="goBackToDashboard()" class="w-full py-3 bg-white text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow active:scale-95 transition">
+                Torna alla Dashboard Console
+            </button>
+        </div>
+
+    </main>
+
+    <!-- ============================================ -->
+    <!-- MODALI DI CATTURA EVIDENZA -->
+    <!-- ============================================ -->
+
+    <!-- 1. MODAL EVIDENZA TESTUALE / LOTTO STERILIZZAZIONE -->
+    <div id="modal-evidence-text" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 uppercase">Registrazione Evidenza</h3>
+                        <p id="modal-text-step-name" class="text-[10px] font-bold text-slate-400">Step</p>
+                    </div>
+                </div>
+                <button onclick="closeEvidenceModals()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-1.5">
+                <label id="modal-text-label" class="text-[10px] font-black uppercase text-slate-600">Inserisci Nota o Lotto Tracciabilità</label>
+                <textarea id="modal-text-input" rows="3" class="w-full p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-600 font-medium" placeholder="Es. Lotto Sterilizzazione n. 2026/894 o note operative..."></textarea>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button onclick="closeEvidenceModals()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+                    Annulla
+                </button>
+                <button id="modal-text-submit-btn" onclick="submitTextEvidenceConfirm()" class="flex-1 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase rounded-xl transition shadow-sm">
+                    Conferma & Fatto
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MODAL EVIDENZA VISION / FOTO -->
+    <div id="modal-evidence-vision" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-camera"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 uppercase">Controllo Visivo / Foto</h3>
+                        <p id="modal-vision-step-name" class="text-[10px] font-bold text-slate-400">Step</p>
+                    </div>
+                </div>
+                <button onclick="closeEvidenceModals()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- UPLOAD / CAMERA PREVIEW -->
+            <div class="space-y-2">
+                <div id="vision-preview-container" class="w-full h-44 bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center overflow-hidden relative cursor-pointer" onclick="document.getElementById('vision-file-input').click()">
+                    <img id="vision-preview-img" class="hidden w-full h-full object-cover" />
+                    <div id="vision-placeholder" class="text-center p-4">
+                        <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-1.5"></i>
+                        <p class="text-xs font-bold text-slate-700">Tocca per scattare o scegliere foto</p>
+                        <p class="text-[9px] text-slate-400 mt-0.5">JPG, PNG (max 5MB)</p>
+                    </div>
+                </div>
+                <input id="vision-file-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleVisionFileSelect(event)">
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button onclick="closeEvidenceModals()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+                    Annulla
+                </button>
+                <button id="modal-vision-submit-btn" onclick="submitVisionEvidenceConfirm()" class="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase rounded-xl transition shadow-sm">
+                    Registra Evidenza
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. MODAL FIRMA DIGITALE -->
+    <div id="modal-evidence-signature" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-signature"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 uppercase">Firma Digitale Accettazione</h3>
+                        <p id="modal-sign-step-name" class="text-[10px] font-bold text-slate-400">Step</p>
+                    </div>
+                </div>
+                <button onclick="closeEvidenceModals()" class="text-slate-400 hover:text-slate-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- CANVAS PAD PER FIRMA -->
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-500">Apponi la firma nello spazio sottostante:</span>
+                    <button onclick="clearSignatureCanvas()" class="text-[10px] font-bold text-rose-600 hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-eraser"></i> Cancella
+                    </button>
+                </div>
+                <div class="border border-slate-300 rounded-xl overflow-hidden bg-slate-50">
+                    <canvas id="signature-pad-canvas" class="signature-canvas w-full h-40 block"></canvas>
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-1">
+                <button onclick="closeEvidenceModals()" class="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+                    Annulla
+                </button>
+                <button id="modal-sign-submit-btn" onclick="submitSignatureEvidenceConfirm()" class="flex-1 py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-black uppercase rounded-xl transition shadow-sm">
+                    Conferma Firma
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- JAVASCRIPT ENGINE & LOGIC -->
+    <!-- ============================================ -->
+    <script>
+        // State Globale
+        let currentJob = null;
+        let currentSteps = [];
+        let currentActiveStepId = null;
+        let activeEvidencePayload = null;
+        let isSignatureTouched = false;
+
+        // Inizializzazione Telegram WebApp
+        const tgApp = window.TwaGuard?.requireTelegramWebApp?.() || window.Telegram?.WebApp;
+        if (tgApp) {
+            if (tgApp.ready) tgApp.ready();
+            if (tgApp.expand) tgApp.expand();
+            if (tgApp.BackButton) {
+                tgApp.BackButton.show();
+                tgApp.BackButton.onClick(() => goBackToDashboard());
+            }
+        }
+
+        // Recupero parametri URL
+        const urlParams = new URLSearchParams(window.location.search || '');
+        const currentJobId = urlParams.get('job_id') || 'job_claimed_instant';
+        const currentAsh = window.TwaGuard?.requireAsh?.() || urlParams.get('ash') || sessionStorage.getItem('operator_ash') || '';
+
+        // ============================================
+        // FUNZIONE D'AGGANCIO VERTICALI (REALE DA DESK_BOARD.HTML)
+        // ============================================
+        function resolveActiveVerticals(data) {
+            let verticals = [];
+            const pickFrom = (obj) => {
+                if (!obj) return null;
+                if (Array.isArray(obj.verticals) && obj.verticals.length) return obj.verticals;
+                if (obj.vertical) return [obj.vertical];
+                return null;
+            };
+            verticals = pickFrom(data && data.owner_data) || pickFrom(data) || null;
+
+            if (!verticals) {
+                try {
+                    const keys = Object.keys(localStorage);
+                    for (const k of keys) {
+                        if (k.startsWith('sitebos_') && k.endsWith('_owner_data')) {
+                            const parsed = JSON.parse(localStorage.getItem(k) || '{}');
+                            const found = pickFrom(parsed);
+                            if (found) { verticals = found; break; }
+                        }
+                    }
+                } catch (e) {}
+            }
+
+            return (verticals || []).map(v => String(v).toLowerCase().trim());
+        }
+
+        function checkActiveTools() {
+            const rawOwner = sessionStorage.getItem('stakeholder_raw');
+            let ownerData = null;
+            try {
+                ownerData = rawOwner ? JSON.parse(rawOwner) : null;
+            } catch (_) {}
+
+            const verticals = resolveActiveVerticals(ownerData);
+            const toolsSection = document.getElementById('tools-section');
+            const btnTintometria = document.getElementById('tool-btn-tintometria');
+            const btnWorkshop = document.getElementById('tool-btn-workshop');
+
+            let hasAnyTool = false;
+
+            if (verticals.includes('beauty') && btnTintometria) {
+                btnTintometria.classList.remove('hidden');
+                hasAnyTool = true;
+            } else if (btnTintometria) {
+                btnTintometria.classList.add('hidden');
+            }
+
+            if (verticals.includes('workshop') && btnWorkshop) {
+                btnWorkshop.classList.remove('hidden');
+                hasAnyTool = true;
+            } else if (btnWorkshop) {
+                btnWorkshop.classList.add('hidden');
+            }
+
+            if (toolsSection) {
+                if (hasAnyTool) {
+                    toolsSection.classList.remove('hidden');
+                } else {
+                    toolsSection.classList.add('hidden');
+                }
+            }
+        }
+
+        function openTintometriaUtility(e) {
+            e.preventDefault();
+            if (tgApp?.HapticFeedback) tgApp.HapticFeedback.impactOccurred('medium');
+            window.location.href = `tintometria-colorimetria.html?job_id=${encodeURIComponent(currentJobId)}&ash=${encodeURIComponent(currentAsh)}`;
+        }
+
+        function openWorkshopUtility(e) {
+            e.preventDefault();
+            if (tgApp?.HapticFeedback) tgApp.HapticFeedback.impactOccurred('medium');
+            window.location.href = `officina-utility.html?job_id=${encodeURIComponent(currentJobId)}&ash=${encodeURIComponent(currentAsh)}`;
+        }
+
+        // ============================================
+        // CARICAMENTO DETTAGLIO JOB & BLUEPRINT
+        // ============================================
+        async function loadJobExecutionDetail() {
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'get_job_execution_detail',
+                        job_id: currentJobId,
+                        ash: currentAsh,
+                        _auth: tgApp?.initData
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.status === 'success' && data.job) {
+                        currentJob = data.job;
+                        currentSteps = data.steps || [];
+                        renderJobUI();
+                        return;
+                    }
+                }
+
+                throw new Error('Fallback required');
+            } catch (err) {
+                console.warn('⚠️ [JobExecution] Errore caricamento backend, caricamento fallback locale:', err);
+                useFallbackJobData();
+            }
+        }
+
+        function useFallbackJobData() {
+            currentJob = {
+                job_id: currentJobId,
+                title: 'SANIFICAZIONE POLTRONA & VERIFICA DPI',
+                service_name: 'Sanificazione Poltrona & DPI',
+                sop_code: 'SER_DET_CLEAN',
+                station_id: 'SALA 1 / POLTRONA A',
+                station_name: 'Poltrona A (Clinica)',
+                status: 'IN_PROGRESS',
+                priority: 'STANDARD',
+                is_safety_job: true,
+                is_onsite: true,
+                blueprint_eta_minutes: 10
+            };
+
+            currentSteps = [
+              {
+                step_id: 'step_dpi_check',
+                stage_id: 'stg_prep',
+                stage_name: 'Fase 1: Preparazione & Sicurezza',
+                step_name: 'Verifica DPI & Sanificazione Previa',
+                instructions: 'Indossare guanti in nitrile monouso e visiera DPI conforme al D.Lgs. 81/08.',
+                estimated_time_minutes: 2,
+                status: 'PENDING',
+                evidence_type: 'NONE',
+                resources_needed: {
+                  materials: [
+                    { name: 'Guanti in Nitrile (paio)', quantity_per_use: 1, unit_of_measure: 'pz' }
+                  ]
+                }
+              },
+              {
+                step_id: 'step_surface_disinfect',
+                stage_id: 'stg_exec',
+                stage_name: 'Fase 2: Esecuzione Igienica',
+                step_name: 'Applicazione Disinfettante Presidio Medico',
+                instructions: 'Spruzzare uniformemente il disinfettante sulle superfici di contatto e attendere 60 secondi.',
+                estimated_time_minutes: 5,
+                status: 'PENDING',
+                evidence_type: 'TEXT',
+                resources_needed: {
+                  materials: [
+                    { name: 'Disinfettante Presidio Medico Chirurgico', quantity_per_use: 20, unit_of_measure: 'ml' }
+                  ]
+                }
+              },
+              {
+                step_id: 'step_final_release',
+                stage_id: 'stg_close',
+                stage_name: 'Fase 3: Rilascio & Chiusura',
+                step_name: 'Rilascio Postazione Pronta',
+                instructions: 'Verificare l’asciugatura e confermare il ripristino per il prossimo paziente.',
+                estimated_time_minutes: 3,
+                status: 'PENDING',
+                evidence_type: 'NONE',
+                resources_needed: { materials: [] }
+              }
+            ];
+
+            renderJobUI();
+        }
+
+        // ============================================
+        // RENDERING UI CONSOLE
+        // ============================================
+        function renderJobUI() {
+            if (!currentJob) return;
+
+            // Header Elements
+            const titleEl = document.getElementById('job-header-title');
+            const modeBadge = document.getElementById('job-mode-badge');
+            const sopBadge = document.getElementById('job-sop-code-badge');
+            const stationBadge = document.getElementById('job-station-badge');
+            const etaBadge = document.getElementById('job-eta-badge');
+            
+            if (titleEl) titleEl.innerText = currentJob.title || currentJob.service_name || 'Job Operativo';
+            if (modeBadge) {
+                modeBadge.innerText = currentJob.is_onsite !== false ? '🏛️ ON-SITE' : '🚚 OFF-SITE';
+                modeBadge.className = currentJob.is_onsite !== false 
+                    ? "px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[9px] font-black uppercase rounded-md"
+                    : "px-2 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-black uppercase rounded-md";
+            }
+            if (sopBadge) sopBadge.innerText = currentJob.sop_code || 'SOP';
+            if (stationBadge) stationBadge.innerText = currentJob.station_id || 'STAZIONE';
+            if (etaBadge) etaBadge.innerText = `~${currentJob.blueprint_eta_minutes || 10} MIN`;
+
+            // Summary Card
+            const fullTitleEl = document.getElementById('job-title-full');
+            const safetyPill = document.getElementById('safety-alert-pill');
+            const noteEl = document.getElementById('job-instruction-note');
+
+            if (fullTitleEl) fullTitleEl.innerText = currentJob.title || currentJob.service_name;
+            if (safetyPill) {
+                if (currentJob.is_safety_job) safetyPill.classList.remove('hidden');
+                else safetyPill.classList.add('hidden');
+            }
+            if (noteEl) {
+                noteEl.innerText = `Stazione: ${currentJob.station_name || currentJob.station_id} • Priorità: ${currentJob.priority || 'STANDARD'}`;
+            }
+
+            // Render Steps & Package
+            renderPackageSessions();
+            renderStepsList();
+            updateProgress();
+            checkActiveTools();
+        }
+
+        function renderPackageSessions() {
+            const section = document.getElementById('package-sessions-section');
+            const list = document.getElementById('package-sessions-list');
+            const saldoBadge = document.getElementById('package-saldo-badge');
+            const progressBar = document.getElementById('package-progress-bar');
+            if (!section || !list) return;
+
+            let sessions = currentJob?.sessions;
+            const totalSessions = parseInt(currentJob?.total_sessions || (Array.isArray(sessions) ? sessions.length : 0), 10);
+
+            if (!Array.isArray(sessions) || sessions.length === 0) {
+                if (totalSessions > 1) {
+                    sessions = [];
+                    for (let i = 1; i <= totalSessions; i++) {
+                        sessions.push({ session_number: i, status: 'PENDING', completed_at: null });
+                    }
+                } else {
+                    section.classList.add('hidden');
+                    return;
+                }
+            }
+
+            section.classList.remove('hidden');
+
+            const remaining = sessions.filter(s => s.status === 'PENDING').length;
+            const completed = totalSessions - remaining;
+            const percent = totalSessions > 0 ? Math.round((completed / totalSessions) * 100) : 0;
+
+            if (saldoBadge) saldoBadge.innerText = `${remaining} di ${totalSessions} Rimanenti`;
+            if (progressBar) progressBar.style.width = `${percent}%`;
+
+            list.innerHTML = sessions.map(s => {
+                const isDone = s.status === 'DONE';
+                return `
+                    <div class="p-2.5 rounded-xl border ${isDone ? 'bg-pink-50/80 border-pink-300 text-pink-900' : 'bg-slate-50 border-slate-200 text-slate-700'} flex flex-col justify-between space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-black uppercase">Seduta #${s.session_number}</span>
+                            <span class="text-[8px] font-bold px-1.5 py-0.5 rounded ${isDone ? 'bg-pink-600 text-white' : 'bg-slate-200 text-slate-600'}">
+                                ${isDone ? 'FATTA' : 'DA FARE'}
+                            </span>
+                        </div>
+                        ${isDone ? `
+                            <p class="text-[8px] text-pink-700 truncate font-semibold">${s.completed_at ? new Date(s.completed_at).toLocaleDateString('it-IT') : 'Completata'}</p>
+                        ` : `
+                            <button onclick="triggerCompleteSession(${s.session_number})" class="w-full py-1.5 bg-pink-600 hover:bg-pink-700 text-white text-[9px] font-black uppercase rounded-lg active:scale-95 transition shadow-xs">
+                                Segna Fatta
+                            </button>
+                        `}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function triggerCompleteSession(sessionNum) {
+            if (tgApp?.HapticFeedback) tgApp.HapticFeedback.impactOccurred('medium');
+            
+            const res = await completeJobSession(currentJobId, sessionNum);
+            if (res.ok) {
+                if (tgApp?.HapticFeedback) tgApp.HapticFeedback.notificationOccurred('success');
+                if (res.data?.sessions) {
+                    currentJob.sessions = res.data.sessions;
+                    currentJob.remaining_sessions = res.data.remaining_sessions;
+                    currentJob.total_sessions = res.data.total_sessions;
+                } else if (currentJob.sessions) {
+                    const target = currentJob.sessions.find(s => s.session_number === sessionNum);
+                    if (target) {
+                        target.status = 'DONE';
+                        target.completed_at = new Date().toISOString();
+                    }
+                }
+                renderPackageSessions();
+            } else {
+                alert("Errore durante la registrazione della seduta. Riprova.");
+            }
+        }
+
+        function renderStepsList() {
+            const container = document.getElementById('steps-container');
+            const badge = document.getElementById('steps-counter-badge');
+            if (!container) return;
+
+            if (badge) badge.innerText = `${currentSteps.length} STEP`;
+
+            if (currentSteps.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-xs text-slate-400 font-bold bg-white border border-slate-200 rounded-2xl">Nessun passaggio definito per questo Blueprint.</div>`;
+                return;
+            }
+
+            container.innerHTML = currentSteps.map((step, idx) => {
+                const isDone = step.status === 'DONE';
+                const evType = (step.evidence_type || 'NONE').toUpperCase();
+
+                let evBadge = '';
+                if (evType === 'TEXT') {
+                    evBadge = `<span class="px-2 py-0.5 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[8px] font-black uppercase rounded-md"><i class="fa-solid fa-pen mr-1"></i>Testo/Lotto</span>`;
+                } else if (evType === 'VISION') {
+                    evBadge = `<span class="px-2 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[8px] font-black uppercase rounded-md"><i class="fa-solid fa-camera mr-1"></i>Controllo Foto</span>`;
+                } else if (evType === 'SIGNATURE') {
+                    evBadge = `<span class="px-2 py-0.5 bg-purple-50 border border-purple-200 text-purple-700 text-[8px] font-black uppercase rounded-md"><i class="fa-solid fa-signature mr-1"></i>Firma</span>`;
+                } else if (evType === 'FILE') {
+                    evBadge = `<span class="px-2 py-0.5 bg-amber-50 border border-amber-200 text-amber-700 text-[8px] font-black uppercase rounded-md"><i class="fa-solid fa-paperclip mr-1"></i>File</span>`;
+                }
+
+                const materials = Array.isArray(step.resources_needed?.materials) ? step.resources_needed.materials : [];
+
+                return `
+                    <div id="step-card-${step.step_id}" class="step-card bg-white border ${isDone ? 'step-done' : 'border-slate-200'} rounded-2xl p-4 shadow-sm space-y-2.5">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-5 h-5 rounded-full ${isDone ? 'bg-emerald-600 text-white' : 'bg-slate-900 text-white'} text-[10px] font-black flex items-center justify-center">
+                                    ${isDone ? '<i class="fa-solid fa-check text-[9px]"></i>' : (idx + 1)}
+                                </span>
+                                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">${step.stage_name || ('Fase ' + (idx + 1))}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                ${evBadge}
+                                <span class="text-[9px] font-bold text-slate-400">~${step.estimated_time_minutes || 5}m</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-xs font-black text-slate-900 uppercase leading-snug">${step.step_name}</h4>
+                            ${step.instructions ? `<p class="text-[11px] text-slate-500 mt-1 leading-relaxed">${step.instructions}</p>` : ''}
+                        </div>
+
+                        ${materials.length > 0 ? `
+                            <div class="flex flex-wrap gap-1 pt-0.5">
+                                ${materials.map(m => `
+                                    <span class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[9px] font-bold rounded-md flex items-center gap-1">
+                                        <i class="fa-solid fa-box text-[8px]"></i> ${m.quantity_per_use ? m.quantity_per_use + (m.unit_of_measure || '') + ' ' : ''}${m.name || 'Materiale'}
+                                    </span>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+
+                        <div class="pt-1 flex items-center justify-between border-t border-slate-100">
+                            ${isDone ? `
+                                <div class="text-[10px] font-black text-emerald-600 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-check text-emerald-600"></i> STEP COMPLETATO
+                                </div>
+                                <span class="text-[9px] font-bold text-slate-400">Archiviato in evidence_logs</span>
+                            ` : `
+                                <div class="text-[10px] font-bold text-slate-400">In attesa di esecuzione</div>
+                                <button onclick="triggerStepExecution('${step.step_id}')" class="px-3.5 py-1.5 bg-slate-900 hover:bg-black text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-sm active:scale-95 transition flex items-center gap-1.5">
+                                    <i class="fa-solid fa-play text-[8px]"></i> Fatto
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateProgress() {
+            const total = currentSteps.length;
+            const completed = currentSteps.filter(s => s.status === 'DONE').length;
+            const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+            const textEl = document.getElementById('progress-text');
+            const percEl = document.getElementById('progress-percentage');
+            const fillEl = document.getElementById('progress-bar-fill');
+            const completedBanner = document.getElementById('job-completed-banner');
+
+            if (textEl) textEl.innerText = `Avanzamento: ${completed}/${total} Step`;
+            if (percEl) percEl.innerText = `${percent}%`;
+            if (fillEl) fillEl.style.width = `${percent}%`;
+
+            if (completedBanner) {
+                if (total > 0 && completed === total) {
+                    completedBanner.classList.remove('hidden');
+                    if (tgApp?.HapticFeedback) tgApp.HapticFeedback.notificationOccurred('success');
+                } else {
+                    completedBanner.classList.add('hidden');
+                }
+            }
+        }
+
+        // ============================================
+        // TRIGGER ESECUZIONE STEP
+        // ============================================
+        function triggerStepExecution(stepId) {
+            const step = currentSteps.find(s => s.step_id === stepId);
+            if (!step) return;
+
+            currentActiveStepId = stepId;
+            const evType = (step.evidence_type || 'NONE').toUpperCase();
+
+            if (tgApp?.HapticFeedback) tgApp.HapticFeedback.impactOccurred('medium');
+
+            if (evType === 'TEXT') {
+                openTextEvidenceModal(step);
+            } else if (evType === 'VISION') {
+                openVisionEvidenceModal(step);
+            } else if (evType === 'SIGNATURE') {
+                openSignatureEvidenceModal(step);
+            } else {
+                // NONE o generico: completa direttamente
+                executeCompleteStep(stepId, {});
+            }
+        }
+
+        async function executeCompleteStep(stepId, evidencePayload = {}) {
+            const stepIndex = currentSteps.findIndex(s => s.step_id === stepId);
+            const step = currentSteps[stepIndex];
+            
+            // Calcolo se è l'ultimo step
+            const pendingCount = currentSteps.filter(s => s.status === 'PENDING' && s.step_id !== stepId).length;
+            const isLast = pendingCount === 0;
+
+            // Aggiorna stato locale immediatamente (Snappy UI)
+            if (step) {
+                step.status = 'DONE';
+            }
+            renderStepsList();
+            updateProgress();
+
+            if (tgApp?.HapticFeedback) tgApp.HapticFeedback.notificationOccurred('success');
+
+            // Chiama le funzioni già scritte in operator_dashboard_logic.js
+            try {
+                if (window.completeJobStep && typeof window.completeJobStep === 'function') {
+                    await window.completeJobStep(currentJobId, stepId, {
+                        ...evidencePayload,
+                        step_name: step?.step_name || stepId,
+                        is_last_step: isLast
+                    }, false);
+                }
+            } catch (err) {
+                console.warn('⚠️ [JobExecution] Errore salvataggio step nel backend (salvato in OfflineQueue locale):', err);
+            }
+        }
+
+        // ============================================
+        // GESTIONE MODALI EVIDENZA
+        // ============================================
+        function closeEvidenceModals() {
+            document.getElementById('modal-evidence-text')?.classList.add('hidden');
+            document.getElementById('modal-evidence-vision')?.classList.add('hidden');
+            document.getElementById('modal-evidence-signature')?.classList.add('hidden');
+            currentActiveStepId = null;
+        }
+
+        // 1. TEXT / LOT
+        function openTextEvidenceModal(step) {
+            const modal = document.getElementById('modal-evidence-text');
+            const stepNameEl = document.getElementById('modal-text-step-name');
+            const inputEl = document.getElementById('modal-text-input');
+
+            if (stepNameEl) stepNameEl.innerText = step.step_name;
+            if (inputEl) inputEl.value = '';
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        async function submitTextEvidenceConfirm() {
+            const inputEl = document.getElementById('modal-text-input');
+            const textValue = (inputEl?.value || '').trim();
+
+            if (!textValue) {
+                alert('Inserisci una nota o un lotto di tracciabilità prima di confermare.');
+                return;
+            }
+
+            const stepId = currentActiveStepId;
+            closeEvidenceModals();
+
+            // Salva evidenza testo
+            if (window.submitJobStepEvidence && typeof window.submitJobStepEvidence === 'function') {
+                await window.submitJobStepEvidence(currentJobId, stepId, 'TEXT', { text: textValue }, false);
+            }
+
+            executeCompleteStep(stepId, { text_evidence: textValue });
+        }
+
+        // 2. VISION / FOTO
+        function openVisionEvidenceModal(step) {
+            const modal = document.getElementById('modal-evidence-vision');
+            const stepNameEl = document.getElementById('modal-vision-step-name');
+            const previewImg = document.getElementById('vision-preview-img');
+            const placeholder = document.getElementById('vision-placeholder');
+            const fileInput = document.getElementById('vision-file-input');
+
+            if (stepNameEl) stepNameEl.innerText = step.step_name;
+            if (previewImg) {
+                previewImg.src = '';
+                previewImg.classList.add('hidden');
+            }
+            if (placeholder) placeholder.classList.remove('hidden');
+            if (fileInput) fileInput.value = '';
+            activeEvidencePayload = null;
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function handleVisionFileSelect(e) {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const base64 = evt.target.result;
+                activeEvidencePayload = { image_base64: base64, filename: file.name };
+                
+                const previewImg = document.getElementById('vision-preview-img');
+                const placeholder = document.getElementById('vision-placeholder');
+                if (previewImg) {
+                    previewImg.src = base64;
+                    previewImg.classList.remove('hidden');
+                }
+                if (placeholder) placeholder.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function submitVisionEvidenceConfirm() {
+            if (!activeEvidencePayload) {
+                alert('Scatta o seleziona una foto prima di confermare il controllo visivo.');
+                return;
+            }
+
+            const stepId = currentActiveStepId;
+            const evidenceData = activeEvidencePayload;
+            closeEvidenceModals();
+
+            if (window.submitJobStepEvidence && typeof window.submitJobStepEvidence === 'function') {
+                await window.submitJobStepEvidence(currentJobId, stepId, 'VISION', evidenceData, false);
+            }
+
+            executeCompleteStep(stepId, evidenceData);
+        }
+
+        // 3. SIGNATURE PAD
+        let signCanvas = null;
+        let signCtx = null;
+
+        function openSignatureEvidenceModal(step) {
+            const modal = document.getElementById('modal-evidence-signature');
+            const stepNameEl = document.getElementById('modal-sign-step-name');
+            if (stepNameEl) stepNameEl.innerText = step.step_name;
+
+            if (modal) modal.classList.remove('hidden');
+            initSignatureCanvas();
+        }
+
+        function initSignatureCanvas() {
+            signCanvas = document.getElementById('signature-pad-canvas');
+            if (!signCanvas) return;
+
+            // Set size
+            const rect = signCanvas.getBoundingClientRect();
+            signCanvas.width = rect.width || 380;
+            signCanvas.height = rect.height || 160;
+
+            signCtx = signCanvas.getContext('2d');
+            signCtx.strokeStyle = '#0f172a';
+            signCtx.lineWidth = 2.5;
+            signCtx.lineCap = 'round';
+            signCtx.lineJoin = 'round';
+
+            isSignatureTouched = false;
+
+            let drawing = false;
+
+            function getPos(evt) {
+                const r = signCanvas.getBoundingClientRect();
+                const clientX = evt.touches ? evt.touches[0].clientX : evt.clientX;
+                const clientY = evt.touches ? evt.touches[0].clientY : evt.clientY;
+                return { x: clientX - r.left, y: clientY - r.top };
+            }
+
+            function startDraw(e) {
+                drawing = true;
+                isSignatureTouched = true;
+                const pos = getPos(e);
+                signCtx.beginPath();
+                signCtx.moveTo(pos.x, pos.y);
+            }
+
+            function draw(e) {
+                if (!drawing) return;
+                const pos = getPos(e);
+                signCtx.lineTo(pos.x, pos.y);
+                signCtx.stroke();
+            }
+
+            function stopDraw() {
+                drawing = false;
+            }
+
+            signCanvas.onmousedown = startDraw;
+            signCanvas.onmousemove = draw;
+            window.onmouseup = stopDraw;
+
+            signCanvas.ontouchstart = startDraw;
+            signCanvas.ontouchmove = draw;
+            window.ontouchend = stopDraw;
+        }
+
+        function clearSignatureCanvas() {
+            if (signCanvas && signCtx) {
+                signCtx.clearRect(0, 0, signCanvas.width, signCanvas.height);
+                isSignatureTouched = false;
+            }
+        }
+
+        async function submitSignatureEvidenceConfirm() {
+            if (!isSignatureTouched || !signCanvas) {
+                alert('Apponi la firma sul riquadro prima di confermare.');
+                return;
+            }
+
+            const signatureBase64 = signCanvas.toDataURL('image/png');
+            const stepId = currentActiveStepId;
+            closeEvidenceModals();
+
+            if (window.submitJobStepEvidence && typeof window.submitJobStepEvidence === 'function') {
+                await window.submitJobStepEvidence(currentJobId, stepId, 'SIGNATURE', { signature_base64: signatureBase64 }, false);
+            }
+
+            executeCompleteStep(stepId, { signature: signatureBase64 });
+        }
+
+        // Navigation
+        function goBackToDashboard() {
+            if (tgApp?.HapticFeedback) tgApp.HapticFeedback.impactOccurred('light');
+            window.location.href = `operator_dashboard.html?ash=${encodeURIComponent(currentAsh)}`;
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            loadJobExecutionDetail();
+        });
+    </script>
+</body>
+</html>

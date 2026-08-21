@@ -1,0 +1,1524 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Agente Utility Ospitalità & Beverage (Hospitality)</title>
+    
+    <!-- Telegram WebApp SDK & SiteBoS TWA Guard -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    
+    <!-- Tailwind CSS, Google Fonts & FontAwesome 6 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        hospitality: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        },
+                        amberbrand: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                        }
+                    }
+                }
+            }
+        };
+
+        // Inizializzazione sessione Telegram WebApp reale all'avvio
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const ash = urlParams.get('ash');
+            
+            if (!isTelegramSession && !ash) {
+                console.log('ℹ️ [Hospitality Utility] Inizializzazione sessione operatore ospitalità.');
+            }
+        })();
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        }
+
+        .tab-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+        .tab-inactive:hover {
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .card-interactive {
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-interactive:active {
+            transform: scale(0.98);
+        }
+
+        .pulse-soft {
+            animation: pulseSoft 2s infinite ease-in-out;
+        }
+        @keyframes pulseSoft {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.88; transform: scale(1.01); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER PRINCIPALE HOSPITALITY DESK (100% LIGHT THEME) -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur shrink-0 shadow-sm">
+        <!-- Logo & Titolo -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white flex items-center justify-center font-black shadow-sm shrink-0">
+                <i class="fa-solid fa-wine-glass text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="font-black text-slate-900 text-base tracking-tight">SiteBoS Ospitalità Desk</h1>
+                    <span class="text-[10px] font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Verticale Hospitality</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Calcolo Deterministico • 100% Client-Side</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-semibold hidden md:inline">• F&B Beverage Planning & Split Conto Tavolata</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button onclick="resetActiveTab()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 active:scale-95 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5" title="Reimposta la scheda corrente ai valori predefiniti">
+                <i class="fa-solid fa-rotate-left text-xs"></i>
+                <span class="hidden sm:inline">Reimposta</span>
+            </button>
+
+            <button onclick="goToDeskBoard()" class="bg-slate-900 hover:bg-black text-white text-xs font-black px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-desktop"></i>
+                <span>Desk Board</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- BARRA DI NAVIGAZIONE TAB UTILITY OSPITALITA -->
+    <div class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sticky top-[69px] z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+            <button type="button" id="tab-btn-beverage" onclick="switchTab('beverage')" class="tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-wine-bottle"></i>
+                <span>1. Beverage per Coperti & Evento</span>
+            </button>
+
+            <button type="button" id="tab-btn-split" onclick="switchTab('split')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-receipt"></i>
+                <span>2. Split Conto "Tavolata Italiana"</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WORKSPACE PRINCIPALE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- BANNER ASSISTIVO ANTI-RESPONSABILITÀ (REGOLA ASSOLUTA PROGETTO) -->
+        <div class="bg-emerald-50/80 border border-emerald-300/80 rounded-2xl p-3.5 flex items-start gap-3 text-xs text-emerald-950 shadow-sm">
+            <div class="w-6 h-6 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs shrink-0 mt-0.5 font-bold">
+                <i class="fa-solid fa-circle-info"></i>
+            </div>
+            <div class="space-y-0.5">
+                <p class="font-black text-emerald-900 uppercase tracking-wide text-[11px]">
+                    Strumento Puramente Assistivo • Supporto Operativo F&B & Sala
+                </p>
+                <p class="text-emerald-900/90 leading-relaxed text-[11px]">
+                    I calcolatori integrati forniscono stime orientative per la pianificazione di cantina/beverage e il riparto rapido del conto al tavolo. I calcoli non costituiscono documenti fiscali né transazioni contabili (SiteBoS non gestisce fatturazione o incassi di pagamento).
+                </p>
+            </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 1: CALCOLATORE BEVERAGE EVENTI & COPERTI (TAB BEVERAGE)     -->
+        <!-- =================================================================== -->
+        <div id="section-beverage" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- COLONNA SINISTRA: SELEZIONE FORMAT EVENTO & COPERTI (7 Colonne Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1.1 NUMERO COPERTI & DURATA -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Ospiti & Durata Evento</h2>
+                                <p class="text-[11px] text-slate-500">Numero di invitati e durata del servizio per stima flussi</p>
+                            </div>
+                        </div>
+                        <span id="beverage-guests-badge" class="text-xs font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-xl font-mono">50 Ospiti • 3 Ore</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Numero Invitati -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-bev-guests">
+                                    Numero Invitati / Coperti
+                                </label>
+                                <span class="text-[10px] font-bold text-slate-400">Ospiti Adulti</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="stepNumberInput('input-bev-guests', -5, 5, 1000)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="5" min="5" max="1000" id="input-bev-guests" value="50" oninput="recalcBeverage()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepNumberInput('input-bev-guests', 5, 5, 1000)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <!-- Preset Ospiti -->
+                            <div class="flex flex-wrap gap-1 pt-1.5">
+                                <button type="button" onclick="setGuestsPreset(20)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">20 pax</button>
+                                <button type="button" onclick="setGuestsPreset(50)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">50 pax</button>
+                                <button type="button" onclick="setGuestsPreset(80)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">80 pax</button>
+                                <button type="button" onclick="setGuestsPreset(120)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">120 pax</button>
+                                <button type="button" onclick="setGuestsPreset(200)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">200 pax</button>
+                            </div>
+                        </div>
+
+                        <!-- Durata Evento (Ore) -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="select-bev-duration">
+                                    Durata Servizio Evento
+                                </label>
+                                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md">Fattore Tempo</span>
+                            </div>
+                            <select id="select-bev-duration" onchange="recalcBeverage()" class="w-full bg-white border border-slate-300 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition mt-1">
+                                <option value="2">2 Ore (Servizio Rapido / Buffet Veloce)</option>
+                                <option value="3" selected>3 Ore (Standard Banqueting / Cena)</option>
+                                <option value="4">4 Ore (Evento Prolungato • +12% consumo)</option>
+                                <option value="5">5+ Ore (Festa Serale / Open Bar • +25% consumo)</option>
+                            </select>
+                            <p class="text-[10px] text-slate-500 pt-1">Oltre le 3 ore il consumo medio cresce fisiologicamente.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.2 FORMAT EVENTO & TIPOLOGIA SERVIZIO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-martini-glass-citrus"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Tipologia & Format dell'Evento</h2>
+                                <p class="text-[11px] text-slate-500">Seleziona il modello di consumo medio per persona dichiarato in UI</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <!-- Aperitivo Rinforzato / Buffet -->
+                        <button type="button" onclick="setEventFormat('aperitivo')" id="btn-format-aperitivo" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">Aperitivo & Finger Food</span>
+                                <span class="font-mono font-black text-xs text-amber-700">0.55 btg/pax</span>
+                            </div>
+                            <h3 class="font-black text-xs">Aperitivo Rinforzato / Buffet</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Focus bollicine, vino fresco, 0.5L acqua</p>
+                        </button>
+
+                        <!-- Pranzo / Cena Seduti (Formale) -->
+                        <button type="button" onclick="setEventFormat('cena_seduti')" id="btn-format-cena" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Banqueting & Matrimonio</span>
+                                <span class="font-mono font-black text-xs text-emerald-300">0.85 btg/pax</span>
+                            </div>
+                            <h3 class="font-black text-xs">Pranzo o Cena Seduti</h3>
+                            <p class="text-[10px] text-slate-300 mt-0.5">Welcome bollicine + bianco primi + rosso secondi + brindisi dolce + 1.0L acqua</p>
+                        </button>
+
+                        <!-- Cena Aziendale / Festa Informale -->
+                        <button type="button" onclick="setEventFormat('aziendale')" id="btn-format-aziendale" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">Corporate & Team</span>
+                                <span class="font-mono font-black text-xs text-slate-700">0.65 btg/pax</span>
+                            </div>
+                            <h3 class="font-black text-xs">Cena Aziendale / Festa Informale</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Mix vino & birra artigianale, 0.75L acqua</p>
+                        </button>
+
+                        <!-- Cocktail Party / Open Bar -->
+                        <button type="button" onclick="setEventFormat('cocktail')" id="btn-format-cocktail" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">Night & Party</span>
+                                <span class="font-mono font-black text-xs text-slate-700">0.70 btg/pax</span>
+                            </div>
+                            <h3 class="font-black text-xs">Cocktail Party Serale</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Bollicine di apertura, caraffe cocktail, 0.75L acqua</p>
+                        </button>
+                    </div>
+
+                    <!-- Preferenza Ripartizione Vini & Buffer Cantina -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <!-- Mix Vini -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-wine-mix">
+                                Mix Cantina (Bollicine / Bianco / Rosso)
+                            </label>
+                            <select id="select-wine-mix" onchange="recalcBeverage()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="balanced" selected>⚖️ Equilibrato (40% Bollicine • 30% Bianco • 30% Rosso)</option>
+                                <option value="seafood">🐟 Prevalenza Pesce / Estate (35% Bollicine • 50% Bianco • 15% Rosso)</option>
+                                <option value="meat">🥩 Prevalenza Carne / Inverno (25% Bollicine • 25% Bianco • 50% Rosso)</option>
+                                <option value="sparkling">🥂 Focus Bollicine / Toast (60% Bollicine • 20% Bianco • 20% Rosso)</option>
+                            </select>
+                        </div>
+
+                        <!-- Margine di Sicurezza Buffer (+15% standard ODS) -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-safety-margin">
+                                Margine di Sicurezza Cantina (Buffer)
+                            </label>
+                            <select id="select-safety-margin" onchange="recalcBeverage()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="1.15" selected>🛡️ +15% Scorta Raccomandata (Consigliato ODS)</option>
+                                <option value="1.10">🛡️ +10% Scorta Minima</option>
+                                <option value="1.20">🛡️ +20% Ampia Scorta (Ospiti 'buona forchetta')</option>
+                                <option value="1.00">0% Fabbisogno Netto Esatto (Nessuna scorta)</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.3 TABELLA COMPARATIVA F&B FABBISOGNO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-slate-700 text-xs"></i>
+                            <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">Lista Prelievo Fornitori Beverage</h3>
+                        </div>
+                        <span class="text-[10px] text-slate-400 font-mono">Cartoni standard da 6 btg</span>
+                    </div>
+
+                    <div class="overflow-x-auto no-scrollbar">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-[10px] font-black text-slate-400 uppercase border-b border-slate-100">
+                                    <th class="py-2 px-2">Prodotto</th>
+                                    <th class="py-2 px-2 text-right">Netto</th>
+                                    <th class="py-2 px-2 text-right">Con Scorta (+15%)</th>
+                                    <th class="py-2 px-2 text-right">Cartoni / Casse</th>
+                                    <th class="py-2 px-2 text-right">Calici Stimati</th>
+                                </tr>
+                            </thead>
+                            <tbody id="beverage-breakdown-table" class="divide-y divide-slate-100 font-mono">
+                                <!-- Popolato dinamicamente da JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: LETTURA LIVE CANTINA & ORDINE FORNITORE (5 Colonne Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-36">
+
+                <!-- CARD PRINCIPALE TOTALE BOTTIGLIE CANTINA -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 pulse-soft" id="bev-status-dot"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Fabbisogno Cantina Consigliato</h2>
+                        </div>
+                        <span id="bev-safety-tag" class="text-[10px] font-mono font-black text-emerald-900 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-lg">+15% BUFFER</span>
+                    </div>
+
+                    <!-- Box Display Digitale Bottiglie Totali -->
+                    <div class="bg-slate-950 rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-slate-800">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Totale Bottiglie Vino & Bollicine</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span id="bev-total-bottles" class="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">49</span>
+                                    <span class="text-lg sm:text-xl font-black text-emerald-400 font-mono">Btg (0.75L)</span>
+                                </div>
+                            </div>
+                            <div class="text-right font-mono">
+                                <span class="text-[10px] text-slate-400 uppercase block">Cartoni da 6</span>
+                                <div id="bev-total-boxes" class="text-sm font-black text-amber-300">9 Cartoni</div>
+                                <div id="bev-total-servings" class="text-xs font-bold text-slate-300">~294 Calici</div>
+                            </div>
+                        </div>
+
+                        <!-- Barra Ripartizione Mix Cantina -->
+                        <div class="mt-4 pt-3 border-t border-slate-800">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <span class="text-[11px] text-slate-400 font-bold">Ripartizione Mix Vini:</span>
+                                <span id="bev-mix-ratios-lbl" class="font-mono font-black text-emerald-300 text-xs">40% Bollicine • 30% Bianco • 30% Rosso</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-2.5 overflow-hidden flex">
+                                <div id="bev-bar-sparkling" class="bg-amber-400 h-full" style="width: 40%;"></div>
+                                <div id="bev-bar-white" class="bg-emerald-400 h-full" style="width: 30%;"></div>
+                                <div id="bev-bar-red" class="bg-rose-500 h-full" style="width: 30%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[9px] font-mono text-slate-400 mt-1">
+                                <span class="text-amber-300">🍾 Prosecco (<span id="pct-spk-lbl">40%</span>)</span>
+                                <span class="text-emerald-300">🍷 Bianco (<span id="pct-wht-lbl">30%</span>)</span>
+                                <span class="text-rose-400">🍷 Rosso (<span id="pct-red-lbl">30%</span>)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dettagli Spaccato Bevande & Acqua -->
+                    <div class="grid grid-cols-2 gap-2 mt-4 text-[11px]">
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Prosecco / Bollicine</span>
+                            <span id="bev-spec-sparkling" class="font-black text-slate-800 font-mono">20 Btg (4 Cartoni)</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Vino Bianco</span>
+                            <span id="bev-spec-white" class="font-black text-slate-800 font-mono">15 Btg (3 Cartoni)</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Vino Rosso</span>
+                            <span id="bev-spec-red" class="font-black text-slate-800 font-mono">14 Btg (3 Cartoni)</span>
+                        </div>
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                            <span class="text-slate-400 font-bold block uppercase text-[9px]">Acqua Minerale (1L)</span>
+                            <span id="bev-spec-water" class="font-black text-blue-700 font-mono">5 Casse (58 Btg)</span>
+                        </div>
+                    </div>
+
+                    <!-- Fabbisogno Calici & Vetro Servizio -->
+                    <div class="mt-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-1.5 text-xs text-emerald-950">
+                        <div class="font-black flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-emerald-900">
+                            <i class="fa-solid fa-champagne-glasses text-emerald-600"></i>
+                            <span>Allestimento Sala & Vetro per il Servizio</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                            <div>• Flûte Bollicine: <strong id="glass-flute-count" class="font-mono">60 pz</strong></div>
+                            <div>• Calici Vino Bianco: <strong id="glass-white-count" class="font-mono">65 pz</strong></div>
+                            <div>• Calici Vino Rosso: <strong id="glass-red-count" class="font-mono">65 pz</strong></div>
+                            <div>• Tumbler Acqua: <strong id="glass-water-count" class="font-mono">75 pz</strong></div>
+                        </div>
+                    </div>
+
+                    <!-- Azione Copia Ordine Cantina -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="copyBeverageOrderToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-4 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Ordine Cantina per Fornitore F&B</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 2: SPLIT CONTO "TAVOLATA ITALIANA" (TAB SPLIT)              -->
+        <!-- =================================================================== -->
+        <div id="section-split" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hidden">
+            
+            <!-- COLONNA SINISTRA: TOTALE CONTO, COMMENSALI & MODALITA (7 Colonne Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 2.1 DATI BASE CONTO & COMMENSALI -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-receipt"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Conto & Commensali</h2>
+                                <p class="text-[11px] text-slate-500">Totale scontrino da dividere e numero persone al tavolo</p>
+                            </div>
+                        </div>
+                        <span id="split-mode-badge" class="text-xs font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-xl font-mono">Alla Romana</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Totale Conto € -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-bill-total">
+                                    Totale Conto Scontrino (€)
+                                </label>
+                                <span class="text-[10px] font-bold text-slate-400">Importo Cassa</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="stepNumberInput('input-bill-total', -5, 1, 10000)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="1" min="1" max="10000" id="input-bill-total" value="180.00" oninput="recalcSplit()" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepNumberInput('input-bill-total', 5, 1, 10000)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <!-- Preset Conto -->
+                            <div class="flex flex-wrap gap-1 pt-1.5">
+                                <button type="button" onclick="setBillPreset(90.00)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">90€</button>
+                                <button type="button" onclick="setBillPreset(150.00)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">150€</button>
+                                <button type="button" onclick="setBillPreset(240.00)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">240€</button>
+                                <button type="button" onclick="setBillPreset(320.00)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">320€</button>
+                            </div>
+                        </div>
+
+                        <!-- Numero Commensali -->
+                        <div class="space-y-1.5 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-split-people">
+                                    Numero Commensali (Tavolo)
+                                </label>
+                                <span class="text-[10px] font-bold text-slate-400">Persone</span>
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="stepSplitGuests(-1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">-</button>
+                                <input type="number" step="1" min="2" max="30" id="input-split-people" value="6" oninput="onSplitGuestsChanged(this.value)" class="flex-1 text-center font-mono font-black text-xl bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                                <button type="button" onclick="stepSplitGuests(1)" class="w-10 h-10 rounded-xl bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-black text-lg active:scale-95 transition">+</button>
+                            </div>
+                            <!-- Commensali rapidi -->
+                            <div class="flex flex-wrap gap-1 pt-1.5">
+                                <button type="button" onclick="setSplitGuestsCount(4)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">4 pax</button>
+                                <button type="button" onclick="setSplitGuestsCount(6)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">6 pax</button>
+                                <button type="button" onclick="setSplitGuestsCount(8)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">8 pax</button>
+                                <button type="button" onclick="setSplitGuestsCount(10)" class="px-2 py-0.5 rounded bg-white hover:bg-slate-200 border border-slate-200 text-[10px] font-mono font-bold text-slate-700">10 pax</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2.2 MODALITA DIVISIONE & OPZIONI ITALIANE (SCORPORO COPERTO, MANCIA, ARROTONDAMENTO) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-sliders"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Modalità Divisione & Regole Tavolata</h2>
+                                <p class="text-[11px] text-slate-500">Alla romana, per pietanze, scorporo coperti e mance</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Modalita Principale (Romana vs Per Pietanze) -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="setSplitMode('romana')" id="btn-split-romana" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Classica</span>
+                                <i class="fa-solid fa-divide text-xs"></i>
+                            </div>
+                            <h3 class="font-black text-xs">1. Alla Romana</h3>
+                            <p class="text-[10px] text-slate-300 mt-0.5">Divisione paritaria esatta tra tutti</p>
+                        </button>
+
+                        <button type="button" onclick="setSplitMode('pietanze')" id="btn-split-pietanze" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900">Analitica</span>
+                                <i class="fa-solid fa-utensils text-xs text-emerald-600"></i>
+                            </div>
+                            <h3 class="font-black text-xs">2. Per Pietanze</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Assegnazione piatti consumati</p>
+                        </button>
+                    </div>
+
+                    <!-- Opzioni Integrate: Coperto, Mancia, Arrotondamento -->
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                        <!-- 3. Scorporo Coperti -->
+                        <div class="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                            <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="input-cover-charge">
+                                🥖 Coperto a Persona (€)
+                            </label>
+                            <input type="number" step="0.50" min="0" max="20" id="input-cover-charge" value="2.50" oninput="recalcSplit()" class="w-full text-center font-mono font-bold text-sm bg-white border border-slate-300 rounded-xl py-2 px-3 text-slate-900 focus:outline-none focus:border-slate-900 transition">
+                            <p class="text-[10px] text-slate-500 text-center">Fisso applicato a ciascuno</p>
+                        </div>
+
+                        <!-- 4. Calcolo Mancia Tip % -->
+                        <div class="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                            <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="select-tip-pct">
+                                💰 Mancia Cameriere (%)
+                            </label>
+                            <select id="select-tip-pct" onchange="recalcSplit()" class="w-full bg-white border border-slate-300 text-slate-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:border-slate-900 transition">
+                                <option value="0">0% Nessuna mancia</option>
+                                <option value="5">5% Simbolica</option>
+                                <option value="10" selected>10% Servizio Ottimo</option>
+                                <option value="15">15% Servizio Top</option>
+                            </select>
+                            <p class="text-[10px] text-slate-500 text-center">Ripartita sulle quote</p>
+                        </div>
+
+                        <!-- Arrotondamento Gestito -->
+                        <div class="space-y-1.5 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                            <label class="block text-[11px] font-black text-slate-800 uppercase tracking-wider" for="select-rounding-mode">
+                                🎯 Arrotondamento Cassa
+                            </label>
+                            <select id="select-rounding-mode" onchange="recalcSplit()" class="w-full bg-white border border-slate-300 text-slate-900 text-xs font-bold rounded-xl p-2 focus:outline-none focus:border-slate-900 transition">
+                                <option value="exact">Esatto al Centesimo</option>
+                                <option value="euro_up" selected>All'Euro Superiore (+Resto)</option>
+                                <option value="five_up">Ai 5€ Superiori (+Fondo)</option>
+                            </select>
+                            <p class="text-[10px] text-slate-500 text-center">Facilita i contanti al desk</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2.3 GESTIONE PIETANZE CONDIVISE (VISIBILE IN MODALITA PIETANZE) -->
+                <section id="section-dishes-manager" class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4 hidden">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-plate-wheat text-emerald-600 text-xs"></i>
+                            <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">Elenco Pietanze & Assegnazione Commensali</h3>
+                        </div>
+                        <button type="button" onclick="addDishRow()" class="bg-slate-900 hover:bg-black text-white text-[10px] font-black px-3 py-1.5 rounded-xl transition shadow-sm flex items-center gap-1">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Aggiungi Voce</span>
+                        </button>
+                    </div>
+
+                    <!-- Preset Rapidi Menu -->
+                    <div class="flex flex-wrap gap-1.5 pb-2">
+                        <span class="text-[10px] font-black text-slate-400 uppercase py-1">Preset Tipici:</span>
+                        <button type="button" onclick="applyMenuPreset('pizzeria')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700">🍕 Pizzeria (Pizze + Birre + Dolci)</button>
+                        <button type="button" onclick="applyMenuPreset('trattoria')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700">🍝 Trattoria (Antipasti misti + Primi + Vino)</button>
+                    </div>
+
+                    <!-- Container Righe Pietanze Dinamiche -->
+                    <div id="dishes-list-container" class="space-y-3">
+                        <!-- Popolato dinamicamente da JS -->
+                    </div>
+
+                    <!-- Quadratura Conto Pietanze vs Scontrino -->
+                    <div id="dishes-balance-box" class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs font-mono">
+                        <div>
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Somma Pietanze Inserite:</span>
+                            <span id="dishes-total-sum" class="font-black text-slate-900 text-sm">€ 0.00</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-slate-500 block text-[10px] uppercase font-bold">Stato Quadratura:</span>
+                            <span id="dishes-balance-status" class="font-black text-emerald-600">QUADRATO 🟢</span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: LETTURA LIVE QUOTE & RIEPILOGO WHATSAPP (5 Colonne Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-36">
+
+                <!-- CARD PRINCIPALE QUOTA A TESTA LIVE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 pulse-soft"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Quota Commensale Target</h2>
+                        </div>
+                        <span id="split-summary-badge" class="text-[10px] font-mono font-black text-emerald-900 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-lg">ALLA ROMANA</span>
+                    </div>
+
+                    <!-- Box Display Digitale Quota -->
+                    <div class="bg-slate-950 rounded-2xl p-5 text-white shadow-md relative overflow-hidden border border-slate-800">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-1">Quota per Persona</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span id="split-main-quota" class="text-4xl sm:text-5xl font-black font-mono tracking-tight text-white">36.00</span>
+                                    <span class="text-lg sm:text-xl font-black text-emerald-400 font-mono">€ / pax</span>
+                                </div>
+                            </div>
+                            <div class="text-right font-mono">
+                                <span class="text-[10px] text-slate-400 uppercase block">Totale Raccolto</span>
+                                <div id="split-total-collected" class="text-sm font-black text-amber-300">€ 216.00</div>
+                                <div id="split-surplus-val" class="text-xs font-bold text-slate-300">Resto: +€ 3.00</div>
+                            </div>
+                        </div>
+
+                        <!-- Barra Dettaglio Composizione Quota -->
+                        <div class="mt-4 pt-3 border-t border-slate-800">
+                            <div class="flex items-center justify-between text-xs mb-1.5">
+                                <span class="text-[11px] text-slate-400 font-bold">Composizione Quota Media:</span>
+                                <span id="split-breakdown-mini" class="font-mono font-black text-emerald-300 text-xs">Cibo €30 + Coperto €2.50 + Mancia €3.50</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabella Dettaglio Commensali Individuali -->
+                    <div class="mt-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider">Quote Singoli Commensali:</span>
+                            <span class="text-[10px] text-slate-400 font-mono" id="split-count-label">6 Persone</span>
+                        </div>
+                        <div id="split-persons-cards-list" class="space-y-1.5 max-h-60 overflow-y-auto no-scrollbar pr-1">
+                            <!-- Popolato dinamicamente da JS -->
+                        </div>
+                    </div>
+
+                    <!-- Azione Copia Riepilogo Tavolata (WhatsApp) -->
+                    <div class="mt-4 pt-3 border-t border-slate-100">
+                        <button type="button" onclick="copySplitSummaryToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-4 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Riepilogo per Gruppo WhatsApp</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="hospitality-toast" class="fixed bottom-6 right-6 z-50 transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toast-text">Dati copiati negli appunti!</span>
+        </div>
+    </div>
+
+    <!-- LOGICA JAVASCRIPT DETERMINISTICA HOSPITALITY -->
+    <script>
+        /* ── INIZIALIZZAZIONE TELEGRAM WEBAPP ── */
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            if (tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(() => goToDeskBoard());
+            }
+        }
+
+        /* ── STATO APPLICATIVO HOSPITALITY ── */
+        let activeTab = 'beverage'; // 'beverage' | 'split'
+
+        // Stato Beverage
+        let selectedEventFormat = 'cena_seduti'; // 'aperitivo' | 'cena_seduti' | 'aziendale' | 'cocktail'
+
+        // Coefficienti standard di consumo per format (per persona netti prima del buffer)
+        const EVENT_CONSUMPTION_STANDARDS = {
+            'aperitivo': {
+                wine_bottles_pax: 0.55,
+                water_liters_pax: 0.50,
+                beer_liters_pax: 0.25,
+                name: 'Aperitivo Rinforzato / Buffet'
+            },
+            'cena_seduti': {
+                wine_bottles_pax: 0.85,
+                water_liters_pax: 1.00,
+                beer_liters_pax: 0.00,
+                name: 'Pranzo o Cena Seduti (Banqueting)'
+            },
+            'aziendale': {
+                wine_bottles_pax: 0.65,
+                water_liters_pax: 0.75,
+                beer_liters_pax: 0.40,
+                name: 'Cena Aziendale / Festa Informale'
+            },
+            'cocktail': {
+                wine_bottles_pax: 0.70,
+                water_liters_pax: 0.75,
+                beer_liters_pax: 0.50,
+                name: 'Cocktail Party Serale'
+            }
+        };
+
+        const WINE_MIX_CONFIGS = {
+            'balanced': { sparkling: 0.40, white: 0.30, red: 0.30, label: '40% Bollicine • 30% Bianco • 30% Rosso' },
+            'seafood':  { sparkling: 0.35, white: 0.50, red: 0.15, label: '35% Bollicine • 50% Bianco • 15% Rosso' },
+            'meat':     { sparkling: 0.25, white: 0.25, red: 0.50, label: '25% Bollicine • 25% Bianco • 50% Rosso' },
+            'sparkling':{ sparkling: 0.60, white: 0.20, red: 0.20, label: '60% Bollicine • 20% Bianco • 20% Rosso' }
+        };
+
+        // Stato Split Conto
+        let selectedSplitMode = 'romana'; // 'romana' | 'pietanze'
+        let splitGuestsCount = 6;
+        let guestNames = ['Marco', 'Sara', 'Luca', 'Elena', 'Davide', 'Chiara'];
+
+        // Pietanze per Modalità B
+        let customDishes = [
+            { id: 1, name: 'Antipasto Misto Salumi & Formaggi', price: 28.00, assigned: [0, 1, 2, 3, 4, 5] },
+            { id: 2, name: 'Bottiglia Chianti Classico DOCG', price: 24.00, assigned: [0, 2, 4] },
+            { id: 3, name: 'Pizza Diavola', price: 10.50, assigned: [0] },
+            { id: 4, name: 'Pizza Margherita', price: 8.50, assigned: [1] },
+            { id: 5, name: 'Tagliata di Manzo al Rosmarino', price: 22.00, assigned: [2] },
+            { id: 6, name: 'Risotto ai Funghi Porcini', price: 16.00, assigned: [3] },
+            { id: 7, name: 'Pizza Capricciosa', price: 11.00, assigned: [4] },
+            { id: 8, name: 'Insalatona Gourmet', price: 12.00, assigned: [5] },
+            { id: 9, name: 'Dolci & Dessert (3 porzioni)', price: 18.00, assigned: [0, 1, 3] },
+            { id: 10, name: 'Caffè & Amari (6 pax)', price: 15.00, assigned: [0, 1, 2, 3, 4, 5] }
+        ];
+
+        /* ── AVVIO DOM ── */
+        document.addEventListener('DOMContentLoaded', () => {
+            recalcBeverage();
+            initSplitGuestNames();
+            renderDishesList();
+            recalcSplit();
+        });
+
+        /* ── GESTIONE TABS ── */
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const btnBev = document.getElementById('tab-btn-beverage');
+            const btnSplit = document.getElementById('tab-btn-split');
+            const secBev = document.getElementById('section-beverage');
+            const secSplit = document.getElementById('section-split');
+
+            if (tabId === 'beverage') {
+                btnBev.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                btnSplit.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                secBev.classList.remove('hidden');
+                secSplit.classList.add('hidden');
+            } else {
+                btnBev.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                btnSplit.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+                secBev.classList.add('hidden');
+                secSplit.classList.remove('hidden');
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── STEPPER GENERICO NUMERI ── */
+        function stepNumberInput(id, step, min, max) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let val = parseFloat(el.value) || 0;
+            val = Math.round((val + step) * 100) / 100;
+            if (min !== undefined && val < min) val = min;
+            if (max !== undefined && val > max) val = max;
+            el.value = val;
+            
+            if (id.startsWith('input-bev')) {
+                recalcBeverage();
+            } else {
+                recalcSplit();
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── GESTIONE BEVERAGE EVENTO ── */
+        function setEventFormat(format) {
+            selectedEventFormat = format;
+            const formats = ['aperitivo', 'cena_seduti', 'aziendale', 'cocktail'];
+
+            formats.forEach(f => {
+                const btn = document.getElementById(`btn-format-${f === 'cena_seduti' ? 'cena' : f}`);
+                if (btn) {
+                    if (f === format) {
+                        btn.className = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+                        const badge = btn.querySelector('span');
+                        if (badge) badge.className = 'text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white';
+                        const desc = btn.querySelector('p');
+                        if (desc) desc.className = 'text-[10px] text-slate-300 mt-0.5';
+                    } else {
+                        btn.className = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+                        const badge = btn.querySelector('span');
+                        if (badge) badge.className = 'text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800';
+                        const desc = btn.querySelector('p');
+                        if (desc) desc.className = 'text-[10px] text-slate-500 mt-0.5';
+                    }
+                }
+            });
+
+            recalcBeverage();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setGuestsPreset(pax) {
+            const inp = document.getElementById('input-bev-guests');
+            if (inp) inp.value = pax;
+            recalcBeverage();
+            showToast(`Impostati ${pax} ospiti`);
+        }
+
+        /* ── CALCOLO DETERMINISTICO BEVERAGE (F&B MANAGEMENT) ── */
+        function recalcBeverage() {
+            const guests = parseInt(document.getElementById('input-bev-guests')?.value) || 50;
+            const durationHours = parseInt(document.getElementById('select-bev-duration')?.value) || 3;
+            const mixKey = document.getElementById('select-wine-mix')?.value || 'balanced';
+            const safetyBuffer = parseFloat(document.getElementById('select-safety-margin')?.value) || 1.15;
+
+            // Aggiorna badge ospiti
+            const guestsBadge = document.getElementById('beverage-guests-badge');
+            if (guestsBadge) guestsBadge.innerText = `${guests} Ospiti • ${durationHours} Ore`;
+
+            const formatInfo = EVENT_CONSUMPTION_STANDARDS[selectedEventFormat] || EVENT_CONSUMPTION_STANDARDS['cena_seduti'];
+            const mixInfo = WINE_MIX_CONFIGS[mixKey] || WINE_MIX_CONFIGS['balanced'];
+
+            // Moltiplicatore di durata (+12% a 4h, +25% a 5h+)
+            let durationMultiplier = 1.0;
+            if (durationHours === 4) durationMultiplier = 1.12;
+            if (durationHours >= 5) durationMultiplier = 1.25;
+
+            // 1. Bottiglie di Vino Totali Nette
+            const netWineBottles = guests * formatInfo.wine_bottles_pax * durationMultiplier;
+            // Bottiglie Totali con Buffer di Sicurezza
+            const bufferedWineBottles = Math.ceil(netWineBottles * safetyBuffer);
+
+            // 2. Ripartizione Tipologie Vini
+            const sparklingBottles = Math.ceil(bufferedWineBottles * mixInfo.sparkling);
+            const whiteBottles = Math.ceil(bufferedWineBottles * mixInfo.white);
+            const redBottles = Math.ceil(bufferedWineBottles * mixInfo.red);
+            const actualTotalBottles = sparklingBottles + whiteBottles + redBottles;
+
+            // Cartoni da 6 bottiglie
+            const sparklingBoxes = Math.ceil(sparklingBottles / 6);
+            const whiteBoxes = Math.ceil(whiteBottles / 6);
+            const redBoxes = Math.ceil(redBottles / 6);
+            const totalBoxes = sparklingBoxes + whiteBoxes + redBoxes;
+
+            // 3. Fabbisogno Acqua Minerale (Litri)
+            const netWaterLiters = guests * formatInfo.water_liters_pax * durationMultiplier;
+            const bufferedWaterLiters = Math.ceil(netWaterLiters * safetyBuffer);
+            // Casse acqua da 12 bottiglie da 1 Litro (50% naturale, 50% frizzante)
+            const waterBottlesTotal = bufferedWaterLiters;
+            const waterCasesTotal = Math.ceil(waterBottlesTotal / 12);
+            const waterCasesStill = Math.ceil(waterCasesTotal / 2);
+            const waterCasesSparkling = waterCasesTotal - waterCasesStill;
+
+            // 4. Stima Calici & Bicchieri
+            const fluteCount = Math.ceil(guests * 1.2);
+            const whiteGlassCount = Math.ceil(guests * 1.3);
+            const redGlassCount = Math.ceil(guests * 1.3);
+            const waterTumblerCount = Math.ceil(guests * 1.5);
+            const totalServings = Math.round(actualTotalBottles * 6);
+
+            // Aggiornamento UI
+            const totalBtgEl = document.getElementById('bev-total-bottles');
+            const totalBoxesEl = document.getElementById('bev-total-boxes');
+            const totalServingsEl = document.getElementById('bev-total-servings');
+            const mixLabelEl = document.getElementById('bev-mix-ratios-lbl');
+            const safetyTagEl = document.getElementById('bev-safety-tag');
+
+            if (totalBtgEl) totalBtgEl.innerText = actualTotalBottles;
+            if (totalBoxesEl) totalBoxesEl.innerText = `${totalBoxes} Cartoni`;
+            if (totalServingsEl) totalServingsEl.innerText = `~${totalServings} Calici`;
+            if (mixLabelEl) mixLabelEl.innerText = mixInfo.label;
+            
+            const bufferPct = Math.round((safetyBuffer - 1.0) * 100);
+            if (safetyTagEl) safetyTagEl.innerText = bufferPct > 0 ? `+${bufferPct}% BUFFER` : 'NETTO 0%';
+
+            // Barre Percentuali
+            const barSpk = document.getElementById('bev-bar-sparkling');
+            const barWht = document.getElementById('bev-bar-white');
+            const barRed = document.getElementById('bev-bar-red');
+            const pctSpk = document.getElementById('pct-spk-lbl');
+            const pctWht = document.getElementById('pct-wht-lbl');
+            const pctRed = document.getElementById('pct-red-lbl');
+
+            if (barSpk) barSpk.style.width = `${mixInfo.sparkling * 100}%`;
+            if (barWht) barWht.style.width = `${mixInfo.white * 100}%`;
+            if (barRed) barRed.style.width = `${mixInfo.red * 100}%`;
+            if (pctSpk) pctSpk.innerText = `${Math.round(mixInfo.sparkling * 100)}%`;
+            if (pctWht) pctWht.innerText = `${Math.round(mixInfo.white * 100)}%`;
+            if (pctRed) pctRed.innerText = `${Math.round(mixInfo.red * 100)}%`;
+
+            // Specifiche Secondarie
+            const specSpk = document.getElementById('bev-spec-sparkling');
+            const specWht = document.getElementById('bev-spec-white');
+            const specRed = document.getElementById('bev-spec-red');
+            const specWat = document.getElementById('bev-spec-water');
+
+            if (specSpk) specSpk.innerText = `${sparklingBottles} Btg (${sparklingBoxes} Cartoni)`;
+            if (specWht) specWht.innerText = `${whiteBottles} Btg (${whiteBoxes} Cartoni)`;
+            if (specRed) specRed.innerText = `${redBottles} Btg (${redBoxes} Cartoni)`;
+            if (specWat) specWat.innerText = `${waterCasesTotal} Casse (${waterBottlesTotal}L)`;
+
+            // Calici
+            const gFlute = document.getElementById('glass-flute-count');
+            const gWhite = document.getElementById('glass-white-count');
+            const gRed = document.getElementById('glass-red-count');
+            const gWater = document.getElementById('glass-water-count');
+
+            if (gFlute) gFlute.innerText = `${fluteCount} pz`;
+            if (gWhite) gWhite.innerText = `${whiteGlassCount} pz`;
+            if (gRed) gRed.innerText = `${redGlassCount} pz`;
+            if (gWater) gWater.innerText = `${waterTumblerCount} pz`;
+
+            // Render Tabella Breakdown Fornitore
+            renderBeverageTable([
+                { name: '🍾 Prosecco / Spumante DOC', net: Math.round(netWineBottles * mixInfo.sparkling * 10)/10, buffered: sparklingBottles, boxes: `${sparklingBoxes} Cartoni (6x)`, servings: sparklingBottles * 7 },
+                { name: '🍷 Vino Bianco DOC / IGT', net: Math.round(netWineBottles * mixInfo.white * 10)/10, buffered: whiteBottles, boxes: `${whiteBoxes} Cartoni (6x)`, servings: whiteBottles * 6 },
+                { name: '🍷 Vino Rosso DOC / IGT', net: Math.round(netWineBottles * mixInfo.red * 10)/10, buffered: redBottles, boxes: `${redBoxes} Cartoni (6x)`, servings: redBottles * 6 },
+                { name: '💧 Acqua Naturale (1L)', net: Math.round(netWaterLiters * 0.5), buffered: Math.ceil(bufferedWaterLiters * 0.5), boxes: `${waterCasesStill} Casse (12x1L)`, servings: '-' },
+                { name: '💧 Acqua Frizzante (1L)', net: Math.round(netWaterLiters * 0.5), buffered: Math.ceil(bufferedWaterLiters * 0.5), boxes: `${waterCasesSparkling} Casse (12x1L)`, servings: '-' }
+            ]);
+        }
+
+        function renderBeverageTable(rows) {
+            const tbody = document.getElementById('beverage-breakdown-table');
+            if (!tbody) return;
+
+            tbody.innerHTML = rows.map(r => `
+                <tr class="hover:bg-slate-50 text-slate-700">
+                    <td class="py-2.5 px-2 font-bold text-slate-900">${r.name}</td>
+                    <td class="py-2.5 px-2 text-right text-slate-500">${r.net} btg</td>
+                    <td class="py-2.5 px-2 text-right font-black text-emerald-700">${r.buffered} btg</td>
+                    <td class="py-2.5 px-2 text-right font-bold text-slate-800">${r.boxes}</td>
+                    <td class="py-2.5 px-2 text-right text-slate-500">${r.servings}</td>
+                </tr>
+            `).join('');
+        }
+
+        /* ── GESTIONE SPLIT CONTO TAVOLATA ITALIANA ── */
+        function setSplitMode(mode) {
+            selectedSplitMode = mode;
+            const btnRomana = document.getElementById('btn-split-romana');
+            const btnPietanze = document.getElementById('btn-split-pietanze');
+            const secDishes = document.getElementById('section-dishes-manager');
+            const badge = document.getElementById('split-mode-badge');
+            const summaryBadge = document.getElementById('split-summary-badge');
+
+            const activeClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+            const inactiveClass = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+
+            if (btnRomana) btnRomana.className = mode === 'romana' ? activeClass : inactiveClass;
+            if (btnPietanze) btnPietanze.className = mode === 'pietanze' ? activeClass : inactiveClass;
+
+            if (badge) badge.innerText = mode === 'romana' ? 'Alla Romana' : 'Per Pietanze';
+            if (summaryBadge) summaryBadge.innerText = mode === 'romana' ? 'ALLA ROMANA' : 'PER PIETANZE';
+
+            if (secDishes) {
+                if (mode === 'pietanze') {
+                    secDishes.classList.remove('hidden');
+                } else {
+                    secDishes.classList.add('hidden');
+                }
+            }
+
+            recalcSplit();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setBillPreset(val) {
+            const inp = document.getElementById('input-bill-total');
+            if (inp) inp.value = val.toFixed(2);
+            recalcSplit();
+            showToast(`Totale conto impostato a € ${val.toFixed(2)}`);
+        }
+
+        function setSplitGuestsCount(n) {
+            splitGuestsCount = parseInt(n) || 6;
+            const inp = document.getElementById('input-split-people');
+            if (inp) inp.value = splitGuestsCount;
+            initSplitGuestNames();
+            renderDishesList();
+            recalcSplit();
+        }
+
+        function stepSplitGuests(delta) {
+            let n = splitGuestsCount + delta;
+            if (n < 2) n = 2;
+            if (n > 30) n = 30;
+            setSplitGuestsCount(n);
+        }
+
+        function onSplitGuestsChanged(val) {
+            let n = parseInt(val) || 6;
+            if (n < 2) n = 2;
+            if (n > 30) n = 30;
+            splitGuestsCount = n;
+            initSplitGuestNames();
+            renderDishesList();
+            recalcSplit();
+        }
+
+        function initSplitGuestNames() {
+            const defaultNames = ['Marco', 'Sara', 'Luca', 'Elena', 'Davide', 'Chiara', 'Matteo', 'Giulia', 'Simone', 'Anna', 'Fabio', 'Laura'];
+            guestNames = [];
+            for (let i = 0; i < splitGuestsCount; i++) {
+                guestNames.push(defaultNames[i] || `Persona ${i + 1}`);
+            }
+        }
+
+        function renderDishesList() {
+            const container = document.getElementById('dishes-list-container');
+            if (!container) return;
+
+            container.innerHTML = customDishes.map((dish, dIdx) => {
+                const pillsHtml = guestNames.map((name, gIdx) => {
+                    const isChecked = dish.assigned.includes(gIdx);
+                    const pillClass = isChecked 
+                        ? 'bg-slate-900 text-white font-bold' 
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200';
+
+                    return `
+                        <button type="button" onclick="toggleDishGuest(${dish.id}, ${gIdx})" class="px-2 py-1 rounded-lg text-[10px] transition ${pillClass}">
+                            ${name}
+                        </button>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <input type="text" value="${dish.name}" onchange="updateDishName(${dish.id}, this.value)" class="flex-1 bg-white border border-slate-200 text-slate-900 font-bold text-xs rounded-xl p-2 focus:outline-none focus:border-slate-900">
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs font-bold text-slate-500">€</span>
+                                <input type="number" step="0.50" value="${dish.price.toFixed(2)}" onchange="updateDishPrice(${dish.id}, this.value)" class="w-20 text-center font-mono font-black text-xs bg-white border border-slate-200 text-slate-900 rounded-xl p-2 focus:outline-none focus:border-slate-900">
+                                <button type="button" onclick="removeDishRow(${dish.id})" class="w-8 h-8 rounded-xl bg-slate-200 hover:bg-rose-100 hover:text-rose-700 text-slate-600 flex items-center justify-center transition">
+                                    <i class="fa-solid fa-trash text-[10px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-[9px] font-black text-slate-400 uppercase mr-1">Chi divide:</span>
+                            <button type="button" onclick="toggleDishAllGuests(${dish.id})" class="px-2 py-1 rounded-lg text-[10px] bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold">
+                                👥 Tutti
+                            </button>
+                            ${pillsHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addDishRow() {
+            const nextId = customDishes.length > 0 ? Math.max(...customDishes.map(d => d.id)) + 1 : 1;
+            const allGuestIndices = guestNames.map((_, idx) => idx);
+            customDishes.push({
+                id: nextId,
+                name: `Piatto / Voce #${nextId}`,
+                price: 12.00,
+                assigned: allGuestIndices
+            });
+            renderDishesList();
+            recalcSplit();
+            showToast('Nuova voce aggiunta!');
+        }
+
+        function removeDishRow(id) {
+            customDishes = customDishes.filter(d => d.id !== id);
+            renderDishesList();
+            recalcSplit();
+        }
+
+        function updateDishName(id, val) {
+            const dish = customDishes.find(d => d.id === id);
+            if (dish) dish.name = val;
+            recalcSplit();
+        }
+
+        function updateDishPrice(id, val) {
+            const dish = customDishes.find(d => d.id === id);
+            if (dish) dish.price = parseFloat(val) || 0;
+            recalcSplit();
+        }
+
+        function toggleDishGuest(dishId, guestIdx) {
+            const dish = customDishes.find(d => d.id === dishId);
+            if (!dish) return;
+
+            if (dish.assigned.includes(guestIdx)) {
+                dish.assigned = dish.assigned.filter(idx => idx !== guestIdx);
+            } else {
+                dish.assigned.push(guestIdx);
+            }
+
+            renderDishesList();
+            recalcSplit();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function toggleDishAllGuests(dishId) {
+            const dish = customDishes.find(d => d.id === dishId);
+            if (!dish) return;
+
+            const allIndices = guestNames.map((_, idx) => idx);
+            if (dish.assigned.length === allIndices.length) {
+                dish.assigned = [];
+            } else {
+                dish.assigned = allIndices;
+            }
+
+            renderDishesList();
+            recalcSplit();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function applyMenuPreset(type) {
+            if (type === 'pizzeria') {
+                customDishes = [
+                    { id: 1, name: 'Pizza Margherita', price: 8.50, assigned: [0] },
+                    { id: 2, name: 'Pizza Diavola', price: 10.50, assigned: [1] },
+                    { id: 3, name: 'Pizza 4 Formaggi', price: 11.50, assigned: [2] },
+                    { id: 4, name: 'Pizza Capricciosa', price: 11.00, assigned: [3 % splitGuestsCount] },
+                    { id: 5, name: 'Fritto Misto / Suppli Condivisi', price: 18.00, assigned: guestNames.map((_, i) => i) },
+                    { id: 6, name: 'Caraffa Birra Bionda 1.5L', price: 15.00, assigned: [0, 1, 2] },
+                    { id: 7, name: 'Acque & Bevande', price: 12.00, assigned: guestNames.map((_, i) => i) },
+                    { id: 8, name: 'Dolci della Casa', price: 20.00, assigned: [0, 1, 3 % splitGuestsCount] }
+                ];
+            } else {
+                customDishes = [
+                    { id: 1, name: 'Gran Tagliere Antipasto Misto', price: 32.00, assigned: guestNames.map((_, i) => i) },
+                    { id: 2, name: 'Primi Piatti di Pasta Fresca', price: 48.00, assigned: guestNames.map((_, i) => i) },
+                    { id: 3, name: 'Secondi di Carne / Tagliata', price: 54.00, assigned: [0, 2, 4 % splitGuestsCount] },
+                    { id: 4, name: 'Bottiglia Vino Rosso Tipico', price: 22.00, assigned: [0, 1, 2, 3 % splitGuestsCount] },
+                    { id: 5, name: 'Acque, Dolci & Caffè', price: 24.00, assigned: guestNames.map((_, i) => i) }
+                ];
+            }
+
+            // Calcola somma totale piatti e aggiorna input bill
+            const totalDishes = customDishes.reduce((acc, d) => acc + d.price, 0);
+            const coverPerPerson = parseFloat(document.getElementById('input-cover-charge')?.value) || 2.50;
+            const billInput = document.getElementById('input-bill-total');
+            if (billInput) billInput.value = (totalDishes + (coverPerPerson * splitGuestsCount)).toFixed(2);
+
+            renderDishesList();
+            recalcSplit();
+            showToast('Preset menu applicato!');
+        }
+
+        /* ── CALCOLO DETERMINISTICO SPLIT CONTO ── */
+        function recalcSplit() {
+            const billTotal = parseFloat(document.getElementById('input-bill-total')?.value) || 180.00;
+            const coverPerPerson = parseFloat(document.getElementById('input-cover-charge')?.value) || 0.00;
+            const tipPct = parseFloat(document.getElementById('select-tip-pct')?.value) || 0;
+            const roundingMode = document.getElementById('select-rounding-mode')?.value || 'euro_up';
+
+            const countEl = document.getElementById('split-count-label');
+            if (countEl) countEl.innerText = `${splitGuestsCount} Persone`;
+
+            const totalCover = coverPerPerson * splitGuestsCount;
+            const tipAmountTotal = Math.round((billTotal * (tipPct / 100)) * 100) / 100;
+            const grandTotalWithTip = billTotal + tipAmountTotal;
+
+            let personShares = [];
+
+            if (selectedSplitMode === 'romana') {
+                // MODALITÀ A: ALLA ROMANA
+                // Quota esatta per persona
+                const rawQuotaPerPerson = grandTotalWithTip / splitGuestsCount;
+                let roundedQuota = rawQuotaPerPerson;
+
+                if (roundingMode === 'euro_up') {
+                    roundedQuota = Math.ceil(rawQuotaPerPerson);
+                } else if (roundingMode === 'five_up') {
+                    roundedQuota = Math.ceil(rawQuotaPerPerson / 5) * 5;
+                } else {
+                    roundedQuota = Math.round(rawQuotaPerPerson * 100) / 100;
+                }
+
+                for (let i = 0; i < splitGuestsCount; i++) {
+                    personShares.push({
+                        index: i,
+                        name: guestNames[i] || `Persona ${i + 1}`,
+                        foodShare: Math.round(((billTotal - totalCover) / splitGuestsCount) * 100) / 100,
+                        coverShare: coverPerPerson,
+                        tipShare: Math.round((tipAmountTotal / splitGuestsCount) * 100) / 100,
+                        rawTotal: rawQuotaPerPerson,
+                        finalTotal: roundedQuota
+                    });
+                }
+            } else {
+                // MODALITÀ B: PER PIETANZE CONSUMATE
+                let dishSum = 0;
+                let guestFoodShares = new Array(splitGuestsCount).fill(0);
+
+                customDishes.forEach(dish => {
+                    dishSum += dish.price;
+                    const assignedCount = dish.assigned.length;
+                    if (assignedCount > 0) {
+                        const sharePerAssignee = dish.price / assignedCount;
+                        dish.assigned.forEach(gIdx => {
+                            if (gIdx < splitGuestsCount) {
+                                guestFoodShares[gIdx] += sharePerAssignee;
+                            }
+                        });
+                    }
+                });
+
+                // Quadratura piatti
+                const dishesSumEl = document.getElementById('dishes-total-sum');
+                const dishesStatusEl = document.getElementById('dishes-balance-status');
+                if (dishesSumEl) dishesSumEl.innerText = `€ ${dishSum.toFixed(2)}`;
+
+                const netBillForFood = billTotal - totalCover;
+                const deltaFood = Math.round((dishSum - netBillForFood) * 100) / 100;
+
+                if (dishesStatusEl) {
+                    if (Math.abs(deltaFood) < 0.05) {
+                        dishesStatusEl.innerText = 'QUADRATO 🟢';
+                        dishesStatusEl.className = 'font-black text-emerald-600';
+                    } else if (deltaFood < 0) {
+                        dishesStatusEl.innerText = `MANCANO € ${Math.abs(deltaFood).toFixed(2)} 🟡`;
+                        dishesStatusEl.className = 'font-black text-amber-600';
+                    } else {
+                        dishesStatusEl.innerText = `ECCESSO € ${deltaFood.toFixed(2)} 🔴`;
+                        dishesStatusEl.className = 'font-black text-rose-600';
+                    }
+                }
+
+                for (let i = 0; i < splitGuestsCount; i++) {
+                    const guestFood = guestFoodShares[i] || 0;
+                    // Proporzione mancia in base a quanto consumato
+                    const guestFoodRatio = dishSum > 0 ? (guestFood / dishSum) : (1 / splitGuestsCount);
+                    const guestTip = Math.round((tipAmountTotal * guestFoodRatio) * 100) / 100;
+                    const rawTotal = guestFood + coverPerPerson + guestTip;
+
+                    let roundedQuota = rawTotal;
+                    if (roundingMode === 'euro_up') {
+                        roundedQuota = Math.ceil(rawTotal);
+                    } else if (roundingMode === 'five_up') {
+                        roundedQuota = Math.ceil(rawTotal / 5) * 5;
+                    } else {
+                        roundedQuota = Math.round(rawTotal * 100) / 100;
+                    }
+
+                    personShares.push({
+                        index: i,
+                        name: guestNames[i] || `Persona ${i + 1}`,
+                        foodShare: Math.round(guestFood * 100) / 100,
+                        coverShare: coverPerPerson,
+                        tipShare: guestTip,
+                        rawTotal: rawTotal,
+                        finalTotal: roundedQuota
+                    });
+                }
+            }
+
+            // Totali complessivi raccolti
+            const totalCollected = personShares.reduce((acc, p) => acc + p.finalTotal, 0);
+            const surplus = Math.round((totalCollected - grandTotalWithTip) * 100) / 100;
+            const avgQuota = personShares.reduce((acc, p) => acc + p.finalTotal, 0) / splitGuestsCount;
+
+            // Aggiorna UI Output
+            const mainQuotaEl = document.getElementById('split-main-quota');
+            const totalCollectedEl = document.getElementById('split-total-collected');
+            const surplusEl = document.getElementById('split-surplus-val');
+            const miniBreakdownEl = document.getElementById('split-breakdown-mini');
+
+            if (mainQuotaEl) mainQuotaEl.innerText = avgQuota.toFixed(2);
+            if (totalCollectedEl) totalCollectedEl.innerText = `€ ${totalCollected.toFixed(2)}`;
+            if (surplusEl) {
+                const sign = surplus >= 0 ? '+' : '';
+                surplusEl.innerText = `Resto/Fondo: ${sign}€ ${surplus.toFixed(2)}`;
+            }
+
+            if (miniBreakdownEl) {
+                const avgFood = Math.round(((billTotal - totalCover) / splitGuestsCount) * 100) / 100;
+                const avgTip = Math.round((tipAmountTotal / splitGuestsCount) * 100) / 100;
+                miniBreakdownEl.innerText = `Cibo €${avgFood.toFixed(2)} + Coperto €${coverPerPerson.toFixed(2)} + Mancia €${avgTip.toFixed(2)}`;
+            }
+
+            // Render Lista Commensali Individuali
+            renderPersonsCards(personShares);
+        }
+
+        function renderPersonsCards(shares) {
+            const container = document.getElementById('split-persons-cards-list');
+            if (!container) return;
+
+            container.innerHTML = shares.map(p => `
+                <div class="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between text-xs">
+                    <div>
+                        <div class="font-black text-slate-900">${p.name}</div>
+                        <div class="text-[10px] text-slate-500 font-mono">
+                            Cibo: €${p.foodShare.toFixed(2)} • Coperto: €${p.coverShare.toFixed(2)} ${p.tipShare > 0 ? `• Mancia: €${p.tipShare.toFixed(2)}` : ''}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="font-mono font-black text-sm text-emerald-700">€ ${p.finalTotal.toFixed(2)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        /* ── CLIPBOARD: COPIA ORDINE BEVERAGE ── */
+        function copyBeverageOrderToClipboard() {
+            const guests = document.getElementById('input-bev-guests')?.value || '50';
+            const duration = document.getElementById('select-bev-duration')?.value || '3';
+            const formatName = EVENT_CONSUMPTION_STANDARDS[selectedEventFormat]?.name || 'Banqueting';
+            const totalBtg = document.getElementById('bev-total-bottles')?.innerText || '';
+            const totalBoxes = document.getElementById('bev-total-boxes')?.innerText || '';
+            const spk = document.getElementById('bev-spec-sparkling')?.innerText || '';
+            const wht = document.getElementById('bev-spec-white')?.innerText || '';
+            const red = document.getElementById('bev-spec-red')?.innerText || '';
+            const wat = document.getElementById('bev-spec-water')?.innerText || '';
+
+            const dateStr = new Date().toLocaleDateString('it-IT');
+
+            const text = `🍷 SITEBOS HOSPITALITY — ORDINE PRELIEVO CANTINA & BEVERAGE
+Data Evento: ${dateStr}
+Tipologia Evento: ${formatName}
+Invitati: ${guests} Coperti | Durata: ${duration} Ore
+Margine di Sicurezza Applicato: +15% (Consigliato ODS)
+--------------------------------------------------
+📦 TOTALE VINI DA ORDINARE: ${totalBtg} Btg (${totalBoxes})
+- 🍾 Prosecco / Bollicine: ${spk}
+- 🍷 Vino Bianco DOC: ${wht}
+- 🍷 Vino Rosso DOC: ${red}
+- 💧 Acqua Minerale: ${wat}
+--------------------------------------------------
+🥂 Stima Fabbisogno Allestimento Calici:
+Flûte: ${document.getElementById('glass-flute-count')?.innerText || ''} | Calici Bianco: ${document.getElementById('glass-white-count')?.innerText || ''} | Calici Rosso: ${document.getElementById('glass-red-count')?.innerText || ''} | Tumbler: ${document.getElementById('glass-water-count')?.innerText || ''}
+--------------------------------------------------
+⚠️ NOTA ASSISTIVA: Strumento di supporto operativo per la pianificazione sala/cantina. Non costituisce documento contabile o fiscale (SiteBoS non gestisce fatturazione o incassi).`;
+
+            copyTextToClipboard(text, 'Ordine fornitore beverage copiato!');
+        }
+
+        /* ── CLIPBOARD: COPIA SPLIT CONTO (WHATSAPP) ── */
+        function copySplitSummaryToClipboard() {
+            const billTotal = document.getElementById('input-bill-total')?.value || '';
+            const cover = document.getElementById('input-cover-charge')?.value || '0.00';
+            const tipPct = document.getElementById('select-tip-pct')?.value || '0';
+            const avgQuota = document.getElementById('split-main-quota')?.innerText || '';
+            const totalCollected = document.getElementById('split-total-collected')?.innerText || '';
+            const surplus = document.getElementById('split-surplus-val')?.innerText || '';
+
+            // Raccogli dettaglio persone
+            const personsList = document.querySelectorAll('#split-persons-cards-list > div');
+            let personsDetailText = '';
+            personsList.forEach(card => {
+                const name = card.querySelector('.font-black')?.innerText || '';
+                const quota = card.querySelector('.text-emerald-700')?.innerText || '';
+                const sub = card.querySelector('.text-slate-500')?.innerText || '';
+                personsDetailText += `👤 ${name}: ${quota} (${sub})\n`;
+            });
+
+            const dateStr = new Date().toLocaleDateString('it-IT');
+
+            const text = `🧾 SITEBOS HOSPITALITY — SPLIT CONTO TAVOLATA
+Data: ${dateStr}
+Totale Scontrino: € ${billTotal}
+Coperto: € ${cover} / pax | Mancia Cameriere: ${tipPct}%
+Modalità: ${selectedSplitMode === 'romana' ? 'Alla Romana' : 'Per Pietanze'}
+--------------------------------------------------
+🎯 QUOTA A PERSONA: € ${avgQuota}
+Totale Raccolto: ${totalCollected} (${surplus})
+--------------------------------------------------
+QUOTE INDIVIDUALI:
+${personsDetailText}--------------------------------------------------
+⚠️ NOTA ASSISTIVA: Calcolo orientativo ad uso interno tavolo/sala. Non costituisce documento fiscale né transazione di pagamento.`;
+
+            copyTextToClipboard(text, 'Riepilogo quote per WhatsApp copiato!');
+        }
+
+        function copyTextToClipboard(text, successMsg) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(successMsg);
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => {
+                    fallbackCopyText(text, successMsg);
+                });
+            } else {
+                fallbackCopyText(text, successMsg);
+            }
+        }
+
+        function fallbackCopyText(text, successMsg) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(successMsg);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        /* ── REIMPOSTAZIONE SCHEDE ── */
+        function resetActiveTab() {
+            if (activeTab === 'beverage') {
+                selectedEventFormat = 'cena_seduti';
+                setEventFormat('cena_seduti');
+
+                const gInp = document.getElementById('input-bev-guests');
+                const dSel = document.getElementById('select-bev-duration');
+                const mSel = document.getElementById('select-wine-mix');
+                const sSel = document.getElementById('select-safety-margin');
+
+                if (gInp) gInp.value = '50';
+                if (dSel) dSel.value = '3';
+                if (mSel) mSel.value = 'balanced';
+                if (sSel) sSel.value = '1.15';
+
+                recalcBeverage();
+                showToast('Calcolatore beverage reimpostato!');
+            } else {
+                selectedSplitMode = 'romana';
+                setSplitMode('romana');
+                splitGuestsCount = 6;
+
+                const bInp = document.getElementById('input-bill-total');
+                const pInp = document.getElementById('input-split-people');
+                const cInp = document.getElementById('input-cover-charge');
+                const tSel = document.getElementById('select-tip-pct');
+                const rSel = document.getElementById('select-rounding-mode');
+
+                if (bInp) bInp.value = '180.00';
+                if (pInp) pInp.value = '6';
+                if (cInp) cInp.value = '2.50';
+                if (tSel) tSel.value = '10';
+                if (rSel) rSel.value = 'euro_up';
+
+                initSplitGuestNames();
+                recalcSplit();
+                showToast('Split conto tavolata reimpostato!');
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        /* ── NAVIGAZIONE DESK BOARD ── */
+        function goToDeskBoard() {
+            const urlParams = window.location.search || '';
+            window.location.href = 'desk_board.html' + urlParams;
+        }
+
+        /* ── UTILITY TOAST ── */
+        function showToast(msg) {
+            const toast = document.getElementById('hospitality-toast');
+            const text = document.getElementById('toast-text');
+            if (toast && text) {
+                text.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>

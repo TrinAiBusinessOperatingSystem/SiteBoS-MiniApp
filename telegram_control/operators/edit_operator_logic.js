@@ -5,7 +5,7 @@ const ash = window.TwaGuard?.requireAsh?.();
 window.TwaGuard?.cleanupUrl?.(['ash']);
 
 // Config
-const API_ENDPOINT = 'https://trinai.api.workflow.dcmake.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
+const API_ENDPOINT = 'https://prod.workflow.trinai.it/webhook/2e3376d7-6a5a-4fc1-a908-4b8b9501c583';
 
 // ash is the only URL context
 

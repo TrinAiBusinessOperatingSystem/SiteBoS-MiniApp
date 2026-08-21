@@ -1,0 +1,3262 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Agente Tintometria & Colorimetria</title>
+    
+    <!-- Telegram WebApp SDK & SiteBoS TWA Guard -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    
+    <!-- Tailwind CSS, Google Fonts & FontAwesome 6 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fdf2f8',
+                            100: '#fce7f3',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                            900: '#831843',
+                        }
+                    }
+                }
+            }
+        };
+
+        // Verifica sessione Telegram WebApp reale all'avvio con fallback URL/localStorage
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const ash = urlParams.get('ash');
+            
+            // Se fuori da Telegram e senza token ash valido, redirect coerente all'indice
+            if (!isTelegramSession && !ash) {
+                const currentPath = window.location.pathname;
+                let redirectPath = "desk_board.html";
+                if (currentPath.includes('/telegram_control/')) {
+                    const parts = currentPath.split('/telegram_control/');
+                    const subPath = parts[1] || '';
+                    if (subPath.includes('/')) {
+                        redirectPath = "../index.html";
+                    } else {
+                        redirectPath = "desk_board.html";
+                    }
+                }
+                // Lasciamo procedere se c'è sessione locale per sviluppo o consultazione operatore
+                console.log('ℹ️ [Tintometria] Inizializzazione sessione operatore.');
+            }
+        })();
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .custom-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 10px;
+            border-radius: 9999px;
+            background: linear-gradient(to right, #1a1a1a 0%, #3d2f1f 20%, #6b4e3d 40%, #8b6f47 60%, #c9a86a 80%, #f0e6d2 100%);
+            outline: none;
+        }
+        
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #0f172a;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        
+        .custom-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+            border-color: #db2777;
+        }
+
+        .custom-slider::-moz-range-thumb {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #0f172a;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+        }
+
+        .reflect-swatch-card {
+            transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .reflect-swatch-card:hover {
+            transform: translateY(-2px);
+        }
+        .reflect-swatch-card:active {
+            transform: scale(0.96);
+        }
+
+        .tab-active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        }
+
+        .tab-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+        .tab-inactive:hover {
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .card-interactive {
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-interactive:active {
+            transform: scale(0.98);
+        }
+
+        .pulse-subtle {
+            animation: pulseSubtle 2.5s infinite ease-in-out;
+        }
+        @keyframes pulseSubtle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.02); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER PRINCIPALE TINTOMETRIA (LIGHT TAILWIND THEME) -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur shrink-0 shadow-sm">
+        <!-- Logo & Titolo -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center font-black shadow-sm shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="font-black text-slate-900 text-base tracking-tight">SiteBoS Tintometria & Beauty Desk</h1>
+                    <span class="text-[10px] font-black text-pink-900 bg-pink-100 border border-pink-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Verticale Beauty</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Calcolo Locale Puro • 100% Client-Side</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-semibold hidden md:inline">• Formule, Timer Trattamenti & Dosatore Monodose</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button id="btn-header-translate" onclick="openTranslationModal()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-900 active:scale-95 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5" title="Traduci Formula tra Sistemi Internazionali">
+                <i class="fa-solid fa-language text-slate-700"></i>
+                <span class="hidden sm:inline">Traduci Formula</span>
+            </button>
+
+            <button onclick="resetCurrentActiveTab()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 active:scale-95 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5" title="Reimposta la scheda corrente ai valori predefiniti">
+                <i class="fa-solid fa-rotate-left text-xs"></i>
+                <span class="hidden sm:inline">Reimposta</span>
+            </button>
+
+            <button onclick="goToDeskBoard()" class="bg-slate-900 hover:bg-black text-white text-xs font-black px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-desktop"></i>
+                <span>Desk Board</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- BARRA DI NAVIGAZIONE TAB BEAUTY -->
+    <div class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sticky top-[69px] z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+            <button type="button" id="tab-btn-tintometria" onclick="switchBeautyTab('tintometria')" class="tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles text-pink-500"></i>
+                <span>1. Tintometria & Colorimetria</span>
+            </button>
+
+            <button type="button" id="tab-btn-timer" onclick="switchBeautyTab('timer')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0 relative">
+                <i class="fa-solid fa-stopwatch text-amber-500"></i>
+                <span>2. Timer Attivazione & Neutralizzatori</span>
+                <span id="tab-timer-badge" class="hidden ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-black bg-pink-600 text-white animate-pulse">00:00</span>
+            </button>
+
+            <button type="button" id="tab-btn-dilution" onclick="switchBeautyTab('dilution')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-flask text-blue-500"></i>
+                <span>3. Calcolatore Diluizione Monodose</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WORKSPACE PRINCIPALE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6">
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 1: TINTOMETRIA & FORMULE COLORE (TAB TINTOMETRIA)          -->
+        <!-- =================================================================== -->
+        <div id="section-tintometria" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- COLONNA SINISTRA: CONFIGURAZIONE PARAMETRI COLORE (7 Colonne su Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1. SELEZIONE SISTEMA DI NUMERAZIONE COLORE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Sistema di Numerazione</h2>
+                    </div>
+                    <span id="current-system-badge" class="text-[10px] font-black text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full uppercase">Standard IT/FR</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <!-- Standard Internazionale -->
+                    <button type="button" onclick="setBrandSystem('standard')" id="btn-sys-standard" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Standard</span>
+                            <span class="text-xs">🌍</span>
+                        </div>
+                        <h3 class="font-black text-xs">Internazionale</h3>
+                        <p class="text-[11px] text-slate-300 mt-0.5">L'Oréal, Inoa, Alfaparf</p>
+                        <div class="mt-2 text-[10px] font-mono font-bold bg-black/30 rounded-lg px-2 py-1 flex items-center justify-between">
+                            <span>Es: 7.43</span>
+                            <span class="text-slate-300">.2=Viola • .6=Rosso</span>
+                        </div>
+                    </button>
+
+                    <!-- Tedesco / Invertito -->
+                    <button type="button" onclick="setBrandSystem('german')" id="btn-sys-german" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">Tedesco</span>
+                            <span class="text-xs">🇩🇪</span>
+                        </div>
+                        <h3 class="font-black text-xs">Invertito (DE)</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Wella, Schwarzkopf</p>
+                        <div class="mt-2 text-[10px] font-mono font-bold bg-slate-50 rounded-lg px-2 py-1 flex items-center justify-between">
+                            <span>Es: 7/43</span>
+                            <span class="text-slate-500">/6=Viola • /4=Rosso</span>
+                        </div>
+                    </button>
+
+                    <!-- Alfabetico USA -->
+                    <button type="button" onclick="setBrandSystem('alphabetic')" id="btn-sys-alphabetic" class="p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">USA</span>
+                            <span class="text-xs">🇺🇸</span>
+                        </div>
+                        <h3 class="font-black text-xs">Alfabetico (USA)</h3>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Matrix, Redken</p>
+                        <div class="mt-2 text-[10px] font-mono font-bold bg-slate-50 rounded-lg px-2 py-1 flex items-center justify-between">
+                            <span>Es: 7CG</span>
+                            <span class="text-slate-500">V=Viola • R=Rosso</span>
+                        </div>
+                    </button>
+                </div>
+            </section>
+
+            <!-- 2. TONO BASE DI PARTENZA (SLIDER 1-10) -->
+            <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-layer-group"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Livello Tono Base</h2>
+                            <p class="text-[11px] text-slate-500">Scala internazionale da 1 (Nero) a 10 (Biondo Platino)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3.5 py-1.5 rounded-2xl">
+                        <span class="text-xs text-slate-500 font-semibold">Altezza Tono:</span>
+                        <span id="tone-level-number" class="text-lg font-black text-slate-900 font-mono">7</span>
+                        <span id="tone-level-name" class="text-xs font-black text-pink-600 bg-pink-50 border border-pink-200 px-2 py-0.5 rounded-lg">Biondo Medio</span>
+                    </div>
+                </div>
+
+                <!-- Slider interattivo -->
+                <div class="py-2 px-1 space-y-4">
+                    <input type="range" id="base-tone-slider" min="1" max="10" value="7" step="1" oninput="onBaseToneChanged(this.value)" class="w-full custom-slider cursor-pointer">
+                    
+                    <!-- Marcatori e pulsanti rapidi tono -->
+                    <div class="grid grid-cols-10 gap-1 text-center">
+                        <button type="button" onclick="setBaseTone(1)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="1 - Nero Corvino">1</button>
+                        <button type="button" onclick="setBaseTone(2)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="2 - Bruno">2</button>
+                        <button type="button" onclick="setBaseTone(3)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="3 - Castano Scuro">3</button>
+                        <button type="button" onclick="setBaseTone(4)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="4 - Castano Medio">4</button>
+                        <button type="button" onclick="setBaseTone(5)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="5 - Castano Chiaro">5</button>
+                        <button type="button" onclick="setBaseTone(6)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="6 - Biondo Scuro">6</button>
+                        <button type="button" onclick="setBaseTone(7)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-slate-900 border-slate-900 text-white shadow-sm" title="7 - Biondo Medio">7</button>
+                        <button type="button" onclick="setBaseTone(8)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="8 - Biondo Chiaro">8</button>
+                        <button type="button" onclick="setBaseTone(9)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="9 - Biondo Chiarissimo">9</button>
+                        <button type="button" onclick="setBaseTone(10)" class="tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900" title="10 - Biondo Platino">10</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. TAVOLOZZA RIFLESSI (PRIMARY / SECONDARY / INTENSIFIED) -->
+            <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3 flex-wrap gap-2">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-palette"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">3. Selezione Riflessi</h2>
+                            <p class="text-[11px] text-slate-500">1° Click: Primario (70%/100%) • 2° Click su altro: Secondario (30%) • Doppio Click: Intensifica</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="clearReflects()" class="text-[10px] font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 rounded-lg transition">
+                            <i class="fa-solid fa-eraser text-[9px] mr-1"></i>Naturale (.0)
+                        </button>
+                        <button type="button" onclick="togglePrimaryIntensified()" id="btn-toggle-intensified" class="text-[10px] font-bold text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 rounded-lg transition">
+                            <i class="fa-solid fa-bolt text-[9px] mr-1"></i>Intensifica Primario
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Griglia Swatch Riflessi -->
+                <div id="reflect-palette-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 pt-1">
+                    <!-- Popolato dinamicamente via JS -->
+                </div>
+
+                <!-- Barra di stato riflessi selezionati -->
+                <div id="reflect-selection-summary" class="mt-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 font-semibold">Composizione:</span>
+                        <span id="lbl-reflect-primary-summary" class="font-black text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-lg">Nessun Riflesso (Puro .0)</span>
+                        <span id="lbl-reflect-secondary-summary" class="hidden font-bold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-lg"></span>
+                    </div>
+                    <div id="badge-temperature-inline" class="font-black px-2.5 py-0.5 rounded-full text-[10px] uppercase border bg-stone-100 text-stone-700 border-stone-300">
+                        NEUTRO
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. TECNICA COLORE, LUNGHEZZA & VOLUME OSSIDANTE -->
+            <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-flask-vial"></i>
+                        </div>
+                        <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">4. Tecnica, Massa & Ossidante</h2>
+                    </div>
+                    <span class="text-[10px] font-bold text-slate-400">Parametri di Miscelazione</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Tecnica di Colorazione -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-color-technique">
+                            Tecnica di Colorazione
+                        </label>
+                        <select id="select-color-technique" onchange="onTechniqueChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                            <optgroup label="Servizi a Copertura / Tinta Totale">
+                                <option value="global" selected>🎨 Tinta Globale (Full Head • Ratio 1:1.5)</option>
+                                <option value="root-touch">🎯 Ritocco Ricrescita (Root Touch-Up • 40% Massa)</option>
+                            </optgroup>
+                            <optgroup label="Tecniche Doppia Ciotola (Multi-Bowl Dual Phase)">
+                                <option value="root-melt">🌑 Root Melt / Shadow Root (Radice Scura + Lunghezze)</option>
+                                <option value="bleach-tone">🧊 Total Bleach & Tone (Decolorazione + Tonalizzante)</option>
+                            </optgroup>
+                            <optgroup label="Schiariture & Tecniche Parziali (Ratio 1:2)">
+                                <option value="balayage">☀️ Balayage / Foilyage (A mano libera)</option>
+                                <option value="shatush">☁️ Shatush (Cotonatura con stacco netto)</option>
+                                <option value="degrade">🌿 Degradé (Sfumatura verticale naturale)</option>
+                                <option value="highlights">✨ Mèches / Highlights (Stagnola classica)</option>
+                                <option value="lowlights">🌙 Lowlights (Colpi di Buio per profondità)</option>
+                                <option value="babylights">👶 Babylights (Micro-tessitura finissima)</option>
+                                <option value="money-piece">💰 Money Piece (Face Framing frontale)</option>
+                                <option value="airtouch">💨 Airtouch (Tecnica phon per biondo freddo)</option>
+                            </optgroup>
+                            <optgroup label="Servizio Rapido Lucidante">
+                                <option value="gloss">✨ Gloss / Lucidante al Lavatesta (30% Massa • 15 min)</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <!-- Lunghezza / Taglio & Massa Stimata -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-hair-length">
+                            Lunghezza Capelli (Massa Base)
+                        </label>
+                        <select id="select-hair-length" onchange="onLengthChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                            <option value="Short">✂️ Capelli Corti (Pixie, Crop, Buzz • ~30g base)</option>
+                            <option value="Medium" selected>💇 Capelli Medi (Bob, Carré, Spalle • ~40g base)</option>
+                            <option value="Long">✨ Capelli Lunghi (Oltre le spalle • ~60g base)</option>
+                            <option value="ExtraLong">👑 Extra Lunghi / Molto Folti (~80g base)</option>
+                        </select>
+                    </div>
+
+                    <!-- Volume Ossidante (Developer) -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-developer-vol">
+                            Volume Ossidante (Developer)
+                        </label>
+                        <select id="select-developer-vol" onchange="onDeveloperChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                            <option value="10">10 Volumi (3%) — Tonalizzazione / Scurire / Tono su Tono</option>
+                            <option value="20" selected>20 Volumi (6%) — Copertura 100% Bianchi / Schiaritura 1-2 Toni</option>
+                            <option value="30">30 Volumi (9%) — Schiaritura 2-3 Toni</option>
+                            <option value="40">40 Volumi (12%) — Schiaritura 3-4 Toni (Super-schiarenti • Ratio 1:2)</option>
+                        </select>
+                    </div>
+
+                    <!-- Presenza Extension / Infoltimento -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-extensions">
+                            Extension / Infoltimento
+                        </label>
+                        <select id="select-extensions" onchange="onExtensionsChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                            <option value="none" selected>❌ Nessuna Extension (Moltiplicatore 1.0x)</option>
+                            <option value="volume-wefts">💪 Infoltimento Wefts (+30% Massa / 1.3x)</option>
+                            <option value="tape-in-length">📏 Allungamento Tape-In (+50% Massa / 1.5x)</option>
+                            <option value="keratin-bonds">🔥 Cheratina Bonds (+40% Massa / 1.4x)</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- COLONNA DESTRA: LABORATORIO LIVE & OUTPUT RICETTA (5 Colonne su Desktop) -->
+        <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
+
+            <!-- CARD RISULTATO FORMULA CROMATICO -->
+            <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-pink-500 pulse-subtle"></span>
+                        <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Formula Colorimetrica</h2>
+                    </div>
+                    <span id="card-formula-system-label" class="text-[10px] font-mono font-bold text-slate-400">STANDARD</span>
+                </div>
+
+                <!-- Box Anteprima Colore & Formula -->
+                <div id="formula-preview-banner" class="rounded-2xl p-5 text-white transition-all duration-300 shadow-md relative overflow-hidden border" style="background: linear-gradient(135deg, #a68a5c 0%, #8b6f47 100%); border-color: #8b6f47;">
+                    <div class="relative z-10 flex items-start justify-between">
+                        <div>
+                            <span class="text-[11px] font-black uppercase tracking-widest text-white/80 block mb-1">Formula Chimica Risultante</span>
+                            <div id="formula-big-code" class="text-3xl sm:text-4xl font-black font-mono tracking-tight drop-shadow-sm">7.0</div>
+                        </div>
+                        <div id="formula-temperature-badge" class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shadow-sm bg-white/90 text-slate-900">
+                            NEUTRO
+                        </div>
+                    </div>
+
+                    <div class="relative z-10 mt-4 pt-3 border-t border-white/20 flex items-center justify-between text-xs">
+                        <div class="font-bold flex items-center gap-1.5" id="formula-descriptive-name">
+                            <i class="fa-solid fa-circle text-[9px]"></i>
+                            <span>Biondo Medio Naturale</span>
+                        </div>
+                        <div id="formula-hex-code" class="font-mono text-[11px] font-bold text-white/90 bg-black/30 px-2 py-0.5 rounded-lg">#A68A5C</div>
+                    </div>
+                </div>
+
+                <!-- Riepilogo Tecnico Compatto -->
+                <div class="grid grid-cols-2 gap-2 mt-4 text-[11px]">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                        <span class="text-slate-400 font-bold block uppercase text-[9px]">Tecnica Applicativa</span>
+                        <span id="summary-technique-name" class="font-black text-slate-800">Tinta Globale</span>
+                    </div>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+                        <span class="text-slate-400 font-bold block uppercase text-[9px]">Massa Calcolata</span>
+                        <span id="summary-mass-value" class="font-black text-slate-800">40g Prodotto Base</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CARD LABORATORIO MISCELAZIONE & RICETTA AL GRAMMO (MULTI-BOWL DUAL PHASE) -->
+            <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Laboratorio Miscelazione</h2>
+                            <p class="text-[10px] text-slate-500">Ricetta esatta al grammo per la bilancia del salone</p>
+                        </div>
+                    </div>
+                    <span id="badge-bowl-count" class="text-[10px] font-black text-pink-900 bg-pink-100 border border-pink-300 px-2 py-0.5 rounded-full uppercase">1 Ciotola</span>
+                </div>
+
+                <!-- Contenitore Ciotole (Popolato dinamicamente da JS) -->
+                <div id="mixing-bowls-container" class="space-y-4">
+                    <!-- Popolato da renderMixingRecipes() -->
+                </div>
+
+                <!-- Azioni Rapide Ricetta -->
+                <div class="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <button type="button" onclick="copyRecipeToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-3 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                        <i class="fa-regular fa-copy"></i>
+                        <span>Copia Ricetta</span>
+                    </button>
+                    <button type="button" onclick="openTranslationModal()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 text-xs font-bold py-3 px-3 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        <span>Converti Brand</span>
+                    </button>
+                </div>
+            </section>
+
+        </div>
+
+        </div> <!-- FINE SEZIONE 1: TINTOMETRIA & COLORIMETRIA -->
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 2: TIMER ATTIVAZIONE TRATTAMENTI & NEUTRALIZZATORI (TAB TIMER) -->
+        <!-- =================================================================== -->
+        <div id="section-timer" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- COLONNA SINISTRA: PRESET, CONFIGURAZIONE FASI & PROTOCOLLI (7 Colonne su Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 2.1 SELEZIONE PRESET TRATTAMENTO PROFESSIONALE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-list-check"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Protocollo Servizio Cabina</h2>
+                                <p class="text-[11px] text-slate-500">Scegli un preset rapido o crea una sequenza libera</p>
+                            </div>
+                        </div>
+                        <span id="active-preset-badge" class="text-[10px] font-black text-pink-900 bg-pink-100 border border-pink-300 px-2.5 py-0.5 rounded-full uppercase">Deco & Toner</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="timer-presets-container">
+                        <!-- Preset rapidi -->
+                        <button type="button" onclick="loadTimerPreset('bleach-tone')" id="btn-preset-bleach-tone" class="p-3 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-base">🧊</span>
+                                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white">4 Fasi • 60m</span>
+                            </div>
+                            <h3 class="font-black text-xs truncate">Deco & Toner</h3>
+                            <p class="text-[10px] text-slate-300 mt-0.5">Schiaritura + Toner + Maschera</p>
+                        </button>
+
+                        <button type="button" onclick="loadTimerPreset('keratin')" id="btn-preset-keratin" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-base">✨</span>
+                                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700">3 Fasi • 40m</span>
+                            </div>
+                            <h3 class="font-black text-xs truncate">Cheratina Termoattiva</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Shampoo + Posa + Sigillante</p>
+                        </button>
+
+                        <button type="button" onclick="loadTimerPreset('permanent-color')" id="btn-preset-permanent-color" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-base">🎨</span>
+                                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700">2 Fasi • 40m</span>
+                            </div>
+                            <h3 class="font-black text-xs truncate">Colore Permanente</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Posa Tinta + Emulsione</p>
+                        </button>
+
+                        <button type="button" onclick="loadTimerPreset('gloss-express')" id="btn-preset-gloss-express" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-base">⚡</span>
+                                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700">1 Fase • 15m</span>
+                            </div>
+                            <h3 class="font-black text-xs truncate">Gloss Express</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Lucidante al lavatesta</p>
+                        </button>
+
+                        <button type="button" onclick="loadTimerPreset('perm-straightening')" id="btn-preset-perm-straightening" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-base">🧪</span>
+                                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700">3 Fasi • 35m</span>
+                            </div>
+                            <h3 class="font-black text-xs truncate">Permanente / Stiratura</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Riduttore + Risciacquo + Neutralizzante</p>
+                        </button>
+
+                        <button type="button" onclick="loadTimerPreset('custom-empty')" id="btn-preset-custom-empty" class="p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-base">➕</span>
+                                <span class="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-pink-100 text-pink-700">Libero</span>
+                            </div>
+                            <h3 class="font-black text-xs truncate">Fasi Personalizzate</h3>
+                            <p class="text-[10px] text-slate-500 mt-0.5">Configura da zero</p>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 2.2 SEQUENZA FASI OPERATIVE CONFIGURABILI (AGGIUNTA & GESTIONE) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Sequenza Fasi Operative</h2>
+                                <p class="text-[11px] text-slate-500">Personalizza nomi, durate e ordine delle fasi</p>
+                            </div>
+                        </div>
+                        <span id="timer-total-phases-badge" class="text-[10px] font-black text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">4 Fasi Totali</span>
+                    </div>
+
+                    <!-- Form Aggiunta Nuova Fase -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                        <div class="text-[11px] font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle text-pink-600"></i>
+                            <span>Aggiungi Nuova Fase al Trattamento</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                            <div class="sm:col-span-7">
+                                <input type="text" id="timer-new-phase-name" placeholder="Nome fase (es. Toner Caldo, Maschera...)" class="w-full bg-white border border-slate-200 text-slate-900 text-xs font-bold rounded-xl p-2.5 focus:outline-none focus:border-slate-900 transition">
+                            </div>
+                            <div class="sm:col-span-3">
+                                <div class="relative">
+                                    <input type="number" id="timer-new-phase-min" min="1" max="180" value="15" placeholder="Min" class="w-full bg-white border border-slate-200 text-slate-900 text-xs font-mono font-black rounded-xl p-2.5 pr-8 focus:outline-none focus:border-slate-900 transition">
+                                    <span class="absolute right-2.5 top-2.5 text-[10px] font-bold text-slate-400">min</span>
+                                </div>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <button type="button" onclick="addCustomPhase()" class="w-full h-full bg-slate-900 hover:bg-black text-white text-xs font-black py-2.5 px-3 rounded-xl transition shadow-sm flex items-center justify-center gap-1.5 active:scale-95">
+                                    <i class="fa-solid fa-plus"></i>
+                                    <span>Aggiungi</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista Fasi Dinamica -->
+                    <div id="timer-phases-list" class="space-y-2.5">
+                        <!-- Popolato dinamicamente via JS renderPhasesList() -->
+                    </div>
+                </section>
+
+                <!-- 2.3 ISTRUZIONI DI MONITORAGGIO & NOTIFICHE -->
+                <section class="bg-amber-50/60 border border-amber-200 rounded-3xl p-4.5 space-y-2 text-xs">
+                    <div class="font-black text-amber-950 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-amber-600 text-sm"></i>
+                        <span>Protocollo Operativo & Notifiche Cabina</span>
+                    </div>
+                    <p class="text-amber-900 leading-relaxed font-semibold">
+                        • <strong>Feedback Acustico & Aptico</strong>: al termine di ogni fase intermedia il sistema emette un doppio beep e vibrazione di avviso. A completamento totale del servizio viene emessa la suoneria conclusiva di fine trattamento.<br>
+                        • <strong>Persistenza di Sottofondo</strong>: il timer continua a conteggiare regolarmente anche se consulti altre schede (Tintometria o Diluizione) in questa stessa pagina.<br>
+                        • <strong>Controllo Visivo</strong>: per i servizi di decolorazione, verificare sempre lo schiarimento del capello ogni 10 minuti.
+                    </p>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: CONSOLE LIVE TIMER & COUNTDOWN (5 Colonne su Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
+
+                <!-- CARD CONSOLE TIMER PRINCIPALE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span id="timer-status-dot" class="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Console Countdown Live</h2>
+                        </div>
+                        <span id="timer-current-phase-badge" class="text-[10px] font-black uppercase text-pink-900 bg-pink-100 border border-pink-300 px-2 py-0.5 rounded-full">Fase 1 di 4</span>
+                    </div>
+
+                    <!-- Box Display Digitale Gigante -->
+                    <div id="timer-display-box" class="rounded-2xl p-6 text-white text-center transition-all duration-300 shadow-md relative overflow-hidden bg-slate-900 border border-slate-800">
+                        <div class="text-[11px] font-black uppercase tracking-widest text-slate-300 mb-1 flex items-center justify-center gap-1.5">
+                            <span id="timer-display-phase-name">Decolorazione Schiaritura</span>
+                        </div>
+
+                        <!-- Clock Big Display MM:SS -->
+                        <div id="timer-clock-digits" class="text-5xl sm:text-6xl font-black font-mono tracking-tight text-pink-400 drop-shadow-sm my-2 select-all">
+                            35:00
+                        </div>
+
+                        <!-- Barra di Progresso Fase Attiva -->
+                        <div class="mt-3 space-y-1">
+                            <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                                <div id="timer-phase-progress-bar" class="bg-gradient-to-r from-pink-500 to-rose-400 h-full rounded-full transition-all duration-300" style="width: 0%;"></div>
+                            </div>
+                            <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono font-bold pt-1">
+                                <span>Avanzamento Fase</span>
+                                <span id="timer-phase-progress-pct">0%</span>
+                            </div>
+                        </div>
+
+                        <!-- Avanzamento Trattamento Complessivo -->
+                        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
+                            <span class="text-[10px] uppercase font-bold text-slate-400">Trattamento Totale:</span>
+                            <span id="timer-overall-time-summary" class="font-mono font-bold text-slate-200">00:00 / 60:00</span>
+                        </div>
+                    </div>
+
+                    <!-- Pulsanti di Controllo Principali -->
+                    <div class="space-y-2.5">
+                        <!-- Play/Pause Toggle -->
+                        <button type="button" id="btn-timer-toggle" onclick="toggleTimer()" class="w-full bg-pink-600 hover:bg-pink-700 text-white text-sm font-black py-3.5 px-4 rounded-2xl transition shadow-md flex items-center justify-center gap-2.5 active:scale-95">
+                            <i id="icon-timer-toggle" class="fa-solid fa-play"></i>
+                            <span id="lbl-timer-toggle">Avvia Countdown</span>
+                        </button>
+
+                        <!-- Controlli Secondari: Salta, Riavvia, Reset -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="restartCurrentPhase()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-bold py-2.5 px-2 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95" title="Riavvia la fase corrente dall'inizio">
+                                <i class="fa-solid fa-rotate-left text-[11px]"></i>
+                                <span class="hidden sm:inline">Riavvia</span>
+                            </button>
+
+                            <button type="button" onclick="skipToNextPhase()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200 text-xs font-bold py-2.5 px-2 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95" title="Passa immediatamente alla fase successiva">
+                                <i class="fa-solid fa-forward-step text-[11px]"></i>
+                                <span class="hidden sm:inline">Salta</span>
+                            </button>
+
+                            <button type="button" onclick="resetTimerSystem()" class="bg-slate-100 hover:bg-slate-200 text-rose-700 border border-slate-200 text-xs font-bold py-2.5 px-2 rounded-xl transition flex items-center justify-center gap-1.5 active:scale-95" title="Azzera tutto il timer ai valori iniziali">
+                                <i class="fa-solid fa-stop text-[11px]"></i>
+                                <span class="hidden sm:inline">Azzera</span>
+                            </button>
+                        </div>
+
+                        <!-- Bottone Schermo Intero Fullscreen Cabina -->
+                        <button type="button" onclick="openTimerFullscreen()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-3 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-expand text-pink-400"></i>
+                            <span>Apri a Schermo Intero (Fullscreen Cabina)</span>
+                        </button>
+                    </div>
+
+                    <!-- Indicatore di Notifica Audio & Haptic -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-500 font-semibold">Notifiche:</span>
+                            <span class="text-emerald-700 font-bold flex items-center gap-1">
+                                <i class="fa-solid fa-volume-high text-[11px]"></i>
+                                <span>Web Audio + Aptico TG</span>
+                            </span>
+                        </div>
+                        <button type="button" onclick="testAudioHapticAlert()" class="text-[10px] font-bold text-slate-600 hover:text-slate-900 bg-white border border-slate-200 px-2 py-0.5 rounded-lg transition">
+                            Test Suono
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div> <!-- FINE SEZIONE 2: TIMER ATTIVAZIONE TRATTAMENTI -->
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 3: CALCOLATORE DILUIZIONE MONODOSE CABINA (TAB DILUTION)   -->
+        <!-- =================================================================== -->
+        <div id="section-dilution" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+            <!-- COLONNA SINISTRA: INPUT VOLUMI & RAPPORTO DILUIZIONE (7 Colonne su Desktop) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 3.1 VOLUME FLACONE PROFESSIONALE SORGENTE (BULK / TANICA) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-box-archive"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Volume Flacone Sorgente (Bulk Salone)</h2>
+                                <p class="text-[11px] text-slate-500">Capacità totale del flacone professionale da ripartire</p>
+                            </div>
+                        </div>
+                        <span id="badge-bulk-liters" class="text-[10px] font-mono font-black text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-full">5.00 Litri</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                        <div class="sm:col-span-6">
+                            <div class="relative">
+                                <input type="number" id="input-bulk-volume" value="5000" min="50" max="50000" step="50" oninput="onBulkVolumeInputChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-base font-black font-mono rounded-2xl p-3.5 pr-12 focus:outline-none focus:border-slate-900 transition">
+                                <span class="absolute right-4 top-4 text-xs font-black text-slate-400 font-mono">ml</span>
+                            </div>
+                        </div>
+
+                        <!-- Chips rapidi sorgente -->
+                        <div class="sm:col-span-6 flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="setBulkVolume(5000)" class="chip-bulk-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-slate-900 text-white border-slate-900 shadow-sm">5000 ml (5L)</button>
+                            <button type="button" onclick="setBulkVolume(2500)" class="chip-bulk-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">2500 ml</button>
+                            <button type="button" onclick="setBulkVolume(1000)" class="chip-bulk-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">1000 ml (1L)</button>
+                            <button type="button" onclick="setBulkVolume(500)" class="chip-bulk-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">500 ml</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3.2 VOLUME FLACONE MONODOSE DESIDERATO (TARGET CABINA) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-prescription-bottle"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Volume Flacone Monodose Target</h2>
+                                <p class="text-[11px] text-slate-500">Capacità del singolo flaconcino o boccetta cabina finale</p>
+                            </div>
+                        </div>
+                        <span id="badge-target-size" class="text-[10px] font-mono font-black text-blue-900 bg-blue-100 border border-blue-300 px-2.5 py-0.5 rounded-full">100 ml Cabina</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                        <div class="sm:col-span-6">
+                            <div class="relative">
+                                <input type="number" id="input-target-volume" value="100" min="10" max="2000" step="5" oninput="onTargetVolumeInputChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-base font-black font-mono rounded-2xl p-3.5 pr-12 focus:outline-none focus:border-slate-900 transition">
+                                <span class="absolute right-4 top-4 text-xs font-black text-slate-400 font-mono">ml</span>
+                            </div>
+                        </div>
+
+                        <!-- Chips rapidi target -->
+                        <div class="sm:col-span-6 flex items-center gap-1.5 flex-wrap">
+                            <button type="button" onclick="setTargetVolume(30)" class="chip-target-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">30 ml (Fiala)</button>
+                            <button type="button" onclick="setTargetVolume(50)" class="chip-target-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">50 ml</button>
+                            <button type="button" onclick="setTargetVolume(100)" class="chip-target-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-slate-900 text-white border-slate-900 shadow-sm">100 ml</button>
+                            <button type="button" onclick="setTargetVolume(150)" class="chip-target-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">150 ml</button>
+                            <button type="button" onclick="setTargetVolume(250)" class="chip-target-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">250 ml</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3.3 MODALITÀ: TRAVASO PURO VS DILUIZIONE CON BASE/ACQUA -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs">
+                                <i class="fa-solid fa-droplet"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">3. Modalità Travaso / Rapporto Diluizione</h2>
+                                <p class="text-[11px] text-slate-500">Specifica se il prodotto va porzionato puro o diluito</p>
+                            </div>
+                        </div>
+                        <span id="badge-dilution-mode" class="text-[10px] font-black uppercase text-pink-900 bg-pink-100 border border-pink-300 px-2.5 py-0.5 rounded-full">Diluito 1:3 (25%)</span>
+                    </div>
+
+                    <!-- Switch Travaso Puro vs Diluizione -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <button type="button" onclick="setDilutionMode('pure')" id="btn-mode-pure" class="p-3.5 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-800">100% Puro</span>
+                                <span class="text-xs">🧴</span>
+                            </div>
+                            <h3 class="font-black text-xs">Travaso Puro Diretto</h3>
+                            <p class="text-[11px] text-slate-500 mt-0.5">Nessun diluente aggiunto (olio, maschera pura)</p>
+                        </button>
+
+                        <button type="button" onclick="setDilutionMode('diluted')" id="btn-mode-diluted" class="p-3.5 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/20 text-white">Miscela Diluita</span>
+                                <span class="text-xs">💧</span>
+                            </div>
+                            <h3 class="font-black text-xs">Diluito con Acqua / Base</h3>
+                            <p class="text-[11px] text-slate-300 mt-0.5">Shampoo concentrato, lozioni, basi neutre</p>
+                        </button>
+                    </div>
+
+                    <!-- Opzioni Dettagliate Diluizione (Visibili se mode === 'diluted') -->
+                    <div id="dilution-details-box" class="space-y-4 pt-2">
+                        <div>
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider mb-2">
+                                Rapporto di Diluizione (Parti Prodotto : Parti Diluente)
+                            </label>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <button type="button" onclick="setDilutionRatio('1:1')" id="btn-ratio-1-1" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400">
+                                    <div class="font-mono font-black text-xs">1:1 (50%)</div>
+                                    <div class="text-[9px] text-slate-400 font-semibold">1 prod + 1 dil</div>
+                                </button>
+                                <button type="button" onclick="setDilutionRatio('1:2')" id="btn-ratio-1-2" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400">
+                                    <div class="font-mono font-black text-xs">1:2 (33%)</div>
+                                    <div class="text-[9px] text-slate-400 font-semibold">1 prod + 2 dil</div>
+                                </button>
+                                <button type="button" onclick="setDilutionRatio('1:3')" id="btn-ratio-1-3" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-slate-900 border-slate-900 text-white shadow-sm">
+                                    <div class="font-mono font-black text-xs">1:3 (25%)</div>
+                                    <div class="text-[9px] text-slate-300 font-semibold">Shampoo Cabina</div>
+                                </button>
+                                <button type="button" onclick="setDilutionRatio('1:4')" id="btn-ratio-1-4" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400">
+                                    <div class="font-mono font-black text-xs">1:4 (20%)</div>
+                                    <div class="text-[9px] text-slate-400 font-semibold">1 prod + 4 dil</div>
+                                </button>
+                                <button type="button" onclick="setDilutionRatio('1:5')" id="btn-ratio-1-5" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400">
+                                    <div class="font-mono font-black text-xs">1:5 (16.7%)</div>
+                                    <div class="text-[9px] text-slate-400 font-semibold">1 prod + 5 dil</div>
+                                </button>
+                                <button type="button" onclick="setDilutionRatio('1:9')" id="btn-ratio-1-9" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400">
+                                    <div class="font-mono font-black text-xs">1:9 (10%)</div>
+                                    <div class="text-[9px] text-slate-400 font-semibold">1 prod + 9 dil</div>
+                                </button>
+                                <button type="button" onclick="setDilutionRatio('1:10')" id="btn-ratio-1-10" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400">
+                                    <div class="font-mono font-black text-xs">1:10 (9.1%)</div>
+                                    <div class="text-[9px] text-slate-400 font-semibold">1 prod + 10 dil</div>
+                                </button>
+                                <button type="button" onclick="setDilutionRatio('custom')" id="btn-ratio-custom" class="chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400">
+                                    <div class="font-mono font-black text-xs">Libero X:Y</div>
+                                    <div class="text-[9px] text-slate-400 font-semibold">Personalizzato</div>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Input custom ratio X:Y (visibile solo se custom) -->
+                        <div id="box-custom-ratio-inputs" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-2xl grid grid-cols-2 gap-3 items-center">
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-600 uppercase mb-1">Parti Prodotto Puro (X)</label>
+                                <input type="number" id="input-custom-prod-parts" value="1" min="1" max="100" oninput="onCustomRatioChanged()" class="w-full bg-white border border-slate-200 text-slate-900 font-mono font-black text-xs rounded-xl p-2.5 focus:outline-none focus:border-slate-900">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] font-black text-slate-600 uppercase mb-1">Parti Diluente / Acqua (Y)</label>
+                                <input type="number" id="input-custom-dil-parts" value="3" min="1" max="100" oninput="onCustomRatioChanged()" class="w-full bg-white border border-slate-200 text-slate-900 font-mono font-black text-xs rounded-xl p-2.5 focus:outline-none focus:border-slate-900">
+                            </div>
+                        </div>
+
+                        <!-- Tipo di Diluente -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-diluent-type">
+                                Tipo di Diluente da Utilizzare
+                            </label>
+                            <select id="select-diluent-type" onchange="onDiluentTypeChanged(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="Acqua Depurata / Demineralizzata" selected>💧 Acqua Depurata / Demineralizzata (Consigliata per Shampoo)</option>
+                                <option value="Base Neutra Delicata">🧴 Base Neutra Delicata / Balsamo Base</option>
+                                <option value="Soluzione Fisiologica / Idrolato">🌿 Soluzione Salina / Idrolato Floreale</option>
+                                <option value="Attivatore / Fluido Ricostruttore">⚡ Fluido Attivatore / Ricostruttore Post-Colore</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: RESA & SCHEDA DOSAGGIO MONODOSE (5 Colonne su Desktop) -->
+            <div class="lg:col-span-5 space-y-6 lg:sticky lg:top-20">
+
+                <!-- CARD RESA TOTALE & MONODOSE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden relative space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-blue-500 pulse-subtle"></span>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">Resa Flaconi & Dosaggio</h2>
+                        </div>
+                        <span id="badge-dosage-card-status" class="text-[10px] font-mono font-bold text-blue-800 bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-full">CALCOLO ESATTO</span>
+                    </div>
+
+                    <!-- Big Result Hero Box -->
+                    <div class="bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl p-5 shadow-md relative overflow-hidden space-y-3">
+                        <div class="flex items-start justify-between">
+                            <div>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-slate-300 block mb-0.5">Flaconi Monodose Ottenibili</span>
+                                <div class="flex items-baseline gap-2">
+                                    <span id="out-total-bottles" class="text-4xl sm:text-5xl font-black font-mono tracking-tight text-pink-400">200</span>
+                                    <span class="text-xs font-bold text-slate-300 uppercase">Flaconi da <span id="out-hero-target-ml">100</span>ml</span>
+                                </div>
+                            </div>
+                            <div class="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-lg">
+                                <span>🧴</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs">
+                            <span class="text-slate-300 text-[11px] font-semibold">Residuo flacone sorgente:</span>
+                            <span id="out-bulk-remainder" class="font-mono font-bold text-emerald-400">0 ml rimanenti</span>
+                        </div>
+                    </div>
+
+                    <!-- Composizione Singolo Flacone Monodose -->
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-flask text-pink-600"></i>
+                                <span>Dosaggio Per Singolo Flacone</span>
+                            </h3>
+                            <span id="out-single-bottle-vol-badge" class="text-[10px] font-mono font-bold text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-md">100 ml</span>
+                        </div>
+
+                        <!-- Barra visiva proporzione 2 colori -->
+                        <div class="space-y-1">
+                            <div class="w-full bg-slate-200 rounded-full h-3 flex overflow-hidden">
+                                <div id="bar-pure-product" class="bg-pink-600 h-full transition-all duration-300" style="width: 25%;"></div>
+                                <div id="bar-diluent" class="bg-blue-500 h-full transition-all duration-300" style="width: 75%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] font-mono font-bold text-slate-500">
+                                <span class="text-pink-600">■ Prodotto: <span id="lbl-pure-bar-pct">25%</span></span>
+                                <span class="text-blue-600">■ Diluente: <span id="lbl-dil-bar-pct">75%</span></span>
+                            </div>
+                        </div>
+
+                        <!-- Dettaglio Numerico Grammi/ml -->
+                        <div class="grid grid-cols-2 gap-2 text-xs pt-1">
+                            <div class="p-3 bg-white border border-pink-200 rounded-xl space-y-0.5">
+                                <span class="text-[10px] font-black uppercase text-pink-700 block">Prodotto Puro</span>
+                                <div class="font-mono font-black text-lg text-slate-900"><span id="out-bottle-pure-ml">25</span> <span class="text-xs text-slate-500">ml</span></div>
+                                <div class="text-[10px] text-slate-400 font-semibold">Concentrato puro</div>
+                            </div>
+
+                            <div class="p-3 bg-white border border-blue-200 rounded-xl space-y-0.5">
+                                <span class="text-[10px] font-black uppercase text-blue-700 block">Diluente / Acqua</span>
+                                <div class="font-mono font-black text-lg text-slate-900"><span id="out-bottle-diluent-ml">75</span> <span class="text-xs text-slate-500">ml</span></div>
+                                <div class="text-[10px] text-slate-400 font-semibold truncate" id="out-diluent-name-short">Acqua Depurata</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Riepilogo Totale Lotto di Produzione -->
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-xs">
+                        <div class="font-black text-slate-900 uppercase tracking-wider text-[11px] flex items-center justify-between">
+                            <span>Riepilogo Produzione Lotto Completo</span>
+                            <i class="fa-solid fa-boxes-stacked text-slate-400"></i>
+                        </div>
+                        
+                        <div class="space-y-1.5 text-[11px] pt-1">
+                            <div class="flex items-center justify-between text-slate-700">
+                                <span>Volume Totale Miscela Pronta:</span>
+                                <strong id="out-batch-total-volume" class="font-mono text-slate-900">20.00 L (20000 ml)</strong>
+                            </div>
+                            <div class="flex items-center justify-between text-slate-700">
+                                <span>Prodotto Puro Utilizzato:</span>
+                                <strong id="out-batch-pure-used" class="font-mono text-pink-700">5.00 L (5000 ml)</strong>
+                            </div>
+                            <div class="flex items-center justify-between text-slate-700">
+                                <span>Diluente Totale Necessario:</span>
+                                <strong id="out-batch-diluent-needed" class="font-mono text-blue-700">15.00 L (15000 ml)</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Azioni Scheda Diluizione -->
+                    <div class="pt-2 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" onclick="copyDilutionToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-3 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Scheda</span>
+                        </button>
+                        <button type="button" onclick="resetDilutionCalculator()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-900 border border-slate-200 text-xs font-bold py-3 px-3 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                            <span>Reimposta</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div> <!-- FINE SEZIONE 3: CALCOLATORE DILUIZIONE MONODOSE -->
+
+    </main>
+
+    <!-- MODALE TIMER FULLSCREEN (SCHERMO INTERO CABINA) -->
+    <div id="modal-timer-fullscreen" class="fixed inset-0 z-50 bg-slate-950 text-white flex flex-col justify-between p-6 sm:p-10 select-none hidden animate-in fade-in duration-200">
+        <!-- Header Modal Fullscreen -->
+        <div class="flex items-center justify-between border-b border-white/10 pb-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white font-black text-lg">
+                    <i class="fa-solid fa-stopwatch"></i>
+                </div>
+                <div>
+                    <h3 class="font-black text-base tracking-tight text-white">SiteBoS Beauty Timer • Cabina</h3>
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <span id="fs-overall-info">Trattamento in corso</span>
+                        <span>•</span>
+                        <span id="fs-audio-badge" class="text-emerald-400 font-bold">🔊 Audio Attivo</span>
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" onclick="closeTimerFullscreen()" class="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition active:scale-95" title="Chiudi Schermo Intero">
+                <i class="fa-solid fa-compress text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Centro Hero Fullscreen -->
+        <div class="flex flex-col items-center justify-center text-center my-auto py-6 space-y-4">
+            <span id="fs-phase-step-badge" class="text-xs sm:text-sm font-black uppercase tracking-widest px-4 py-1 rounded-full bg-pink-900/60 border border-pink-500/40 text-pink-300">
+                Fase 1 di 4
+            </span>
+
+            <h2 id="fs-phase-name" class="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight drop-shadow-md">
+                Decolorazione Schiaritura
+            </h2>
+
+            <!-- Giant Countdown Clock -->
+            <div id="fs-clock-digits" class="text-7xl sm:text-9xl md:text-[11rem] font-black font-mono tracking-tight text-pink-400 drop-shadow-2xl my-2 leading-none">
+                35:00
+            </div>
+
+            <!-- Fullscreen Progress Bar -->
+            <div class="w-full max-w-xl space-y-2">
+                <div class="w-full bg-white/10 rounded-full h-3.5 sm:h-4 overflow-hidden p-0.5 border border-white/10">
+                    <div id="fs-phase-progress-bar" class="bg-gradient-to-r from-pink-500 via-rose-400 to-amber-400 h-full rounded-full transition-all duration-300 shadow-lg shadow-pink-500/50" style="width: 0%;"></div>
+                </div>
+                <div class="flex justify-between text-xs sm:text-sm font-mono font-bold text-slate-400 px-1">
+                    <span id="fs-phase-progress-pct">0% Completato</span>
+                    <span id="fs-next-phase-preview" class="text-slate-300">Prossima: Risciacquo (5m)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Controlli Touch Giganti Fullscreen -->
+        <div class="border-t border-white/10 pt-4 flex items-center justify-center gap-3 sm:gap-4 max-w-lg mx-auto w-full">
+            <button type="button" onclick="restartCurrentPhase()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm py-3.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                <i class="fa-solid fa-rotate-left"></i>
+                <span>Riavvia</span>
+            </button>
+
+            <button type="button" id="btn-fs-toggle" onclick="toggleTimer()" class="flex-[2] bg-pink-600 hover:bg-pink-500 text-white font-black text-sm sm:text-base py-4 px-6 rounded-2xl transition shadow-lg shadow-pink-600/40 flex items-center justify-center gap-2.5 active:scale-95">
+                <i id="icon-fs-toggle" class="fa-solid fa-play"></i>
+                <span id="lbl-fs-toggle">Avvia</span>
+            </button>
+
+            <button type="button" onclick="skipToNextPhase()" class="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold text-xs sm:text-sm py-3.5 px-4 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                <i class="fa-solid fa-forward-step"></i>
+                <span>Salta</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MODALE TRADUZIONE FORMULA UNIVERSALE MULTI-BRAND -->
+    <div id="modal-translation" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+        <div class="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-150">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-2xl bg-pink-600 text-white flex items-center justify-center text-sm font-black">
+                        <i class="fa-solid fa-language"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-sm text-slate-900">Conversione Universale Formula</h3>
+                        <p class="text-[11px] text-slate-500">Corrispondenza esatta nei 3 sistemi internazionali</p>
+                    </div>
+                </div>
+                <button onclick="closeTranslationModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Griglia comparativa dei 3 sistemi -->
+            <div class="space-y-3">
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 uppercase">Sistema Standard (L'Oréal, Inoa, Alfaparf)</span>
+                        <div id="trans-code-standard" class="text-xl font-black font-mono text-slate-900 mt-0.5">7.43</div>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700">Punto (.XX)</span>
+                </div>
+
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 uppercase">Sistema Tedesco / Invertito (Wella, Schwarzkopf)</span>
+                        <div id="trans-code-german" class="text-xl font-black font-mono text-slate-900 mt-0.5">7/43</div>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700">Slash (/XX)</span>
+                </div>
+
+                <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                        <span class="text-[10px] font-black text-slate-400 uppercase">Sistema Letterale USA (Matrix, Redken)</span>
+                        <div id="trans-code-alphabetic" class="text-xl font-black font-mono text-slate-900 mt-0.5">7CG</div>
+                    </div>
+                    <span class="text-xs px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-bold text-slate-700">Lettere (XX)</span>
+                </div>
+            </div>
+
+            <!-- Scomposizione Universale in Italiano -->
+            <div class="bg-pink-50/50 border border-pink-200 rounded-2xl p-4 space-y-2">
+                <div class="text-xs font-black text-pink-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fa-solid fa-circle-info text-pink-600"></i>
+                    <span>Diagnosi Analitica Italiana</span>
+                </div>
+                <div id="trans-universal-description" class="text-xs text-slate-700 leading-relaxed font-semibold">
+                    Tono Base 7 (Biondo Medio) con Riflesso Primario Rame (.4) al 70% e Riflesso Secondario Dorato (.3) al 30%.
+                </div>
+            </div>
+
+            <button type="button" onclick="closeTranslationModal()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 rounded-2xl transition">
+                Chiudi Scheda di Conversione
+            </button>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="tintometria-toast" class="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 transition-opacity duration-300 opacity-0 pointer-events-none">
+        <i class="fa-solid fa-circle-check text-emerald-400 text-base"></i>
+        <span id="toast-text" class="text-xs font-bold">Ricetta copiata negli appunti!</span>
+    </div>
+
+    <!-- MOTORE COLORIMETRICO & LOGICA APPLICATIVA JAVASCRIPT (100% VANILLA CLIENT-SIDE) -->
+    <script>
+        'use strict';
+
+        /* ── INIZIALIZZAZIONE TELEGRAM WEBAPP ── */
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            try {
+                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
+                if (tg.expand) tg.expand();
+                if (tg.ready) tg.ready();
+            } catch (e) {
+                console.warn('Errore init Telegram WebApp:', e);
+            }
+        }
+
+        /* ── STATO REATTIVO LOCALE DELLA FORMULA ── */
+        let currentSystem = 'standard'; // 'standard' | 'german' | 'alphabetic'
+        let currentBaseTone = 7;
+        let primaryReflect = null;       // es. 'copper', 'violet', ecc.
+        let primaryIntensified = false;  // boolean
+        let secondaryReflect = null;     // es. 'gold', 'ash', ecc.
+        
+        let colorTechnique = 'global';
+        let hairLengthCategory = 'Medium'; // 'Short' (30g) | 'Medium' (40g) | 'Long' (60g) | 'ExtraLong' (80g)
+        let developerVolume = 20;          // 10 | 20 | 30 | 40
+        let extensionType = 'none';        // 'none' | 'volume-wefts' | 'tape-in-length' | 'keratin-bonds'
+
+        /* ── DATABASE COSTANTI COLORIMETRICHE REALI ── */
+        const TONE_NAMES = {
+            1: 'Nero',
+            2: 'Bruno',
+            3: 'Castano Scuro',
+            4: 'Castano Medio',
+            5: 'Castano Chiaro',
+            6: 'Biondo Scuro',
+            7: 'Biondo Medio',
+            8: 'Biondo Chiaro',
+            9: 'Biondo Chiarissimo',
+            10: 'Biondo Platino'
+        };
+
+        const BASE_TONE_HEX = {
+            1: '#1a1a1a', 2: '#2d2520', 3: '#3d2f1f', 4: '#5c4033', 5: '#6b4e3d',
+            6: '#8b6f47', 7: '#a68a5c', 8: '#c9a86a', 9: '#d9c89e', 10: '#f0e6d2'
+        };
+
+        const REFLECTS = {
+            violet: { name: 'Viola', nameEN: 'Violet', color: '#8b5cf6', temp: 'cold' },
+            ash: { name: 'Cenere', nameEN: 'Ash', color: '#9ca3af', temp: 'cold' },
+            blue: { name: 'Blu', nameEN: 'Blue', color: '#3b82f6', temp: 'cold' },
+            green: { name: 'Verde', nameEN: 'Green', color: '#10b981', temp: 'cold' },
+            pearl: { name: 'Perlato', nameEN: 'Pearl', color: '#e5e7eb', temp: 'cold' },
+            beige: { name: 'Beige', nameEN: 'Beige', color: '#d4c5b9', temp: 'neutral' },
+            natural: { name: 'Naturale', nameEN: 'Natural', color: '#92705a', temp: 'neutral' },
+            mat: { name: 'Mat', nameEN: 'Matte', color: '#78716c', temp: 'neutral' },
+            gold: { name: 'Oro/Dorato', nameEN: 'Gold', color: '#fbbf24', temp: 'warm' },
+            copper: { name: 'Rame', nameEN: 'Copper', color: '#ea580c', temp: 'warm' },
+            mahogany: { name: 'Mogano', nameEN: 'Mahogany', color: '#7c2d12', temp: 'warm' },
+            red: { name: 'Rosso', nameEN: 'Red', color: '#dc2626', temp: 'warm' }
+        };
+
+        const REFLECT_SYSTEM_MAP = {
+            standard: {
+                violet: '2', ash: '1', blue: '8', green: '7', pearl: '89',
+                beige: '03', natural: '0', mat: '02', gold: '3', copper: '4',
+                mahogany: '5', red: '6'
+            },
+            german: {
+                violet: '6', ash: '1', blue: '8', green: '2', pearl: '9',
+                beige: '12', natural: '0', mat: '02', gold: '3', copper: '4',
+                mahogany: '5', red: '4'
+            },
+            alphabetic: {
+                violet: 'V', ash: 'A', blue: 'B', green: 'Gr', pearl: 'P',
+                beige: 'Be', natural: 'N', mat: 'M', gold: 'G', copper: 'C',
+                mahogany: 'Mh', red: 'R'
+            }
+        };
+
+        const EXTENSIONS_MASS = {
+            'none': 1.0,
+            'volume-wefts': 1.3,
+            'tape-in-length': 1.5,
+            'keratin-bonds': 1.4
+        };
+
+        const BASE_LENGTH_GRAMS = {
+            'Short': 30,
+            'Medium': 40,
+            'Long': 60,
+            'ExtraLong': 80
+        };
+
+        /* ── AVVIO DOM ── */
+        document.addEventListener('DOMContentLoaded', () => {
+            renderReflectPaletteGrid();
+            updateAllOutputs();
+            initTimerState();
+            syncBulkChips();
+            syncTargetChips();
+            setDilutionMode('diluted');
+            setDilutionRatio('1:3');
+            updateDilutionOutputs();
+        });
+
+        /* ── GESTIONE SELEZIONE BRAND SYSTEM ── */
+        function setBrandSystem(system) {
+            currentSystem = system;
+            
+            const btnStandard = document.getElementById('btn-sys-standard');
+            const btnGerman = document.getElementById('btn-sys-german');
+            const btnAlphabetic = document.getElementById('btn-sys-alphabetic');
+            const badge = document.getElementById('current-system-badge');
+            const cardSysLabel = document.getElementById('card-formula-system-label');
+
+            const activeClasses = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-slate-900 text-white border-slate-900 shadow-sm';
+            const inactiveClasses = 'p-3.5 rounded-2xl border-2 text-left transition relative bg-white text-slate-900 border-slate-200 hover:border-slate-400';
+
+            btnStandard.className = system === 'standard' ? activeClasses : inactiveClasses;
+            btnGerman.className = system === 'german' ? activeClasses : inactiveClasses;
+            btnAlphabetic.className = system === 'alphabetic' ? activeClasses : inactiveClasses;
+
+            if (system === 'standard') {
+                badge.innerText = 'Standard IT/FR';
+                cardSysLabel.innerText = 'STANDARD';
+            } else if (system === 'german') {
+                badge.innerText = 'Tedesco DE';
+                cardSysLabel.innerText = 'TEDESCO / INVERTITO';
+            } else {
+                badge.innerText = 'Alfabetico USA';
+                cardSysLabel.innerText = 'ALFABETICO USA';
+            }
+
+            renderReflectPaletteGrid();
+            updateAllOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── GESTIONE ALTEZZA TONO BASE ── */
+        function onBaseToneChanged(val) {
+            currentBaseTone = parseInt(val, 10);
+            syncBaseToneButtons();
+            updateAllOutputs();
+        }
+
+        function setBaseTone(val) {
+            currentBaseTone = val;
+            const slider = document.getElementById('base-tone-slider');
+            if (slider) slider.value = val;
+            syncBaseToneButtons();
+            updateAllOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function syncBaseToneButtons() {
+            document.getElementById('tone-level-number').innerText = currentBaseTone;
+            document.getElementById('tone-level-name').innerText = TONE_NAMES[currentBaseTone] || 'Tono ' + currentBaseTone;
+
+            const buttons = document.querySelectorAll('.tone-step-btn');
+            buttons.forEach((btn, idx) => {
+                const stepVal = idx + 1;
+                if (stepVal === currentBaseTone) {
+                    btn.className = 'tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-slate-900 border-slate-900 text-white shadow-sm';
+                } else {
+                    btn.className = 'tone-step-btn py-1.5 px-1 rounded-xl text-[10px] font-mono font-black border transition bg-white border-slate-200 text-slate-700 hover:border-slate-900';
+                }
+            });
+        }
+
+        /* ── RENDERING PALETTA RIFLESSI INTERATTIVA ── */
+        function renderReflectPaletteGrid() {
+            const container = document.getElementById('reflect-palette-grid');
+            if (!container) return;
+            container.innerHTML = '';
+
+            Object.entries(REFLECTS).forEach(([key, data]) => {
+                const reflectCode = REFLECT_SYSTEM_MAP[currentSystem][key] || key;
+                const isPrimary = primaryReflect === key;
+                const isSecondary = secondaryReflect === key;
+
+                let borderStyle = 'border-slate-200 bg-white hover:border-slate-400';
+                let roleBadge = '';
+
+                if (isPrimary) {
+                    borderStyle = primaryIntensified 
+                        ? 'border-pink-600 bg-pink-50/70 ring-2 ring-pink-500 shadow-sm' 
+                        : 'border-slate-900 bg-slate-50 ring-2 ring-slate-900 shadow-sm';
+                    roleBadge = primaryIntensified 
+                        ? '<span class="text-[9px] font-black bg-pink-600 text-white px-1.5 py-0.2 rounded font-mono">1° INTENSO</span>' 
+                        : '<span class="text-[9px] font-black bg-slate-900 text-white px-1.5 py-0.2 rounded font-mono">PRIMARIO</span>';
+                } else if (isSecondary) {
+                    borderStyle = 'border-blue-600 bg-blue-50/70 ring-2 ring-blue-500 shadow-sm';
+                    roleBadge = '<span class="text-[9px] font-black bg-blue-600 text-white px-1.5 py-0.2 rounded font-mono">2° (30%)</span>';
+                }
+
+                const card = document.createElement('div');
+                card.className = `reflect-swatch-card p-2.5 rounded-2xl border-2 cursor-pointer flex flex-col items-center justify-between text-center gap-1.5 ${borderStyle}`;
+                card.title = `${data.name} (Codice: ${reflectCode})`;
+
+                card.innerHTML = `
+                    <div class="w-8 h-8 rounded-full border-2 border-white shadow-sm flex items-center justify-center font-mono font-black text-xs ${getTextColorForBg(data.color)}" style="background-color: ${data.color};">
+                        ${reflectCode}
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-black text-slate-900 leading-tight">${data.name}</div>
+                        <div class="text-[9px] font-mono font-bold text-slate-400 uppercase">${data.temp === 'warm' ? 'Caldo 🔥' : data.temp === 'cold' ? 'Freddo ❄️' : 'Neutro'}</div>
+                    </div>
+                    ${roleBadge ? `<div class="mt-0.5">${roleBadge}</div>` : ''}
+                `;
+
+                card.addEventListener('click', (e) => onReflectClicked(key));
+                card.addEventListener('dblclick', (e) => onReflectDoubleClicked(key));
+
+                container.appendChild(card);
+            });
+
+            updateReflectSummaryBar();
+        }
+
+        function onReflectClicked(key) {
+            if (!primaryReflect) {
+                // Primo click in assoluto: diventa Primario
+                primaryReflect = key;
+                primaryIntensified = false;
+            } else if (primaryReflect === key && !secondaryReflect) {
+                // Click su se stesso quando è l'unico: azzera
+                primaryReflect = null;
+                primaryIntensified = false;
+            } else if (primaryReflect === key && secondaryReflect) {
+                // Click sul primario quando c'è secondario: promuove secondario a primario
+                primaryReflect = secondaryReflect;
+                secondaryReflect = null;
+                primaryIntensified = false;
+            } else if (secondaryReflect === key) {
+                // Click sul secondario: rimuove solo il secondario
+                secondaryReflect = null;
+            } else {
+                // Click su terzo riflesso: diventa Secondario (30%)
+                secondaryReflect = key;
+            }
+
+            renderReflectPaletteGrid();
+            updateAllOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onReflectDoubleClicked(key) {
+            if (primaryReflect === key) {
+                primaryIntensified = !primaryIntensified;
+                renderReflectPaletteGrid();
+                updateAllOutputs();
+                if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            }
+        }
+
+        function togglePrimaryIntensified() {
+            if (!primaryReflect) {
+                showToast('Seleziona prima un riflesso primario dalla tavolozza.');
+                return;
+            }
+            primaryIntensified = !primaryIntensified;
+            renderReflectPaletteGrid();
+            updateAllOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function clearReflects() {
+            primaryReflect = null;
+            primaryIntensified = false;
+            secondaryReflect = null;
+            renderReflectPaletteGrid();
+            updateAllOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function updateReflectSummaryBar() {
+            const lblPrimary = document.getElementById('lbl-reflect-primary-summary');
+            const lblSecondary = document.getElementById('lbl-reflect-secondary-summary');
+            const btnIntensified = document.getElementById('btn-toggle-intensified');
+
+            if (!primaryReflect) {
+                lblPrimary.innerText = 'Nessun Riflesso (Puro .0 Naturale)';
+                lblPrimary.className = 'font-black text-slate-700 bg-white border border-slate-200 px-2 py-0.5 rounded-lg';
+                lblSecondary.classList.add('hidden');
+                if (btnIntensified) btnIntensified.className = 'text-[10px] font-bold text-slate-400 bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-lg cursor-not-allowed';
+            } else {
+                const primData = REFLECTS[primaryReflect];
+                const primCode = REFLECT_SYSTEM_MAP[currentSystem][primaryReflect];
+                const intensityText = primaryIntensified ? ' [INTENSO ⚡]' : '';
+                const percText = secondaryReflect ? ' (70%)' : ' (100%)';
+                
+                lblPrimary.innerText = `1° ${primData.name} (${primCode})${intensityText}${percText}`;
+                lblPrimary.className = primaryIntensified
+                    ? 'font-black text-pink-700 bg-pink-100 border border-pink-300 px-2 py-0.5 rounded-lg'
+                    : 'font-black text-slate-900 bg-white border border-slate-300 px-2 py-0.5 rounded-lg';
+
+                if (secondaryReflect) {
+                    const secData = REFLECTS[secondaryReflect];
+                    const secCode = REFLECT_SYSTEM_MAP[currentSystem][secondaryReflect];
+                    lblSecondary.innerText = `2° ${secData.name} (${secCode}) (30%)`;
+                    lblSecondary.className = 'font-bold text-blue-800 bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-lg';
+                    lblSecondary.classList.remove('hidden');
+                } else {
+                    lblSecondary.classList.add('hidden');
+                }
+
+                if (btnIntensified) {
+                    btnIntensified.className = primaryIntensified
+                        ? 'text-[10px] font-black text-white bg-pink-600 border border-pink-700 px-2.5 py-1 rounded-lg shadow-sm'
+                        : 'text-[10px] font-bold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border border-slate-200 px-2.5 py-1 rounded-lg transition';
+                }
+            }
+        }
+
+        /* ── GESTIONE PARAMETRI TECNICI ── */
+        function onTechniqueChanged(val) {
+            colorTechnique = val;
+            updateAllOutputs();
+        }
+
+        function onLengthChanged(val) {
+            hairLengthCategory = val;
+            updateAllOutputs();
+        }
+
+        function onDeveloperChanged(val) {
+            developerVolume = parseInt(val, 10);
+            updateAllOutputs();
+        }
+
+        function onExtensionsChanged(val) {
+            extensionType = val;
+            updateAllOutputs();
+        }
+
+        /* ── MOTORE DI CALCOLO FORMULE & COLORIMETRIA ── */
+        function generateFormulaCode(systemKey = currentSystem) {
+            let formula = currentBaseTone.toString();
+            let separator = systemKey === 'standard' ? '.' : systemKey === 'german' ? '/' : '';
+
+            if (primaryReflect) {
+                const primaryCode = REFLECT_SYSTEM_MAP[systemKey][primaryReflect];
+                let reflectPart = primaryCode;
+
+                if (primaryIntensified) {
+                    reflectPart = primaryCode + primaryCode;
+                }
+
+                if (secondaryReflect) {
+                    const secondaryCode = REFLECT_SYSTEM_MAP[systemKey][secondaryReflect];
+                    reflectPart += secondaryCode;
+                }
+
+                formula += separator + reflectPart;
+            } else {
+                if (systemKey === 'standard') formula += '.0';
+                else if (systemKey === 'german') formula += '/0';
+                else formula += 'N';
+            }
+
+            return formula;
+        }
+
+        function getFormulaTemperature() {
+            if (!primaryReflect) return { label: 'NEUTRO', badgeClass: 'bg-stone-100 text-stone-700 border-stone-300' };
+
+            const primTemp = REFLECTS[primaryReflect].temp;
+
+            if (secondaryReflect) {
+                const secTemp = REFLECTS[secondaryReflect].temp;
+                if (primTemp === secTemp) {
+                    if (primTemp === 'warm') return { label: 'CALDO 🔥', badgeClass: 'bg-amber-100 text-amber-900 border-amber-300' };
+                    if (primTemp === 'cold') return { label: 'FREDDO ❄️', badgeClass: 'bg-sky-100 text-sky-900 border-sky-300' };
+                    return { label: 'NEUTRO', badgeClass: 'bg-stone-100 text-stone-700 border-stone-300' };
+                } else {
+                    return { label: 'MISTO', badgeClass: 'bg-purple-100 text-purple-900 border-purple-300' };
+                }
+            } else {
+                if (primTemp === 'warm') return { label: 'CALDO 🔥', badgeClass: 'bg-amber-100 text-amber-900 border-amber-300' };
+                if (primTemp === 'cold') return { label: 'FREDDO ❄️', badgeClass: 'bg-sky-100 text-sky-900 border-sky-300' };
+                return { label: 'NEUTRO', badgeClass: 'bg-stone-100 text-stone-700 border-stone-300' };
+            }
+        }
+
+        function getFormulaDescriptiveName() {
+            const baseName = TONE_NAMES[currentBaseTone] || ('Tono ' + currentBaseTone);
+            if (!primaryReflect) return `${baseName} Naturale`;
+
+            let reflectName = REFLECTS[primaryReflect].name;
+            if (primaryIntensified) reflectName += ' Intenso';
+
+            if (secondaryReflect) {
+                reflectName += ' + ' + REFLECTS[secondaryReflect].name;
+            }
+
+            return `${baseName} ${reflectName}`;
+        }
+
+        function calculateHairHexColor() {
+            let baseHex = BASE_TONE_HEX[currentBaseTone] || BASE_TONE_HEX[7];
+            let rgb = hexToRgb(baseHex);
+
+            if (!primaryReflect) return baseHex;
+
+            const primaryColor = hexToRgb(REFLECTS[primaryReflect].color);
+            const primaryWeight = primaryIntensified ? 0.6 : 0.4;
+
+            rgb.r = Math.round(rgb.r * (1 - primaryWeight) + primaryColor.r * primaryWeight);
+            rgb.g = Math.round(rgb.g * (1 - primaryWeight) + primaryColor.g * primaryWeight);
+            rgb.b = Math.round(rgb.b * (1 - primaryWeight) + primaryColor.b * primaryWeight);
+
+            if (secondaryReflect) {
+                const secondaryColor = hexToRgb(REFLECTS[secondaryReflect].color);
+                const secondaryWeight = 0.25;
+
+                rgb.r = Math.round(rgb.r * (1 - secondaryWeight) + secondaryColor.r * secondaryWeight);
+                rgb.g = Math.round(rgb.g * (1 - secondaryWeight) + secondaryColor.g * secondaryWeight);
+                rgb.b = Math.round(rgb.b * (1 - secondaryWeight) + secondaryColor.b * secondaryWeight);
+            }
+
+            return rgbToHex(rgb.r, rgb.g, rgb.b);
+        }
+
+        /* ── MOTORE CALCOLO RICETTA CHIMICA AL GRAMMO (MULTI-BOWL DUAL PHASE) ── */
+        function calculateMixingRecipeEngine() {
+            const massaBase = BASE_LENGTH_GRAMS[hairLengthCategory] || 40;
+            const molExt = EXTENSIONS_MASS[extensionType] || 1.0;
+
+            if (colorTechnique === 'root-melt') {
+                return calculateRootMeltRecipe(currentBaseTone, primaryReflect, secondaryReflect, primaryIntensified, massaBase, molExt, developerVolume, hairLengthCategory);
+            }
+
+            if (colorTechnique === 'bleach-tone') {
+                return calculateBleachToneRecipe(currentBaseTone, primaryReflect, secondaryReflect, primaryIntensified, massaBase, molExt, developerVolume, hairLengthCategory);
+            }
+
+            const partialTechniques = ['balayage', 'shatush', 'degrade', 'highlights', 'lowlights', 'babylights', 'money-piece', 'airtouch'];
+            const isPartialTechnique = partialTechniques.includes(colorTechnique);
+            const isPureGloss = colorTechnique === 'gloss';
+
+            let molTecnica = 1.0;
+            if (colorTechnique === 'root-touch') {
+                molTecnica = 0.4;
+            } else if (isPureGloss) {
+                molTecnica = 0.3;
+            } else if (isPartialTechnique) {
+                molTecnica = 0.5;
+            }
+
+            let totaleColore = Math.round(massaBase * molExt * molTecnica);
+
+            let recipeType = 'COLORE PERMANENTE';
+            let ratio = 1.5;
+            let specialNote = null;
+            let devVol = developerVolume;
+
+            if (isPureGloss) {
+                recipeType = 'GLOSS LUCIDANTE';
+                ratio = 2.0;
+                devVol = Math.min(devVol, 10);
+                specialNote = '⚡ Servizio rapido al lavatesta (Tempo di posa: 15-20 min)';
+            } else if (isPartialTechnique) {
+                recipeType = 'TONALIZZANTE / GLOSS';
+                ratio = 2.0;
+                devVol = Math.min(devVol, 10);
+                specialNote = '💡 Applicare su capelli umidi dopo risciacquo schiaritura';
+            } else if (devVol === 40) {
+                recipeType = 'SUPER-SCHIARENTE';
+                ratio = 2.0;
+                specialNote = '⚡ Rapporto di diluizione speciale 1:2 per super-schiarente 40 Vol';
+            }
+
+            const developerGrams = Math.round(totaleColore * ratio);
+            const totalMix = totaleColore + developerGrams;
+            const tubes = buildTubesList(currentBaseTone, primaryReflect, secondaryReflect, primaryIntensified, totaleColore);
+
+            return [{
+                phase: 'single',
+                phaseName: 'Ciotola Unica',
+                recipeType: recipeType,
+                hairLength: hairLengthCategory,
+                tubes: tubes,
+                developer: {
+                    volume: devVol,
+                    grams: developerGrams
+                },
+                totalMix: totalMix,
+                specialNote: specialNote
+            }];
+        }
+
+        function calculateRootMeltRecipe(baseTone, primaryKey, secondaryKey, intensified, massaBase, molExt, devVol, lengthCategory) {
+            const totaleColore = Math.round(massaBase * molExt);
+            const rootTone = Math.max(1, baseTone - 2);
+            const rootColorGrams = Math.round(totaleColore * 0.4);
+            const rootDeveloperGrams = Math.round(rootColorGrams * 1.5);
+
+            const bowl1 = {
+                phase: 'phase1',
+                phaseName: 'Ciotola 1: Radice / Base',
+                phaseColor: '#0f172a',
+                recipeType: 'ROOT SHADOW',
+                hairLength: lengthCategory,
+                tubes: [{
+                    name: `Tubo ${rootTone}.0 (Naturale Base Sfumata)`,
+                    grams: rootColorGrams,
+                    percentage: 100
+                }],
+                developer: {
+                    volume: Math.min(devVol, 20),
+                    grams: rootDeveloperGrams
+                },
+                totalMix: rootColorGrams + rootDeveloperGrams,
+                specialNote: '💡 Applicare sulla radice (primi 2-3 cm) per creare profondità ed effetto ombré'
+            };
+
+            const lengthsColorGrams = Math.round(totaleColore * 0.6);
+            const lengthsDeveloperGrams = Math.round(lengthsColorGrams * 1.5);
+
+            const bowl2 = {
+                phase: 'phase2',
+                phaseName: 'Ciotola 2: Lunghezze & Punte',
+                phaseColor: '#db2777',
+                recipeType: 'COLORE PRINCIPALE',
+                hairLength: lengthCategory,
+                tubes: buildTubesList(baseTone, primaryKey, secondaryKey, intensified, lengthsColorGrams),
+                developer: {
+                    volume: devVol,
+                    grams: lengthsDeveloperGrams
+                },
+                totalMix: lengthsColorGrams + lengthsDeveloperGrams,
+                specialNote: '💡 Applicare su medie lunghezze e punte, sfumando verso la radice'
+            };
+
+            return [bowl1, bowl2];
+        }
+
+        function calculateBleachToneRecipe(baseTone, primaryKey, secondaryKey, intensified, massaBase, molExt, devVol, lengthCategory) {
+            const totaleColore = Math.round(massaBase * molExt);
+            const bleachPowderGrams = totaleColore;
+            const bleachDeveloperGrams = Math.round(bleachPowderGrams * 2);
+
+            const bowl1 = {
+                phase: 'phase1',
+                phaseName: 'Ciotola 1: Decolorazione Totale',
+                phaseColor: '#d97706',
+                recipeType: 'BLEACHING POWDER',
+                hairLength: lengthCategory,
+                tubes: [{
+                    name: 'Polvere Decolorante Professionale',
+                    grams: bleachPowderGrams,
+                    percentage: 100
+                }],
+                developer: {
+                    volume: Math.min(devVol, 30),
+                    grams: bleachDeveloperGrams
+                },
+                totalMix: bleachPowderGrams + bleachDeveloperGrams,
+                specialNote: '⚠️ Controllare la schiaritura visiva ogni 10 min. Target: Fondo 9-10 (Giallo Paglierino)'
+            };
+
+            const tonerColorGrams = Math.round(totaleColore * 0.5);
+            const tonerDeveloperGrams = Math.round(tonerColorGrams * 2);
+
+            const bowl2 = {
+                phase: 'phase2',
+                phaseName: 'Ciotola 2: Tonalizzante Post-Deco',
+                phaseColor: '#db2777',
+                recipeType: 'TONER NEUTRALIZZANTE',
+                hairLength: lengthCategory,
+                tubes: buildTubesList(baseTone, primaryKey, secondaryKey, intensified, tonerColorGrams),
+                developer: {
+                    volume: 10,
+                    grams: tonerDeveloperGrams
+                },
+                totalMix: tonerColorGrams + tonerDeveloperGrams,
+                specialNote: '💡 Applicare al lavatesta DOPO risciacquo decolorazione e shampoo equilibrante. Posa: 15-20 min'
+            };
+
+            return [bowl1, bowl2];
+        }
+
+        function buildTubesList(baseTone, primaryKey, secondaryKey, intensified, totaleColore) {
+            const tubes = [];
+            const sys = currentSystem || 'standard';
+
+            if (!primaryKey) {
+                tubes.push({
+                    name: `Tubo ${baseTone}.0 (Naturale)`,
+                    grams: totaleColore,
+                    percentage: 100
+                });
+            } else if (intensified && !secondaryKey) {
+                const reflectCode = REFLECT_SYSTEM_MAP[sys][primaryKey];
+                tubes.push({
+                    name: `Tubo ${baseTone}.${reflectCode}${reflectCode} (${REFLECTS[primaryKey].name} INTENSO)`,
+                    grams: totaleColore,
+                    percentage: 100
+                });
+            } else if (primaryKey && !secondaryKey) {
+                const reflectCode = REFLECT_SYSTEM_MAP[sys][primaryKey];
+                tubes.push({
+                    name: `Tubo ${baseTone}.${reflectCode} (${REFLECTS[primaryKey].name})`,
+                    grams: totaleColore,
+                    percentage: 100
+                });
+            } else if (primaryKey && secondaryKey) {
+                const primaryCode = REFLECT_SYSTEM_MAP[sys][primaryKey];
+                const secondaryCode = REFLECT_SYSTEM_MAP[sys][secondaryKey];
+                const primaryGrams = Math.round(totaleColore * 0.7);
+                const secondaryGrams = totaleColore - primaryGrams;
+
+                tubes.push({
+                    name: `Tubo ${baseTone}.${primaryCode} (${REFLECTS[primaryKey].name})`,
+                    grams: primaryGrams,
+                    percentage: 70
+                });
+
+                tubes.push({
+                    name: `Tubo ${baseTone}.${secondaryCode} (${REFLECTS[secondaryKey].name})`,
+                    grams: secondaryGrams,
+                    percentage: 30
+                });
+            }
+
+            return tubes;
+        }
+
+        /* ── AGGIORNAMENTO DINAMICO DELLA UI ── */
+        function updateAllOutputs() {
+            const formulaCode = generateFormulaCode();
+            const tempInfo = getFormulaTemperature();
+            const descName = getFormulaDescriptiveName();
+            const calculatedHex = calculateHairHexColor();
+
+            // Aggiorna Banner Formula
+            document.getElementById('formula-big-code').innerText = formulaCode;
+            document.getElementById('formula-hex-code').innerText = calculatedHex.toUpperCase();
+            document.getElementById('formula-descriptiveName' || 'formula-descriptive-name').innerHTML = `<i class="fa-solid fa-circle text-[9px] mr-1.5"></i><span>${escapeHtml(descName)}</span>`;
+
+            const tempBadge = document.getElementById('formula-temperature-badge');
+            if (tempBadge) {
+                tempBadge.innerText = tempInfo.label;
+            }
+
+            const inlineTemp = document.getElementById('badge-temperature-inline');
+            if (inlineTemp) {
+                inlineTemp.innerText = tempInfo.label;
+                inlineTemp.className = `font-black px-2.5 py-0.5 rounded-full text-[10px] uppercase border ${tempInfo.badgeClass}`;
+            }
+
+            // Sfondo dinamico con gradiente
+            const banner = document.getElementById('formula-preview-banner');
+            if (banner) {
+                banner.style.background = `linear-gradient(135deg, ${calculatedHex} 0%, ${adjustBrightness(calculatedHex, -25)} 100%)`;
+                banner.style.borderColor = calculatedHex;
+            }
+
+            // Aggiorna sintesi tecnica
+            const techSelect = document.getElementById('select-color-technique');
+            const techText = techSelect ? techSelect.options[techSelect.selectedIndex].text.split('(')[0].trim() : 'Tinta Globale';
+            document.getElementById('summary-technique-name').innerText = techText;
+
+            const recipes = calculateMixingRecipeEngine();
+            const totalProductBase = recipes.reduce((acc, r) => acc + (r.tubes ? r.tubes.reduce((tacc, t) => tacc + t.grams, 0) : 0), 0);
+            document.getElementById('summary-mass-value').innerText = `${totalProductBase}g Colore Base`;
+
+            renderMixingRecipes(recipes);
+        }
+
+        /* ── RENDERING SCHEDE CIOTOLE RICETTA ── */
+        function renderMixingRecipes(recipes) {
+            const container = document.getElementById('mixing-bowls-container');
+            const countBadge = document.getElementById('badge-bowl-count');
+            if (!container) return;
+
+            container.innerHTML = '';
+            const isDual = recipes.length > 1;
+            if (countBadge) countBadge.innerText = isDual ? '2 Ciotole (Dual Phase)' : '1 Ciotola';
+
+            recipes.forEach((recipe, idx) => {
+                const bowlCard = document.createElement('div');
+                bowlCard.className = 'bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3';
+
+                const badgeBg = recipe.recipeType.includes('BLEACH') ? 'bg-amber-100 text-amber-900 border-amber-300' :
+                                recipe.recipeType.includes('ROOT') ? 'bg-slate-900 text-white border-slate-900' :
+                                recipe.recipeType.includes('GLOSS') ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
+                                'bg-pink-100 text-pink-900 border-pink-300';
+
+                let tubesHtml = '';
+                recipe.tubes.forEach((tube, tubeIdx) => {
+                    tubesHtml += `
+                        <div class="flex items-center justify-between py-1.5 ${tubeIdx < recipe.tubes.length - 1 ? 'border-b border-slate-200/60' : ''}">
+                            <div>
+                                <div class="font-black text-xs text-slate-900 flex items-center gap-1.5">
+                                    <span class="w-2 h-2 rounded-full bg-slate-900"></span>
+                                    <span>${escapeHtml(tube.name)}</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-semibold pl-3.5">${tube.percentage}% del colore puro</div>
+                            </div>
+                            <div class="font-mono font-black text-sm text-slate-900">${tube.grams}g</div>
+                        </div>
+                    `;
+                });
+
+                let devHtml = '';
+                if (recipe.developer && recipe.developer.grams) {
+                    devHtml = `
+                        <div class="flex items-center justify-between py-1.5 border-t border-slate-200">
+                            <div>
+                                <div class="font-black text-xs text-emerald-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-droplet text-emerald-600 text-xs"></i>
+                                    <span>Ossidante ${recipe.developer.volume} Volumi (${getDeveloperPercentage(recipe.developer.volume)})</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 font-semibold pl-4">Developer Attivatore</div>
+                            </div>
+                            <div class="font-mono font-black text-sm text-emerald-700">${recipe.developer.grams}g</div>
+                        </div>
+                    `;
+                }
+
+                let noteHtml = '';
+                if (recipe.specialNote) {
+                    noteHtml = `
+                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 font-semibold flex items-start gap-2">
+                            <i class="fa-solid fa-circle-exclamation text-amber-600 text-xs mt-0.5 shrink-0"></i>
+                            <span>${escapeHtml(recipe.specialNote)}</span>
+                        </div>
+                    `;
+                }
+
+                bowlCard.innerHTML = `
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-xs text-slate-900">🥣 ${escapeHtml(recipe.phaseName)}</span>
+                        </div>
+                        <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${badgeBg}">${escapeHtml(recipe.recipeType)}</span>
+                    </div>
+
+                    ${noteHtml}
+
+                    <div class="bg-white border border-slate-200 rounded-xl p-3 space-y-1">
+                        ${tubesHtml}
+                        ${devHtml}
+                    </div>
+
+                    <div class="bg-slate-900 text-white rounded-xl p-3 flex items-center justify-between font-mono">
+                        <div class="text-xs font-bold uppercase tracking-wider text-slate-300">Totale Miscela in Ciotola:</div>
+                        <div class="text-lg font-black text-pink-400">${recipe.totalMix}g</div>
+                    </div>
+                `;
+
+                container.appendChild(bowlCard);
+
+                if (isDual && idx === 0) {
+                    const arrowDiv = document.createElement('div');
+                    arrowDiv.className = 'text-center py-1 text-xs font-black text-slate-400 flex items-center justify-center gap-2';
+                    arrowDiv.innerHTML = '<i class="fa-solid fa-arrow-down text-pink-600 animate-bounce"></i><span>POI APPLICARE FASE 2</span><i class="fa-solid fa-arrow-down text-pink-600 animate-bounce"></i>';
+                    container.appendChild(arrowDiv);
+                }
+            });
+        }
+
+        function getDeveloperPercentage(vol) {
+            if (vol === 10) return '3%';
+            if (vol === 20) return '6%';
+            if (vol === 30) return '9%';
+            if (vol === 40) return '12%';
+            return `${vol} Vol`;
+        }
+
+        /* ── MODALE TRADUZIONE FORMULE MULTI-BRAND ── */
+        function openTranslationModal() {
+            const codeStd = generateFormulaCode('standard');
+            const codeGer = generateFormulaCode('german');
+            const codeAlpha = generateFormulaCode('alphabetic');
+
+            document.getElementById('trans-code-standard').innerText = codeStd;
+            document.getElementById('trans-code-german').innerText = codeGer;
+            document.getElementById('trans-code-alphabetic').innerText = codeAlpha;
+
+            const baseName = TONE_NAMES[currentBaseTone] || ('Tono ' + currentBaseTone);
+            let desc = `Altezza di tono ${currentBaseTone} (${baseName})`;
+
+            if (primaryReflect) {
+                const prim = REFLECTS[primaryReflect];
+                desc += `, con Riflesso Primario ${prim.name}`;
+                if (primaryIntensified) desc += ' (Intensificato ⚡)';
+                desc += secondaryReflect ? ' al 70%' : ' al 100%';
+
+                if (secondaryReflect) {
+                    const sec = REFLECTS[secondaryReflect];
+                    desc += ` e Riflesso Secondario ${sec.name} al 30%`;
+                }
+            } else {
+                desc += ` Naturale (.0 Puro)`;
+            }
+
+            desc += `. Formula termicamente ${getFormulaTemperature().label}.`;
+            document.getElementById('trans-universal-description').innerText = desc;
+
+            document.getElementById('modal-translation').classList.remove('hidden');
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function closeTranslationModal() {
+            document.getElementById('modal-translation').classList.add('hidden');
+        }
+
+        /* ── COPIA RICETTA & CONDIVISIONE ── */
+        function copyRecipeToClipboard() {
+            const formula = generateFormulaCode();
+            const desc = getFormulaDescriptiveName();
+            const recipes = calculateMixingRecipeEngine();
+
+            let txt = `📋 *SiteBoS Beauty • Ricetta Tintometrica*\n`;
+            txt += `Nuance: ${formula} (${desc})\n`;
+            txt += `Sistema: ${currentSystem.toUpperCase()}\n`;
+            txt += `Tecnica: ${document.getElementById('select-color-technique').value}\n\n`;
+
+            recipes.forEach((r, i) => {
+                txt += `🥣 ${r.phaseName} [${r.recipeType}]:\n`;
+                r.tubes.forEach(t => {
+                    txt += `  • ${t.name}: ${t.grams}g (${t.percentage}%)\n`;
+                });
+                if (r.developer) {
+                    txt += `  • Ossidante ${r.developer.volume} Vol: ${r.developer.grams}g\n`;
+                }
+                txt += `  ➜ Peso Totale: ${r.totalMix}g\n\n`;
+            });
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(() => {
+                    showToast('Ricetta chimica copiata negli appunti!');
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => fallbackCopy(txt));
+            } else {
+                fallbackCopy(txt);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast('Ricetta copiata negli appunti!');
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        /* ── RESET FORMULA AI VALORI DI FABBRICA ── */
+        function resetFormula() {
+            currentSystem = 'standard';
+            currentBaseTone = 7;
+            primaryReflect = null;
+            primaryIntensified = false;
+            secondaryReflect = null;
+            colorTechnique = 'global';
+            hairLengthCategory = 'Medium';
+            developerVolume = 20;
+            extensionType = 'none';
+
+            const slider = document.getElementById('base-tone-slider');
+            if (slider) slider.value = 7;
+
+            const techSelect = document.getElementById('select-color-technique');
+            if (techSelect) techSelect.value = 'global';
+
+            const lengthSelect = document.getElementById('select-hair-length');
+            if (lengthSelect) lengthSelect.value = 'Medium';
+
+            const devSelect = document.getElementById('select-developer-vol');
+            if (devSelect) devSelect.value = '20';
+
+            const extSelect = document.getElementById('select-extensions');
+            if (extSelect) extSelect.value = 'none';
+
+            setBrandSystem('standard');
+            syncBaseToneButtons();
+            renderReflectPaletteGrid();
+            updateAllOutputs();
+
+            showToast('Configurazione reimpostata ai valori predefiniti.');
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        /* ── GESTIONE TAB BEAUTY DESK ── */
+        let currentActiveBeautyTab = 'tintometria'; // 'tintometria' | 'timer' | 'dilution'
+
+        function switchBeautyTab(tabId) {
+            currentActiveBeautyTab = tabId;
+
+            const btnTintometria = document.getElementById('tab-btn-tintometria');
+            const btnTimer = document.getElementById('tab-btn-timer');
+            const btnDilution = document.getElementById('tab-btn-dilution');
+
+            const secTintometria = document.getElementById('section-tintometria');
+            const secTimer = document.getElementById('section-timer');
+            const secDilution = document.getElementById('section-dilution');
+            const btnTranslate = document.getElementById('btn-header-translate');
+
+            const activeClass = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+            const inactiveClass = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+
+            if (tabId === 'tintometria') {
+                btnTintometria.className = activeClass;
+                btnTimer.className = inactiveClass + ' relative';
+                btnDilution.className = inactiveClass;
+
+                secTintometria.classList.remove('hidden');
+                secTimer.classList.add('hidden');
+                secDilution.classList.add('hidden');
+                if (btnTranslate) btnTranslate.classList.remove('hidden');
+            } else if (tabId === 'timer') {
+                btnTintometria.className = inactiveClass;
+                btnTimer.className = activeClass + ' relative';
+                btnDilution.className = inactiveClass;
+
+                secTintometria.classList.add('hidden');
+                secTimer.classList.remove('hidden');
+                secDilution.classList.add('hidden');
+                if (btnTranslate) btnTranslate.classList.add('hidden');
+            } else if (tabId === 'dilution') {
+                btnTintometria.className = inactiveClass;
+                btnTimer.className = inactiveClass + ' relative';
+                btnDilution.className = activeClass;
+
+                secTintometria.classList.add('hidden');
+                secTimer.classList.add('hidden');
+                secDilution.classList.remove('hidden');
+                if (btnTranslate) btnTranslate.classList.add('hidden');
+            }
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function resetCurrentActiveTab() {
+            if (currentActiveBeautyTab === 'tintometria') {
+                resetFormula();
+            } else if (currentActiveBeautyTab === 'timer') {
+                resetTimerSystem();
+            } else if (currentActiveBeautyTab === 'dilution') {
+                resetDilutionCalculator();
+            }
+        }
+
+        /* ── SISTEMA WEB AUDIO & APTICO TELEGRAM ── */
+        let beautyAudioCtx = null;
+
+        function getBeautyAudioCtx() {
+            if (!beautyAudioCtx) {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtxClass) {
+                    beautyAudioCtx = new AudioCtxClass();
+                }
+            }
+            if (beautyAudioCtx && beautyAudioCtx.state === 'suspended') {
+                beautyAudioCtx.resume().catch(() => {});
+            }
+            return beautyAudioCtx;
+        }
+
+        function playSynthBeep(frequency, type = 'sine', durationSec = 0.2, startDelaySec = 0, gainLevel = 0.35) {
+            try {
+                const ctx = getBeautyAudioCtx();
+                if (!ctx) return;
+                const now = ctx.currentTime + startDelaySec;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = type;
+                osc.frequency.setValueAtTime(frequency, now);
+
+                gain.gain.setValueAtTime(0.0001, now);
+                gain.gain.exponentialRampToValueAtTime(gainLevel, now + 0.02);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + durationSec);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + durationSec + 0.05);
+            } catch (e) {
+                console.warn('Audio tone synthesis exception:', e);
+            }
+        }
+
+        // Suono & Aptico FINE FASE INTERMEDIA: Doppio beep ascendente deciso + vibrazione doppia
+        function notifyPhaseComplete() {
+            // Suono: 880Hz (La5) -> 1174Hz (Re6)
+            playSynthBeep(880, 'triangle', 0.16, 0, 0.45);
+            playSynthBeep(1174, 'triangle', 0.25, 0.22, 0.5);
+
+            // Aptico Telegram + Navigator Vibration
+            if (tg?.HapticFeedback) {
+                try { tg.HapticFeedback.notificationOccurred('warning'); } catch (e) {}
+            }
+            if (navigator.vibrate) {
+                navigator.vibrate([250, 100, 250]);
+            }
+        }
+
+        // Suono & Aptico FINE TRATTAMENTO TOTALE: Fanfara armonica (Do5-Mi5-Sol5-Do6) + vibrazione prolungata
+        function notifyAllPhasesComplete() {
+            // Arpeggio trionfale di fine posa: 523.25Hz -> 659.25Hz -> 783.99Hz -> 1046.50Hz
+            playSynthBeep(523.25, 'sine', 0.18, 0, 0.4);
+            playSynthBeep(659.25, 'sine', 0.18, 0.18, 0.4);
+            playSynthBeep(783.99, 'sine', 0.18, 0.36, 0.45);
+            playSynthBeep(1046.50, 'sine', 0.65, 0.54, 0.55);
+
+            // Aptico Telegram + Navigator Vibration
+            if (tg?.HapticFeedback) {
+                try { tg.HapticFeedback.notificationOccurred('success'); } catch (e) {}
+            }
+            if (navigator.vibrate) {
+                navigator.vibrate([350, 120, 350, 120, 700]);
+            }
+        }
+
+        function testAudioHapticAlert() {
+            getBeautyAudioCtx();
+            notifyPhaseComplete();
+            showToast('🔊 Test Notifica: Doppio Beep e Vibrazione inviati!');
+        }
+
+        /* ── MOTORE TIMER ATTIVAZIONE TRATTAMENTI & NEUTRALIZZATORI ── */
+        const TIMER_PRESETS = {
+            'bleach-tone': {
+                key: 'bleach-tone',
+                name: 'Deco & Toner',
+                badgeText: 'Deco & Toner',
+                phases: [
+                    { name: 'Decolorazione Schiaritura', durationSec: 35 * 60 },
+                    { name: 'Risciacquo & Shampoo Chelante', durationSec: 5 * 60 },
+                    { name: 'Toner Neutralizzante / Gloss', durationSec: 15 * 60 },
+                    { name: 'Maschera Sigillante Post-Colore', durationSec: 5 * 60 }
+                ]
+            },
+            'keratin': {
+                key: 'keratin',
+                name: 'Cheratina Termoattiva',
+                badgeText: 'Cheratina Termoattiva',
+                phases: [
+                    { name: 'Shampoo Preparatore Alcalino', durationSec: 5 * 60 },
+                    { name: 'Posa Cheratina Termoattiva', durationSec: 25 * 60 },
+                    { name: 'Maschera Nutriente & Chiusura', durationSec: 10 * 60 }
+                ]
+            },
+            'permanent-color': {
+                key: 'permanent-color',
+                name: 'Colore Permanente',
+                badgeText: 'Colore Permanente',
+                phases: [
+                    { name: 'Posa Colore Permanente', durationSec: 35 * 60 },
+                    { name: 'Emulsione, Risciacquo & Shampoo', durationSec: 5 * 60 }
+                ]
+            },
+            'gloss-express': {
+                key: 'gloss-express',
+                name: 'Gloss Express',
+                badgeText: 'Gloss Express',
+                phases: [
+                    { name: 'Posa Gloss al Lavatesta', durationSec: 15 * 60 }
+                ]
+            },
+            'perm-straightening': {
+                key: 'perm-straightening',
+                name: 'Permanente / Stiratura',
+                badgeText: 'Permanente / Stiratura',
+                phases: [
+                    { name: 'Liquido Riduttore Ondulante', durationSec: 20 * 60 },
+                    { name: 'Risciacquo Intermedio Caldo', durationSec: 5 * 60 },
+                    { name: 'Neutralizzante Fissatore', durationSec: 10 * 60 }
+                ]
+            },
+            'custom-empty': {
+                key: 'custom-empty',
+                name: 'Fasi Personalizzate',
+                badgeText: 'Personalizzato',
+                phases: [
+                    { name: 'Fase 1: Posa Prodotto', durationSec: 20 * 60 }
+                ]
+            }
+        };
+
+        let currentTimerPresetKey = 'bleach-tone';
+        let timerPhases = [];
+        let activePhaseIndex = 0;
+        let phaseRemainingSec = 35 * 60;
+        let isTimerRunning = false;
+        let timerIntervalId = null;
+        let lastTickTime = null;
+
+        function initTimerState() {
+            loadTimerPreset('bleach-tone', false);
+        }
+
+        function loadTimerPreset(presetKey, notifyUser = true) {
+            const preset = TIMER_PRESETS[presetKey] || TIMER_PRESETS['bleach-tone'];
+            currentTimerPresetKey = presetKey;
+
+            pauseTimer(false);
+
+            timerPhases = preset.phases.map(p => ({
+                name: p.name,
+                durationSec: p.durationSec,
+                status: 'pending'
+            }));
+
+            activePhaseIndex = 0;
+            phaseRemainingSec = timerPhases[0] ? timerPhases[0].durationSec : 0;
+
+            const badge = document.getElementById('active-preset-badge');
+            if (badge) badge.innerText = preset.badgeText;
+
+            const presetBtns = document.querySelectorAll('#timer-presets-container button');
+            presetBtns.forEach(btn => {
+                const isActive = btn.id === `btn-preset-${presetKey}`;
+                if (isActive) {
+                    btn.className = 'p-3 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+                    const pill = btn.querySelector('.font-mono');
+                    if (pill) pill.className = 'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-white';
+                    const sub = btn.querySelector('p');
+                    if (sub) sub.className = 'text-[10px] text-slate-300 mt-0.5';
+                } else {
+                    btn.className = 'p-3 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+                    const pill = btn.querySelector('.font-mono');
+                    if (pill) pill.className = 'text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700';
+                    const sub = btn.querySelector('p');
+                    if (sub) sub.className = 'text-[10px] text-slate-500 mt-0.5';
+                }
+            });
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+
+            if (notifyUser) {
+                showToast(`Preset "${preset.name}" caricato con successo.`);
+                if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+            }
+        }
+
+        function renderPhasesList() {
+            const container = document.getElementById('timer-phases-list');
+            const totalBadge = document.getElementById('timer-total-phases-badge');
+            if (!container) return;
+
+            if (totalBadge) totalBadge.innerText = `${timerPhases.length} Fas${timerPhases.length === 1 ? 'e Totale' : 'i Totali'}`;
+
+            if (timerPhases.length === 0) {
+                container.innerHTML = `
+                    <div class="p-6 bg-slate-50 border border-slate-200 rounded-2xl text-center space-y-1">
+                        <div class="text-2xl">⏳</div>
+                        <div class="text-xs font-black text-slate-800">Nessuna fase presente nel trattamento</div>
+                        <div class="text-[11px] text-slate-500">Aggiungi una fase con il modulo in alto per iniziare.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = timerPhases.map((phase, idx) => {
+                const isActive = idx === activePhaseIndex;
+                const isCompleted = idx < activePhaseIndex;
+
+                let cardBorder = 'border-slate-200 bg-white';
+                let statusBadge = '';
+                let numBadgeClass = 'bg-slate-900 text-white';
+
+                if (isCompleted) {
+                    cardBorder = 'border-emerald-200 bg-emerald-50/40 opacity-80';
+                    numBadgeClass = 'bg-emerald-600 text-white';
+                    statusBadge = '<span class="text-[10px] font-black text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fa-solid fa-check text-[9px]"></i>Completata</span>';
+                } else if (isActive) {
+                    if (isTimerRunning) {
+                        cardBorder = 'border-pink-500 bg-pink-50/60 ring-2 ring-pink-500 shadow-sm';
+                        numBadgeClass = 'bg-pink-600 text-white';
+                        statusBadge = '<span class="text-[10px] font-black text-pink-900 bg-pink-100 border border-pink-300 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fa-solid fa-spinner fa-spin text-[9px]"></i>In Corso</span>';
+                    } else {
+                        cardBorder = 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-400 shadow-sm';
+                        numBadgeClass = 'bg-amber-600 text-white';
+                        statusBadge = '<span class="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2 py-0.5 rounded-full flex items-center gap-1"><i class="fa-solid fa-pause text-[9px]"></i>Pronta / In Pausa</span>';
+                    }
+                } else {
+                    cardBorder = 'border-slate-200 bg-white hover:border-slate-300';
+                    numBadgeClass = 'bg-slate-200 text-slate-700';
+                    statusBadge = '<span class="text-[10px] font-bold text-slate-500 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full">In Attesa</span>';
+                }
+
+                const durationMin = Math.round(phase.durationSec / 60);
+
+                return `
+                    <div class="p-3.5 rounded-2xl border-2 transition ${cardBorder} flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="w-7 h-7 rounded-xl ${numBadgeClass} flex items-center justify-center font-mono font-black text-xs shrink-0">
+                                ${idx + 1}
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-black text-xs text-slate-900 truncate">${escapeHtml(phase.name)}</div>
+                                <div class="text-[10px] text-slate-500 font-mono font-semibold flex items-center gap-1.5 mt-0.5">
+                                    <i class="fa-regular fa-clock text-[9px]"></i>
+                                    <span>${durationMin} min (${formatSecToMMSS(phase.durationSec)})</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            ${statusBadge}
+
+                            <div class="flex items-center gap-1 pl-1 border-l border-slate-200/80">
+                                <button type="button" onclick="movePhase(${idx}, -1)" ${idx === 0 || isTimerRunning ? 'disabled class="w-6 h-6 rounded-lg text-slate-300 flex items-center justify-center cursor-not-allowed"' : 'class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95"'} title="Sposta su">
+                                    <i class="fa-solid fa-chevron-up text-[9px]"></i>
+                                </button>
+                                <button type="button" onclick="movePhase(${idx}, 1)" ${idx === timerPhases.length - 1 || isTimerRunning ? 'disabled class="w-6 h-6 rounded-lg text-slate-300 flex items-center justify-center cursor-not-allowed"' : 'class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition active:scale-95"'} title="Sposta giù">
+                                    <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                                </button>
+                                <button type="button" onclick="removePhase(${idx})" ${isTimerRunning ? 'disabled class="w-6 h-6 rounded-lg text-slate-300 flex items-center justify-center cursor-not-allowed"' : 'class="w-6 h-6 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition active:scale-95"'} title="Elimina fase">
+                                    <i class="fa-solid fa-trash-can text-[9px]"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function addCustomPhase() {
+            const nameInput = document.getElementById('timer-new-phase-name');
+            const minInput = document.getElementById('timer-new-phase-min');
+
+            const name = (nameInput ? nameInput.value.trim() : '') || `Fase ${timerPhases.length + 1}`;
+            let minutes = minInput ? parseInt(minInput.value, 10) : 15;
+            if (isNaN(minutes) || minutes < 1) minutes = 1;
+            if (minutes > 360) minutes = 360;
+
+            timerPhases.push({
+                name: name,
+                durationSec: minutes * 60,
+                status: 'pending'
+            });
+
+            if (nameInput) nameInput.value = '';
+
+            if (timerPhases.length === 1) {
+                activePhaseIndex = 0;
+                phaseRemainingSec = timerPhases[0].durationSec;
+            }
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+
+            showToast(`Fase "${name}" (${minutes}m) aggiunta.`);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function removePhase(idx) {
+            if (isTimerRunning) {
+                showToast('Metti in pausa il timer prima di modificare le fasi.');
+                return;
+            }
+            if (idx < 0 || idx >= timerPhases.length) return;
+
+            const removedName = timerPhases[idx].name;
+            timerPhases.splice(idx, 1);
+
+            if (activePhaseIndex >= timerPhases.length) {
+                activePhaseIndex = Math.max(0, timerPhases.length - 1);
+            }
+
+            if (timerPhases[activePhaseIndex]) {
+                phaseRemainingSec = timerPhases[activePhaseIndex].durationSec;
+            } else {
+                phaseRemainingSec = 0;
+            }
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+
+            showToast(`Fase "${removedName}" rimossa.`);
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function movePhase(idx, dir) {
+            if (isTimerRunning) return;
+            const newIdx = idx + dir;
+            if (newIdx < 0 || newIdx >= timerPhases.length) return;
+
+            const item = timerPhases.splice(idx, 1)[0];
+            timerPhases.splice(newIdx, 0, item);
+
+            if (activePhaseIndex === idx) {
+                activePhaseIndex = newIdx;
+            } else if (activePhaseIndex === newIdx) {
+                activePhaseIndex = idx;
+            }
+
+            renderPhasesList();
+            renderTimerConsole();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function toggleTimer() {
+            getBeautyAudioCtx();
+
+            if (timerPhases.length === 0) {
+                showToast('Aggiungi almeno una fase al trattamento prima di avviare.');
+                return;
+            }
+
+            if (isTimerRunning) {
+                pauseTimer(true);
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            if (timerPhases.length === 0) return;
+            if (activePhaseIndex >= timerPhases.length) {
+                activePhaseIndex = 0;
+                phaseRemainingSec = timerPhases[0].durationSec;
+            }
+
+            if (phaseRemainingSec <= 0 && timerPhases[activePhaseIndex]) {
+                phaseRemainingSec = timerPhases[activePhaseIndex].durationSec;
+            }
+
+            isTimerRunning = true;
+            lastTickTime = Date.now();
+
+            if (!timerIntervalId) {
+                timerIntervalId = setInterval(onTimerIntervalTick, 250);
+            }
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function pauseTimer(notify = true) {
+            isTimerRunning = false;
+            if (timerIntervalId) {
+                clearInterval(timerIntervalId);
+                timerIntervalId = null;
+            }
+            lastTickTime = null;
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+
+            if (notify && tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        function onTimerIntervalTick() {
+            if (!isTimerRunning) return;
+
+            const now = Date.now();
+            if (lastTickTime) {
+                const elapsedMs = now - lastTickTime;
+                if (elapsedMs >= 1000) {
+                    const elapsedSec = Math.floor(elapsedMs / 1000);
+                    lastTickTime += elapsedSec * 1000;
+                    phaseRemainingSec -= elapsedSec;
+
+                    if (phaseRemainingSec <= 0) {
+                        handlePhaseCompleted();
+                    } else {
+                        renderTimerConsole();
+                        updateTabTimerBadge();
+                    }
+                }
+            } else {
+                lastTickTime = now;
+            }
+        }
+
+        function handlePhaseCompleted() {
+            const completedPhase = timerPhases[activePhaseIndex];
+            const completedName = completedPhase ? completedPhase.name : `Fase ${activePhaseIndex + 1}`;
+
+            if (activePhaseIndex + 1 < timerPhases.length) {
+                activePhaseIndex++;
+                phaseRemainingSec = timerPhases[activePhaseIndex].durationSec;
+
+                notifyPhaseComplete();
+                showToast(`🔔 FASE COMPLETATA: "${completedName}"! Iniziata: "${timerPhases[activePhaseIndex].name}"`);
+            } else {
+                pauseTimer(false);
+                phaseRemainingSec = 0;
+                activePhaseIndex = timerPhases.length;
+
+                notifyAllPhasesComplete();
+                showToast('🎉 TRATTAMENTO COMPLETATO CON SUCCESSO! Tutte le fasi di posa sono terminate.');
+            }
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+        }
+
+        function skipToNextPhase() {
+            if (timerPhases.length === 0) return;
+            getBeautyAudioCtx();
+
+            if (activePhaseIndex + 1 < timerPhases.length) {
+                activePhaseIndex++;
+                phaseRemainingSec = timerPhases[activePhaseIndex].durationSec;
+                lastTickTime = Date.now();
+                showToast(`Passato a Fase ${activePhaseIndex + 1}: ${timerPhases[activePhaseIndex].name}`);
+            } else {
+                pauseTimer(false);
+                activePhaseIndex = timerPhases.length;
+                phaseRemainingSec = 0;
+                showToast('Raggiunta la fine di tutte le fasi.');
+            }
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function restartCurrentPhase() {
+            if (timerPhases.length === 0) return;
+            getBeautyAudioCtx();
+
+            if (activePhaseIndex >= timerPhases.length) {
+                activePhaseIndex = Math.max(0, timerPhases.length - 1);
+            }
+
+            phaseRemainingSec = timerPhases[activePhaseIndex].durationSec;
+            lastTickTime = Date.now();
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+            showToast(`Fase ${activePhaseIndex + 1} riavviata da capo.`);
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function resetTimerSystem() {
+            pauseTimer(false);
+            activePhaseIndex = 0;
+            if (timerPhases[0]) {
+                phaseRemainingSec = timerPhases[0].durationSec;
+            } else {
+                phaseRemainingSec = 0;
+            }
+
+            renderPhasesList();
+            renderTimerConsole();
+            updateTabTimerBadge();
+            showToast('Timer reimpostato ai valori iniziali.');
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        function renderTimerConsole() {
+            const currentPhase = timerPhases[activePhaseIndex];
+            const isAllCompleted = activePhaseIndex >= timerPhases.length && timerPhases.length > 0;
+
+            const nameEl = document.getElementById('timer-display-phase-name');
+            const digitsEl = document.getElementById('timer-clock-digits');
+            const progBar = document.getElementById('timer-phase-progress-bar');
+            const progPct = document.getElementById('timer-phase-progress-pct');
+            const currentBadge = document.getElementById('timer-current-phase-badge');
+            const statusDot = document.getElementById('timer-status-dot');
+            const btnToggle = document.getElementById('btn-timer-toggle');
+            const iconToggle = document.getElementById('icon-timer-toggle');
+            const lblToggle = document.getElementById('lbl-timer-toggle');
+            const overallSummary = document.getElementById('timer-overall-time-summary');
+
+            const formattedTime = formatSecToMMSS(Math.max(0, phaseRemainingSec));
+
+            if (isAllCompleted) {
+                if (nameEl) nameEl.innerText = 'Trattamento Terminato';
+                if (digitsEl) {
+                    digitsEl.innerText = '00:00';
+                    digitsEl.className = 'text-5xl sm:text-6xl font-black font-mono tracking-tight text-emerald-400 drop-shadow-sm my-2';
+                }
+                if (progBar) progBar.style.width = '100%';
+                if (progPct) progPct.innerText = '100% (Completato)';
+                if (currentBadge) {
+                    currentBadge.innerText = 'COMPLETATO ✅';
+                    currentBadge.className = 'text-[10px] font-black uppercase text-emerald-900 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full';
+                }
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+                if (btnToggle) {
+                    btnToggle.className = 'w-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-black py-3.5 px-4 rounded-2xl transition shadow-md flex items-center justify-center gap-2.5 active:scale-95';
+                    if (iconToggle) iconToggle.className = 'fa-solid fa-rotate-left';
+                    if (lblToggle) lblToggle.innerText = 'Riavvia Trattamento';
+                }
+            } else if (currentPhase) {
+                if (nameEl) nameEl.innerText = currentPhase.name;
+                if (digitsEl) {
+                    digitsEl.innerText = formattedTime;
+                    digitsEl.className = isTimerRunning 
+                        ? 'text-5xl sm:text-6xl font-black font-mono tracking-tight text-pink-400 drop-shadow-sm my-2 animate-pulse'
+                        : 'text-5xl sm:text-6xl font-black font-mono tracking-tight text-white drop-shadow-sm my-2';
+                }
+
+                const totalPhaseSec = Math.max(1, currentPhase.durationSec);
+                const elapsedPhaseSec = Math.max(0, totalPhaseSec - phaseRemainingSec);
+                const pct = Math.min(100, Math.max(0, Math.round((elapsedPhaseSec / totalPhaseSec) * 100)));
+
+                if (progBar) progBar.style.width = `${pct}%`;
+                if (progPct) progPct.innerText = `${pct}% (${formatSecToMMSS(elapsedPhaseSec)} / ${formatSecToMMSS(totalPhaseSec)})`;
+
+                if (currentBadge) {
+                    currentBadge.innerText = `Fase ${activePhaseIndex + 1} di ${timerPhases.length}`;
+                    currentBadge.className = 'text-[10px] font-black uppercase text-pink-900 bg-pink-100 border border-pink-300 px-2 py-0.5 rounded-full';
+                }
+
+                if (statusDot) {
+                    statusDot.className = isTimerRunning 
+                        ? 'w-2.5 h-2.5 rounded-full bg-pink-500 pulse-subtle' 
+                        : 'w-2.5 h-2.5 rounded-full bg-amber-400';
+                }
+
+                if (btnToggle) {
+                    if (isTimerRunning) {
+                        btnToggle.className = 'w-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-sm font-black py-3.5 px-4 rounded-2xl transition shadow-md flex items-center justify-center gap-2.5 active:scale-95';
+                        if (iconToggle) iconToggle.className = 'fa-solid fa-pause';
+                        if (lblToggle) lblToggle.innerText = 'Pausa Countdown';
+                    } else {
+                        btnToggle.className = 'w-full bg-pink-600 hover:bg-pink-700 text-white text-sm font-black py-3.5 px-4 rounded-2xl transition shadow-md flex items-center justify-center gap-2.5 active:scale-95';
+                        if (iconToggle) iconToggle.className = 'fa-solid fa-play';
+                        if (lblToggle) lblToggle.innerText = 'Avvia Countdown';
+                    }
+                }
+            } else {
+                if (nameEl) nameEl.innerText = 'Nessuna Fase';
+                if (digitsEl) digitsEl.innerText = '00:00';
+                if (progBar) progBar.style.width = '0%';
+                if (progPct) progPct.innerText = '0%';
+                if (currentBadge) currentBadge.innerText = 'Inattivo';
+                if (statusDot) statusDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-300';
+            }
+
+            if (overallSummary) {
+                const totalAllSec = timerPhases.reduce((acc, p) => acc + p.durationSec, 0);
+                let elapsedAllSec = 0;
+                for (let i = 0; i < activePhaseIndex && i < timerPhases.length; i++) {
+                    elapsedAllSec += timerPhases[i].durationSec;
+                }
+                if (currentPhase && !isAllCompleted) {
+                    elapsedAllSec += Math.max(0, currentPhase.durationSec - phaseRemainingSec);
+                } else if (isAllCompleted) {
+                    elapsedAllSec = totalAllSec;
+                }
+                overallSummary.innerText = `${formatSecToMMSS(elapsedAllSec)} / ${formatSecToMMSS(totalAllSec)}`;
+            }
+
+            renderFullscreenTimer();
+        }
+
+        function updateTabTimerBadge() {
+            const badge = document.getElementById('tab-timer-badge');
+            if (!badge) return;
+
+            if (isTimerRunning && timerPhases[activePhaseIndex]) {
+                badge.innerText = `${formatSecToMMSS(Math.max(0, phaseRemainingSec))} (F${activePhaseIndex + 1})`;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        /* ── MODALE FULLSCREEN TIMER (SCHERMO INTERO) ── */
+        function openTimerFullscreen() {
+            getBeautyAudioCtx();
+            const modal = document.getElementById('modal-timer-fullscreen');
+            if (modal) {
+                modal.classList.remove('hidden');
+                renderFullscreenTimer();
+            }
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function closeTimerFullscreen() {
+            const modal = document.getElementById('modal-timer-fullscreen');
+            if (modal) {
+                modal.classList.add('hidden');
+            }
+            if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function renderFullscreenTimer() {
+            const modal = document.getElementById('modal-timer-fullscreen');
+            if (!modal || modal.classList.contains('hidden')) return;
+
+            const currentPhase = timerPhases[activePhaseIndex];
+            const isAllCompleted = activePhaseIndex >= timerPhases.length && timerPhases.length > 0;
+
+            const fsStep = document.getElementById('fs-phase-step-badge');
+            const fsName = document.getElementById('fs-phase-name');
+            const fsClock = document.getElementById('fs-clock-digits');
+            const fsProg = document.getElementById('fs-phase-progress-bar');
+            const fsPct = document.getElementById('fs-phase-progress-pct');
+            const fsNext = document.getElementById('fs-next-phase-preview');
+            const btnFs = document.getElementById('btn-fs-toggle');
+            const iconFs = document.getElementById('icon-fs-toggle');
+            const lblFs = document.getElementById('lbl-fs-toggle');
+
+            if (isAllCompleted) {
+                if (fsStep) fsStep.innerText = 'TRATTAMENTO COMPLETATO ✅';
+                if (fsName) fsName.innerText = 'Tutte le Fasi Terminate';
+                if (fsClock) {
+                    fsClock.innerText = '00:00';
+                    fsClock.className = 'text-7xl sm:text-9xl md:text-[11rem] font-black font-mono tracking-tight text-emerald-400 drop-shadow-2xl my-2 leading-none';
+                }
+                if (fsProg) fsProg.style.width = '100%';
+                if (fsPct) fsPct.innerText = '100% Completato';
+                if (fsNext) fsNext.innerText = 'Servizio concluso';
+                if (btnFs) {
+                    btnFs.className = 'flex-[2] bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base py-4 px-6 rounded-2xl transition shadow-lg flex items-center justify-center gap-2.5 active:scale-95';
+                    if (iconFs) iconFs.className = 'fa-solid fa-rotate-left';
+                    if (lblFs) lblFs.innerText = 'Riavvia';
+                }
+            } else if (currentPhase) {
+                if (fsStep) fsStep.innerText = `FASE ${activePhaseIndex + 1} DI ${timerPhases.length} • ${isTimerRunning ? 'IN CORSO' : 'IN PAUSA'}`;
+                if (fsName) fsName.innerText = currentPhase.name;
+                if (fsClock) {
+                    fsClock.innerText = formatSecToMMSS(Math.max(0, phaseRemainingSec));
+                    fsClock.className = isTimerRunning 
+                        ? 'text-7xl sm:text-9xl md:text-[11rem] font-black font-mono tracking-tight text-pink-400 drop-shadow-2xl my-2 leading-none animate-pulse'
+                        : 'text-7xl sm:text-9xl md:text-[11rem] font-black font-mono tracking-tight text-white drop-shadow-2xl my-2 leading-none';
+                }
+
+                const totalPhaseSec = Math.max(1, currentPhase.durationSec);
+                const elapsedPhaseSec = Math.max(0, totalPhaseSec - phaseRemainingSec);
+                const pct = Math.min(100, Math.max(0, Math.round((elapsedPhaseSec / totalPhaseSec) * 100)));
+
+                if (fsProg) fsProg.style.width = `${pct}%`;
+                if (fsPct) fsPct.innerText = `${pct}% Completato`;
+
+                const nextPhase = timerPhases[activePhaseIndex + 1];
+                if (fsNext) {
+                    fsNext.innerText = nextPhase 
+                        ? `Prossima: ${nextPhase.name} (${Math.round(nextPhase.durationSec / 60)}m)`
+                        : 'Ultima Fase del Trattamento';
+                }
+
+                if (btnFs) {
+                    if (isTimerRunning) {
+                        btnFs.className = 'flex-[2] bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm sm:text-base py-4 px-6 rounded-2xl transition shadow-lg flex items-center justify-center gap-2.5 active:scale-95';
+                        if (iconFs) iconFs.className = 'fa-solid fa-pause';
+                        if (lblFs) lblFs.innerText = 'Pausa';
+                    } else {
+                        btnFs.className = 'flex-[2] bg-pink-600 hover:bg-pink-500 text-white font-black text-sm sm:text-base py-4 px-6 rounded-2xl transition shadow-lg flex items-center justify-center gap-2.5 active:scale-95';
+                        if (iconFs) iconFs.className = 'fa-solid fa-play';
+                        if (lblFs) lblFs.innerText = 'Avvia';
+                    }
+                }
+            }
+        }
+
+        function formatSecToMMSS(totalSec) {
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        /* ── MOTORE CALCOLATORE DILUIZIONE MONODOSE CABINA ── */
+        let dilutionBulkVolumeMl = 5000;
+        let dilutionTargetVolumeMl = 100;
+        let dilutionMode = 'diluted';
+        let dilutionRatioKey = '1:3';
+        let dilutionCustomProductParts = 1;
+        let dilutionCustomDiluentParts = 3;
+        let dilutionDiluentType = 'Acqua Depurata / Demineralizzata';
+
+        const DILUTION_RATIO_PRESETS = {
+            '1:1': { prod: 1, dil: 1, label: '1:1 (50%)', desc: '1 prod + 1 dil' },
+            '1:2': { prod: 1, dil: 2, label: '1:2 (33.3%)', desc: '1 prod + 2 dil' },
+            '1:3': { prod: 1, dil: 3, label: '1:3 (25.0%)', desc: 'Shampoo Cabina' },
+            '1:4': { prod: 1, dil: 4, label: '1:4 (20.0%)', desc: '1 prod + 4 dil' },
+            '1:5': { prod: 1, dil: 5, label: '1:5 (16.7%)', desc: '1 prod + 5 dil' },
+            '1:9': { prod: 1, dil: 9, label: '1:9 (10.0%)', desc: '1 prod + 9 dil' },
+            '1:10': { prod: 1, dil: 10, label: '1:10 (9.1%)', desc: '1 prod + 10 dil' }
+        };
+
+        function setBulkVolume(val) {
+            dilutionBulkVolumeMl = parseInt(val, 10) || 5000;
+            const input = document.getElementById('input-bulk-volume');
+            if (input) input.value = dilutionBulkVolumeMl;
+            syncBulkChips();
+            updateDilutionOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onBulkVolumeInputChanged(val) {
+            dilutionBulkVolumeMl = Math.max(1, parseInt(val, 10) || 1);
+            syncBulkChips();
+            updateDilutionOutputs();
+        }
+
+        function syncBulkChips() {
+            const chips = document.querySelectorAll('.chip-bulk-btn');
+            const predefined = [5000, 2500, 1000, 500];
+            chips.forEach((btn, idx) => {
+                const val = predefined[idx];
+                if (val === dilutionBulkVolumeMl) {
+                    btn.className = 'chip-bulk-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-slate-900 text-white border-slate-900 shadow-sm';
+                } else {
+                    btn.className = 'chip-bulk-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400';
+                }
+            });
+            const badge = document.getElementById('badge-bulk-liters');
+            if (badge) badge.innerText = `${(dilutionBulkVolumeMl / 1000).toFixed(2)} Litri`;
+        }
+
+        function setTargetVolume(val) {
+            dilutionTargetVolumeMl = parseInt(val, 10) || 100;
+            const input = document.getElementById('input-target-volume');
+            if (input) input.value = dilutionTargetVolumeMl;
+            syncTargetChips();
+            updateDilutionOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onTargetVolumeInputChanged(val) {
+            dilutionTargetVolumeMl = Math.max(1, parseInt(val, 10) || 1);
+            syncTargetChips();
+            updateDilutionOutputs();
+        }
+
+        function syncTargetChips() {
+            const chips = document.querySelectorAll('.chip-target-btn');
+            const predefined = [30, 50, 100, 150, 250];
+            chips.forEach((btn, idx) => {
+                const val = predefined[idx];
+                if (val === dilutionTargetVolumeMl) {
+                    btn.className = 'chip-target-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-slate-900 text-white border-slate-900 shadow-sm';
+                } else {
+                    btn.className = 'chip-target-btn px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold border transition bg-white border-slate-200 text-slate-700 hover:border-slate-400';
+                }
+            });
+            const badge = document.getElementById('badge-target-size');
+            if (badge) badge.innerText = `${dilutionTargetVolumeMl} ml Cabina`;
+        }
+
+        function setDilutionMode(mode) {
+            dilutionMode = mode;
+            const btnPure = document.getElementById('btn-mode-pure');
+            const btnDiluted = document.getElementById('btn-mode-diluted');
+            const detailsBox = document.getElementById('dilution-details-box');
+
+            const activeCardClasses = 'p-3.5 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm card-interactive';
+            const inactiveCardClasses = 'p-3.5 rounded-2xl border-2 text-left transition bg-white text-slate-900 border-slate-200 hover:border-slate-400 card-interactive';
+
+            if (mode === 'pure') {
+                btnPure.className = activeCardClasses;
+                btnDiluted.className = inactiveCardClasses;
+                if (detailsBox) detailsBox.classList.add('hidden');
+            } else {
+                btnPure.className = inactiveCardClasses;
+                btnDiluted.className = activeCardClasses;
+                if (detailsBox) detailsBox.classList.remove('hidden');
+            }
+
+            updateDilutionOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setDilutionRatio(ratioKey) {
+            dilutionRatioKey = ratioKey;
+            const customBox = document.getElementById('box-custom-ratio-inputs');
+
+            const allRatioBtns = document.querySelectorAll('.chip-ratio-btn');
+            allRatioBtns.forEach(btn => {
+                const isTarget = btn.id === `btn-ratio-${ratioKey.replace(':', '-')}`;
+                if (isTarget) {
+                    btn.className = 'chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-slate-900 border-slate-900 text-white shadow-sm';
+                    const sub = btn.querySelector('.text-slate-400, .text-slate-300');
+                    if (sub) sub.className = 'text-[9px] text-slate-300 font-semibold';
+                } else {
+                    btn.className = 'chip-ratio-btn p-2.5 rounded-xl border-2 text-center transition bg-white border-slate-200 text-slate-800 hover:border-slate-400';
+                    const sub = btn.querySelector('.text-slate-400, .text-slate-300');
+                    if (sub) sub.className = 'text-[9px] text-slate-400 font-semibold';
+                }
+            });
+
+            if (ratioKey === 'custom') {
+                if (customBox) customBox.classList.remove('hidden');
+            } else {
+                if (customBox) customBox.classList.add('hidden');
+            }
+
+            updateDilutionOutputs();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onCustomRatioChanged() {
+            const pInput = document.getElementById('input-custom-prod-parts');
+            const dInput = document.getElementById('input-custom-dil-parts');
+
+            dilutionCustomProductParts = Math.max(1, parseInt(pInput?.value, 10) || 1);
+            dilutionCustomDiluentParts = Math.max(1, parseInt(dInput?.value, 10) || 1);
+
+            updateDilutionOutputs();
+        }
+
+        function onDiluentTypeChanged(val) {
+            dilutionDiluentType = val;
+            updateDilutionOutputs();
+        }
+
+        function calculateDilutionEngine() {
+            const bulkMl = dilutionBulkVolumeMl;
+            const targetMl = dilutionTargetVolumeMl;
+
+            let prodParts = 1;
+            let dilParts = 0;
+
+            if (dilutionMode === 'diluted') {
+                if (dilutionRatioKey === 'custom') {
+                    prodParts = dilutionCustomProductParts;
+                    dilParts = dilutionCustomDiluentParts;
+                } else if (DILUTION_RATIO_PRESETS[dilutionRatioKey]) {
+                    prodParts = DILUTION_RATIO_PRESETS[dilutionRatioKey].prod;
+                    dilParts = DILUTION_RATIO_PRESETS[dilutionRatioKey].dil;
+                }
+            }
+
+            const totalParts = prodParts + dilParts;
+            const pureProdRatio = prodParts / totalParts;
+            const diluentRatio = dilParts / totalParts;
+
+            const pureMlPerBottle = targetMl * pureProdRatio;
+            const diluentMlPerBottle = targetMl * diluentRatio;
+            const purePct = Math.round(pureProdRatio * 1000) / 10;
+            const diluentPct = Math.round(diluentRatio * 1000) / 10;
+
+            const bottlesCount = pureMlPerBottle > 0 ? Math.floor(bulkMl / pureMlPerBottle) : 0;
+            const remainderPureMl = Math.round((bulkMl - (bottlesCount * pureMlPerBottle)) * 10) / 10;
+
+            const totalMixedMl = bottlesCount * targetMl;
+            const totalPureUsedMl = bottlesCount * pureMlPerBottle;
+            const totalDiluentNeededMl = bottlesCount * diluentMlPerBottle;
+
+            return {
+                bulkMl,
+                targetMl,
+                prodParts,
+                dilParts,
+                totalParts,
+                pureMlPerBottle: Math.round(pureMlPerBottle * 10) / 10,
+                diluentMlPerBottle: Math.round(diluentMlPerBottle * 10) / 10,
+                purePct,
+                diluentPct,
+                bottlesCount,
+                remainderPureMl,
+                totalMixedMl,
+                totalPureUsedMl: Math.round(totalPureUsedMl * 10) / 10,
+                totalDiluentNeededMl: Math.round(totalDiluentNeededMl * 10) / 10
+            };
+        }
+
+        function updateDilutionOutputs() {
+            const data = calculateDilutionEngine();
+
+            const modeBadge = document.getElementById('badge-dilution-mode');
+            if (modeBadge) {
+                if (dilutionMode === 'pure') {
+                    modeBadge.innerText = 'Travaso Puro (100%)';
+                    modeBadge.className = 'text-[10px] font-black uppercase text-slate-800 bg-slate-100 border border-slate-300 px-2.5 py-0.5 rounded-full';
+                } else {
+                    const ratioText = dilutionRatioKey === 'custom' 
+                        ? `${data.prodParts}:${data.dilParts} (${data.purePct}%)` 
+                        : `${dilutionRatioKey} (${data.purePct}%)`;
+                    modeBadge.innerText = `Diluito ${ratioText}`;
+                    modeBadge.className = 'text-[10px] font-black uppercase text-pink-900 bg-pink-100 border border-pink-300 px-2.5 py-0.5 rounded-full';
+                }
+            }
+
+            const outTotalBottles = document.getElementById('out-total-bottles');
+            const outHeroTarget = document.getElementById('out-hero-target-ml');
+            const outBulkRemainder = document.getElementById('out-bulk-remainder');
+
+            if (outTotalBottles) outTotalBottles.innerText = data.bottlesCount;
+            if (outHeroTarget) outHeroTarget.innerText = data.targetMl;
+            if (outBulkRemainder) {
+                if (data.remainderPureMl <= 0) {
+                    outBulkRemainder.innerText = '0 ml rimanenti (Flacone sorgente interamente utilizzato)';
+                    outBulkRemainder.className = 'font-mono font-bold text-emerald-400';
+                } else {
+                    outBulkRemainder.innerText = `${data.remainderPureMl} ml residui nel flacone sorgente`;
+                    outBulkRemainder.className = 'font-mono font-bold text-amber-400';
+                }
+            }
+
+            const outSingleBadge = document.getElementById('out-single-bottle-vol-badge');
+            const barPure = document.getElementById('bar-pure-product');
+            const barDil = document.getElementById('bar-diluent');
+            const lblPurePct = document.getElementById('lbl-pure-bar-pct');
+            const lblDilPct = document.getElementById('lbl-dil-bar-pct');
+            const outPureMl = document.getElementById('out-bottle-pure-ml');
+            const outDilMl = document.getElementById('out-bottle-diluent-ml');
+            const outDilNameShort = document.getElementById('out-diluent-name-short');
+
+            if (outSingleBadge) outSingleBadge.innerText = `${data.targetMl} ml`;
+            if (barPure) barPure.style.width = `${data.purePct}%`;
+            if (barDil) barDil.style.width = `${data.diluentPct}%`;
+            if (lblPurePct) lblPurePct.innerText = `${data.purePct}%`;
+            if (lblDilPct) lblDilPct.innerText = `${data.diluentPct}%`;
+            if (outPureMl) outPureMl.innerText = data.pureMlPerBottle;
+            if (outDilMl) outDilMl.innerText = data.diluentMlPerBottle;
+            if (outDilNameShort) outDilNameShort.innerText = dilutionMode === 'pure' ? 'Nessun Diluente' : dilutionDiluentType.split('(')[0].trim();
+
+            const outBatchVol = document.getElementById('out-batch-total-volume');
+            const outBatchPure = document.getElementById('out-batch-pure-used');
+            const outBatchDil = document.getElementById('out-batch-diluent-needed');
+
+            if (outBatchVol) {
+                const liters = (data.totalMixedMl / 1000).toFixed(2);
+                outBatchVol.innerText = `${liters} L (${data.totalMixedMl} ml)`;
+            }
+            if (outBatchPure) {
+                const liters = (data.totalPureUsedMl / 1000).toFixed(2);
+                outBatchPure.innerText = `${liters} L (${data.totalPureUsedMl} ml)`;
+            }
+            if (outBatchDil) {
+                const liters = (data.totalDiluentNeededMl / 1000).toFixed(2);
+                outBatchDil.innerText = `${liters} L (${data.totalDiluentNeededMl} ml)`;
+            }
+        }
+
+        function copyDilutionToClipboard() {
+            const data = calculateDilutionEngine();
+            const ratioDesc = dilutionMode === 'pure' ? 'Travaso Puro (100% Concentrato)' : `Diluizione ${data.prodParts}:${data.dilParts} (${data.purePct}% Prodotto / ${data.diluentPct}% Diluente)`;
+
+            let txt = `🧴 *SiteBoS Beauty • Scheda Diluizione Monodose Cabina*\n`;
+            txt += `Modalità: ${ratioDesc}\n`;
+            txt += `Flacone Sorgente: ${data.bulkMl} ml (${(data.bulkMl / 1000).toFixed(2)} L)\n`;
+            txt += `Formato Monodose: ${data.targetMl} ml\n\n`;
+            txt += `📦 *Resa di Produzione:*\n`;
+            txt += `  • Flaconi Monodose Ottenibili: *${data.bottlesCount} Flaconi*\n`;
+            txt += `  • Residuo Flacone Sorgente: ${data.remainderPureMl} ml\n\n`;
+            txt += `🥣 *Dosaggio per Singolo Flacone da ${data.targetMl} ml:*\n`;
+            txt += `  • Prodotto Puro: *${data.pureMlPerBottle} ml* (${data.purePct}%)\n`;
+            if (dilutionMode === 'diluted') {
+                txt += `  • Diluente (${dilutionDiluentType}): *${data.diluentMlPerBottle} ml* (${data.diluentPct}%)\n`;
+            }
+            txt += `\n📊 *Totale Lotto Completo:*\n`;
+            txt += `  • Volume Totale Finale: ${(data.totalMixedMl / 1000).toFixed(2)} L\n`;
+            txt += `  • Prodotto Puro Usato: ${(data.totalPureUsedMl / 1000).toFixed(2)} L\n`;
+            if (dilutionMode === 'diluted') {
+                txt += `  • Diluente Totale: ${(data.totalDiluentNeededMl / 1000).toFixed(2)} L\n`;
+            }
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(txt).then(() => {
+                    showToast('Scheda dosaggio monodose copiata!');
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => fallbackCopy(txt));
+            } else {
+                fallbackCopy(txt);
+            }
+        }
+
+        function resetDilutionCalculator() {
+            dilutionBulkVolumeMl = 5000;
+            dilutionTargetVolumeMl = 100;
+            dilutionMode = 'diluted';
+            dilutionRatioKey = '1:3';
+            dilutionCustomProductParts = 1;
+            dilutionCustomDiluentParts = 3;
+            dilutionDiluentType = 'Acqua Depurata / Demineralizzata';
+
+            const bulkInput = document.getElementById('input-bulk-volume');
+            if (bulkInput) bulkInput.value = 5000;
+
+            const targetInput = document.getElementById('input-target-volume');
+            if (targetInput) targetInput.value = 100;
+
+            const selDil = document.getElementById('select-diluent-type');
+            if (selDil) selDil.value = 'Acqua Depurata / Demineralizzata';
+
+            syncBulkChips();
+            syncTargetChips();
+            setDilutionMode('diluted');
+            setDilutionRatio('1:3');
+            updateDilutionOutputs();
+
+            showToast('Calcolatore diluizione reimpostato ai valori predefiniti.');
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        /* ── NAVIGAZIONE DESK BOARD ── */
+        function goToDeskBoard() {
+            const urlParams = window.location.search || '';
+            window.location.href = 'desk_board.html' + urlParams;
+        }
+
+        /* ── UTILITY HELPERS ── */
+        function showToast(msg) {
+            const toast = document.getElementById('tintometria-toast');
+            const text = document.getElementById('toast-text');
+            if (toast && text) {
+                text.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 3000);
+            }
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : { r: 166, g: 138, b: 92 };
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + [r, g, b].map(x => {
+                const hex = Math.max(0, Math.min(255, x)).toString(16);
+                return hex.length === 1 ? "0" + hex : hex;
+            }).join('');
+        }
+
+        function adjustBrightness(hex, percent) {
+            const num = parseInt(hex.replace('#',''), 16),
+                  amt = Math.round(2.55 * percent),
+                  R = (num >> 16) + amt,
+                  G = (num >> 8 & 0x00FF) + amt,
+                  B = (num & 0x0000FF) + amt;
+            return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+        }
+
+        function getTextColorForBg(hexColor) {
+            const rgb = hexToRgb(hexColor);
+            const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+            return brightness > 140 ? 'text-slate-900' : 'text-white';
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>

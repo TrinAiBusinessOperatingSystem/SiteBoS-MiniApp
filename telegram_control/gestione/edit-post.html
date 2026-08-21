@@ -571,7 +571,7 @@
 
             try {
                 const idVal = `${currentVatNumber}-${sopId}`;
-                await fetch(WEBHOOK_CATALOG, {
+                const res = await fetch(WEBHOOK_CATALOG, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -585,6 +585,14 @@
                         _auth: tg ? tg.initData : ''
                     })
                 });
+                // NOTA: il webhook risponde sempre HTTP 200 anche sul ramo di errore
+                // (il codice 500 è solo nel body JSON), quindi res.ok da solo non basta:
+                // controlliamo il contenuto reale della risposta prima di dichiarare successo.
+                let data = null;
+                try { data = await res.json(); } catch (_) { /* risposta non JSON */ }
+                if (!res.ok || !data || data.error) {
+                    throw new Error((data && data.error) || 'Risposta backend non valida');
+                }
                 if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                 if (tg && tg.showAlert) tg.showAlert('Prompts salvati!');
             } catch (e) {
@@ -594,8 +602,13 @@
         }
 
         window.generateImage = async () => {
+            // NOTA: createPost.workflow.ts non distingue davvero le azioni 'generate_image' e
+            // 'activate_social' (un solo gate verifica solo che body.action esista, nessuna
+            // diramazione reale sul valore) — entrambe eseguono l'intera pipeline completa,
+            // inclusa la pubblicazione. Il testo di conferma qui sotto riflette questo,
+            // per non far credere all'operatore che stia generando solo un'anteprima.
             if (tg && tg.showConfirm) {
-                tg.showConfirm("Generare un'immagine per questo post?", async ok => {
+                tg.showConfirm("Generare un'immagine per questo post? Il contenuto verrà generato e inviato su Telegram, come con \"Attiva Social\".", async ok => {
                     if (ok) {
                         await savePrompts();
                         fetch(WEBHOOK_SOCIAL, {

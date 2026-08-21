@@ -284,6 +284,29 @@
                     "parametri avanzati studio", "setup della clinica", "unita operative reuniti", "parametri avanzati", "setup clinica", "reuniti", "poltrone", "cabine"
                 ] 
             },
+            { 
+                category: "identity", 
+                name: "Hub Connettori & Piattaforme Esterne", 
+                url: "identity/connettori.html", 
+                mod_id: "connettori", 
+                user_utterances: [
+                    // Frasi Complete
+                    "apri hub connettori e integrazioni",
+                    "collega piattaforme delivery e pagamenti",
+                    "configura credenziali glovo deliveroo e just eat",
+                    // Triple di Peso (Trigrammi)
+                    "connettori piattaforme esterne",
+                    "integrazione piattaforme delivery",
+                    "credenziali api delivery",
+                    // Doppie di Peso (Bigrammi)
+                    "connettore glovo",
+                    "connettore deliveroo",
+                    "connettore justeat",
+                    "connettore pagamenti",
+                    // Keyword Ancora
+                    "connettori", "integrazioni", "glovo", "deliveroo", "justeat", "delivery"
+                ] 
+            },
 
             // =========================================================================
             // 3. OPERATIVITÀ, ORDINI, PIANO LAVORI & AGENDA

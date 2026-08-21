@@ -232,11 +232,18 @@
                 });
 
                 const data = await response.json();
-                const calendar = data.campaign?.editorial_calendar || [
-                    { platform: ['linkedin', 'instagram'], content: 'Post Promozionale 1: Scopri i nuovi prodotti SiTeBoS!', scheduled_at: 'Lunedì 10:00' },
-                    { platform: ['facebook', 'twitter'], content: 'Post Promozionale 2: Trasparenza e qualità garantita.', scheduled_at: 'Mercoledì 14:00' },
-                    { platform: ['email'], content: 'Newsletter: Offerte della settimana trasparenti per i clienti.', scheduled_at: 'Venerdì 09:00' }
-                ];
+                const calendar = data.campaign?.editorial_calendar;
+
+                if (!calendar || !Array.isArray(calendar) || calendar.length === 0) {
+                    // Mai mostrare contenuti fabbricati come se fossero reali: se il backend
+                    // non ha restituito un calendario editoriale, lo diciamo esplicitamente
+                    // invece di sostituirlo con post finti indistinguibili da quelli veri.
+                    if (badge) badge.innerText = 'Nessun elemento pianificato';
+                    if (cardsContainer) {
+                        cardsContainer.innerHTML = `<div class="p-3 text-center text-xs text-red-500">Il pianificatore non ha restituito un calendario editoriale. Riprova o verifica il listino prodotti.</div>`;
+                    }
+                    return;
+                }
 
                 if (badge) badge.innerText = `${calendar.length} Elementi Pianificati`;
                 if (cardsContainer) {

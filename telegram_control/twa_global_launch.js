@@ -369,6 +369,90 @@
     } catch (_) {}
   }
 
+  // ── CONSAPEVOLEZZA REALTIME LOCK-IN (Ably) ──────────────────────────────────
+  // Sottoscrizione realtime al canale owner:{vat} — riusa l'endpoint get_ably_token
+  // già reale ed esistente (sse_workboard_stream.workflow.ts, sitebos-operator-sse-stream),
+  // generico per qualunque pagina owner-side, non solo la Desk Board. Quando arriva un
+  // evento resource_lock_changed (pubblicato da Lock-Manager.workflow.ts) sullo scope
+  // che stiamo osservando, ri-tenta silenziosamente l'acquisizione per aggiornare
+  // l'overlay in tempo reale, senza dover ricaricare la pagina.
+  const REALTIME_LOCK_ENDPOINT = 'https://prod.workflow.trinai.it/webhook/sitebos-operator-sse-stream';
+  let realtimeAblyInstance = null;
+  let realtimeWatchedScope = null;
+
+  function ensureAblySdkLoaded(onReady) {
+    if (window.Ably) {
+      onReady();
+      return;
+    }
+    const existing = document.getElementById('sitebos-ably-sdk-script');
+    if (existing) {
+      existing.addEventListener('load', onReady, { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'sitebos-ably-sdk-script';
+    script.src = 'https://cdn.ably.com/lib/ably.min.js';
+    script.addEventListener('load', onReady, { once: true });
+    script.addEventListener('error', function () {
+      console.warn('[LockRealtime] SDK Ably non caricato, consapevolezza realtime disattivata (fallback su polling heartbeat esistente).');
+    }, { once: true });
+    document.head.appendChild(script);
+  }
+
+  function initLockRealtimeAwareness(scope) {
+    realtimeWatchedScope = scope;
+    ensureAblySdkLoaded(function () {
+      try {
+        if (realtimeAblyInstance) return; // già connesso in questa pagina
+        realtimeAblyInstance = new window.Ably.Realtime({
+          authCallback: async function (tokenParams, callback) {
+            try {
+              const ash = getLockManagerAsh();
+              const res = await fetch(REALTIME_LOCK_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'get_ably_token', ash: ash })
+              });
+              const data = await res.json();
+              if (data && data.token && data.channel) {
+                const channel = realtimeAblyInstance.channels.get(data.channel);
+                channel.subscribe(handleLockRealtimeMessage);
+                callback(null, data.token);
+              } else {
+                callback(new Error(data?.error || 'Token Ably non trovato.'), null);
+              }
+            } catch (err) {
+              callback(err, null);
+            }
+          }
+        });
+      } catch (err) {
+        console.warn('[LockRealtime] Avvio Ably fallito, si resta sul solo polling locale:', err);
+      }
+    });
+  }
+
+  function handleLockRealtimeMessage(msg) {
+    try {
+      let envelope = msg.data;
+      if (typeof envelope === 'string') envelope = JSON.parse(envelope);
+      if (!envelope || envelope.event_type !== 'resource_lock_changed') return;
+      const changedScope = envelope.event_ref;
+      // Ri-verifica solo se l'evento riguarda lo scope che questa pagina osserva
+      // (il proprio, oppure identity/catalog che possono bloccarla come master lock).
+      if (!changedScope) return;
+      if (changedScope === realtimeWatchedScope || changedScope === 'identity' || changedScope === 'catalog') {
+        if (activeScope) {
+          // Rinnovo silenzioso: non tocca l'overlay se tutto ok, lo aggiorna/rimuove se lo stato è cambiato.
+          tryAcquireCrossPlatformLock(activeScope, activeScope === 'blueprint' ? 1200 : 300);
+        }
+      }
+    } catch (err) {
+      console.warn('[LockRealtime] Messaggio Ably non valido:', err);
+    }
+  }
+
   /**
    * Avvia il Lock First-Come First-Served Strict (Local Cross-Tab + Remote Cross-Platform)
    */
@@ -377,6 +461,11 @@
 
     currentTabId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
     const scope = pageAnalysis.scope;
+
+    // Consapevolezza realtime: sottoscrivi da subito, indipendentemente dall'esito
+    // dei check sotto — così anche una sessione bloccata viene avvisata via Ably
+    // non appena l'altra sessione rilascia, senza dover attendere il prossimo poll.
+    initLockRealtimeAwareness(scope);
 
     // Check 1: Master Global Lock (identity) attivo da un'altra scheda?
     if (scope !== 'identity' && isLockActiveOnOtherTab('identity')) {
