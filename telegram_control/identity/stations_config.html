@@ -67,14 +67,14 @@
                 </div>
                 <div>
                     <span class="text-[9px] font-black uppercase tracking-widest text-indigo-600 block">OPERATIVITÀ AZIENDALE</span>
-                    <h1 class="text-base font-black tracking-tight text-black uppercase">Gestione Postazioni & Note Staff</h1>
+                    <h1 class="text-base font-black tracking-tight text-black uppercase">Gestione Postazioni e Note Staff</h1>
                 </div>
             </div>
             <button onclick="if(window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.impactOccurred('light'); window.history.back()" class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-black transition active:scale-95">
                 <i class="fas fa-arrow-left text-xs"></i>
             </button>
         </div>
-        <p class="text-xs text-gray-500 leading-relaxed">Configura i nomi reali di sedie, riuniti, cabine e banchi di lavoro ed assegna le note di manutenzione dello staff operatore.</p>
+        <p class="text-xs text-gray-500 leading-relaxed">Configura i nomi reali di sedie, riuniti, cabine e banchi di lavoro e visualizza la cronologia delle note di manutenzione dello staff.</p>
     </header>
 
     <!-- CONTENT: LISTA POSTAZIONI -->
@@ -99,7 +99,7 @@
             </div>
         </div>
 
-        <div id="stations-list-container" class="space-y-3">
+        <div id="stations-list-container" class="space-y-4">
             <!-- Popolato dinamicamente da JS -->
             <div class="text-center py-12 text-gray-400 text-xs" id="loading-state">
                 <i class="fas fa-circle-notch fa-spin text-2xl mb-2 text-black"></i>
@@ -119,9 +119,49 @@
         </button>
     </footer>
 
+    <!-- MODALE POPUP: AGGIUNGI NOTA MANUTENZIONE (OWNER) -->
+    <div id="owner-note-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-gray-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-black">
+            <div class="flex items-center justify-between border-b border-gray-200 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 text-sm">
+                        <i class="fas fa-wrench"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-black text-black uppercase">Nuova Nota di Manutenzione</h3>
+                        <p class="text-[11px] text-gray-500 font-semibold" id="owner-note-modal-station-title">Postazione</p>
+                    </div>
+                </div>
+                <button onclick="closeOwnerNoteModal()" class="text-gray-400 hover:text-black text-sm font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-gray-600 font-bold uppercase tracking-wider mb-1">Descrizione Nota o Segnalazione Guasto</label>
+                    <textarea id="owner-note-modal-input" rows="4" placeholder="Descrivi l'intervento di manutenzione o il guasto da segnalare al tecnico..." class="w-full bg-gray-50 border border-gray-200 text-black rounded-xl p-3 text-xs focus:border-black outline-none resize-none leading-relaxed"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-gray-100">
+                <button onclick="closeOwnerNoteModal()" class="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-semibold hover:text-black">Annulla</button>
+                <button onclick="submitOwnerNote()" id="btn-submit-owner-note" class="bg-black hover:bg-neutral-800 text-white font-black text-xs px-5 py-2.5 rounded-xl transition shadow flex items-center gap-2">
+                    <i class="fas fa-check"></i>
+                    <span>Salva Nota</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT LOGIC -->
     <script>
         let stationsData = [];
+        let maintenanceLogs = [];
+        let currentMachinery = [];
+        let currentLayoutSummary = '';
+
+        // Webhook URLs
+        const EDIT_OWNER_URL = "https://prod.workflow.trinai.it/webhook/new-83acc670-15ae-4da0-ae0e-3587c85bd5f4";
+        const OPERATOR_DASHBOARD_URL = "https://prod.workflow.trinai.it/webhook/new-2e3376d7-6a5a-4fc1-a908-4b8b9501c583";
 
         document.addEventListener('DOMContentLoaded', () => {
             if (window.Telegram && window.Telegram.WebApp) {
@@ -130,18 +170,10 @@
             loadOwnerStations();
         });
 
-        // EDIT_OWNER_URL/get_owner_data/save_owner_data: stesso identico pattern reale già
-        // verificato funzionante in identity/location-scanner.html — le postazioni vivono in
-        // owner_data.location_scanner_output.stations[], non in un'azione dedicata get_stations
-        // (che non è mai esistita nel backend). Nessun dato finto di fallback: se il caricamento
-        // fallisce, mostriamo un errore onesto invece di 3 postazioni inventate.
-        const EDIT_OWNER_URL = "https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4";
-        let currentMachinery = [];
-        let currentLayoutSummary = '';
-
         async function loadOwnerStations() {
             const container = document.getElementById('stations-list-container');
             try {
+                // 1. Carica dati owner e postazioni
                 const response = await fetch(EDIT_OWNER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -161,6 +193,9 @@
                 stationsData = savedScan?.stations || ownerData?.stations || ownerData?.operational_units || [];
                 currentMachinery = savedScan?.machinery || ownerData?.machinery || ownerData?.assets || [];
                 currentLayoutSummary = savedScan?.layout_summary || ownerData?.layout_summary || '';
+
+                // 2. Carica log cronologia manutenzione
+                await loadMaintenanceLogs();
             } catch (err) {
                 console.error('Errore caricamento postazioni:', err);
                 container.innerHTML = `<div class="text-center py-8 glass-card border-dashed border-gray-200 text-red-500 text-xs">Errore durante il caricamento delle postazioni. Riprova, o usa "Scansione Live" per crearle da zero.</div>`;
@@ -168,6 +203,27 @@
                 return;
             }
             renderStations();
+        }
+
+        async function loadMaintenanceLogs() {
+            try {
+                const response = await fetch(EDIT_OWNER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: window.Telegram?.WebApp?.initData || '',
+                        action: 'get_station_maintenance_log'
+                    })
+                });
+                if (response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    const rawObj = Array.isArray(data) ? (data[0] || {}) : (data || {});
+                    maintenanceLogs = Array.isArray(rawObj.notes) ? rawObj.notes : [];
+                }
+            } catch (e) {
+                console.warn('Impossibile caricare il log manutenzione:', e);
+                maintenanceLogs = [];
+            }
         }
 
         function renderStations() {
@@ -182,14 +238,17 @@
                 return;
             }
 
-            container.innerHTML = stationsData.map((st, index) => `
+            container.innerHTML = stationsData.map((st, index) => {
+                const stationNotes = maintenanceLogs.filter(n => n.station_id === st.station_id || n.station_id === st.station_name);
+
+                return `
                 <div class="glass-card p-4 space-y-3 transition-all">
                     <div class="flex items-center gap-4">
                         <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center shrink-0 text-indigo-600">
                             <i class="fas fa-chair text-sm"></i>
                         </div>
                         <div class="flex-1">
-                            <label class="text-[9px] text-gray-400 font-mono uppercase tracking-wider mb-0.5 block">Postazione #${index + 1} (ID: ${st.station_id})</label>
+                            <label class="text-[9px] text-gray-400 font-mono uppercase tracking-wider mb-0.5 block">Postazione ${index + 1} · Identificativo: ${escapeHtml(st.station_id)}</label>
                             <input type="text"
                                    id="input-station-${index}"
                                    data-id="${st.station_id}"
@@ -203,16 +262,51 @@
                         </button>
                     </div>
 
-                    <!-- SEZIONE NOTE DI MANUTENZIONE ASSET (STAFF / TITOLARE) -->
-                    <div class="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs space-y-2">
-                        <div class="flex items-center justify-between text-gray-500 font-bold uppercase tracking-wider text-[9px]">
-                            <span>🛠️ Note di Manutenzione Staff</span>
-                            <span class="text-indigo-600 font-normal">1 nota / operatore</span>
+                    <!-- SEZIONE MANUTENZIONE & CRONOLOGIA LOG -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 space-y-3 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="font-black uppercase tracking-wider text-[10px] text-gray-700 flex items-center gap-1.5">
+                                <i class="fas fa-wrench text-amber-600"></i>
+                                <span>Cronologia Manutenzione</span>
+                            </span>
+                            <button onclick="openOwnerNoteModal('${st.station_id}', '${escapeHtml(st.station_name)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 text-[10px] font-bold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 active:scale-95 shadow-2xs">
+                                <i class="fas fa-plus text-[9px]"></i>
+                                <span>Aggiungi Nota di Manutenzione</span>
+                            </button>
                         </div>
-                        <textarea placeholder="Inserisci una nota di manutenzione per il Tecnico Esterno..." class="w-full bg-white border border-gray-200 rounded-lg p-2.5 text-black text-xs focus:border-black outline-none resize-none leading-relaxed" rows="2"></textarea>
+
+                        <!-- ELENCO NOTE CRONOLOGIA -->
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            ${stationNotes.length === 0 ? `
+                                <p class="text-gray-400 italic text-[11px] py-1">Nessuna nota di manutenzione presente per questa postazione.</p>
+                            ` : stationNotes.map(n => {
+                                const isOpen = n.status === 'OPEN';
+                                const createdDate = n.created_at ? new Date(n.created_at).toLocaleString('it-IT') : 'Data non specificata';
+                                const resolvedDate = n.resolved_at ? new Date(n.resolved_at).toLocaleString('it-IT') : '';
+                                const resolverLabel = n.resolved_by_role === 'TECHNICAL_CONTRACTOR' ? 'Tecnico Manutentore Esterno' : (n.resolved_by_role || 'Tecnico');
+
+                                return `
+                                    <div class="p-2.5 rounded-xl border ${isOpen ? 'bg-amber-50/80 border-amber-200 text-amber-950' : 'bg-white border-gray-200 text-gray-800'} space-y-1">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <span class="font-semibold text-[11px] leading-tight flex-1">${escapeHtml(n.note_text)}</span>
+                                            <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider shrink-0 ${isOpen ? 'bg-amber-200 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'}">
+                                                ${isOpen ? 'Aperta' : 'Risolta'}
+                                            </span>
+                                        </div>
+                                        <div class="text-[9px] text-gray-500 font-medium flex items-center justify-between pt-0.5">
+                                            <span>Registrata da: ${escapeHtml(n.created_by_name || 'Staff')} · ${escapeHtml(createdDate)}</span>
+                                            ${!isOpen && resolvedDate ? `
+                                                <span class="text-emerald-700 font-semibold">Chiusa il ${escapeHtml(resolvedDate)} da ${escapeHtml(resolverLabel)}</span>
+                                            ` : ''}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
         }
 
         function addNewStationCard() {
@@ -231,6 +325,78 @@
             }
             stationsData.splice(index, 1);
             renderStations();
+        }
+
+        /* ── MODALE AGGIUNGI NOTA (OWNER) ── */
+        let currentModalStationId = null;
+
+        function openOwnerNoteModal(stationId, stationName) {
+            currentModalStationId = stationId;
+            const modal = document.getElementById('owner-note-modal');
+            const titleEl = document.getElementById('owner-note-modal-station-title');
+            const inputEl = document.getElementById('owner-note-modal-input');
+
+            if (titleEl) titleEl.textContent = stationName || stationId;
+            if (inputEl) inputEl.value = '';
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeOwnerNoteModal() {
+            const modal = document.getElementById('owner-note-modal');
+            if (modal) modal.classList.add('hidden');
+            currentModalStationId = null;
+        }
+
+        async function submitOwnerNote() {
+            if (!currentModalStationId) return;
+            const inputEl = document.getElementById('owner-note-modal-input');
+            const noteText = inputEl ? inputEl.value.trim() : '';
+            if (!noteText) {
+                alert('Inserisci il testo della nota di manutenzione.');
+                return;
+            }
+
+            const btn = document.getElementById('btn-submit-owner-note');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-circle-notch fa-spin text-xs"></i> <span>Salvataggio...</span>';
+            }
+
+            try {
+                const response = await fetch(OPERATOR_DASHBOARD_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        _auth: window.Telegram?.WebApp?.initData || '',
+                        action: 'add_station_maintenance_note',
+                        station_id: currentModalStationId,
+                        note_text: noteText,
+                        technical_notes: noteText,
+                        created_by_role: 'OWNER',
+                        created_by_name: 'Titolare'
+                    })
+                });
+
+                if (response.ok) {
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                    alert('Nota di manutenzione registrata con successo.');
+                    closeOwnerNoteModal();
+                    await loadMaintenanceLogs();
+                    renderStations();
+                } else {
+                    alert('Errore durante il salvataggio della nota di manutenzione.');
+                }
+            } catch (e) {
+                console.error('Errore invio nota manutenzione:', e);
+                alert('Errore di connessione durante il salvataggio.');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-check"></i> <span>Salva Nota</span>';
+                }
+            }
         }
 
         async function saveStationsConfig() {

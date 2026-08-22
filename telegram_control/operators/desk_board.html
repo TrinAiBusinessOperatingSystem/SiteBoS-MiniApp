@@ -349,6 +349,11 @@
                     </select>
                 </div>
 
+                <div id="special-station-history-note" class="hidden bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs space-y-1">
+                    <span class="block font-black uppercase tracking-wider text-[9px] text-amber-700">🛠️ Nota di Manutenzione Attiva</span>
+                    <p id="special-station-history-note-text" class="leading-relaxed"></p>
+                </div>
+
                 <div>
                     <label class="block text-slate-600 font-bold uppercase tracking-wider mb-1">Nome / Riferimento Aziendale (Opzionale)</label>
                     <input type="text" id="special-visitor-name" placeholder="Es. Ing. Rossi / Fornitore DentalX" class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-xs focus:border-black outline-none">
@@ -491,6 +496,44 @@
 
             <div id="sse-bypass-status" class="text-[10px] text-slate-500 hidden font-mono">
                 <i class="fa-solid fa-circle-notch fa-spin text-slate-900 mr-1"></i> In ascolto canale SSE per l'approvazione push della segreteria...
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE POPUP: AGGIUNGI NOTA MANUTENZIONE POSTAZIONE -->
+    <div id="station-note-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-900 text-sm">
+                        <i class="fa-solid fa-wrench"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-black text-slate-900 uppercase">Nota di Manutenzione Postazione</h3>
+                        <p class="text-[11px] text-slate-500 font-semibold" id="station-note-modal-title">Postazione</p>
+                    </div>
+                </div>
+                <button onclick="closeStationNoteModal()" class="text-slate-400 hover:text-slate-900 text-sm font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div id="station-note-modal-active-preview" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-2xl space-y-1">
+                    <span class="text-[9px] font-black uppercase text-amber-800">Nota Attiva Attuale</span>
+                    <p id="station-note-modal-active-text" class="text-slate-800 text-[11px] font-medium leading-relaxed"></p>
+                </div>
+
+                <div>
+                    <label class="block text-slate-600 font-bold uppercase tracking-wider mb-1">Descrizione Nota o Segnalazione Guasto</label>
+                    <textarea id="station-note-modal-input" rows="4" placeholder="Descrivi il problema o la richiesta di manutenzione per questa postazione..." class="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-xl p-3 text-xs focus:border-black outline-none resize-none leading-relaxed"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                <button onclick="closeStationNoteModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:text-black">Annulla</button>
+                <button onclick="submitStationNote()" id="btn-submit-station-note" class="bg-slate-900 hover:bg-black text-white font-black text-xs px-5 py-2.5 rounded-xl transition shadow flex items-center gap-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Salva Nota</span>
+                </button>
             </div>
         </div>
     </div>
@@ -741,10 +784,32 @@
                                     <span>${escapeHtml(isMaintenance ? 'Bloccata x Tecnico' : (st.operator_name || 'Non Assegnato'))}</span>
                                 </p>
                             </div>
-                            <span class="text-[10px] font-black px-2 py-1 rounded-lg ${isMaintenance ? 'bg-amber-500 text-slate-950 animate-pulse' : (st.assigned_operator_id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500')}">
-                                ${isMaintenance ? 'MANUTENZIONE' : (st.assigned_operator_id ? 'ATTIVA' : 'LIBERA')}
-                            </span>
+                            <div class="flex items-center gap-1.5">
+                                <button onclick="event.stopPropagation(); openStationNoteModal('${st.station_id}', '${escapeHtml(st.station_name)}')" class="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 hover:text-black flex items-center justify-center transition active:scale-95" title="Nota di Manutenzione Postazione">
+                                    <i class="fa-solid fa-wrench text-[10px]"></i>
+                                </button>
+                                <span class="text-[10px] font-black px-2 py-1 rounded-lg ${isMaintenance ? 'bg-amber-500 text-slate-950 animate-pulse' : (st.assigned_operator_id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500')}">
+                                    ${isMaintenance ? 'MANUTENZIONE' : (st.assigned_operator_id ? 'ATTIVA' : 'LIBERA')}
+                                </span>
+                            </div>
                         </div>
+
+                        ${st.active_maintenance_note && st.active_maintenance_note.note_text ? `
+                            <div class="px-3 py-2 bg-amber-50/90 border-b border-amber-200 text-[10px] text-amber-900 flex items-start justify-between gap-1.5">
+                                <div class="flex-1 min-w-0">
+                                    <span class="font-black uppercase tracking-wider text-[9px] text-amber-800 flex items-center gap-1">
+                                        <i class="fa-solid fa-wrench text-[9px]"></i> Nota di Manutenzione Staff
+                                    </span>
+                                    <p class="text-slate-800 line-clamp-2 mt-0.5 font-medium leading-tight">${escapeHtml(st.active_maintenance_note.note_text)}</p>
+                                    <span class="text-[9px] text-amber-700 block mt-0.5 font-semibold">
+                                        ${escapeHtml(st.active_maintenance_note.created_by_name || 'Operatore')} ${st.active_maintenance_note.created_at ? '· ' + new Date(st.active_maintenance_note.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : ''}
+                                    </span>
+                                </div>
+                                <button onclick="event.stopPropagation(); openStationNoteModal('${st.station_id}', '${escapeHtml(st.station_name)}')" class="text-amber-800 hover:text-amber-950 p-1 shrink-0" title="Modifica Nota">
+                                    <i class="fa-solid fa-pen text-[10px]"></i>
+                                </button>
+                            </div>
+                        ` : ''}
 
                         ${isMaintenance ? `
                             <div class="p-3 bg-amber-100 border-b border-amber-200 flex items-center justify-between gap-2">
@@ -1276,6 +1341,8 @@
             const stationSelect = document.getElementById('special-station-select');
             const equipGroup = document.getElementById('special-equipment-group');
             const equipSelect = document.getElementById('special-equipment-select');
+            const historyNoteBox = document.getElementById('special-station-history-note');
+            const historyNoteText = document.getElementById('special-station-history-note-text');
 
             if (!equipGroup || !equipSelect) return;
 
@@ -1285,8 +1352,8 @@
                 const selectedStationName = selectedStation?.station_name || '';
 
                 // Filtro attrezzature da location_scanner_output / machineryList (Fase 3)
-                const assignedMachinery = machineryList.filter(m => 
-                    m.station_assignment === selectedStationId || 
+                const assignedMachinery = machineryList.filter(m =>
+                    m.station_assignment === selectedStationId ||
                     m.station_assignment === selectedStationName ||
                     m.station_id === selectedStationId
                 );
@@ -1299,9 +1366,110 @@
                 `;
 
                 equipGroup.classList.remove('hidden');
+
+                // Nota di manutenzione attiva registrata per questa postazione
+                const activeMaintNote = selectedStation?.active_maintenance_note;
+                if (historyNoteBox && historyNoteText) {
+                    if (activeMaintNote && activeMaintNote.note_text) {
+                        const author = activeMaintNote.created_by_name || (activeMaintNote.created_by_role === 'OWNER' ? 'Titolare' : 'Operatore');
+                        const dateFormatted = activeMaintNote.created_at ? new Date(activeMaintNote.created_at).toLocaleDateString('it-IT') + ' ' + new Date(activeMaintNote.created_at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+                        const metaStr = dateFormatted ? ` — ${author} · ${dateFormatted}` : ` — ${author}`;
+                        historyNoteText.innerHTML = `<span>${escapeHtml(activeMaintNote.note_text)}</span><span class="block text-[9px] text-amber-700 mt-1 font-semibold">${escapeHtml(metaStr)}</span>`;
+                        historyNoteBox.classList.remove('hidden');
+                    } else {
+                        historyNoteBox.classList.add('hidden');
+                    }
+                }
             } else {
                 equipGroup.classList.add('hidden');
                 equipSelect.innerHTML = '<option value="">-- Nessun macchinario specifico --</option>';
+                if (historyNoteBox) historyNoteBox.classList.add('hidden');
+            }
+        }
+
+        /* ── MODALE GESTIONE NOTE MANUTENZIONE POSTAZIONE ── */
+        let currentNoteStationId = null;
+
+        function openStationNoteModal(stationId, stationName) {
+            currentNoteStationId = stationId;
+            const modal = document.getElementById('station-note-modal');
+            const titleEl = document.getElementById('station-note-modal-title');
+            const inputEl = document.getElementById('station-note-modal-input');
+            const activePreview = document.getElementById('station-note-modal-active-preview');
+            const activeText = document.getElementById('station-note-modal-active-text');
+
+            if (titleEl) titleEl.textContent = stationName || stationId;
+            if (inputEl) inputEl.value = '';
+
+            const st = stationsList.find(s => s.station_id === stationId);
+            if (st && st.active_maintenance_note && st.active_maintenance_note.note_text) {
+                if (activePreview && activeText) {
+                    activeText.textContent = st.active_maintenance_note.note_text;
+                    activePreview.classList.remove('hidden');
+                }
+            } else {
+                if (activePreview) activePreview.classList.add('hidden');
+            }
+
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeStationNoteModal() {
+            const modal = document.getElementById('station-note-modal');
+            if (modal) modal.classList.add('hidden');
+            currentNoteStationId = null;
+        }
+
+        async function submitStationNote() {
+            if (!currentNoteStationId) return;
+            const inputEl = document.getElementById('station-note-modal-input');
+            const noteText = inputEl ? inputEl.value.trim() : '';
+            if (!noteText) {
+                alert('Inserisci il testo della nota di manutenzione.');
+                return;
+            }
+
+            const tgApp = window.Telegram?.WebApp;
+            const tgUser = tgApp?.initDataUnsafe?.user;
+            const opName = (tgUser ? `${tgUser.first_name || ''} ${tgUser.last_name || ''}`.trim() : '') || 'Operatore Segreteria';
+
+            const btn = document.getElementById('btn-submit-station-note');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-xs"></i> <span>Salvataggio...</span>';
+            }
+
+            try {
+                const res = await fetch(API_LOAD_BOARD, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'add_station_maintenance_note',
+                        station_id: currentNoteStationId,
+                        note_text: noteText,
+                        technical_notes: noteText,
+                        created_by_role: 'OPERATOR',
+                        created_by_name: opName,
+                        ash: getAshParam()
+                    })
+                });
+
+                if (res.ok) {
+                    if (tgApp?.HapticFeedback) tgApp.HapticFeedback.notificationOccurred('success');
+                    alert('Nota di manutenzione registrata con successo.');
+                    closeStationNoteModal();
+                    refreshBoard(true);
+                } else {
+                    alert('Errore durante il salvataggio della nota di manutenzione.');
+                }
+            } catch (e) {
+                console.error('Errore invio nota manutenzione:', e);
+                alert('Errore di connessione durante il salvataggio.');
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> <span>Salva Nota</span>';
+                }
             }
         }
 

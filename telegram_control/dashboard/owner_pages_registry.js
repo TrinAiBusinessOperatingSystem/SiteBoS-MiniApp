@@ -294,17 +294,27 @@
                     "apri hub connettori e integrazioni",
                     "collega piattaforme delivery e pagamenti",
                     "configura credenziali glovo deliveroo e just eat",
+                    "configura provider pagamenti e pos stripe satispay nexi sumup paypal",
                     // Triple di Peso (Trigrammi)
                     "connettori piattaforme esterne",
                     "integrazione piattaforme delivery",
                     "credenziali api delivery",
+                    "connettore provider pagamenti",
+                    "credenziali stripe satispay",
+                    "credenziali nexi sumup",
                     // Doppie di Peso (Bigrammi)
                     "connettore glovo",
                     "connettore deliveroo",
                     "connettore justeat",
                     "connettore pagamenti",
+                    "connettore stripe",
+                    "connettore satispay",
+                    "connettore nexi",
+                    "connettore sumup",
+                    "connettore paypal",
+                    "pos virtuale",
                     // Keyword Ancora
-                    "connettori", "integrazioni", "glovo", "deliveroo", "justeat", "delivery"
+                    "connettori", "integrazioni", "glovo", "deliveroo", "justeat", "delivery", "pagamenti", "pos", "stripe", "satispay", "nexi", "sumup", "paypal"
                 ] 
             },
 

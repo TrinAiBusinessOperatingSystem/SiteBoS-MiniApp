@@ -10,6 +10,7 @@
     <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="../twa_global_launch.js"></script>
+    <script src="../sitebos_dirty_guard.js"></script>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -479,7 +480,6 @@
         const WEBHOOK_DEPLOY_BLOG        = "https://prod.workflow.trinai.it/webhook/914bd78e-8a41-46d7-8935-7eb73cbbae66";
         const WEBHOOK_DEPLOY_SOCIAL      = "https://prod.workflow.trinai.it/webhook/8fc050ca-41cd-4469-989c-269a113a00f9";
         const WEBHOOK_DEPLOY_ADVANCED    = "https://prod.workflow.trinai.it/webhook/6333dff0-d886-499c-8000-f3e0266845ed";
-        const WEBHOOK_TELEGRAM_RELAY     = "https://prod.workflow.trinai.it/webhook/17a1bf79-43cd-428b-a497-33745ca44857";
         const WEBHOOK_GET_CATALOG        = "https://prod.workflow.trinai.it/webhook/0fff7fa2-bcb2-4b50-a26b-589b7054952e";
 
         const MAX_CUMULATIVE_BYTES = 14 * 1024 * 1024; // 14 MB
@@ -739,18 +739,23 @@
             });
         }
 
-        // Blocco/sblocco pulsanti inline Telegram durante l'elaborazione — DISATTIVATO
-        // 2026-08-21: chiamava per errore il webhook di Lock-Manager.workflow.ts (id
-        // 17a1bf79-..., gestisce SOLO acquire/release/force_release per il lock cross-tab
-        // delle pagine owner) con azioni 'lock_buttons'/'unlock_buttons' che quel workflow
-        // non riconosce — nella migliore delle ipotesi falliva silenziosamente, nel peggiore
-        // inquinava active_actions con scope spuri. Nessun backend reale di editMessageReplyMarkup
-        // esiste oggi per questo scopo specifico. Funzione neutralizzata (no-op sicuro): il
-        // resto del flusso (analisi multimodale, ingegnerizzazione) non dipende da questa UX
-        // cosmetica per funzionare. Da ricostruire come vera azione Telegram Bot API se/quando
-        // serve davvero bloccare i pulsanti — non qui, non sotto fretta.
+        // Blocco/sblocco di TUTTE le altre pagine owner durante l'elaborazione AI.
+        // 2026-08-22: ricollegato al vero sistema di lock cross-piattaforma già esistente
+        // (SiteBosDirtyGuard.markGenerating/markGeneratingDone, sitebos_dirty_guard.js),
+        // lo stesso che alimenta il Lock-Manager.workflow.ts (id 17a1bf79-...) e che
+        // twa_global_launch.js già sa riconoscere in modo speciale quando lo scope
+        // bloccato è esattamente 'generating' (mostra "L'assistente sta scrivendo ed
+        // elaborando i tuoi dati... l'editor rimarrà temporaneamente congelato" su
+        // qualunque altra pagina/dispositivo owner). In precedenza questa funzione era
+        // un no-op perché chiamava azioni ('lock_buttons'/'unlock_buttons') che il
+        // Lock-Manager non riconosce — ora usa l'API reale già usata da altre pagine.
         async function toggleTelegramButtons(actionType, customMessage) {
-            // Intenzionalmente vuoto.
+            if (!window.SiteBosDirtyGuard) return;
+            if (actionType === 'lock_buttons') {
+                window.SiteBosDirtyGuard.markGenerating('generating', customMessage || 'Ingegnerizzazione Asset in corso', [], 900);
+            } else if (actionType === 'unlock_buttons') {
+                window.SiteBosDirtyGuard.markGeneratingDone('generating');
+            }
         }
 
         // Submit Multimodal Ingestion (Stato 2 -> Stato 3)
@@ -1068,6 +1073,8 @@
             const deployState = {
                 queue: queue,
                 currentIndex: 0,
+                baseCompleted: false,
+                moduleResults: {},
                 userPrice: userPrice,
                 targetCatId: targetCatId,
                 draftAsset: activeDraftAsset
@@ -1075,6 +1082,52 @@
 
             localStorage.setItem('sitebos_deploy_state', JSON.stringify(deployState));
             await executeDeploymentQueue(deployState);
+        }
+
+        // Chiama un webhook di deploy con retry autonomo, decidendo in base all'errore
+        // ricevuto se ha senso riprovare o se sarebbe inutile (es. errori di validazione
+        // non si risolvono da soli riprovando identici, un 5xx/timeout invece sì).
+        async function callModuleWithRetry(type, url, body, maxRetries = 2) {
+            let lastError = null;
+
+            for (let attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(body)
+                    });
+
+                    if (res.status >= 400 && res.status < 500) {
+                        const data = await res.json().catch(() => ({}));
+                        throw Object.assign(new Error(data.error || `Richiesta rifiutata (HTTP ${res.status})`), { retryable: false });
+                    }
+                    if (!res.ok) {
+                        throw Object.assign(new Error(`Errore server (HTTP ${res.status})`), { retryable: true });
+                    }
+
+                    const data = await res.json().catch(() => ({}));
+                    if (data && data.success === false) {
+                        const errMsg = data.error || `Errore modulo ${type}`;
+                        const looksLikeValidationError = /non valid|mancante|obbligator|richiest[oa] non|formato/i.test(errMsg);
+                        throw Object.assign(new Error(errMsg), { retryable: !looksLikeValidationError });
+                    }
+
+                    return { type, ok: true, data, attempts: attempt + 1 };
+                } catch (err) {
+                    lastError = err;
+                    const canRetry = err.retryable !== false && attempt < maxRetries;
+                    if (!canRetry) break;
+
+                    const backoffMs = 2000 * (attempt + 1);
+                    console.warn(`Modulo ${type} fallito (tentativo ${attempt + 1}/${maxRetries + 1}): ${err.message}. Riprovo tra ${backoffMs / 1000}s...`);
+                    showLoader(`Modulo ${type}: nuovo tentativo (${attempt + 2}/${maxRetries + 1})...`, err.message);
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
+                }
+            }
+
+            console.warn(`Modulo ${type} fallito definitivamente:`, lastError?.message);
+            return { type, ok: false, error: lastError?.message || 'Errore sconosciuto', attempts: maxRetries + 1 };
         }
 
         async function executeDeploymentQueue(deployState) {
@@ -1109,58 +1162,97 @@
                 draftData.pricing.base_price = deployState.userPrice;
             }
 
-            // Loop Execution
-            for (let i = deployState.currentIndex; i < deployState.queue.length; i++) {
-                const item = deployState.queue[i];
-                deployState.currentIndex = i;
-                localStorage.setItem('sitebos_deploy_state', JSON.stringify(deployState));
+            const results = {};
 
-                showLoader(`Ingegnerizzazione: ${item.name} (${i+1}/${deployState.queue.length}) in corso... ⏳`, `Non chiudere la MiniApp.`);
+            // Step 1: Modulo BASE — deve completare per primo, e va verificato davvero
+            // (il backend risponde solo dopo il salvataggio a catalogo, ma la generazione
+            // immagine parte in un ramo parallelo SUCCESSIVO alla risposta — vedi Step 2).
+            if (!deployState.baseCompleted) {
+                showLoader(`Ingegnerizzazione: Modulo BASE (Catalogo & KB) in corso... ⏳`, `Non chiudere la MiniApp.`);
 
-                try {
-                    if (item.type === 'BASE') {
-                        await fetch(WEBHOOK_DEPLOY_BASE, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                _auth: tg.initData,
-                                ash: ash,
-                                msg: msg,
-                                msg_id: msg,
-                                category_id: deployState.targetCatId,
-                                new_product_block: draftData
-                            })
-                        });
-                    } else if (item.type === 'BLOG') {
-                        await fetch(WEBHOOK_DEPLOY_BLOG, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'create', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg })
-                        });
-                    } else if (item.type === 'SOCIAL') {
-                        await fetch(WEBHOOK_DEPLOY_SOCIAL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'activate_social', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg })
-                        });
-                    } else if (item.type === 'ADVANCED') {
-                        await fetch(WEBHOOK_DEPLOY_ADVANCED, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ action: 'SAVE', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg })
-                        });
-                    }
-                } catch(err) {
-                    console.warn(`Errore non bloccante sul modulo ${item.type}:`, err);
+                const baseResult = await callModuleWithRetry('BASE', WEBHOOK_DEPLOY_BASE, {
+                    _auth: tg.initData,
+                    ash: ash,
+                    msg: msg,
+                    msg_id: msg,
+                    category_id: deployState.targetCatId,
+                    new_product_block: draftData
+                });
+
+                if (!baseResult.ok) {
+                    console.error("Errore bloccante sul modulo BASE dopo i tentativi:", baseResult.error);
+                    await toggleTelegramButtons('unlock_buttons', '❌ Errore durante il modulo BASE.');
+                    hideLoader();
+                    tg.showAlert("❌ Errore nel Modulo BASE dopo " + baseResult.attempts + " tentativi: " + baseResult.error + "\n\nGli altri moduli non vengono avviati finché il Base non è confermato. Riprova.");
+                    return;
                 }
+
+                results.BASE = 'OK';
+                deployState.baseCompleted = true;
+                localStorage.setItem('sitebos_deploy_state', JSON.stringify(deployState));
+            } else {
+                results.BASE = 'OK';
+            }
+
+            // Step 2: gli altri moduli (se presenti) dipendono dal Base e dall'immagine di
+            // copertina, che viene generata in un ramo asincrono avviato SOLO dopo la risposta
+            // del webhook Base — un margine di sicurezza breve evita che partano prima che
+            // l'immagine sia pronta.
+            const hasModule = (t) => deployState.queue.some(q => q.type === t);
+            const contornoModules = ['BLOG', 'SOCIAL', 'ADVANCED'].filter(hasModule);
+
+            // Moduli già completati con successo in una sessione precedente (localStorage) —
+            // non vanno rilanciati alla ripresa, solo quelli mancanti o falliti in precedenza.
+            deployState.moduleResults = deployState.moduleResults || {};
+            contornoModules.forEach(t => {
+                if (deployState.moduleResults[t] === 'OK') results[t] = 'OK';
+            });
+            const modulesToRun = contornoModules.filter(t => deployState.moduleResults[t] !== 'OK');
+
+            if (modulesToRun.length > 0) {
+                showLoader("Completamento generazione immagine di copertina...", "Margine di sicurezza di 10 secondi...");
+                await new Promise(resolve => setTimeout(resolve, 10000));
+
+                showLoader(`Ingegnerizzazione moduli aggiuntivi in corso (${modulesToRun.join(', ')})... ⏳`, `Elaborazione in parallelo, non chiudere la MiniApp.`);
+
+                const moduleCall = (type) => {
+                    let url, body;
+                    if (type === 'BLOG') {
+                        url = WEBHOOK_DEPLOY_BLOG;
+                        body = { action: 'create', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg };
+                    } else if (type === 'SOCIAL') {
+                        url = WEBHOOK_DEPLOY_SOCIAL;
+                        body = { action: 'activate_social', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg };
+                    } else {
+                        url = WEBHOOK_DEPLOY_ADVANCED;
+                        body = { action: 'SAVE', sop_id: draftData.identity?.item_sku || '', ash: ash, _auth: tg.initData, msg: msg };
+                    }
+                    // Persiste l'esito in localStorage non appena arriva, non solo a fine
+                    // batch — così se l'utente chiude a metà del parallelo, i moduli già
+                    // riusciti non vengono rilanciati alla ripresa.
+                    return callModuleWithRetry(type, url, body).then(r => {
+                        deployState.moduleResults[type] = r.ok ? 'OK' : 'FAILED';
+                        localStorage.setItem('sitebos_deploy_state', JSON.stringify(deployState));
+                        return r;
+                    });
+                };
+
+                const settled = await Promise.all(modulesToRun.map(moduleCall));
+                settled.forEach(r => { results[r.type] = r.ok ? 'OK' : 'FAILED'; });
             }
 
             // Unlock Telegram & Redirect
-            await toggleTelegramButtons('unlock_buttons', '✅ Complimenti! Il servizio è stato interamente ingegnerizzato e pubblicato con successo!');
+            const failedModules = Object.keys(results).filter(k => results[k] === 'FAILED');
             localStorage.removeItem('sitebos_deploy_state');
-
             hideLoader();
-            tg.showAlert("✅ Pubblicazione completata con successo!");
+
+            if (failedModules.length === 0) {
+                await toggleTelegramButtons('unlock_buttons', '✅ Complimenti! Il servizio è stato interamente ingegnerizzato e pubblicato con successo!');
+                tg.showAlert("✅ Pubblicazione completata con successo su tutti i moduli selezionati!");
+            } else {
+                await toggleTelegramButtons('unlock_buttons', '⚠️ Ingegnerizzazione completata con avvisi.');
+                tg.showAlert("⚠️ Pubblicazione completata con avvisi.\n\nModuli non riusciti: " + failedModules.join(', ') + ".\n\nIl Modulo BASE è comunque salvato correttamente nel catalogo.");
+            }
             window.location.href = `catalog.html?ash=${ash}&msg=${msg}`;
         }
 

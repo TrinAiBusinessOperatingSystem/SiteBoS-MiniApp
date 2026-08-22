@@ -1,74 +1,421 @@
-<!-- Placeholder per l'Agent Intelligence Interface -->
-<!-- Nome bloccato: agent_intelligence.html -->
-<!-- Logica: Gestione comparazione temporale Before/After e Research Dossier -->
-
 <!DOCTYPE html>
 <html lang="it">
-<head>
-    <meta name="color-scheme" content="light">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SiteBoS Agent | Intelligence Analysis</title>
-</head>
-<body>
-    <h1>SiteBoS Intelligence Agent</h1>
-    <p>Interfaccia in fase di implementazione. Questo modulo gestirà la visualizzazione dei dossier di ricerca e il benchmark dei risultati marketing.</p>
 
-    <!-- User Guide and Audio Guide Integration Engine -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>SiteBoS Agent | Cruscotto Intelligence Generale</title>
+
+    <!-- Telegram WebApp SDK e Controller di Lancio Globale -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        bg: '#fafafa',
+                        border: '#eeeeee'
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        html,
+        body {
+            background-color: #fafafa !important;
+            color: #000000 !important;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+
+        .glass-card {
+            background: white !important;
+            border: 1px solid #eeeeee !important;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+
+        .glow-button {
+            box-shadow: 0 0 18px rgba(79, 70, 229, 0.45);
+            animation: pulseGlow 2s infinite;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 15px rgba(79, 70, 229, 0.4);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 25px rgba(79, 70, 229, 0.7);
+                transform: scale(1.01);
+            }
+        }
+
+        .markdown-content h1 {
+            font-size: 1.05rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #111827;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+
+        .markdown-content h1:first-child {
+            margin-top: 0;
+        }
+
+        .markdown-content h2 {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: #1f2937;
+            margin-top: 1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .markdown-content h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #374151;
+            margin-top: 0.75rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .markdown-content p {
+            font-size: 0.8rem;
+            line-height: 1.6;
+            color: #374151;
+            margin-bottom: 0.75rem;
+        }
+
+        .markdown-content ul {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+
+        .markdown-content li {
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: #374151;
+            position: relative;
+            padding-left: 1.25rem;
+        }
+
+        .markdown-content li::before {
+            content: "•";
+            position: absolute;
+            left: 0.25rem;
+            color: #4f46e5;
+            font-weight: bold;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .markdown-content strong {
+            font-weight: 800;
+            color: #111827;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col min-h-screen pb-10 bg-[#fafafa] text-black" data-section="intelligence">
+
+    <!-- INTESTAZIONE SUPERIORE SITEBOS A TRE PULSANTI -->
+    <header class="sticky top-0 z-50 px-4 py-3 bg-white/90 backdrop-blur-md border-b border-gray-200">
+        <div class="max-w-2xl mx-auto flex items-center justify-between gap-3">
+            <!-- Pulsante 1: Ritorno Indietro -->
+            <button id="btn-nav-back" onclick="window.history.back()"
+                class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-black active:scale-95 transition shadow-2xs"
+                title="Torna Indietro">
+                <i class="fas fa-arrow-left text-sm"></i>
+            </button>
+
+            <!-- Titolo Centrale con Indicatore di Stato -->
+            <div class="flex-1 text-center select-none">
+                <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-[9px] font-extrabold uppercase tracking-widest text-indigo-700">
+                    <span class="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse"></span>
+                    INTELLIGENCE TRASVERSALE
+                </div>
+                <h1 class="text-sm font-black uppercase tracking-wider text-black mt-0.5">Cruscotto Intelligence</h1>
+            </div>
+
+            <!-- Pulsanti 2 e 3: Guida Vocale e Manuale Utente -->
+            <div class="flex items-center gap-2">
+                <button id="btn-nav-audio" onclick="toggleAudioGuide()"
+                    class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-indigo-600 active:scale-95 transition shadow-2xs"
+                    title="Guida Vocale">
+                    <i class="fas fa-volume-high text-xs"></i>
+                </button>
+                <button id="btn-nav-guide" onclick="openUserGuide('userguide/09_controllo_gestione.html')"
+                    class="w-10 h-10 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-700 hover:text-black active:scale-95 transition shadow-2xs"
+                    title="Manuale Utente">
+                    <i class="fas fa-book-open text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- SCHERMATA DI CARICAMENTO GLOBALE -->
+    <div id="page-loader" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-3 transition-opacity duration-300">
+        <div class="w-10 h-10 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
+        <p class="text-xs font-black uppercase tracking-wider text-gray-700" id="loader-message">Caricamento Cruscotto Intelligence...</p>
+    </div>
+
+    <!-- CONTENITORE PRINCIPALE -->
+    <main class="flex-1 max-w-2xl w-full mx-auto px-4 pt-4 flex flex-col gap-4">
+
+        <!-- SCHEDA DI PRESENTAZIONE PRINCIPALE -->
+        <div class="glass-card rounded-2xl p-5 relative overflow-hidden">
+            <div class="absolute -right-6 -bottom-6 w-36 h-36 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
+            
+            <div class="flex items-center gap-3.5 mb-3">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xl shadow-md shrink-0">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div>
+                    <h2 class="text-base font-extrabold text-black leading-tight" id="business-name-header">Quadro Strategico Globale</h2>
+                    <p class="text-xs text-gray-500 font-medium mt-0.5">Integrazione Operativa e Controllo Direzionale</p>
+                </div>
+            </div>
+
+            <p class="text-xs text-gray-700 leading-relaxed font-normal">
+                Sintesi unificata che correla i volumi delle commesse eseguite, le giacenze e le spese di magazzino con la marginalità economica reale per offrire indicazioni strategiche azionabili.
+            </p>
+        </div>
+
+        <!-- SEZIONE DELLE TRE SCHEDE DI SINTESI OPERATIVA -->
+        <div class="space-y-3">
+            <div class="flex items-center justify-between px-1">
+                <h3 class="text-xs font-black uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                    <i class="fas fa-cubes text-gray-400"></i> Pilastri Operativi Aziendali
+                </h3>
+                <span class="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Sintesi Dati Aggregati</span>
+            </div>
+
+            <!-- SCHEDA 1: FLUSSO DI LAVORO E COMMESSE (JOB) -->
+            <div class="glass-card rounded-2xl p-4 border-l-4 border-l-blue-600 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fas fa-list-check"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-wider text-black">Flusso di Lavoro e Commesse</h4>
+                            <p class="text-[10px] text-gray-500 font-medium">Attività e volumi di produzione</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[9px] font-black uppercase tracking-wider" id="kpi-jobs-status-badge">
+                        Operatività Monitorata
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100">
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Totale Commesse</span>
+                        <span class="text-sm font-black text-black mt-0.5 block" id="kpi-jobs-total">0</span>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">In Corso</span>
+                        <span class="text-sm font-black text-blue-600 mt-0.5 block" id="kpi-jobs-active">0</span>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Completate</span>
+                        <span class="text-sm font-black text-green-600 mt-0.5 block" id="kpi-jobs-completed">0</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-[10px] text-gray-600 font-medium truncate max-w-[200px]" id="kpi-jobs-top-service">
+                        Prestazione principale: In caricamento
+                    </span>
+                    <button onclick="navigateToAgent('../gestione/orders-manager.html')"
+                        class="text-[10px] font-black text-blue-700 hover:text-blue-900 flex items-center gap-1.5 transition py-1 px-2 rounded-lg hover:bg-blue-50">
+                        <span>Apri Gestione Commesse</span>
+                        <i class="fas fa-chevron-right text-[8px]"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCHEDA 2: MAGAZZINO E APPROVVIGIONAMENTO (WAREHOUSE) -->
+            <div class="glass-card rounded-2xl p-4 border-l-4 border-l-amber-500 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fas fa-boxes-stacked"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-wider text-black">Magazzino e Approvvigionamento</h4>
+                            <p class="text-[10px] text-gray-500 font-medium">Scorte materiali e spese operative</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-black uppercase tracking-wider" id="kpi-warehouse-status-badge">
+                        Giacenze Monitorate
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100">
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Voci a Magazzino</span>
+                        <span class="text-sm font-black text-black mt-0.5 block" id="kpi-wh-items">0</span>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Sotto Soglia</span>
+                        <span class="text-sm font-black text-amber-600 mt-0.5 block" id="kpi-wh-low-stock">0</span>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Spese Registrate</span>
+                        <span class="text-sm font-black text-black mt-0.5 block" id="kpi-wh-expenses">€ 0,00</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-[10px] text-gray-600 font-medium truncate max-w-[200px]" id="kpi-wh-catalog-info">
+                        Catalogo servizi registrati: 0
+                    </span>
+                    <button onclick="navigateToAgent('intelligent-warehouse.html')"
+                        class="text-[10px] font-black text-amber-700 hover:text-amber-900 flex items-center gap-1.5 transition py-1 px-2 rounded-lg hover:bg-amber-50">
+                        <span>Apri Magazzino Intelligente</span>
+                        <i class="fas fa-chevron-right text-[8px]"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SCHEDA 3: CONTROLLO DI GESTIONE E MARGINALITÀ (CFO) -->
+            <div class="glass-card rounded-2xl p-4 border-l-4 border-l-emerald-600 flex flex-col gap-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm font-bold">
+                            <i class="fas fa-scale-balanced"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-xs font-black uppercase tracking-wider text-black">Controllo di Gestione e Marginalità</h4>
+                            <p class="text-[10px] text-gray-500 font-medium">Margini economici e costi di struttura</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase tracking-wider" id="kpi-cfo-status-badge">
+                        Marginalità Verificata
+                    </span>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100">
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Prestazioni Analizzate</span>
+                        <span class="text-sm font-black text-black mt-0.5 block" id="kpi-cfo-count">0</span>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Margine Medio</span>
+                        <span class="text-sm font-black text-emerald-600 mt-0.5 block" id="kpi-cfo-margin">0%</span>
+                    </div>
+                    <div class="bg-gray-50 p-2.5 rounded-xl text-center">
+                        <span class="block text-[8px] font-black uppercase text-gray-400">Regime Fiscale</span>
+                        <span class="text-sm font-black text-black mt-0.5 block truncate" id="kpi-cfo-regime">Ordinario</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <span class="text-[10px] text-gray-600 font-medium truncate max-w-[200px]" id="kpi-cfo-staff-info">
+                        Personale configurato: 0 operatori
+                    </span>
+                    <button onclick="navigateToAgent('controllo_gestione.html')"
+                        class="text-[10px] font-black text-emerald-700 hover:text-emerald-900 flex items-center gap-1.5 transition py-1 px-2 rounded-lg hover:bg-emerald-50">
+                        <span>Apri Controllo di Gestione</span>
+                        <i class="fas fa-chevron-right text-[8px]"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEZIONE PRINCIPALE: SINTESI STRATEGICA GEMINI AI -->
+        <div class="glass-card rounded-2xl p-5 border border-indigo-200 flex flex-col gap-4 relative">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+                        <i class="fas fa-wand-magic-sparkles text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-black text-black uppercase tracking-wider">Sintesi Strategica Direzionale</h3>
+                        <p class="text-[10px] text-gray-500 font-medium" id="analysis-timestamp-text">Elaborazione in corso...</p>
+                    </div>
+                </div>
+                <span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 text-[8px] font-black uppercase tracking-wider">
+                    Motore Gemini AI
+                </span>
+            </div>
+
+            <!-- AVVISO DATI CAMBIATI DALL'ULTIMA GENERAZIONE (STALE WARNING) -->
+            <div id="stale-warning-banner" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-3">
+                <i class="fas fa-triangle-exclamation text-amber-600 text-sm mt-0.5 shrink-0"></i>
+                <div class="flex-1">
+                    <h4 class="text-xs font-black text-amber-900 uppercase tracking-wider">Dati Operativi Aggiornati</h4>
+                    <p class="text-[11px] text-amber-800 font-normal leading-relaxed mt-0.5">
+                        I dati delle commesse, delle scorte o dei margini finanziari sono cambiati dall'ultima generazione. Rigenera l'analisi per ottenere un quadro strategico allineato.
+                    </p>
+                </div>
+            </div>
+
+            <!-- AVVISO TEMPORALE INFORMATIVO (OLTRE 10 GIORNI DALLA GENERAZIONE) -->
+            <div id="age-notice-banner" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3.5 flex items-start gap-3">
+                <i class="fas fa-clock-rotate-left text-blue-600 text-sm mt-0.5 shrink-0"></i>
+                <div class="flex-1">
+                    <h4 class="text-xs font-black text-blue-900 uppercase tracking-wider">Analisi Precedente</h4>
+                    <p class="text-[11px] text-blue-800 font-normal leading-relaxed mt-0.5" id="age-notice-text">
+                        Analisi generata oltre dieci giorni fa. Considera una nuova elaborazione periodica per monitorare l'evoluzione aziendale.
+                    </p>
+                </div>
+            </div>
+
+            <!-- PULSANTE DI AZIONE RIGENERA ANALISI -->
+            <div>
+                <button id="btn-regenerate-analysis" onclick="onRegenerateClick()"
+                    class="w-full py-3.5 px-4 rounded-xl bg-black text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 active:scale-98 transition duration-200">
+                    <i class="fas fa-arrows-rotate text-xs" id="btn-regenerate-icon"></i>
+                    <span id="btn-regenerate-label">Rigenera Analisi Strategica</span>
+                </button>
+            </div>
+
+            <!-- CONTENITORE TESTO ANALISI GENERATA -->
+            <div id="analysis-content-box" class="bg-gray-50/70 border border-gray-100 rounded-xl p-4 min-h-[160px] text-xs text-gray-800 leading-relaxed markdown-content">
+                <div class="flex flex-col items-center justify-center py-8 text-center gap-2 text-gray-400">
+                    <div class="w-6 h-6 border-2 border-gray-300 border-t-indigo-600 rounded-full animate-spin"></div>
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500">Inizializzazione analisi strategica...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MOTORE INTEGRATO GUIDA UTENTE E GUIDA VOCALE -->
     <script>
     (function() {
         if (document.getElementById('userguide-drawer-overlay')) return;
 
-        // 1. Determine HTML filename to play the correct WAV file
-        const pathParts = window.location.pathname.split('/');
-        const pageName = pathParts[pathParts.length - 1] || 'index.html';
-        const baseName = pageName.replace('.html', '');
-        
-        let audioSrc = baseName + '.wav';
-        if (baseName === 'add-product') audioSrc = 'catalog_add-product.wav';
-        if (baseName === 'edit-product') audioSrc = 'catalog_edit-product.wav';
+        const finalGuideUrl = 'userguide/09_controllo_gestione.html';
+        const finalAudioUrl = 'agent_intelligence.wav';
 
-        // 2. Determine corresponding userguide page
-        let guidePage = 'userguide/index.html';
-        if (window.location.pathname.includes('/gestione/')) {
-            guidePage = 'userguide/03_catalog.html';
-        } else if (window.location.pathname.includes('/identity/')) {
-            guidePage = 'userguide/02_onboarding.html';
-        } else if (window.location.pathname.includes('/agents/')) {
-            if (baseName.includes('controllo')) guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName.includes('sicurezza')) guidePage = 'userguide/11_agente_sicurezza.html';
-            else guidePage = 'userguide/01_intro.html';
-        } else {
-            if (baseName === 'agenda') guidePage = 'userguide/10_agenda_radar.html';
-            else if (baseName === 'certificator') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'intelligent-warehouse') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'orders-manager') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'job-create') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'pianificazione_itinerari') guidePage = 'userguide/07_magazzino_logistica.html';
-            else if (baseName === 'fine-tuning') guidePage = 'userguide/12_fine_tuning.html';
-            else if (baseName === 'risorse_umane') guidePage = 'userguide/06_team.html';
-            else if (baseName === 'analisi-mercato') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'agent_intelligence') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'agenda') guidePage = 'userguide/10_agenda_radar.html';
-            else if (baseName === 'assistente-sicurezza') guidePage = 'userguide/11_agente_sicurezza.html';
-            else if (baseName === 'controllo_gestione') guidePage = 'userguide/09_controllo_gestione.html';
-            else if (baseName === 'ecommerce') guidePage = 'userguide/04_online.html';
-            else if (baseName === 'preventivi') guidePage = 'userguide/09_controllo_gestione.html';
-        }
-
-        // Calculate relative path depth
-        const tcIndex = window.location.pathname.indexOf('/telegram_control/');
-        let rootPath = '';
-        if (tcIndex !== -1) {
-            const subPath = window.location.pathname.substring(tcIndex + '/telegram_control/'.length);
-            const slashCount = (subPath.match(/\//g) || []).length;
-            rootPath = '../'.repeat(slashCount);
-        }
-        
-        const finalGuideUrl = rootPath + guidePage;
-        const finalAudioUrl = audioSrc;
-
-        // 3. Inject Font Awesome stylesheet if missing
         if (!document.querySelector('link[href*="font-awesome"]') && !document.querySelector('link[href*="all.min.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
@@ -76,14 +423,13 @@
             document.head.appendChild(link);
         }
 
-        // 4. Inject Drawer HTML structure into Body
         const drawerHtml = `
         <div id="userguide-drawer-overlay" class="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[99999] hidden opacity-0 transition-opacity duration-300" onclick="closeUserGuide()">
             <div id="userguide-drawer" class="fixed inset-0 max-w-md mx-auto h-screen bg-white shadow-2xl flex flex-col translate-y-full transition-transform duration-300 z-[100000]" onclick="event.stopPropagation()">
                 <div class="w-full flex items-center justify-between p-4 border-b border-slate-100 shrink-0 select-none">
                     <div class="flex items-center gap-2">
-                        <div class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></div>
-                        <span class="text-xs font-black uppercase tracking-widest text-slate-800">Guida Utente</span>
+                        <div class="w-2.5 h-2.5 rounded-full bg-indigo-600 animate-pulse"></div>
+                        <span class="text-xs font-black uppercase tracking-widest text-slate-800">Manuale Utente</span>
                     </div>
                     <button onclick="closeUserGuide()" class="w-8 h-8 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-100 active:scale-90 transition">
                         <i class="fas fa-times text-xs"></i>
@@ -96,38 +442,6 @@
         </div>`;
         document.body.insertAdjacentHTML('beforeend', drawerHtml);
 
-        // 5. Inject Globe and Volume Buttons
-        const header = document.querySelector('header');
-        let buttonContainer = null;
-        if (header) {
-            buttonContainer = header.querySelector('.flex.gap-2') || header.querySelector('.flex.items-center.gap-2') || header.querySelector('.flex.gap-3');
-        }
-
-        const btnHtml = `
-        <!-- User Guide Button -->
-        <button id="btn-nav-guide" onclick="openUserGuide('${finalGuideUrl}')" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Manuale Utente">
-            <i class="fas fa-globe text-xs"></i>
-        </button>
-        <!-- Speech Audio Button -->
-        <button id="btn-nav-audio" onclick="toggleAudio()" class="w-10 h-10 bg-white border border-gray-200 rounded-2xl flex items-center justify-center text-slate-500 shadow-sm active:scale-90 transition shrink-0" title="Guida Vocale">
-            <i class="fas fa-volume-high text-xs"></i>
-        </button>`;
-
-        if (buttonContainer) {
-            buttonContainer.insertAdjacentHTML('afterbegin', btnHtml);
-        } else if (header) {
-            const wrapper = document.createElement('div');
-            wrapper.className = 'flex gap-2 items-center';
-            wrapper.innerHTML = btnHtml;
-            header.appendChild(wrapper);
-        } else {
-            const floatingDiv = document.createElement('div');
-            floatingDiv.className = 'fixed top-4 right-4 flex gap-2 z-50';
-            floatingDiv.innerHTML = btnHtml;
-            document.body.appendChild(floatingDiv);
-        }
-
-        // 6. Action Functions (Drawer & Audio)
         let voiceAudio = null;
         let isAudioPlaying = false;
 
@@ -137,8 +451,7 @@
             const iframe = document.getElementById('userguide-iframe');
             if (!overlay || !drawer || !iframe) return;
 
-            window.stopAudio();
-            
+            window.stopAudioGuide();
             iframe.src = url;
             overlay.classList.remove('hidden');
             setTimeout(() => {
@@ -156,11 +469,12 @@
             drawer.classList.add('translate-y-full');
             setTimeout(() => {
                 overlay.classList.add('hidden');
-                document.getElementById('userguide-iframe').src = "";
+                const iframe = document.getElementById('userguide-iframe');
+                if (iframe) iframe.src = "";
             }, 300);
         };
 
-        window.stopAudio = function() {
+        window.stopAudioGuide = function() {
             if (isAudioPlaying && voiceAudio) {
                 voiceAudio.pause();
                 voiceAudio.currentTime = 0;
@@ -174,11 +488,11 @@
             }
             if (btn) {
                 btn.classList.remove('bg-black', 'text-white', 'border-black');
-                btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+                btn.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-200');
             }
         };
 
-        window.toggleAudio = function() {
+        window.toggleAudioGuide = function() {
             const btn = document.getElementById('btn-nav-audio');
             const icon = btn ? btn.querySelector('i') : null;
 
@@ -190,27 +504,441 @@
                     if (icon) {
                         icon.className = 'fas fa-volume-high text-xs';
                         btn.classList.remove('bg-black', 'text-white', 'border-black');
-                        btn.classList.add('bg-white', 'text-slate-500', 'border-gray-200');
+                        btn.classList.add('bg-gray-100', 'text-gray-700', 'border-gray-200');
                     }
                 });
             }
 
             if (isAudioPlaying) {
-                window.stopAudio();
+                window.stopAudioGuide();
             } else {
                 voiceAudio.play().then(() => {
                     isAudioPlaying = true;
                     if (icon) {
                         icon.className = 'fas fa-stop text-xs';
-                        btn.classList.remove('bg-white', 'text-slate-500', 'border-gray-200');
+                        btn.classList.remove('bg-gray-100', 'text-gray-700', 'border-gray-200');
                         btn.classList.add('bg-black', 'text-white', 'border-black');
                     }
                 }).catch(err => {
-                    console.error("Errore riproduzione audio:", err);
+                    console.warn("Riproduzione audio non disponibile:", err);
                 });
             }
         };
     })();
     </script>
+
+    <!-- LOGICA APPLICATIVA CRUSCOTTO INTELLIGENCE -->
+    <script>
+        const WEBHOOK_INTELLIGENCE_URL = "https://prod.workflow.trinai.it/webhook/cruscotto-intelligence";
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash') || '';
+        const msg = urlParams.get('msg') || '';
+        const vatNumber = urlParams.get('vat') || urlParams.get('vat_number') || '';
+        const tg = window.Telegram?.WebApp;
+
+        let currentStatus = null;
+        let isGenerating = false;
+        const currFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+
+        function showLoader(message = "Caricamento Cruscotto Intelligence...") {
+            const loader = document.getElementById('page-loader');
+            const msgEl = document.getElementById('loader-message');
+            if (msgEl) msgEl.innerText = message;
+            if (loader) {
+                loader.classList.remove('hidden', 'opacity-0');
+                loader.classList.add('opacity-100');
+            }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('page-loader');
+            if (loader) {
+                loader.classList.add('opacity-0');
+                setTimeout(() => loader.classList.add('hidden'), 300);
+            }
+        }
+
+        function navigateToAgent(targetPath) {
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+            const search = window.location.search || '';
+            window.location.href = targetPath + search;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function renderMarkdownToHtml(markdownText) {
+            if (!markdownText) return '<p class="text-gray-400 italic">Nessun testo di analisi disponibile.</p>';
+
+            const lines = markdownText.split(/\r?\n/);
+            let html = '';
+            let inList = false;
+
+            lines.forEach(line => {
+                const trimmed = line.trim();
+
+                if (!trimmed) {
+                    if (inList) {
+                        html += '</ul>';
+                        inList = false;
+                    }
+                    return;
+                }
+
+                // Intestazioni Markdown
+                if (trimmed.startsWith('# ')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<h1>${escapeHtml(trimmed.substring(2))}</h1>`;
+                } else if (trimmed.startsWith('## ')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<h2>${escapeHtml(trimmed.substring(3))}</h2>`;
+                } else if (trimmed.startsWith('### ')) {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    html += `<h3>${escapeHtml(trimmed.substring(4))}</h3>`;
+                } else if (trimmed.startsWith('- ') || trimmed.startsWith('* ') || trimmed.startsWith('• ')) {
+                    if (!inList) {
+                        html += '<ul>';
+                        inList = true;
+                    }
+                    const rawItem = trimmed.substring(2).trim();
+                    const formattedItem = formatInlineStyles(rawItem);
+                    html += `<li>${formattedItem}</li>`;
+                } else {
+                    if (inList) { html += '</ul>'; inList = false; }
+                    const formattedPara = formatInlineStyles(trimmed);
+                    html += `<p>${formattedPara}</p>`;
+                }
+            });
+
+            if (inList) {
+                html += '</ul>';
+            }
+
+            return html;
+        }
+
+        function formatInlineStyles(text) {
+            let escaped = escapeHtml(text);
+            // Grassetto **testo**
+            escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Corsivo *testo*
+            escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            return escaped;
+        }
+
+        function formatTimestamp(isoString) {
+            if (!isoString) return 'Nessuna elaborazione precedente';
+            try {
+                const date = new Date(isoString);
+                if (isNaN(date.getTime())) return 'Data non disponibile';
+                return date.toLocaleString('it-IT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return 'Data non disponibile';
+            }
+        }
+
+        function updateUI(statusResponse) {
+            currentStatus = statusResponse;
+            const summary = statusResponse.summary_data || {};
+
+            // 1. Aggiornamento KPI Commesse (Job)
+            const jobsData = summary.jobs || {};
+            const totalJobsEl = document.getElementById('kpi-jobs-total');
+            const activeJobsEl = document.getElementById('kpi-jobs-active');
+            const completedJobsEl = document.getElementById('kpi-jobs-completed');
+            const topServiceEl = document.getElementById('kpi-jobs-top-service');
+            const jobsBadge = document.getElementById('kpi-jobs-status-badge');
+
+            if (totalJobsEl) totalJobsEl.innerText = jobsData.total_jobs ?? 0;
+            if (activeJobsEl) activeJobsEl.innerText = jobsData.active_jobs ?? 0;
+            if (completedJobsEl) completedJobsEl.innerText = jobsData.completed_jobs ?? 0;
+
+            if (topServiceEl) {
+                const topService = jobsData.top_services && jobsData.top_services[0];
+                if (topService) {
+                    topServiceEl.innerText = `Prestazione principale: ${topService.name} con ${topService.count} commesse`;
+                } else {
+                    topServiceEl.innerText = 'Nessuna commessa registrata';
+                }
+            }
+
+            if (jobsBadge) {
+                if ((jobsData.total_jobs || 0) > 0) {
+                    jobsBadge.innerText = `${jobsData.total_jobs} Commesse`;
+                    jobsBadge.className = 'px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[9px] font-black uppercase tracking-wider';
+                } else {
+                    jobsBadge.innerText = 'Nessuna Commessa';
+                    jobsBadge.className = 'px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200 text-[9px] font-black uppercase tracking-wider';
+                }
+            }
+
+            // 2. Aggiornamento KPI Magazzino (Warehouse)
+            const whData = summary.warehouse || {};
+            const whItemsEl = document.getElementById('kpi-wh-items');
+            const whLowStockEl = document.getElementById('kpi-wh-low-stock');
+            const whExpensesEl = document.getElementById('kpi-wh-expenses');
+            const whCatalogInfoEl = document.getElementById('kpi-wh-catalog-info');
+            const whBadge = document.getElementById('kpi-warehouse-status-badge');
+
+            if (whItemsEl) whItemsEl.innerText = whData.total_stock_items ?? 0;
+            if (whLowStockEl) whLowStockEl.innerText = whData.low_stock_items ?? 0;
+            if (whExpensesEl) whExpensesEl.innerText = currFmt.format(whData.total_expenses_recorded || 0);
+            if (whCatalogInfoEl) whCatalogInfoEl.innerText = `Voci a listino collegate: ${whData.catalog_items_count ?? 0}`;
+
+            if (whBadge) {
+                if ((whData.low_stock_items || 0) > 0) {
+                    whBadge.innerText = `${whData.low_stock_items} Sotto Soglia`;
+                    whBadge.className = 'px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200 text-[9px] font-black uppercase tracking-wider';
+                } else if ((whData.total_stock_items || 0) > 0) {
+                    whBadge.innerText = 'Scorte Regolari';
+                    whBadge.className = 'px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[9px] font-black uppercase tracking-wider';
+                } else {
+                    whBadge.innerText = 'Magazzino da Popolare';
+                    whBadge.className = 'px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200 text-[9px] font-black uppercase tracking-wider';
+                }
+            }
+
+            // 3. Aggiornamento KPI Controllo di Gestione (CFO)
+            const cfoData = summary.cfo || {};
+            const cfoCountEl = document.getElementById('kpi-cfo-count');
+            const cfoMarginEl = document.getElementById('kpi-cfo-margin');
+            const cfoRegimeEl = document.getElementById('kpi-cfo-regime');
+            const cfoStaffInfoEl = document.getElementById('kpi-cfo-staff-info');
+            const cfoBadge = document.getElementById('kpi-cfo-status-badge');
+
+            if (cfoCountEl) cfoCountEl.innerText = cfoData.sku_analyzed_count ?? 0;
+            if (cfoMarginEl) cfoMarginEl.innerText = `${cfoData.average_margin ?? 0}%`;
+            if (cfoRegimeEl) cfoRegimeEl.innerText = cfoData.tax_regime || 'Ordinario';
+            if (cfoStaffInfoEl) cfoStaffInfoEl.innerText = `Organico: ${cfoData.operators_count ?? 0} collaboratori`;
+
+            if (cfoBadge) {
+                if ((cfoData.sku_analyzed_count || 0) > 0) {
+                    cfoBadge.innerText = `${cfoData.sku_analyzed_count} Prestazioni`;
+                    cfoBadge.className = 'px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[9px] font-black uppercase tracking-wider';
+                } else {
+                    cfoBadge.innerText = 'Analisi non Presente';
+                    cfoBadge.className = 'px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 border border-gray-200 text-[9px] font-black uppercase tracking-wider';
+                }
+            }
+
+            // 4. Aggiornamento Sezione Analisi Gemini e Banner di Stato
+            const lastAnalysis = statusResponse.last_analysis;
+            const hasAnalysis = Boolean(statusResponse.has_analysis && lastAnalysis && lastAnalysis.analysis_text);
+            const isStale = Boolean(statusResponse.is_stale);
+            const daysSinceGen = parseInt(statusResponse.days_since_generation, 10) || 0;
+
+            const timeEl = document.getElementById('analysis-timestamp-text');
+            const contentBox = document.getElementById('analysis-content-box');
+            const staleBanner = document.getElementById('stale-warning-banner');
+            const ageBanner = document.getElementById('age-notice-banner');
+            const ageText = document.getElementById('age-notice-text');
+            const regenBtn = document.getElementById('btn-regenerate-analysis');
+            const regenLabel = document.getElementById('btn-regenerate-label');
+
+            if (timeEl) {
+                if (hasAnalysis && lastAnalysis.generated_at) {
+                    timeEl.innerText = `Ultima elaborazione: ${formatTimestamp(lastAnalysis.generated_at)}`;
+                } else {
+                    timeEl.innerText = 'Nessuna analisi precedente generata';
+                }
+            }
+
+            if (contentBox) {
+                if (hasAnalysis) {
+                    contentBox.innerHTML = renderMarkdownToHtml(lastAnalysis.analysis_text);
+                } else {
+                    contentBox.innerHTML = `
+                        <div class="text-center py-6 text-gray-500 font-medium">
+                            <p>Nessuna sintesi strategica presente.</p>
+                            <p class="text-[10px] text-gray-400 mt-1">Premi il pulsante in basso per generare la prima analisi direzionale.</p>
+                        </div>`;
+                }
+            }
+
+            // Gestione Banner Dati Cambiati (Stale)
+            if (staleBanner) {
+                if (hasAnalysis && isStale) {
+                    staleBanner.classList.remove('hidden');
+                } else {
+                    staleBanner.classList.add('hidden');
+                }
+            }
+
+            // Gestione Banner Temporale Informativo (> 10 giorni)
+            if (ageBanner) {
+                if (hasAnalysis && !isStale && daysSinceGen > 10) {
+                    ageBanner.classList.remove('hidden');
+                    if (ageText) {
+                        ageText.innerText = `Analisi generata ${daysSinceGen} giorni fa. Considera una nuova elaborazione periodica per monitorare l'evoluzione aziendale.`;
+                    }
+                } else {
+                    ageBanner.classList.add('hidden');
+                }
+            }
+
+            // Illuminazione e stato visivo del Pulsante Rigenera
+            if (regenBtn) {
+                if (isStale) {
+                    // Pulsante Evidenziato / Illuminato per dati aggiornati
+                    regenBtn.className = 'w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-700 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 glow-button transition duration-200';
+                    if (regenLabel) regenLabel.innerText = 'Dati Aggiornati — Rigenera Analisi';
+                } else {
+                    // Pulsante Standard
+                    regenBtn.className = 'w-full py-3.5 px-4 rounded-xl bg-black text-white hover:bg-gray-800 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2.5 active:scale-98 transition duration-200';
+                    if (regenLabel) regenLabel.innerText = 'Rigenera Analisi Strategica';
+                }
+            }
+        }
+
+        async function fetchCruscottoStatus() {
+            try {
+                const response = await fetch(WEBHOOK_INTELLIGENCE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'get_cruscotto_status',
+                        _auth: tg?.initData || '',
+                        ash: ash,
+                        msg: msg,
+                        vat_number: vatNumber
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data;
+                } else {
+                    console.warn("Risposta non valida dal server per get_cruscotto_status:", response.status);
+                }
+            } catch (err) {
+                console.error("Errore durante il recupero dello stato del cruscotto:", err);
+            }
+            return null;
+        }
+
+        async function executeGenerateAnalysis(isFirstAutoRun = false) {
+            if (isGenerating) return;
+            isGenerating = true;
+
+            const regenBtn = document.getElementById('btn-regenerate-analysis');
+            const icon = document.getElementById('btn-regenerate-icon');
+            const label = document.getElementById('btn-regenerate-label');
+            const contentBox = document.getElementById('analysis-content-box');
+
+            if (regenBtn) regenBtn.disabled = true;
+            if (icon) icon.className = 'fas fa-spinner animate-spin text-xs';
+            if (label) label.innerText = 'Elaborazione Sintesi AI in corso...';
+
+            if (contentBox) {
+                contentBox.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-10 text-center gap-3">
+                        <div class="w-8 h-8 border-3 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                        <div>
+                            <p class="text-xs font-black uppercase tracking-wider text-indigo-900">Motore Gemini AI in Elaborazione</p>
+                            <p class="text-[11px] text-gray-500 mt-1 max-w-sm">Incrocio dei dati di produzione, giacenze di magazzino e marginalità finanziaria...</p>
+                        </div>
+                    </div>`;
+            }
+
+            try {
+                const response = await fetch(WEBHOOK_INTELLIGENCE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generate_cruscotto_analysis',
+                        _auth: tg?.initData || '',
+                        ash: ash,
+                        msg: msg,
+                        vat_number: vatNumber
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    updateUI(data);
+                    if (tg?.HapticFeedback) {
+                        tg.HapticFeedback.notificationOccurred('success');
+                    }
+                } else {
+                    throw new Error(`Risposta server non valida: ${response.status}`);
+                }
+            } catch (err) {
+                console.error("Errore durante la generazione dell'analisi:", err);
+                if (contentBox) {
+                    contentBox.innerHTML = `
+                        <div class="p-4 bg-red-50 border border-red-200 rounded-xl text-center">
+                            <p class="text-xs font-black text-red-800 uppercase tracking-wider">Errore durante l'elaborazione</p>
+                            <p class="text-[11px] text-red-700 mt-1">Impossibile completare la sintesi con il motore Gemini. Verifica la connessione e riprova.</p>
+                        </div>`;
+                }
+                if (tg?.HapticFeedback) {
+                    tg.HapticFeedback.notificationOccurred('error');
+                }
+            } finally {
+                isGenerating = false;
+                if (regenBtn) regenBtn.disabled = false;
+                if (icon) icon.className = 'fas fa-arrows-rotate text-xs';
+                if (label) label.innerText = 'Rigenera Analisi Strategica';
+            }
+        }
+
+        async function onRegenerateClick() {
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('medium');
+            }
+            await executeGenerateAnalysis(false);
+        }
+
+        // Inizializzazione pagina all'avvio
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (tg) {
+                tg.ready();
+                tg.expand();
+            }
+
+            showLoader("Caricamento Indicatori e Stato Analisi...");
+
+            const status = await fetchCruscottoStatus();
+            hideLoader();
+
+            if (status) {
+                updateUI(status);
+
+                // Regola Tassativa Trigger:
+                // Se e la PRIMISSIMA apertura (nessuna analisi mai generata prima), genera automaticamente una sola volta.
+                if (!status.has_analysis || !status.last_analysis || !status.last_analysis.analysis_text) {
+                    console.log("Prima apertura assoluta rilevata: avvio generazione automatica iniziale.");
+                    await executeGenerateAnalysis(true);
+                }
+            } else {
+                // Fallback in caso di mancata risposta del server
+                const contentBox = document.getElementById('analysis-content-box');
+                if (contentBox) {
+                    contentBox.innerHTML = `
+                        <div class="p-4 bg-gray-100 rounded-xl text-center text-gray-600">
+                            <p class="font-bold">Impossibile collegarsi al server per recuperare i dati.</p>
+                            <p class="text-[10px] text-gray-500 mt-1">Controlla la configurazione o premi Rigenera per tentare una nuova connessione.</p>
+                        </div>`;
+                }
+            }
+        });
+    </script>
 </body>
+
 </html>
