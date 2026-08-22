@@ -1077,7 +1077,14 @@
                 moduleResults: {},
                 userPrice: userPrice,
                 targetCatId: targetCatId,
-                draftAsset: activeDraftAsset
+                // La bozza grezza dell'assistente multimodale (Stato 3) NON è ancora un
+                // catalog_item completo: le manca tags/category richiesti da
+                // saveProduct_processor_init. draftAsset resta null così lo Step 0 di
+                // executeDeploymentQueue chiama SEMPRE l'arricchimento newProduct
+                // (webhook ENRICHMENT_DRAFT) prima del deploy — assistantDraft porta il
+                // nome/descrizione grezzi che newProduct userà come RawName/RawDescription.
+                assistantDraft: activeDraftAsset,
+                draftAsset: null
             };
 
             localStorage.setItem('sitebos_deploy_state', JSON.stringify(deployState));
@@ -1143,17 +1150,37 @@
             await toggleTelegramButtons('lock_buttons', `⏳ Ingegnerizzazione in corso. Moduli: ${deployState.queue.map(q=>q.type).join(', ')}. Tempo stimato: ~${totalEstMin} min...`);
 
             // Step 0: Enrichment Draft & Patching Prezzo
+            // La bozza dell'assistente multimodale (Stato 3) non contiene tags/category:
+            // vanno generati da newProduct (ENRICHMENT_DRAFT) passandogli nome e
+            // descrizione grezzi come RawName/RawDescription.
             let draftData = deployState.draftAsset;
             if (!draftData) {
+                const rawDraft = deployState.assistantDraft || {};
+                const rawName = rawDraft.identity?.item_name || '';
+                const rawDescription = rawDraft.identity?.description?.short || rawDraft.identity?.description?.long || '';
                 try {
                     const enrichRes = await fetch(WEBHOOK_ENRICHMENT_DRAFT, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ _auth: tg.initData, ash: ash, category_id: deployState.targetCatId, language: 'it' })
+                        body: JSON.stringify({
+                            _auth: tg.initData,
+                            ash: ash,
+                            category_id: deployState.targetCatId,
+                            language: 'it',
+                            product_name: rawName,
+                            product_description: rawDescription
+                        })
                     });
                     const json = await enrichRes.json();
                     draftData = Array.isArray(json) ? json[0] : json;
+                    if (draftData?.catalog_item_draft) draftData = draftData.catalog_item_draft;
                 } catch(e) { console.warn("Fallback draft:", e); }
+
+                // Se l'arricchimento fallisce network-side, usa comunque la bozza grezza
+                // dell'assistente piuttosto che il fallback "Nuovo Servizio" anonimo -
+                // il deploy proverà comunque, saveProduct_processor_init segnalerà se
+                // mancano ancora campi essenziali.
+                if (!draftData && rawDraft.identity) draftData = rawDraft;
             }
 
             if (!draftData) draftData = { identity: { item_name: "Nuovo Servizio" }, pricing: {} };
