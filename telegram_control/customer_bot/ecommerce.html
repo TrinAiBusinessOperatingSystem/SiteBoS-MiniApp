@@ -390,6 +390,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                         applyThemeAccent(d.brand?.theme_accent || d.theme_accent);
                     }
                     renderUI(d.brand || {});
+                    checkPaymentReturn();
                 } else {
                     console.error("Success false o dati mancanti:", d);
                     tg.showAlert("Errore durante il caricamento del catalogo.");
@@ -459,7 +460,20 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 section.innerHTML = `
                     <h2 class="text-[9px] font-black uppercase tracking-widest text-black px-1 border-l-2 ml-1 pl-3" style="border-color: var(--accent);">${cat.replace('[PRO] ', '').replace('[SER] ', '')}</h2>
                     <div class="grid grid-cols-2 gap-3">
-                        ${products.map(p => `
+                        ${products.map(p => p.item_type === 'DIGITAL_ASSET' ? `
+                            <div class="bg-white p-3 rounded-3xl bento-card space-y-3 relative overflow-hidden group border border-gray-50" onclick="openDigitalAsset('${p.callback_data}')">
+                                <div class="w-full aspect-square rounded-2xl bg-gray-50 overflow-hidden relative">
+                                    <img src="${getProductImageUrl(p)}" onerror="handleProductImageError(this, '${p.callback_data}')" class="w-full h-full object-cover">
+                                    <div class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/70 text-white text-[6px] font-black uppercase tracking-wider flex items-center gap-1"><i class="fas fa-file-pdf"></i> Dispensa</div>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-[10px] leading-tight mb-2 h-7 overflow-hidden text-gray-800 uppercase tracking-tighter">${p.name}</h3>
+                                    <div class="flex justify-between items-center">
+                                        <span class="font-black text-xs">€ ${parseFloat(p.price).toFixed(2)}</span>
+                                        <span class="text-[8px] font-black uppercase text-gray-400">${p.digital_asset?.price_points || Math.round(parseFloat(p.price) * 200)} pt</span>
+                                    </div>
+                                </div>
+                            </div>` : `
                             <div class="bg-white p-3 rounded-3xl bento-card space-y-3 relative overflow-hidden group border border-gray-50" onclick="openProduct('${p.callback_data}')">
                                 <div class="w-full aspect-square rounded-2xl bg-gray-50 overflow-hidden">
                                     <img src="${getProductImageUrl(p)}" onerror="handleProductImageError(this, '${p.callback_data}')" class="w-full h-full object-cover">
@@ -485,6 +499,129 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function getProductQty(sku) {
             return Object.keys(cart).filter(k => k === sku || k.startsWith(sku + '|')).reduce((sum, k) => sum + cart[k], 0);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // DISPENSE DIGITALI: sblocco con punti fedeltà o acquisto reale
+        // ═══════════════════════════════════════════════════════════════
+        function openDigitalAsset(sku) {
+            const p = catalog.find(x => x.callback_data === sku);
+            if (!p) return;
+
+            const pointsBalance = window.userPassport?.network_loyalty?.points_balance || 0;
+            const requiredPoints = p.digital_asset?.price_points || Math.round(parseFloat(p.price) * 200);
+            const alreadyUnlocked = (window.userPassport?.network_loyalty?.unlocked_digital_assets || [])
+                .find(u => u.sop_id === sku && u.vat_number === vat);
+
+            const overlay = document.createElement('div');
+            overlay.className = 'fixed inset-0 bg-black/60 z-[9999] flex items-end justify-center';
+            overlay.innerHTML = `
+                <div class="bg-white w-full max-w-md rounded-t-3xl p-6 space-y-4 pb-8">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-sm font-black uppercase">${p.name}</h3>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase mt-1">📦 Dispensa Digitale PDF</p>
+                        </div>
+                        <button onclick="this.closest('.fixed').remove()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0"><i class="fas fa-times text-xs"></i></button>
+                    </div>
+                    <p class="text-xs text-gray-600 leading-relaxed">${p.description || p.long_description || ''}</p>
+                    <div id="digital-asset-status" class="text-xs min-h-[16px]">
+                        ${alreadyUnlocked ? `<span class="text-emerald-600 font-bold">✅ Già sbloccata. <a href="${alreadyUnlocked.pdf_url}" target="_blank" class="underline">Scarica il PDF</a></span>` : ''}
+                    </div>
+                    ${alreadyUnlocked ? '' : `
+                    <div class="grid grid-cols-1 gap-2">
+                        <button id="btn-redeem-points" class="w-full py-3.5 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                            Sblocca con ${requiredPoints} Punti <span class="opacity-60">(Saldo: ${pointsBalance})</span>
+                        </button>
+                        <button id="btn-buy-money" class="w-full py-3.5 border-2 border-gray-900 text-gray-900 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition">
+                            Acquista Ora — € ${parseFloat(p.price).toFixed(2)}
+                        </button>
+                    </div>`}
+                </div>`;
+            document.body.appendChild(overlay);
+
+            if (!alreadyUnlocked) {
+                document.getElementById('btn-redeem-points').onclick = () => redeemDigitalAssetWithPoints(sku, overlay);
+                document.getElementById('btn-buy-money').onclick = () => buyDigitalAssetWithMoney(sku, overlay);
+            }
+        }
+
+        async function redeemDigitalAssetWithPoints(sku, overlay) {
+            const chatId = window.SitebosPassport ? window.SitebosPassport.getChatId() : null;
+            const statusEl = overlay.querySelector('#digital-asset-status');
+            if (!chatId) { statusEl.innerHTML = '<span class="text-red-500 font-bold">Impossibile identificare il cliente.</span>'; return; }
+
+            statusEl.innerHTML = '<span class="text-gray-400">Elaborazione in corso...</span>';
+            try {
+                const res = await fetch('https://prod.workflow.trinai.it/webhook/sitebos-phygital-checkin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'redeem_digital_asset', chat_id: chatId, vat_number: vat, sop_id: sku })
+                });
+                const data = await res.json();
+                if (data.success && data.pdf_url) {
+                    statusEl.innerHTML = `<span class="text-emerald-600 font-bold">✅ Sbloccata! <a href="${data.pdf_url}" target="_blank" class="underline">Scarica il PDF</a></span>`;
+                    if (window.userPassport) {
+                        window.userPassport.network_loyalty = window.userPassport.network_loyalty || {};
+                        if (data.points_balance_after !== undefined) {
+                            window.userPassport.network_loyalty.points_balance = data.points_balance_after;
+                        }
+                    }
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                } else if (data.reason === 'insufficient_points') {
+                    statusEl.innerHTML = `<span class="text-amber-600 font-bold">Punti insufficienti: hai ${data.points_balance}, servono ${data.required}.</span>`;
+                } else if (data.reason === 'asset_not_found') {
+                    statusEl.innerHTML = '<span class="text-red-500 font-bold">Dispensa non trovata.</span>';
+                } else {
+                    statusEl.innerHTML = '<span class="text-red-500 font-bold">Impossibile sbloccare la dispensa. Riprova.</span>';
+                }
+            } catch (err) {
+                statusEl.innerHTML = '<span class="text-red-500 font-bold">Errore di rete. Riprova.</span>';
+            }
+        }
+
+        async function buyDigitalAssetWithMoney(sku, overlay) {
+            const chatId = window.SitebosPassport ? window.SitebosPassport.getChatId() : null;
+            const statusEl = overlay.querySelector('#digital-asset-status');
+            statusEl.innerHTML = '<span class="text-gray-400">Preparazione pagamento...</span>';
+            try {
+                const res = await fetch(WH_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_digital_asset_payment', vat_number: vat, sop_id: sku, chat_id: chatId })
+                });
+                const data = await res.json();
+                if (data.success && data.payment_url) {
+                    window.location.href = data.payment_url;
+                } else if (data.reason === 'no_payment_provider_configured') {
+                    statusEl.innerHTML = '<span class="text-amber-600 font-bold">Pagamento online non ancora attivo per questa attività. Usa i punti o chiedi in negozio.</span>';
+                } else if (data.reason === 'asset_not_found') {
+                    statusEl.innerHTML = '<span class="text-red-500 font-bold">Dispensa non trovata.</span>';
+                } else {
+                    statusEl.innerHTML = '<span class="text-red-500 font-bold">Impossibile avviare il pagamento. Riprova.</span>';
+                }
+            } catch (err) {
+                statusEl.innerHTML = '<span class="text-red-500 font-bold">Errore di rete. Riprova.</span>';
+            }
+        }
+
+        // Rientro dal redirect di pagamento (Payment_Provider_Connector return_url/cancel_url)
+        function checkPaymentReturn() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const orderStatus = urlParams.get('order_status');
+            if (!orderStatus) return;
+
+            if (orderStatus === 'paid') {
+                tg.showAlert('✅ Pagamento ricevuto! La tua dispensa sarà sbloccata a breve: ricarica questa pagina tra qualche istante per scaricarla.');
+            } else if (orderStatus === 'cancelled') {
+                tg.showAlert('Pagamento annullato.');
+            }
+
+            // Pulizia URL per evitare di rimostrare il messaggio ad ogni refresh
+            urlParams.delete('order_status');
+            urlParams.delete('session_id');
+            const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.history.replaceState({}, '', cleanUrl);
         }
 
         function getCurrentConfigString() {

@@ -170,7 +170,7 @@
         <div id="stage-ingestion" class="space-y-4">
             <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3.5 text-xs text-blue-900 leading-relaxed font-medium">
                 <i class="fas fa-sparkles text-blue-600 mr-1.5"></i>
-                <strong>Intervista Ingestione AI:</strong> Rispondi alle domande dell'assistente per definire l'indice e la struttura della tua guida da 10-15 pagine.
+                <strong>Intervista Ingestione AI:</strong> Rispondi alle domande dell'assistente per definire l'indice e la struttura della tua guida da 15-20 pagine.
             </div>
 
             <!-- CHAT STREAM CONTAINER -->
@@ -181,7 +181,7 @@
                         <i class="fas fa-robot text-blue-600"></i> Assistente Creazione Guide
                     </div>
                     <p class="text-slate-800 leading-relaxed font-semibold">
-                        Ciao! Sto per redigere la tua guida/dispensa PDF da 10-15 pagine basata sul tuo Blueprint. Per prima cosa, qual è il tema principale o il risultato chiave che l'utente otterrà leggendo questo documento?
+                        Ciao! Sto per redigere la tua guida/dispensa PDF da 15-20 pagine basata sul tuo Blueprint. Per prima cosa, qual è il tema principale o il risultato chiave che l'utente otterrà leggendo questo documento?
                     </p>
                 </div>
             </div>
@@ -204,17 +204,17 @@
             </div>
 
             <button id="btn-generate-index" onclick="startGenerateIndex()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-md active:scale-98 transition flex items-center justify-center gap-2">
-                <i class="fas fa-list-ol"></i> Genera Indice & Piano di Lavoro (10-15 Pagine)
+                <i class="fas fa-list-ol"></i> Genera Indice & Piano di Lavoro (15-20 Pagine)
             </button>
         </div>
 
-        <!-- STAGE 2: APPROVAZIONE PIANO & INDICE 10-15 PAGINE -->
+        <!-- STAGE 2: APPROVAZIONE PIANO & INDICE A CAPITOLI -->
         <div id="stage-index-plan" class="space-y-4 hidden">
             <div class="flex items-center justify-between">
                 <h3 class="text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-2">
                     <i class="fas fa-list-check text-blue-600"></i> Piano di Lavoro & Indice Guida
                 </h3>
-                <span id="pageCountBadge" class="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-[9px] font-black uppercase tracking-wider">12 Pagine</span>
+                <span id="pageCountBadge" class="px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-[9px] font-black uppercase tracking-wider">10 Capitoli</span>
             </div>
 
             <p class="text-xs text-slate-600 font-medium">
@@ -299,6 +299,7 @@
         // STATO GUIDA
         let currentQAHistory = [];
         let generatedIndexPlan = [];
+        let generatedCategory = "";
         let generatedPagesHTML = [];
         let currentViewerIndex = 0;
         let attachedFileData = null;
@@ -358,10 +359,35 @@
         }
 
         function handleFileSelected(input) {
-            if (input.files && input.files[0]) {
-                const file = input.files[0];
-                document.getElementById('attachmentStatus').textContent = `Allegato: ${file.name}`;
-                attachedFileData = file.name;
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+            const statusEl = document.getElementById('attachmentStatus');
+            statusEl.textContent = `Elaborazione ${file.name}...`;
+
+            const reader = new FileReader();
+
+            if (file.type === 'text/plain') {
+                reader.onload = (e) => {
+                    attachedFileData = { name: file.name, kind: 'text', text: e.target.result };
+                    statusEl.textContent = `Allegato pronto: ${file.name}`;
+                };
+                reader.onerror = () => {
+                    attachedFileData = null;
+                    statusEl.textContent = `Errore lettura ${file.name}`;
+                };
+                reader.readAsText(file);
+            } else {
+                // PDF o immagine: letti come base64 e inviati a Gemini come contenuto multimodale reale
+                reader.onload = (e) => {
+                    const base64 = e.target.result.split(',')[1] || '';
+                    attachedFileData = { name: file.name, kind: 'binary', mimeType: file.type, base64: base64 };
+                    statusEl.textContent = `Allegato pronto: ${file.name}`;
+                };
+                reader.onerror = () => {
+                    attachedFileData = null;
+                    statusEl.textContent = `Errore lettura ${file.name}`;
+                };
+                reader.readAsDataURL(file);
             }
         }
 
@@ -401,9 +427,9 @@
         // STAGE 1 -> STAGE 2: CHIAMATA REALE INIT_INDEX A GUIDEBUILDER WORKFLOW
         // ═════════════════════════════════════════════════════════════════════
         async function startGenerateIndex() {
-            window.showLoader("Generazione Indice con Gemini AI...", "Analisi semantica e strutturazione 10-15 capitoli...");
+            window.showLoader("Generazione Indice con Gemini AI...", "Analisi semantica e strutturazione capitoli...");
 
-            const qaContext = currentQAHistory.map(m => `${m.role === 'user' ? 'Utente' : 'Assistente'}: ${m.content}`).join("\n");
+            let qaContext = currentQAHistory.map(m => `${m.role === 'user' ? 'Utente' : 'Assistente'}: ${m.content}`).join("\n");
 
             const payload = {
                 action: "init_index",
@@ -411,8 +437,6 @@
                 category: targetProduct.category,
                 sku: targetProduct.sku,
                 vertical: targetProduct.vertical,
-                qa_context: qaContext || "Guida formativa e manuale operativo approfondito.",
-                target_pages: 12,
                 ash: ashToken,
                 vat_number: vatNumber,
                 owner_data: {
@@ -420,6 +444,16 @@
                     ragione_sociale: targetProduct.ragione_sociale
                 }
             };
+
+            // Documento allegato reale: il testo va nel contesto, immagine/PDF viene inviato
+            // a Gemini come contenuto multimodale reale (campi data/mime_type)
+            if (attachedFileData && attachedFileData.kind === 'text' && attachedFileData.text) {
+                qaContext = `${qaContext}\n\nContenuto del documento allegato "${attachedFileData.name}":\n${attachedFileData.text}`.trim();
+            } else if (attachedFileData && attachedFileData.kind === 'binary' && attachedFileData.base64) {
+                payload.data = attachedFileData.base64;
+                payload.mime_type = attachedFileData.mimeType;
+            }
+            payload.qa_context = qaContext || "Guida formativa e manuale operativo approfondito.";
 
             try {
                 const res = await fetch(GUIDE_BUILDER_WEBHOOK, {
@@ -433,31 +467,31 @@
                 const data = await res.json();
                 if (data.index_plan && Array.isArray(data.index_plan) && data.index_plan.length > 0) {
                     generatedIndexPlan = data.index_plan;
+                    generatedCategory = data.category || "";
                 } else {
                     throw new Error("Risposta indice non valida da backend.");
                 }
             } catch (err) {
                 console.warn("Chiamata init_index fallback:", err);
-                // Fallback strutturato
+                // Fallback strutturato a capitoli (numero di pagine fisiche emerge in fase di sviluppo, non imposto qui)
+                generatedCategory = generatedCategory || "Asset Digitali";
                 generatedIndexPlan = [
-                    { page: 1, title: `Copertina Ufficiale ed Esecutiva: ${targetProduct.name}`, objective: "Presentare l'asset e la certificazione di conformità" },
-                    { page: 2, title: "Indice dei Contenuti e Guida alla Consultazione", objective: "Mappa analitica dei capitoli e riferimenti rapidi" },
-                    { page: 3, title: "Introduzione Pratica, Prerequisiti & Risultati Chiave", objective: "Chiarire i requisiti minimi e i traguardi operativi" },
-                    { page: 4, title: "Modulo 1: Fondamenti Concettuali e Normative di Riferimento", objective: "Quadro teorico, standard tecnici e prescrizioni legali" },
-                    { page: 5, title: "Modulo 2: Protocollo Operativo Passo-Passo (Fase Preparatoria)", objective: "Checklist iniziale e predisposizione materiali" },
-                    { page: 6, title: "Modulo 2: Protocollo Operativo Passo-Passo (Fase Esecutiva)", objective: "Esecuzione metodologica e parametri di processo" },
-                    { page: 7, title: "Modulo 3: Schede Pratiche, Ricettario e Formulazioni", objective: "Schede operative, dosaggi esatti e sequenze standard" },
-                    { page: 8, title: "Modulo 4: Tabella Dosaggi, Frequenze e Cronoprogramma", objective: "Pianificazione tabellare e cadenze di applicazione" },
-                    { page: 9, title: "Modulo 5: Risoluzione Errori Comuni e FAQ Tecniche", objective: "Diagnosi imprevisti e protocolli correttivi immediati" },
-                    { page: 10, title: "Modulo 6: Checklist di Collaudo e Autoverifica Finale", objective: "Strumento di audit e verifica della qualità erogata" },
-                    { page: 11, title: "Norme di Sicurezza, Buone Prassi e Responsabilità", objective: "Sicurezza aziendale, DPI e conformità di settore" },
-                    { page: 12, title: "Canali di Supporto, Assistenza Specialistica e Risorse Extra", objective: "Riferimenti diretti, QR code e documentazione extra" }
+                    { chapter_number: 1, title: `Copertina Ufficiale ed Esecutiva: ${targetProduct.name}`, objective: "Presentare l'asset e la certificazione di conformità", estimated_pages: 1, visual: true },
+                    { chapter_number: 2, title: "Introduzione Pratica, Prerequisiti e Risultati Chiave", objective: "Chiarire i requisiti minimi e i traguardi operativi", estimated_pages: 1, visual: false },
+                    { chapter_number: 3, title: "Fondamenti Concettuali e Normative di Riferimento", objective: "Quadro teorico, standard tecnici e prescrizioni legali", estimated_pages: 2, visual: false },
+                    { chapter_number: 4, title: "Protocollo Operativo Passo-Passo (Fase Preparatoria)", objective: "Checklist iniziale e predisposizione materiali", estimated_pages: 2, visual: true },
+                    { chapter_number: 5, title: "Protocollo Operativo Passo-Passo (Fase Esecutiva)", objective: "Esecuzione metodologica e parametri di processo", estimated_pages: 2, visual: true },
+                    { chapter_number: 6, title: "Schede Pratiche, Ricettario e Formulazioni", objective: "Schede operative, dosaggi esatti e sequenze standard", estimated_pages: 2, visual: false },
+                    { chapter_number: 7, title: "Tabella Dosaggi, Frequenze e Cronoprogramma", objective: "Pianificazione tabellare e cadenze di applicazione", estimated_pages: 1, visual: false },
+                    { chapter_number: 8, title: "Risoluzione Errori Comuni e FAQ Tecniche", objective: "Diagnosi imprevisti e protocolli correttivi immediati", estimated_pages: 1, visual: false },
+                    { chapter_number: 9, title: "Checklist di Collaudo, Sicurezza e Conformità", objective: "Strumento di audit e verifica della qualità erogata", estimated_pages: 2, visual: false },
+                    { chapter_number: 10, title: "Canali di Supporto, Assistenza Specialistica e Risorse Extra", objective: "Riferimenti diretti e documentazione extra", estimated_pages: 1, visual: false }
                 ];
             } finally {
                 window.hideLoader();
             }
 
-            document.getElementById('pageCountBadge').textContent = `${generatedIndexPlan.length} Pagine`;
+            document.getElementById('pageCountBadge').textContent = `${generatedIndexPlan.length} Capitoli`;
             document.getElementById('stage-ingestion').classList.add('hidden');
             document.getElementById('stage-index-plan').classList.remove('hidden');
 
@@ -473,13 +507,13 @@
                 card.className = 'bg-white border border-slate-200/80 rounded-xl p-3 flex items-center justify-between gap-3 shadow-2xs';
                 card.innerHTML = `
                     <div class="flex items-center gap-3">
-                        <span class="w-7 h-7 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">${item.page}</span>
+                        <span class="w-7 h-7 bg-slate-900 text-white rounded-lg flex items-center justify-center text-[10px] font-black shrink-0">${item.chapter_number}</span>
                         <div>
                             <span class="text-xs font-bold text-slate-800 leading-snug block">${item.title}</span>
                             <span class="text-[9px] text-slate-400 font-medium">${item.objective || ''}</span>
                         </div>
                     </div>
-                    <i class="fas fa-bars text-slate-300 text-xs shrink-0 cursor-move"></i>
+                    ${item.visual ? '<i class="fas fa-image text-blue-400 text-xs shrink-0" title="Capitolo con immagine"></i>' : '<i class="fas fa-bars text-slate-300 text-xs shrink-0 cursor-move"></i>'}
                 `;
                 container.appendChild(card);
             });
@@ -499,29 +533,32 @@
 
             generatedPagesHTML = [];
             assembledPdfBase64 = null;
-            const totalPages = generatedIndexPlan.length;
+            const totalChapters = generatedIndexPlan.length;
             const qaContext = currentQAHistory.map(m => `${m.role === 'user' ? 'Utente' : 'Assistente'}: ${m.content}`).join("\n");
 
-            for (let i = 0; i < totalPages; i++) {
+            for (let i = 0; i < totalChapters; i++) {
                 const item = generatedIndexPlan[i];
-                const pageNum = i + 1;
-                const pct = Math.round((pageNum / totalPages) * 100);
+                const chapterNum = item.chapter_number || (i + 1);
+                const pct = Math.round(((i + 1) / totalChapters) * 100);
 
                 document.getElementById('progressBarInner').style.width = `${pct}%`;
                 document.getElementById('progressPercent').textContent = `${pct}% Completato`;
-                document.getElementById('progressTitle').textContent = `Sviluppo Grafico Pagina ${pageNum} di ${totalPages}...`;
-                document.getElementById('progressSubtitle').textContent = `Impaginazione HTML5: "${item.title}"`;
+                document.getElementById('progressTitle').textContent = `Sviluppo Capitolo ${chapterNum} di ${totalChapters}...`;
+                document.getElementById('progressSubtitle').textContent = `Redazione ed Impaginazione HTML5: "${item.title}"`;
 
-                let pageHtml = "";
+                let chapterPagesHtml = [];
                 try {
                     const pagePayload = {
                         action: "build_page",
-                        page_number: item.page || pageNum,
-                        total_pages: totalPages,
-                        page_title: item.title,
+                        chapter_number: chapterNum,
+                        total_chapters: totalChapters,
+                        chapter_title: item.title,
                         objective: item.objective || "",
+                        estimated_pages: item.estimated_pages || 1,
+                        visual: !!item.visual,
                         product_name: targetProduct.name,
-                        category: targetProduct.category,
+                        category: generatedCategory || targetProduct.category,
+                        sku: targetProduct.sku,
                         qa_context: qaContext,
                         ash: ashToken,
                         vat_number: vatNumber,
@@ -539,14 +576,14 @@
 
                     if (res.ok) {
                         const data = await res.json();
-                        pageHtml = data.page_html || "";
+                        chapterPagesHtml = Array.isArray(data.pages_html) ? data.pages_html.filter(h => h && h.length > 0) : [];
                     }
                 } catch (err) {
-                    console.warn(`Errore build_page per pagina ${pageNum}:`, err);
+                    console.warn(`Errore build_page per capitolo ${chapterNum}:`, err);
                 }
 
-                if (!pageHtml || pageHtml.length < 20) {
-                    pageHtml = `
+                if (chapterPagesHtml.length === 0) {
+                    chapterPagesHtml = [`
                         <div class="chapter-title">${item.title}</div>
                         <p class="text-xs text-slate-700 leading-relaxed font-medium">
                             Questa sezione illustra in dettaglio le indicazioni operative, le raccomandazioni pratiche ed il protocollo da seguire per ${item.title.toLowerCase()}.
@@ -561,10 +598,10 @@
                                 <li>In caso di difformità, consultare la checklist di troubleshooting.</li>
                             </ul>
                         </div>
-                    `;
+                    `];
                 }
 
-                generatedPagesHTML.push(pageHtml);
+                generatedPagesHTML.push(...chapterPagesHtml);
             }
 
             document.getElementById('stage-building-progress').classList.add('hidden');
@@ -601,8 +638,8 @@
                     </div>
                 </div>
                 <div class="footer-page">
-                    <span>Proprietà di: ${tenantName} - P.IVA: ${tenantVat}</span>
-                    <span style="font-size: 6.5pt; color: #ef4444; font-weight: 800; letter-spacing: 0.05em;">[ DOCUMENTO INTERNO RISERVATO - VIETATA LA RIPRODUZIONE ]</span>
+                    <span>Pubblicato da: ${tenantName} - P.IVA: ${tenantVat}</span>
+                    <span style="font-size: 6.5pt; color: #64748b; font-weight: 700; letter-spacing: 0.03em;">Contenuto redatto con il supporto di SiteBoS e Google Gemini (Intelligenza Artificiale), sotto la supervisione di ${tenantName}.</span>
                     <span>Pagina ${i}</span>
                 </div>
             </div>
@@ -727,7 +764,7 @@
                     vat_number: vatNumber || "02564250849",
                     sku: targetProduct.sku,
                     title: targetProduct.name,
-                    category: targetProduct.category || "Asset Digitali",
+                    category: generatedCategory || targetProduct.category || "Asset Digitali",
                     vertical: targetProduct.vertical || "generic",
                     price: numericPrice,
                     total_pages: generatedPagesHTML.length,

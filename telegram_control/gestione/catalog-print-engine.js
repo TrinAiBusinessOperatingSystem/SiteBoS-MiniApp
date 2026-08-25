@@ -1035,8 +1035,8 @@ const CatalogPrintEngine = {
                         </div>
                     </div>
                     <div class="footer-page">
-                        <span>Proprietà di: ${tenantName} - P.IVA: ${tenantVat}</span>
-                        <span style="font-size: 6.5pt; color: #ef4444; font-weight: 800; letter-spacing: 0.05em;">[ DOCUMENTO INTERNO RISERVATO - VIETATA LA RIPRODUZIONE ]</span>
+                        <span>Pubblicato da: ${tenantName} - P.IVA: ${tenantVat}</span>
+                        <span style="font-size: 6.5pt; color: #64748b; font-weight: 700; letter-spacing: 0.03em;">Contenuto redatto con il supporto di SiteBoS e Google Gemini (Intelligenza Artificiale), sotto la supervisione di ${tenantName}.</span>
                         <span>Pagina 1</span>
                     </div>
                 </div>
