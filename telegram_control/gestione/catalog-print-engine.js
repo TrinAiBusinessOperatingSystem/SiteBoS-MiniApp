@@ -592,13 +592,19 @@ const CatalogPrintEngine = {
         }
 
         // ─── PAGINA 5: ANALISI ECONOMICA E SIMULAZIONI PREDITTIVE ───
-        if (adv.financial_simulations) {
+        if (adv.financial_advisory) {
             currentPageNum++;
-            const sim = adv.financial_simulations;
-            const scenarios = sim.predictive_volume_simulation?.scenarios || [];
-            const breakEven = sim.predictive_volume_simulation?.break_even_point_metrics || {};
-            const noShow = sim.predictive_volume_simulation?.no_show_sensitivity_analysis || {};
- 
+            const fa = adv.financial_advisory || {};
+            const cb = fa.cost_breakdown_unit || {};
+            const sim = fa.predictive_volume_simulation || {};
+            const scenarios = sim.scenarios || [];
+            const breakEvenUnits = sim.break_even_units_annually;
+            const pricing = fa.pricing_summary || {};
+            const cur = pricing.currency || 'EUR';
+            const fiscalImpact = fa.fiscal_and_previdential_impact || {};
+
+            const fmtCurrency = (val) => (val !== null && val !== undefined) ? `${typeof val === 'number' ? val.toFixed(2) : val} ${cur}` : 'N/D';
+
             html += `
                 <div class="page">
                     <div>
@@ -607,248 +613,229 @@ const CatalogPrintEngine = {
                             <h2>ANALISI ECONOMICA E SIMULAZIONI PREDITTIVE</h2>
                         </div>
                         <div class="chapter-title">Sostenibilità Finanziaria & Volumi</div>
- 
-                        <div class="section-subtitle">Scenari di Volume Mensili</div>
+
+                        <div class="section-subtitle">Scomposizione Costi Unitari (Cost Breakdown)</div>
+                        <div class="info-box" style="margin-top: 5px;">
+                            <div class="grid-2">
+                                <div>
+                                    <div class="info-row">
+                                        <span class="info-label">Materiali Diretti (COGS)</span>
+                                        <span class="info-value">${fmtCurrency(cb.direct_materials_cost)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Lavorazioni Esterne</span>
+                                        <span class="info-value">${fmtCurrency(cb.external_processing_cost)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Operatore Primario</span>
+                                        <span class="info-value">${fmtCurrency(cb.primary_operator_fee)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Operatore Secondario</span>
+                                        <span class="info-value">${fmtCurrency(cb.secondary_operator_fee)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Accantonamento Garanzia</span>
+                                        <span class="info-value">${fmtCurrency(cb.guarantee_provision)}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="info-row">
+                                        <span class="info-label">Totale Costi Variabili Diretti</span>
+                                        <span class="info-value" style="color: #ef4444;">${fmtCurrency(cb.total_direct_variable_costs_unit)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Margine di Contribuzione Unitario</span>
+                                        <span class="info-value" style="color: #16a34a;">${fmtCurrency(cb.contribution_margin_unit)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Costo Fisso Postazione / Sedia</span>
+                                        <span class="info-value">${fmtCurrency(cb.workstation_time_cost_fixed)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Reddito Operativo Unitario</span>
+                                        <span class="info-value" style="color: #1d4ed8; font-weight: 800;">${fmtCurrency(cb.operating_income_unit)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        ${cb.cost_calculation_rationale ? `
+                            <div class="rationale-box" style="margin-top: 4px;">
+                                <strong>Razionale di Calcolo Costi:</strong> ${cb.cost_calculation_rationale}
+                            </div>
+                        ` : ''}
+
+                        <div class="section-subtitle" style="margin-top: 14px;">Scenari di Volume Mensili</div>
                         <table>
                             <thead>
                                 <tr>
                                     <th>Parametro Finanziario</th>
-                                    <th style="text-align: center;">Scenario 10 Unità</th>
-                                    <th style="text-align: center;">Scenario 50 Unità</th>
-                                    <th style="text-align: center;">Scenario 100 Unità</th>
+                                    ${scenarios.map(s => `<th style="text-align: center;">Scenario ${s.monthly_volume !== undefined ? s.monthly_volume : 'N/D'} Unità</th>`).join('')}
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td><strong>Ricavi Totali Generati</strong></td>
-                                    <td style="text-align: center; font-weight:700;">${scenarios[0]?.total_revenues !== undefined ? scenarios[0].total_revenues + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; font-weight:700;">${scenarios[1]?.total_revenues !== undefined ? scenarios[1].total_revenues + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; font-weight:700;">${scenarios[2]?.total_revenues !== undefined ? scenarios[2].total_revenues + ' EUR' : '0 EUR'}</td>
-                                </tr>
-                                <tr>
-                                    <td>Costi Variabili Diretti</td>
-                                    <td style="text-align: center; color: #ef4444;">- ${scenarios[0]?.total_direct_variable_costs !== undefined ? scenarios[0].total_direct_variable_costs + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #ef4444;">- ${scenarios[1]?.total_direct_variable_costs !== undefined ? scenarios[1].total_direct_variable_costs + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #ef4444;">- ${scenarios[2]?.total_direct_variable_costs !== undefined ? scenarios[2].total_direct_variable_costs + ' EUR' : '0 EUR'}</td>
+                                    <td><strong>Ricavi Totali Proiettati</strong></td>
+                                    ${scenarios.map(s => `<td style="text-align: center; font-weight: 700;">${s.total_revenues !== undefined && s.total_revenues !== null ? `${typeof s.total_revenues === 'number' ? s.total_revenues.toFixed(2) : s.total_revenues} ${cur}` : 'N/D'}</td>`).join('')}
                                 </tr>
                                 <tr style="background-color: #f0fdf4;">
-                                    <td><strong>Margine di Contribuzione</strong></td>
-                                    <td style="text-align: center; color: #16a34a; font-weight:700;">${scenarios[0]?.total_contribution_margin !== undefined ? scenarios[0].total_contribution_margin + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #16a34a; font-weight:700;">${scenarios[1]?.total_contribution_margin !== undefined ? scenarios[1].total_contribution_margin + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #16a34a; font-weight:700;">${scenarios[2]?.total_contribution_margin !== undefined ? scenarios[2].total_contribution_margin + ' EUR' : '0 EUR'}</td>
-                                </tr>
-                                <tr>
-                                    <td>Costi Fissi Sedia Allocati</td>
-                                    <td style="text-align: center; color: #64748b;">- ${scenarios[0]?.total_fixed_chair_costs_allocated !== undefined ? scenarios[0].total_fixed_chair_costs_allocated + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #64748b;">- ${scenarios[1]?.total_fixed_chair_costs_allocated !== undefined ? scenarios[1].total_fixed_chair_costs_allocated + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #64748b;">- ${scenarios[2]?.total_fixed_chair_costs_allocated !== undefined ? scenarios[2].total_fixed_chair_costs_allocated + ' EUR' : '0 EUR'}</td>
+                                    <td><strong>Margine di Contribuzione Totale</strong></td>
+                                    ${scenarios.map(s => `<td style="text-align: center; color: #16a34a; font-weight: 700;">${s.total_contribution_margin !== undefined && s.total_contribution_margin !== null ? `${typeof s.total_contribution_margin === 'number' ? s.total_contribution_margin.toFixed(2) : s.total_contribution_margin} ${cur}` : 'N/D'}</td>`).join('')}
                                 </tr>
                                 <tr style="background-color: #eff6ff; border-top: 2px solid #3b82f6;">
                                     <td><strong>Utile Operativo Stimato (EBIT)</strong></td>
-                                    <td style="text-align: center; color: #1d4ed8; font-weight:900;">${scenarios[0]?.total_projected_operating_income !== undefined ? scenarios[0].total_projected_operating_income + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #1d4ed8; font-weight:900;">${scenarios[1]?.total_projected_operating_income !== undefined ? scenarios[1].total_projected_operating_income + ' EUR' : '0 EUR'}</td>
-                                    <td style="text-align: center; color: #1d4ed8; font-weight:900;">${scenarios[2]?.total_projected_operating_income !== undefined ? scenarios[2].total_projected_operating_income + ' EUR' : '0 EUR'}</td>
-                                </tr>
-                                <tr>
-                                    <td>Saturazione dell'Agenda Richiesta</td>
-                                    <td style="text-align: center;">${scenarios[0]?.agenda_saturation_percentage || 0}%</td>
-                                    <td style="text-align: center;">${scenarios[1]?.agenda_saturation_percentage || 0}%</td>
-                                    <td style="text-align: center;">${scenarios[2]?.agenda_saturation_percentage || 0}%</td>
+                                    ${scenarios.map(s => `<td style="text-align: center; color: #1d4ed8; font-weight: 900;">${s.total_projected_operating_income !== undefined && s.total_projected_operating_income !== null ? `${typeof s.total_projected_operating_income === 'number' ? s.total_projected_operating_income.toFixed(2) : s.total_projected_operating_income} ${cur}` : 'N/D'}</td>`).join('')}
                                 </tr>
                             </tbody>
                         </table>
- 
-                        <div class="section-subtitle">Punto di Pareggio Strutturale (Break-Even)</div>
-                        <div class="info-box" style="margin-top: 5px;">
-                            <div class="info-row">
-                                <span class="info-label">Overhead Strutturale Allocato alla Branca</span>
-                                <span class="info-value">${breakEven.allocated_overhead_value || 0} EUR (${breakEven.allocated_budget_percentage !== undefined ? (breakEven.allocated_budget_percentage * 100).toFixed(1) : 0}%)</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Unità Minime Annue di Vendita</span>
-                                <span class="info-value" style="color: #1d4ed8; font-weight: 800;">${breakEven.break_even_units_annually || 0} Prestazioni</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="info-label">Ore Sedia Annue Richieste al Pareggio</span>
-                                <span class="info-value">${breakEven.break_even_chair_hours_annually || 0} Ore</span>
-                            </div>
-                        </div>
-                        <div class="rationale-box" style="margin-top: 5px;">
-                            <strong>Razionale di Calcolo:</strong> ${breakEven.break_even_calculation_rationale || ''}
-                        </div>
- 
-                        <div class="section-subtitle" style="margin-top: 15px;">Sensibilità e Rischio No-Show (Appuntamenti Mancati)</div>
-                        <p>La mancata presentazione del paziente senza preavviso distrugge la marginalità oraria dello studio, lasciando scoperti i costi fissi di gestione.</p>
-                        <div style="display: flex; gap: 15px; margin-top: 5px;">
-                            <div class="info-box" style="flex: 1; margin: 0; border-left: 3px solid #f97316;">
-                                <div style="font-size: 7.5pt; font-weight: 800; color: #f97316;">PERDITA AL 5% NO-SHOW</div>
-                                <div style="font-size: 11pt; font-weight: 900; color: #0f172a; margin-top: 3px;">- ${noShow.no_show_rate_5_percent_loss || 0} EUR</div>
-                            </div>
-                            <div class="info-box" style="flex: 1; margin: 0; border-left: 3px solid #ef4444;">
-                                <div style="font-size: 7.5pt; font-weight: 800; color: #ef4444;">PERDITA AL 10% NO-SHOW</div>
-                                <div style="font-size: 11pt; font-weight: 900; color: #0f172a; margin-top: 3px;">- ${noShow.no_show_rate_10_percent_loss || 0} EUR</div>
-                            </div>
-                        </div>
-                        <p style="margin-top: 8px; font-style: italic; font-size: 8pt; color: #64748b;">
-                            <strong>Nota Strategica:</strong> ${noShow.impact_analysis_comment || ''}
-                        </p>
-                    </div>
-                    ${makeFooter(currentPageNum)}
-                </div>
-            `;
-        }
 
-        // ─── PAGINA 6: DECOMPOSIZIONE ANALITICA DEI COSTI DELLA DISTINTA BASE (BOM) ───
-        if (adv.bill_of_materials) {
-            currentPageNum++;
-            const bom = adv.bill_of_materials;
-            const steps = bom.bom_steps || [];
- 
-            html += `
-                <div class="page">
-                    <div>
-                        <div class="header-doc">
-                            <span>SKU: ${sku}</span>
-                            <h2>DECOMPOSIZIONE ANALITICA DEI COSTI (BOM)</h2>
-                        </div>
-                        <div class="chapter-title">Dettaglio Costi per Sotto-Processo Operativo</div>
-                        
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
-                            ${steps.map((step, idx) => {
-                                const cb = step.calculation_breakdown || {};
-                                return `
-                                    <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 10px; background-color: #fdfdfd; margin-bottom: 2px;">
-                                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
-                                            <span style="font-size: 8pt; font-weight: 900; color: #0f172a;">${idx + 1}. ${step.subprocess_name || 'Sotto-Processo'}</span>
-                                            <span style="font-size: 7pt; font-weight: 700; color: #64748b;">SKU: ${step.subprocess_sku || 'N/A'} | Tempo: ${step.estimated_total_time_minutes || 0} min</span>
-                                        </div>
-                                        
-                                        <div class="grid-2">
-                                            <div>
-                                                <table style="margin: 0; font-size: 7pt; line-height: 1.2;">
-                                                    <tbody>
-                                                        <tr>
-                                                            <td>Costo Consumabili</td>
-                                                            <td style="text-align: right; font-weight: 700;">${cb.consumables !== undefined ? cb.consumables : 0} EUR</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Quota Ammortamento Asset</td>
-                                                            <td style="text-align: right; font-weight: 700;">${cb.depreciation !== undefined ? cb.depreciation : 0} EUR</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td>Costo Orario Staff impiegato</td>
-                                                            <td style="text-align: right; font-weight: 700;">${cb.staff_cost !== undefined ? cb.staff_cost : 0} EUR</td>
-                                                        </tr>
-                                                        <tr style="background-color: #f8fafc;">
-                                                            <td>Tempo Occupazione Sedia</td>
-                                                            <td style="text-align: right; font-weight: 700;">${cb.chair_occupancy_time_minutes || 0} min</td>
-                                                        </tr>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                            
-                                            <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 120px;">
-                                                <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 6px 10px; text-align: center; width: 100%;">
-                                                    <div style="font-size: 6.5pt; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">COSTO INTERNO STIMATO</div>
-                                                    <div style="font-size: 11pt; font-weight: 900; color: #1e3a8a; margin-top: 2px;">${step.estimated_internal_cost || 0} EUR</div>
-                                                    ${step.estimated_cost_per_100_units ? `
-                                                        <div style="font-size: 6pt; color: #64748b; margin-top: 1px;">(${step.estimated_cost_per_100_units} EUR / 100 unità)</div>
-                                                    ` : ''}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        ${step.cost_scaling_rationale ? `
-                                            <div class="rationale-box" style="margin-top: 4px;">
-                                                <strong>Razionale Operativo:</strong> ${step.cost_scaling_rationale}
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                `;
-                            }).join('')}
-                        </div>
-                    </div>
-                    ${makeFooter(currentPageNum)}
-                </div>
-            `;
-        }
-
-        // ─── PAGINA 7: ANALISI COMPARATIVA DEI COMPETITOR E CONFORMITÀ FISCALE ───
-        if (adv.market_and_fiscal_intelligence) {
-            currentPageNum++;
-            const intel = adv.market_and_fiscal_intelligence;
-            const competitors = intel.competitors || [];
-            const fiscal = intel.fiscal_analysis || {};
-            const compliance = fiscal.local_compliance_burdens || [];
- 
-            html += `
-                <div class="page">
-                    <div>
-                        <div class="header-doc">
-                            <span>SKU: ${sku}</span>
-                            <h2>INTELLIGENCE COMPETITIVA & CONFORMITÀ FISCALE</h2>
-                        </div>
-                        <div class="chapter-title">Analisi di Mercato e Quadro Regolatorio</div>
- 
-                        <div class="section-subtitle">Analisi dei Competitor Territoriali</div>
-                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
-                            ${competitors.map(comp => `
-                                <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; background-color: #fdfdfd;">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
-                                        <strong style="font-size: 8pt; color: #0f172a;">${comp.name || 'Studio Competitor'}</strong>
-                                        <span style="font-size: 7.5pt; font-weight: 700; color: #64748b;">Distanza: ${comp.distance_km || 0} km | Prezzo Stimato: ${comp.estimated_price || 0} EUR</span>
-                                    </div>
-                                    
-                                    <div class="grid-2">
-                                        <div>
-                                            <div style="font-size: 7pt; font-weight: 800; color: #16a34a; text-transform: uppercase;">Punti di Forza (USP Strengths)</div>
-                                            <ul style="margin: 3px 0 0 0; padding-left: 12px; font-size: 7pt; color: #475569; line-height:1.3;">
-                                                ${(comp.usp_gap_strengths || []).map(s => `<li>${s}</li>`).join('')}
-                                            </ul>
-                                        </div>
-                                        <div>
-                                            <div style="font-size: 7pt; font-weight: 800; color: #ef4444; text-transform: uppercase;">Punti di Debolezza (USP Weaknesses)</div>
-                                            <ul style="margin: 3px 0 0 0; padding-left: 12px; font-size: 7pt; color: #475569; line-height:1.3;">
-                                                ${(comp.usp_gap_weaknesses || []).map(w => `<li>${w}</li>`).join('')}
-                                            </ul>
-                                        </div>
+                        <div class="grid-2" style="margin-top: 10px;">
+                            <div>
+                                <div class="section-subtitle" style="margin-top: 0;">Punto di Pareggio (Break-Even)</div>
+                                <div class="info-box" style="margin-top: 5px;">
+                                    <div class="info-row">
+                                        <span class="info-label">Unità Minime Annue al Pareggio</span>
+                                        <span class="info-value" style="color: #1d4ed8; font-weight: 800;">
+                                            ${breakEvenUnits !== null && breakEvenUnits !== undefined ? `${breakEvenUnits} Unità` : 'N/D'}
+                                        </span>
                                     </div>
                                 </div>
-                            `).join('')}
+                            </div>
+                            <div>
+                                <div class="section-subtitle" style="margin-top: 0;">Impatto Fiscale & Previdenziale</div>
+                                <div class="info-box" style="margin-top: 5px;">
+                                    <div class="info-row">
+                                        <span class="info-label">Regime di Tassazione</span>
+                                        <span class="info-value">${fiscalImpact.assumed_taxation_regime || 'N/D'}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Carico Fiscale/Previdenziale Stimato</span>
+                                        <span class="info-value" style="color: #ef4444;">${fiscalImpact.estimated_tax_and_previdential_burden_value !== null && fiscalImpact.estimated_tax_and_previdential_burden_value !== undefined ? `${typeof fiscalImpact.estimated_tax_and_previdential_burden_value === 'number' ? fiscalImpact.estimated_tax_and_previdential_burden_value.toFixed(2) : fiscalImpact.estimated_tax_and_previdential_burden_value} ${cur}` : 'N/D'}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
- 
-                        <div class="section-subtitle" style="margin-top: 15px;">Inquadramento Fiscale e Aliquote</div>
+                        ${fiscalImpact.fiscal_calculation_rationale ? `
+                            <div class="rationale-box" style="margin-top: 4px;">
+                                <strong>Razionale Fiscale:</strong> ${fiscalImpact.fiscal_calculation_rationale}
+                            </div>
+                        ` : ''}
+                    </div>
+                    ${makeFooter(currentPageNum)}
+                </div>
+            `;
+        }
+
+        // ─── PAGINA 6: PROFILO FISCALE E BENCHMARK TERRITORIALE ───
+        if (adv.fiscal_snapshot || adv.territory_kpi) {
+            currentPageNum++;
+            const tkpi = adv.territory_kpi || {};
+            const fsnap = adv.fiscal_snapshot || {};
+            const tari = fsnap.tari || {};
+            const cciaa = fsnap.cciaa_fee || {};
+            const envObs = fsnap.environmental_obligations || {};
+            const regTariffs = fsnap.regional_tariffs_permits || {};
+
+            const fmtRate = (val) => (val !== null && val !== undefined && val !== '') ? (typeof val === 'number' ? `${val.toFixed(2)} EUR/h` : `${val} EUR/h`) : 'N/D';
+            const fmtText = (val) => (val !== null && val !== undefined && val !== '') ? val : 'N/D';
+
+            html += `
+                <div class="page">
+                    <div>
+                        <div class="header-doc">
+                            <span>SKU: ${sku}</span>
+                            <h2>PROFILO FISCALE & BENCHMARK TERRITORIALE</h2>
+                        </div>
+                        <div class="chapter-title">Quadro Fiscale, Normativo e Parametri Territoriali</div>
+
+                        <div class="section-subtitle">Benchmark Territoriale e Parametri Orari</div>
+                        ${tkpi.summary ? `
+                            <p style="font-size: 8.5pt; color: #334155; line-height: 1.5; margin-bottom: 8px;">${tkpi.summary}</p>
+                        ` : ''}
                         <div class="info-box" style="margin-top: 4px; padding: 8px 12px;">
                             <div class="info-row">
-                                <span class="info-label">Regime Fiscale Applicato</span>
-                                <span class="info-value">${fiscal.regime_name || 'N/A'}</span>
+                                <span class="info-label">Tariffa Oraria Operatore Primario</span>
+                                <span class="info-value">${fmtRate(tkpi.primary_operator_hourly_rate)}</span>
                             </div>
                             <div class="info-row">
-                                <span class="info-label">Pressione Fiscale Stimata (IRES/IRAP o Eqv.)</span>
-                                <span class="info-value" style="color: #ef4444;">${fiscal.total_estimated_tax_burden_ratio !== undefined ? (fiscal.total_estimated_tax_burden_ratio * 100).toFixed(1) + '%' : 'N/A'}</span>
+                                <span class="info-label">Tariffa Oraria Operatore Secondario</span>
+                                <span class="info-value">${fmtRate(tkpi.secondary_operator_hourly_rate)}</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">Costo Orario Postazione / Sedia</span>
+                                <span class="info-value">${fmtRate(tkpi.workstation_hourly_rate)}</span>
                             </div>
                         </div>
- 
-                        ${compliance.length > 0 ? `
-                            <div class="section-subtitle">Oneri di Conformità Locale</div>
-                            <table style="font-size: 7pt; line-height: 1.25;">
-                                <thead>
-                                    <tr>
-                                        <th>Tributo / Adempimento</th>
-                                        <th style="width: 100px; text-align: right;">Costo Annuo</th>
-                                        <th>Requisito Normativo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${compliance.map(item => `
-                                        <tr>
-                                            <td><strong>${item.burden_name || 'Onere'}</strong></td>
-                                            <td style="text-align: right; font-weight: 700; color: #ef4444;">${item.annual_cost || 0} EUR</td>
-                                            <td><span style="font-size: 6.5pt; color: #475569;">${item.requirement_description || ''}</span></td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+
+                        <div class="section-subtitle" style="margin-top: 14px;">Profilo Fiscale & Tributi Locali</div>
+                        <div class="info-box" style="margin-top: 4px; padding: 8px 12px;">
+                            <div class="grid-2">
+                                <div>
+                                    <div class="info-row">
+                                        <span class="info-label">Aliquota IRES</span>
+                                        <span class="info-value">${fmtText(fsnap.ires_rate)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Aliquota IRAP</span>
+                                        <span class="info-value">${fmtText(fsnap.irap_rate)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Diritto Annuale CCIAA</span>
+                                        <span class="info-value">${fmtText(cciaa.amount)}${cciaa.due_date ? ` (Scadenza: ${cciaa.due_date})` : ''}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="info-row">
+                                        <span class="info-label">TARI Quota Fissa</span>
+                                        <span class="info-value">${fmtText(tari.quota_fissa)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">TARI Quota Variabile</span>
+                                        <span class="info-value">${fmtText(tari.quota_variabile)}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">Addizionale TEFA</span>
+                                        <span class="info-value">${fmtText(tari.tefa_rate)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="section-subtitle" style="margin-top: 14px;">Obblighi Ambientali & Conformità</div>
+                        <div class="info-box" style="margin-top: 4px; padding: 8px 12px;">
+                            <div class="info-row">
+                                <span class="info-label">Stato Iscrizione RENTRI</span>
+                                <span class="info-value">${fmtText(envObs.rentri_status)}</span>
+                            </div>
+                            ${envObs.rentri_annual_fee ? `
+                                <div class="info-row">
+                                    <span class="info-label">Contributo Annuale RENTRI</span>
+                                    <span class="info-value">${fmtText(envObs.rentri_annual_fee)}</span>
+                                </div>
+                            ` : ''}
+                            ${envObs.special_waste_codes && envObs.special_waste_codes.length > 0 ? `
+                                <div class="info-row">
+                                    <span class="info-label">Codici CER Rifiuti Speciali</span>
+                                    <span class="info-value">${envObs.special_waste_codes.join(', ')}</span>
+                                </div>
+                            ` : ''}
+                            ${regTariffs.concessione_governativa ? `
+                                <div class="info-row">
+                                    <span class="info-label">Tassa Concessione Governativa</span>
+                                    <span class="info-value">${fmtText(regTariffs.concessione_governativa)}</span>
+                                </div>
+                            ` : ''}
+                            ${regTariffs.asp_inspection_fee ? `
+                                <div class="info-row">
+                                    <span class="info-label">Tariffa Ispezione ASP / ATS</span>
+                                    <span class="info-value">${fmtText(regTariffs.asp_inspection_fee)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                        ${envObs.environmental_rules ? `
+                            <div class="rationale-box" style="margin-top: 5px;">
+                                <strong>Normativa Ambientale di Riferimento:</strong> ${envObs.environmental_rules}
+                            </div>
                         ` : ''}
                     </div>
                     ${makeFooter(currentPageNum)}
@@ -856,104 +843,12 @@ const CatalogPrintEngine = {
             `;
         }
 
-        // ─── PAGINA 8: REGISTRO MANUTENZIONE ASSET & PROTOCOLLI AMBIENTALI ───
-        if (adv.environments || adv.assets) {
+        // ─── PAGINA 7: CONSULENZA STRATEGICA E RACCOMANDAZIONI OPERATIVE ───
+        const fa = adv.financial_advisory || {};
+        if (fa && (fa.operations_financial_health_rating || fa.pricing_and_tariff_strategy_advisory || (fa.operations_cost_optimization_recommendations && fa.operations_cost_optimization_recommendations.length > 0))) {
             currentPageNum++;
-            const envs = adv.environments || [];
-            const assets = adv.assets || [];
- 
-            html += `
-                <div class="page">
-                    <div>
-                        <div class="header-doc">
-                            <span>SKU: ${sku}</span>
-                            <h2>MANUTENZIONE ASSET & PROTOCOLLI AMBIENTALI</h2>
-                        </div>
-                        <div class="chapter-title">Conformità Operativa Struttura</div>
- 
-                        ${envs.length > 0 ? `
-                            <div class="section-subtitle">Protocolli Ambientali Clinici / Operativi</div>
-                            ${envs.map(env => `
-                                <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; background-color: #fdfdfd; margin-bottom: 8px;">
-                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
-                                        <strong style="font-size: 8pt; color: #0f172a;">Locale: ${env.name}</strong>
-                                        <span style="font-size: 7.5pt; font-weight: 700; color: #64748b;">Temp/Privacy: ${env.temperature || 'N/A'}</span>
-                                    </div>
-                                    <div class="rationale-box" style="margin: 4px 0 6px 0;">
-                                        <strong>Allocazione Oraria:</strong> ${env.cost_scaling_rationale || ''}
-                                    </div>
-                                    ${env.maintenance_checklist && env.maintenance_checklist.length > 0 ? `
-                                        <table style="margin: 4px 0 0 0; font-size: 6.5pt; line-height: 1.2;">
-                                            <thead>
-                                                <tr>
-                                                    <th>Attività Manutenzione Locale</th>
-                                                    <th style="width: 70px;">Frequenza</th>
-                                                    <th>Istruzioni Operative</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                ${env.maintenance_checklist.map(chk => `
-                                                    <tr>
-                                                        <td><strong>${chk.task_name}</strong></td>
-                                                        <td><span class="badge ${chk.frequency === 'DAILY' ? 'badge-success' : 'badge-info'}">${chk.frequency}</span></td>
-                                                        <td>${chk.instructions}</td>
-                                                    </tr>
-                                                `).join('')}
-                                            </tbody>
-                                        </table>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        ` : ''}
- 
-                        ${assets.length > 0 ? `
-                            <div class="section-subtitle" style="margin-top: 10px;">Registro Asset & Apparecchiature Strumentali</div>
-                            ${assets.map(asset => `
-                                <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px; background-color: #fdfdfd; margin-bottom: 8px;">
-                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; margin-bottom: 6px;">
-                                        <strong style="font-size: 8pt; color: #0f172a;">${asset.name} (${asset.model || 'N/A'})</strong>
-                                        <span style="font-size: 7.5pt; font-weight: 700; color: #64748b;">SKU: ${asset.sku || 'N/A'}</span>
-                                    </div>
-                                    <div style="font-size: 7pt; color: #475569; line-height:1.3; margin-bottom: 4px;">
-                                        <strong>Note Conformità:</strong> ${asset.compliance_notes || 'N/A'}
-                                    </div>
-                                    <div class="rationale-box" style="margin: 4px 0 6px 0;">
-                                        <strong>Ammortamento Orario Bilancio:</strong> ${asset.cost_scaling_rationale || ''}
-                                    </div>
-                                    ${asset.maintenance_checklist && asset.maintenance_checklist.length > 0 ? `
-                                        <table style="margin: 4px 0 0 0; font-size: 6.5pt; line-height: 1.2;">
-                                            <thead>
-                                                <tr>
-                                                    <th>Task Tecnico Macchinario</th>
-                                                    <th style="width: 70px;">Frequenza</th>
-                                                    <th>Istruzioni Tecniche</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                ${asset.maintenance_checklist.map(chk => `
-                                                    <tr>
-                                                        <td><strong>${chk.task_name}</strong></td>
-                                                        <td><span class="badge ${chk.frequency === 'DAILY' ? 'badge-success' : 'badge-info'}">${chk.frequency}</span></td>
-                                                        <td>${chk.instructions}</td>
-                                                    </tr>
-                                                `).join('')}
-                                            </tbody>
-                                        </table>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        ` : ''}
-                    </div>
-                    ${makeFooter(currentPageNum)}
-                </div>
-            `;
-        }
- 
-        // ─── PAGINA 9: CONSULENZA STRATEGICA E RACCOMANDAZIONI OPERATIVE ───
-        if (blueprint && (blueprint.operations_financial_health_rating || blueprint.pricing_and_tariff_strategy_advisory || (blueprint.operations_cost_optimization_recommendations && blueprint.operations_cost_optimization_recommendations.length > 0))) {
-            currentPageNum++;
-            const hasRecommendations = blueprint.operations_cost_optimization_recommendations && blueprint.operations_cost_optimization_recommendations.length > 0;
-            const ratingText = (blueprint.operations_financial_health_rating || "").replace(/_/g, ' ');
+            const hasRecommendations = fa.operations_cost_optimization_recommendations && fa.operations_cost_optimization_recommendations.length > 0;
+            const ratingText = (fa.operations_financial_health_rating || "").replace(/_/g, ' ');
             
             html += `
                 <div class="page">
@@ -963,26 +858,26 @@ const CatalogPrintEngine = {
                             <h2>ANALISI ECONOMICA & EFFICIENZA</h2>
                         </div>
                         <div class="chapter-title">Sostenibilità & Ottimizzazione Costi</div>
- 
-                        ${blueprint.operations_financial_health_rating ? `
+
+                        ${fa.operations_financial_health_rating ? `
                             <div style="margin-bottom: 15px;">
                                 <span class="badge badge-success" style="font-size: 8.5pt; padding: 4px 8px; font-weight: 900; letter-spacing: 0.05em;">
                                     🏆 Rating Profitto: ${ratingText}
                                 </span>
                             </div>
                         ` : ''}
- 
-                        ${blueprint.pricing_and_tariff_strategy_advisory ? `
+
+                        ${fa.pricing_and_tariff_strategy_advisory ? `
                             <div class="section-subtitle">Consulenza Strategica e Tariffaria</div>
                             <p style="font-style: italic; font-weight: 500; color: #1e293b; line-height: 1.5; background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px;">
-                                "${blueprint.pricing_and_tariff_strategy_advisory}"
+                                "${fa.pricing_and_tariff_strategy_advisory}"
                             </p>
                         ` : ''}
- 
+
                         ${hasRecommendations ? `
                             <div class="section-subtitle" style="margin-top: 20px;">Raccomandazioni di Efficienza Operativa</div>
                             <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
-                                ${blueprint.operations_cost_optimization_recommendations.map((rec, rIdx) => `
+                                ${fa.operations_cost_optimization_recommendations.map((rec, rIdx) => `
                                     <div style="display: flex; gap: 8px; font-size: 8.5pt; color: #334155; line-height: 1.45; border-bottom: 1px dashed #f1f5f9; padding-bottom: 6px;">
                                         <span style="font-weight: 900; color: #0284c7;">${rIdx + 1}.</span>
                                         <span>${rec}</span>

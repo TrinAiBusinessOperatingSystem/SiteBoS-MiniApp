@@ -1370,30 +1370,38 @@
                         creditsEl.innerText = `${data.credits_balance} CREDITI`;
                     }
 
-                    // Update logo if available
+                    // Update logo if available — il logo reale vive nell'honeypot
+                    // (assets.logo.url), non in owner_data: va recuperato con una
+                    // chiamata separata a honeypot_editor/get_honeypot_data.
                     const vat = data.vat_number || data.fiscal_code;
-                    if (vat) {
-                        const logoUrl = data.logo_url || data.logo || `https://minisite.trinai.it/minisite/${vat}/images/logo.png`;
-                        const logoImg = document.getElementById('tenant-logo');
-                        const logoFallback = document.getElementById('tenant-logo-fallback');
-                        if (logoImg && logoFallback) {
-                            let attempts = 0;
-                            logoImg.src = logoUrl;
-                            logoImg.onload = () => {
-                                logoFallback.classList.add('hidden');
-                                logoImg.classList.remove('hidden');
-                            };
-                            logoImg.onerror = () => {
-                                attempts++;
-                                if (attempts === 1) {
-                                    logoImg.src = logoUrl.replace(/\.[a-zA-Z0-9]+$/, '.jpg');
-                                } else if (attempts === 2) {
-                                    logoImg.src = 'TrinAi_Logo.jpg';
-                                } else {
+                    const logoImg = document.getElementById('tenant-logo');
+                    const logoFallback = document.getElementById('tenant-logo-fallback');
+                    if (vat && logoImg && logoFallback) {
+                        try {
+                            const hpRes = await fetch('https://prod.workflow.trinai.it/webhook/48ee3cba-99dc-407a-98af-624e97b1e888', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ action: 'get_honeypot_data', vat_number: vat })
+                            });
+                            const hpResult = await hpRes.json();
+                            const logoUrl = hpResult?.HoneyPot?.assets?.logo?.url;
+                            if (logoUrl) {
+                                logoImg.src = logoUrl;
+                                logoImg.onload = () => {
+                                    logoFallback.classList.add('hidden');
+                                    logoImg.classList.remove('hidden');
+                                };
+                                logoImg.onerror = () => {
                                     logoImg.classList.add('hidden');
                                     logoFallback.classList.remove('hidden');
-                                }
-                            };
+                                };
+                            } else {
+                                logoImg.classList.add('hidden');
+                                logoFallback.classList.remove('hidden');
+                            }
+                        } catch (_) {
+                            logoImg.classList.add('hidden');
+                            logoFallback.classList.remove('hidden');
                         }
                     }
 
