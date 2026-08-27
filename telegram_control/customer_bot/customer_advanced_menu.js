@@ -9,7 +9,10 @@
     'use strict';
 
     const WH_CUSTOMER_GATE = 'https://prod.workflow.trinai.it/webhook/8eb69e84-d20d-486e-a70e-9acf31c3da9e';
-    const WH_CHAT = 'https://prod.workflow.trinai.it/webhook/81ab5292-43c3-4f93-afaf-7411b95fc010';
+    // NOTA: 81ab5292-... e' l'assistente vocale/testuale INTERNO all'owner
+    // (assistant.workflow.ts, naviga la SUA dashboard di gestione) - non e'
+    // mai stato l'assistente del cliente. Il cliente usa customer_assistant.workflow.ts.
+    const WH_CHAT = 'https://prod.workflow.trinai.it/webhook/f81388fc-a522-4410-9108-92c0a14261ca';
 
     const params = new URLSearchParams(window.location.search);
     const ash = params.get('ash') || '';
@@ -98,6 +101,12 @@
         }
     }
 
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text == null ? '' : String(text);
+        return div.innerHTML;
+    }
+
     function addChatMessage(sender, text) {
         const container = document.getElementById('cam-chat-container');
         if (!container) return;
@@ -105,7 +114,7 @@
         el.className = 'space-y-0.5 border-l-2 border-slate-900 pl-2';
         el.innerHTML = `
             <div class="text-[8px] text-slate-400 uppercase font-black tracking-widest">${sender === 'user' ? 'Tu' : 'Assistente'}</div>
-            <div class="text-slate-800 font-bold text-[11px] leading-relaxed">${text}</div>
+            <div class="text-slate-800 font-bold text-[11px] leading-relaxed">${escapeHtml(text)}</div>
         `;
         container.appendChild(el);
         container.scrollTop = container.scrollHeight;
@@ -130,8 +139,10 @@
                 })
             });
             const data = await response.json();
-            if (data.redirect_url) {
-                addChatMessage('ai', 'Apertura modulo richiesto...');
+            if (data.success === false && data.limit_reached) {
+                addChatMessage('ai', data.message || 'Hai raggiunto il limite di utilizzo per questa chat.');
+            } else if (data.redirect_url) {
+                addChatMessage('ai', data.message || 'Apertura modulo richiesto...');
                 setTimeout(() => { window.location.href = `${data.redirect_url}?ash=${ash}`; }, 1000);
             } else if (data.reply) {
                 addChatMessage('ai', data.reply);
