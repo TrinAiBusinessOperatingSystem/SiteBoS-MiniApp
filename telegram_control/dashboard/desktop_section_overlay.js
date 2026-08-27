@@ -24,7 +24,9 @@
                 { id: "bot_config", name: "Setup Bot Telegram", desc: "Definisci nome, ruolo, tono di voce, istruzioni e capacità AI dell'assistente.", icon: "🤖", url: "../identity/bot_config.html", badge: "AI BOT" },
                 { id: "edit_owner", name: "Dati Titolare & Azienda", desc: "Gestisci l'anagrafica aziendale, contatti, indirizzi e dati fiscali master.", icon: "👤", url: "../identity/edit_owner.html", badge: "ANAGRAFICA" },
                 { id: "advanced_setup", name: "Setup Avanzato & Compliance", desc: "Configura parametri fiscali avanzati, moduli IVA e contratti aziendali.", icon: "🏛️", url: "../identity/advanced-setup.html", badge: "FISCAL" },
+                { id: "stations_scanner", name: "Configurazione Postazioni", desc: "Scansione live dell'attività per aggiungere automaticamente Asset e Postazioni.", icon: "📷", url: "../identity/location-scanner.html", badge: "SCANNER" },
                 { id: "connettori", name: "Hub Connettori & Delivery", desc: "Configura chiavi API per piattaforme delivery (Glovo, Deliveroo, Just Eat) e gateway.", icon: "🔌", url: "../identity/connettori.html", badge: "INTEGRAZIONI" },
+                { id: "template_editor", name: "Trust & Stamp Engine", desc: "Gestione modelli documentali NoSQL, 3 vie di firma e timbro ASH.", icon: "🛡️", url: "../operators/template_editor.html", badge: "AUDIT" },
                 { id: "trinai_platform", name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite di intelligenza direzionale ed ecosistema cloud TrinAi.", icon: "TrinAi_Logo.jpg", url: "https://dashboard.trinai.it", badge: "TRINAI CLOUD" }
             ]
         },

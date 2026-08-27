@@ -157,6 +157,7 @@
       { name: "Scanner Live Postazioni & Asset", desc: "Scansione visiva live dell'attività per registrare postazioni, locali ed asset.", url: "../identity/location-scanner.html", icon: "fa-camera-retro", category: "identity" },
       { name: "Trust & Stamp Engine (Audit & Modelli)", desc: "Gestione modelli documentali NoSQL, 3 vie di firma e timbro ASH.", url: "../operators/template_editor.html", icon: "fa-shield-halved", category: "identity" },
       { name: "Setup Avanzato & Fiscale", desc: "Verticalizzazione del settore ed impostazioni dei conti finanziari.", url: "../identity/advanced-setup.html", icon: "fa-sliders", category: "identity" },
+      { name: "Hub Connettori & Delivery", desc: "Configura credenziali API per piattaforme delivery (Glovo, Deliveroo, Just Eat) e pagamenti.", url: "../identity/connettori.html", icon: "fa-network-wired", category: "identity" },
       { name: "Piattaforma TrinAi Cloud", desc: "Accedi alla suite cloud direzionale ed all'ecosistema di intelligenza aziendale TrinAi.", url: "https://dashboard.trinai.it", icon: "TrinAi_Logo.jpg", category: "identity" }
     ],
     gestione: [

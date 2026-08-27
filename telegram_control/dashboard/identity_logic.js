@@ -42,12 +42,19 @@
             url: "identity/location-scanner.html", 
             icon: "fa-camera-retro" 
         },
-        { 
-            id: "connettori", 
-            label: "Hub Connettori & Delivery", 
-            desc: "Configura credenziali API per piattaforme delivery (Glovo, Deliveroo, Just Eat) e pagamenti.", 
-            url: "identity/connettori.html", 
-            icon: "fa-network-wired" 
+        {
+            id: "connettori",
+            label: "Hub Connettori & Delivery",
+            desc: "Configura credenziali API per piattaforme delivery (Glovo, Deliveroo, Just Eat) e pagamenti.",
+            url: "identity/connettori.html",
+            icon: "fa-network-wired"
+        },
+        {
+            id: "template_editor",
+            label: "Trust & Stamp Engine",
+            desc: "Gestione modelli documentali NoSQL, 3 vie di firma e timbro ASH.",
+            url: "operators/template_editor.html",
+            icon: "fa-shield-halved"
         }
     ];
 
