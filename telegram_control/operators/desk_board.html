@@ -10,6 +10,7 @@
     <script src="job_sync_queue.js"></script>
     <script src="https://cdn.ably.com/lib/ably.min.js"></script>
     <script src="desk_board_sse.js"></script>
+    <script src="../sitebos_dirty_guard.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -500,6 +501,27 @@
         </div>
     </div>
 
+    <!-- MODALE POPUP: BOARD GIÀ APERTA SU UN'ALTRA SESSIONE (Ably Presence) -->
+    <div id="session-occupied-overlay" class="fixed inset-0 z-[20000] bg-white/95 backdrop-blur-xl hidden flex flex-col items-center justify-center p-6 text-center text-slate-900">
+        <div class="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6">
+            <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mx-auto animate-pulse">
+                <i class="fa-solid fa-display text-3xl"></i>
+            </div>
+            <div class="space-y-2">
+                <h2 class="text-lg font-black text-slate-900">📺 Tabellone già aperto altrove</h2>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Questo tabellone risulta già aperto su un altro dispositivo o un'altra scheda. Per evitare conflitti di gestione, chiudi l'altra sessione oppure ricontrolla lo stato.
+                </p>
+            </div>
+            <div class="space-y-3 pt-2">
+                <button onclick="recheckDeskBoardOccupancy()" class="w-full bg-slate-900 hover:bg-black active:scale-95 text-white font-black text-xs py-3.5 px-4 rounded-xl transition shadow flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate text-base"></i>
+                    <span>Ricontrolla adesso</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODALE POPUP: AGGIUNGI NOTA MANUTENZIONE POSTAZIONE -->
     <div id="station-note-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4 text-slate-900">
@@ -566,9 +588,36 @@
             initDeskBoard();
         });
 
+        const DESK_BOARD_PRESENCE_SCOPE = 'desk_board';
+
         async function initDeskBoard() {
-            await refreshBoard();
+            const started = await recheckDeskBoardOccupancy();
+            if (!started) return;
             setInterval(() => refreshBoard(true), 30000);
+        }
+
+        /**
+         * Verifica via Ably Presence se il tabellone è già aperto su un'altra
+         * sessione. Se libero, entra in presenza e avvia il tabellone; se
+         * occupato, mostra il blocco invece di caricare i dati.
+         * Fail-open per costruzione (SiteBosDirtyGuard non blocca mai su
+         * errori di rete/Ably): in caso di dubbio si preferisce operatività.
+         */
+        async function recheckDeskBoardOccupancy() {
+            const overlay = document.getElementById('session-occupied-overlay');
+            if (!window.SiteBosDirtyGuard) {
+                await refreshBoard();
+                return true;
+            }
+            const { occupied } = await window.SiteBosDirtyGuard.checkOccupied(DESK_BOARD_PRESENCE_SCOPE);
+            if (occupied) {
+                if (overlay) overlay.classList.remove('hidden');
+                return false;
+            }
+            if (overlay) overlay.classList.add('hidden');
+            window.SiteBosDirtyGuard.markPresent(DESK_BOARD_PRESENCE_SCOPE);
+            await refreshBoard();
+            return true;
         }
 
         async function refreshBoard(silent = false) {

@@ -1,16 +1,25 @@
 /**
- * SiteBoS MiniApp — Dirty-State Guard & Generation Lock Controller v5.3
+ * SiteBoS MiniApp — Dirty-State Guard & Generation Lock Controller v6.0
  * Protocollo Zero-Build (Vanilla ES6+ UI, Cross-Window & Cross-Platform Protection)
+ * v6.0: trasporto anti-doppia-sessione migrato da Lock-Manager/Mongo (TTL manuale,
+ * mai realmente enforced) ad Ably Presence (rilevamento disconnessione automatico,
+ * enforcement reale via checkOccupied). Il Lock-Manager Mongo resta invariato e
+ * separato, usato solo dal mutex interno di fatturazione Gemini.
  */
 (function (window) {
     'use strict';
 
-    const LOCK_WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/17a1bf79-43cd-428b-a497-33745ca44857";
+    const ABLY_SDK_URL = 'https://cdn.ably.com/lib/ably.min.js';
+    const REALTIME_ENDPOINT = "https://prod.workflow.trinai.it/webhook/sitebos-operator-sse-stream";
 
     const _dirtyMap = new Map();       // scope -> { saveCallback, ttlSeconds }
     const _generatingMap = new Map();  // scope -> { label, conflictScopes, ttlSeconds }
-    const _renewalTimers = new Map();  // scope -> timerId
-    const _acquiredScopes = new Set();  // scope -> traccia se il lock HTTP è già stato inviato a n8n
+    const _acquiredScopes = new Set(); // scope -> presenza già inviata via Ably per questo scope (dirty)
+    const _presentScopes = new Set();  // scope -> presenza incondizionata (markPresent/markAbsent)
+    const _channels = new Map();       // scope -> Ably RealtimeChannel già pronto
+
+    let _clientId = null;
+    let _ablyLoadingPromise = null;
 
     function getAsh() {
         try {
@@ -37,76 +46,139 @@
         return (window.innerWidth < 768);
     }
 
-    /**
-     * Invia evento 'acquire' o 'extend' al backend n8n / MongoDB
-     */
-    async function postLockAcquire(scope, ttlSeconds, extraData = {}) {
-        const ash = getAsh();
-        if (!ash || !scope) return;
+    // ──────────────────────────────────────────────────────────────────────────
+    // TRASPORTO ABLY PRESENCE (sostituisce il vecchio acquire/release su Mongo)
+    // ──────────────────────────────────────────────────────────────────────────
+
+    function getClientId() {
+        if (_clientId) return _clientId;
         try {
-            const payload = {
-                _auth: window.Telegram?.WebApp?.initData || '',
-                ash: ash,
-                scope: scope,
+            let id = sessionStorage.getItem('sitebos_presence_client_id');
+            if (!id) {
+                id = (window.crypto?.randomUUID)
+                    ? window.crypto.randomUUID()
+                    : ('sess_' + Date.now() + '_' + Math.random().toString(36).slice(2));
+                sessionStorage.setItem('sitebos_presence_client_id', id);
+            }
+            _clientId = id;
+        } catch (_) {
+            _clientId = 'sess_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+        }
+        return _clientId;
+    }
+
+    function loadAblySdk() {
+        if (window.Ably) return Promise.resolve();
+        if (_ablyLoadingPromise) return _ablyLoadingPromise;
+        _ablyLoadingPromise = new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = ABLY_SDK_URL;
+            script.onload = () => resolve();
+            script.onerror = () => reject(new Error('Impossibile caricare Ably SDK'));
+            document.head.appendChild(script);
+        });
+        return _ablyLoadingPromise;
+    }
+
+    async function fetchAblyToken(scope) {
+        const ash = getAsh();
+        if (!ash) throw new Error('ASH non disponibile per la richiesta token Ably.');
+        const response = await fetch(REALTIME_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'get_ably_token', ash: ash, scope: scope })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status} da get_ably_token`);
+        const data = await response.json();
+        if (!data || !data.token || !data.channel) {
+            throw new Error(data?.error || 'Risposta get_ably_token incompleta.');
+        }
+        return data;
+    }
+
+    /**
+     * Restituisce (creandolo se serve) il canale Ably Presence per uno scope.
+     * Un client Realtime dedicato per scope: ogni token emesso dal backend è
+     * già limitato a quel singolo canale, niente da condividere fra scope diversi.
+     */
+    async function getPresenceChannel(scope) {
+        if (_channels.has(scope)) return _channels.get(scope);
+
+        await loadAblySdk();
+        const bootstrap = await fetchAblyToken(scope);
+        const channelName = bootstrap.channel;
+
+        const client = new window.Ably.Realtime({
+            clientId: getClientId(),
+            token: bootstrap.token,
+            authCallback: async function (tokenParams, callback) {
+                try {
+                    const data = await fetchAblyToken(scope);
+                    callback(null, data.token);
+                } catch (err) {
+                    callback(err, null);
+                }
+            }
+        });
+
+        const channel = client.channels.get(channelName);
+        _channels.set(scope, channel);
+        return channel;
+    }
+
+    /**
+     * Entra in presenza su uno scope, dopo aver verificato che nessun'altra
+     * sessione (clientId diverso) sia già presente. Fail-open su errori di
+     * rete/Ably: non deve mai bloccare l'operatività per un problema di
+     * connessione al canale realtime.
+     */
+    async function presenceEnter(scope, extraData) {
+        try {
+            const channel = await getPresenceChannel(scope);
+            const members = await channel.presence.get();
+            const others = (members || []).filter(m => m.clientId !== getClientId());
+            if (others.length > 0) {
+                return { occupied: true, by: others[0].data || null };
+            }
+            await channel.presence.enter(Object.assign({
                 platform: isMobilePlatform() ? 'mobile' : 'desktop',
-                action: 'acquire',
-                ttl: ttlSeconds || 300,
-                ...extraData
-            };
-            await fetch(LOCK_WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+                entered_at: new Date().toISOString()
+            }, extraData || {}));
+            return { occupied: false };
         } catch (e) {
-            console.warn('[SiteBosDirtyGuard] postLockAcquire warn:', e);
+            console.warn('[SiteBosDirtyGuard] presenceEnter warn:', e);
+            return { occupied: false };
+        }
+    }
+
+    async function presenceLeave(scope) {
+        try {
+            const channel = _channels.get(scope);
+            if (!channel) return;
+            await channel.presence.leave();
+        } catch (e) {
+            console.warn('[SiteBosDirtyGuard] presenceLeave warn:', e);
         }
     }
 
     /**
-     * Invia evento 'release' tramite sendBeacon (affidabile anche in beforeunload)
+     * Controllo reale, senza entrare in presenza: "questo scope è occupato da
+     * un'altra sessione adesso?" — prima assente nel sistema (il vecchio
+     * acquire era fire-and-forget, mai verificato).
      */
-    function sendBeaconRelease(scope) {
-        const ash = getAsh();
-        if (!ash || !scope) return;
+    async function checkOccupied(scope) {
         try {
-            const payload = JSON.stringify({
-                _auth: window.Telegram?.WebApp?.initData || '',
-                ash: ash,
-                scope: scope,
-                platform: isMobilePlatform() ? 'mobile' : 'desktop',
-                action: 'release'
-            });
-            if (navigator.sendBeacon) {
-                navigator.sendBeacon(LOCK_WEBHOOK_URL, new Blob([payload], { type: 'application/json' }));
-            } else {
-                fetch(LOCK_WEBHOOK_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: payload,
-                    keepalive: true
-                }).catch(() => {});
+            const channel = await getPresenceChannel(scope);
+            const members = await channel.presence.get();
+            const others = (members || []).filter(m => m.clientId !== getClientId());
+            if (others.length > 0) {
+                return { occupied: true, by: others[0].data || null };
             }
+            return { occupied: false, by: null };
         } catch (e) {
-            console.warn('[SiteBosDirtyGuard] sendBeaconRelease warn:', e);
+            console.warn('[SiteBosDirtyGuard] checkOccupied warn:', e);
+            return { occupied: false, by: null };
         }
-    }
-
-    /**
-     * Programma il renewal automatico del lock ogni 60 secondi (1 minuto) per lo stato Dirty
-     */
-    function scheduleRenewal(scope, ttlSeconds, isGenerating = false) {
-        clearTimeout(_renewalTimers.get(scope));
-        // Heartbeat di rinnovo fisso ogni 60 secondi (1 minuto)
-        const renewAt = 60 * 1000;
-        const timerId = setTimeout(() => {
-            if (_dirtyMap.has(scope)) {
-                const info = _dirtyMap.get(scope);
-                postLockAcquire(scope, info.ttlSeconds || 300);
-                scheduleRenewal(scope, info.ttlSeconds || 300, false);
-            }
-        }, renewAt);
-        _renewalTimers.set(scope, timerId);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -115,8 +187,8 @@
 
     function markDirty(scope, saveCallback, ttlSeconds = 300) {
         if (!scope) scope = 'default_scope';
-        
-        // Se lo scope è già marcato dirty o ha già inviato la richiesta HTTP di lock, ignoriamo la chiamata duplicata!
+
+        // Se lo scope è già marcato dirty o è già in presenza, ignoriamo la chiamata duplicata!
         if (_acquiredScopes.has(scope) || _dirtyMap.has(scope)) {
             _dirtyMap.set(scope, { saveCallback, ttlSeconds });
             return;
@@ -125,10 +197,9 @@
         _dirtyMap.set(scope, { saveCallback, ttlSeconds });
         _acquiredScopes.add(scope);
 
-        postLockAcquire(scope, ttlSeconds, { type: 'dirty' });
-        scheduleRenewal(scope, ttlSeconds, false);
+        presenceEnter(scope, { type: 'dirty' });
 
-        // Propaga al parent window se siamo in un iframe (SENZA rieseguire la chiamata HTTP dal parent!)
+        // Propaga al parent window se siamo in un iframe (SENZA rieseguire la chiamata dal parent!)
         try {
             if (window.parent && window.parent !== window && window.parent.SiteBosDirtyGuard) {
                 window.parent.SiteBosDirtyGuard._syncIframeDirty(scope, true);
@@ -140,9 +211,7 @@
         if (!scope) scope = 'default_scope';
         _dirtyMap.delete(scope);
         _acquiredScopes.delete(scope);
-        clearTimeout(_renewalTimers.get(scope));
-        _renewalTimers.delete(scope);
-        sendBeaconRelease(scope);
+        presenceLeave(scope);
 
         // Propaga al parent window se siamo in un iframe
         try {
@@ -155,8 +224,7 @@
     function markGenerating(scope, label, conflictScopes = [], ttlSeconds = 600) {
         if (!scope) scope = 'default_gen';
         _generatingMap.set(scope, { label: label || 'Operazione IA', conflictScopes, ttlSeconds });
-        postLockAcquire(scope, ttlSeconds, { type: 'generating', label, conflictScopes });
-        scheduleRenewal(scope, ttlSeconds, true);
+        presenceEnter(scope, { type: 'generating', label, conflictScopes });
         renderGeneratingBadge();
 
         // Propaga al parent window
@@ -170,9 +238,7 @@
     function markGeneratingDone(scope) {
         if (!scope) scope = 'default_gen';
         _generatingMap.delete(scope);
-        clearTimeout(_renewalTimers.get(scope));
-        _renewalTimers.delete(scope);
-        sendBeaconRelease(scope);
+        presenceLeave(scope);
         renderGeneratingBadge();
 
         // Propaga al parent window
@@ -181,6 +247,24 @@
                 window.parent.SiteBosDirtyGuard.markGeneratingDone(scope);
             }
         } catch (_) {}
+    }
+
+    /**
+     * Presenza incondizionata: a differenza di markDirty (che scatta solo alla
+     * prima modifica di un form), qui il blocco vale dalla semplice apertura
+     * della pagina — per superfici come la Desk Board.
+     */
+    function markPresent(scope) {
+        if (!scope) scope = 'default_scope';
+        if (_presentScopes.has(scope)) return;
+        _presentScopes.add(scope);
+        presenceEnter(scope, { type: 'present' });
+    }
+
+    function markAbsent(scope) {
+        if (!scope) scope = 'default_scope';
+        _presentScopes.delete(scope);
+        presenceLeave(scope);
     }
 
     function isAnyDirty() {
@@ -311,8 +395,6 @@
             scopesToClean.forEach(scope => markClean(scope));
             _dirtyMap.clear();
             _acquiredScopes.clear();
-            _renewalTimers.forEach(t => clearTimeout(t));
-            _renewalTimers.clear();
             overlay.remove();
             if (typeof proceedCallback === 'function') proceedCallback();
         });
@@ -363,21 +445,24 @@
     // HOOKS NATIVI (BEFOREUNLOAD, TELEGRAM BACK BUTTON, POPSTATE)
     // ──────────────────────────────────────────────────────────────────────────
 
-    // 1. Release automatico al prima della chiusura pagina
+    // 1. Release automatico alla chiusura pagina. Ably rileva comunque la
+    // disconnessione da sola entro pochi secondi anche se questo non arriva
+    // a completarsi in tempo — a differenza del vecchio TTL manuale, qui è
+    // solo un'ottimizzazione per il rilascio immediato, non l'unica rete di sicurezza.
     window.addEventListener('beforeunload', function (e) {
         if (isAnyDirty()) {
             e.preventDefault();
             e.returnValue = 'Hai modifiche non salvate.';
         }
-        const allScopes = new Set([..._dirtyMap.keys(), ..._acquiredScopes]);
-        for (let scope of allScopes) sendBeaconRelease(scope);
-        for (let scope of _generatingMap.keys()) sendBeaconRelease(scope);
+        const allScopes = new Set([..._dirtyMap.keys(), ..._acquiredScopes, ..._presentScopes]);
+        for (let scope of allScopes) presenceLeave(scope);
+        for (let scope of _generatingMap.keys()) presenceLeave(scope);
     });
 
     window.addEventListener('pagehide', function () {
-        const allScopes = new Set([..._dirtyMap.keys(), ..._acquiredScopes]);
-        for (let scope of allScopes) sendBeaconRelease(scope);
-        for (let scope of _generatingMap.keys()) sendBeaconRelease(scope);
+        const allScopes = new Set([..._dirtyMap.keys(), ..._acquiredScopes, ..._presentScopes]);
+        for (let scope of allScopes) presenceLeave(scope);
+        for (let scope of _generatingMap.keys()) presenceLeave(scope);
     });
 
     // 2. Intercettazione Telegram Back Button su Mobile
@@ -396,10 +481,52 @@
         });
     }
 
+    /**
+     * Blocco reale all'apertura di una sezione guardata: prima d'ora il
+     * sistema registrava solo "sto modificando questo" senza mai verificare
+     * se qualcun altro lo stava già facendo. Fail-open per costruzione.
+     */
+    async function checkAndBlockIfOccupied(scope) {
+        const { occupied } = await checkOccupied(scope);
+        if (!occupied) return;
+
+        let overlay = document.getElementById('sitebos-occupied-overlay');
+        if (overlay) return; // già mostrato
+
+        overlay = document.createElement('div');
+        overlay.id = 'sitebos-occupied-overlay';
+        overlay.className = 'fixed inset-0 z-[999998] bg-white/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center text-slate-900';
+        overlay.innerHTML = `
+            <div class="bg-white border border-slate-200 rounded-3xl p-8 max-w-md w-full shadow-2xl space-y-6">
+                <div class="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600 mx-auto animate-pulse">
+                    <i class="fa-solid fa-user-group text-3xl"></i>
+                </div>
+                <div class="space-y-2">
+                    <h2 class="text-lg font-black text-slate-900">Sezione già aperta altrove</h2>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Questa sezione risulta già aperta su un altro dispositivo o un'altra scheda. Per evitare di sovrascrivere modifiche, chiudi l'altra sessione prima di continuare.
+                    </p>
+                </div>
+                <div class="space-y-3 pt-2">
+                    <button id="sitebos-occupied-recheck-btn" class="w-full bg-slate-900 hover:bg-black active:scale-95 text-white font-black text-xs py-3.5 px-4 rounded-xl transition shadow flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate text-base"></i>
+                        <span>Ricontrolla adesso</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector('#sitebos-occupied-recheck-btn').addEventListener('click', async function () {
+            const result = await checkOccupied(scope);
+            if (!result.occupied) overlay.remove();
+        });
+    }
+
     // 3. Auto-Attach per catturare automaticamente qualsiasi modifica nei form
     function autoAttachFormListeners() {
         const path = window.location.pathname.toLowerCase();
-        if (path.includes('/userguide/') || path.includes('/customer_bot/')) return;
+        if (path.includes('/userguide/') || path.includes('/customer_bot/') || path.includes('/dashboard/dashboard.html')) return;
 
         const scope = (function () {
             if (path.includes('/identity/') || path.includes('bot_config') || path.includes('edit_owner') || path.includes('advanced-setup')) return 'identity';
@@ -412,6 +539,8 @@
             if (path.includes('fine-tuning')) return 'fine_tuning';
             return 'generic_edit';
         })();
+
+        checkAndBlockIfOccupied(scope);
 
         document.addEventListener('input', function (e) {
             const target = e.target;
@@ -457,6 +586,9 @@
         markClean,
         markGenerating,
         markGeneratingDone,
+        markPresent,
+        markAbsent,
+        checkOccupied,
         isAnyDirty,
         isAnyGenerating,
         getConflictingGeneration,
