@@ -134,6 +134,9 @@
                 body: JSON.stringify({
                     action: 'npl_chat',
                     message: text,
+                    // Usa-e-getta: gia' sul telefono del cliente (Telegram), serve solo a
+                    // personalizzare QUESTA risposta. Il backend non lo salva mai.
+                    display_name: (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || '',
                     _auth: (tg && tg.initData) || 'debug_auth_mode',
                     ash: ash
                 })
