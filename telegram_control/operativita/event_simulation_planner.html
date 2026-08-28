@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS - Pianificazione e Simulatore Eventi</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #fafafa; color: #000000; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .card { background-color: #ffffff; border: 1px solid #eeeeee; }
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%; background: #000000; cursor: pointer; margin-top: -10px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.1s; }
+        input[type=range]::-webkit-slider-thumb:active { transform: scale(1.15); }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 6px; cursor: pointer; background: #e5e7eb; border-radius: 3px; }
+        .hide-arrows::-webkit-outer-spin-button, .hide-arrows::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-16">
+    <div id="page-loader" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-3 transition-opacity duration-300">
+        <div class="w-10 h-10 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
+        <p class="text-xs font-black uppercase tracking-wider text-gray-700" id="loader-message">Inizializzazione Simulatore...</p>
+    </div>
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300 max-w-sm w-11/12">
+        <div id="toast-body" class="bg-black text-white px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-3 text-xs font-medium">
+            <span id="toast-text">Notifica</span>
+            <button onclick="hideToast()" class="text-gray-400 hover:text-white"><i class="fas fa-times text-xs"></i></button>
+        </div>
+    </div>
+    <header class="bg-white border-b border-border sticky top-0 z-40">
+        <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded">SiteBoS</span>
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Pianificatore Operativo</span>
+                </div>
+                <h1 class="text-base font-black uppercase tracking-tight mt-0.5 truncate">Simulatore Eventi e Banchetti</h1>
+            </div>
+            <button onclick="refreshPlanData()" class="w-9 h-9 bg-gray-100 hover:bg-gray-200 active:scale-95 text-black rounded-xl flex items-center justify-center transition-colors shrink-0">
+                <i class="fas fa-rotate text-xs"></i>
+            </button>
+        </div>
+    </header>
+    <main class="max-w-xl w-full mx-auto px-4 mt-4 flex-1 space-y-5">
+
+        <!-- STEP 0: CONTROLLO PREPARAZIONE CATALOGO -->
+        <section id="catalog-readiness-section" class="card rounded-3xl p-5 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Verifica Preparazione Catalogo</span>
+                <span id="catalog-status-badge" class="px-2.5 py-1 bg-amber-100 text-amber-800 text-[8px] font-black uppercase tracking-wider rounded-lg">Verifica in corso</span>
+            </div>
+            <p id="catalog-summary-text" class="text-xs text-gray-600 font-medium leading-relaxed">
+                Controllo del catalogo aziendale per la gestione di eventi e ordini speciali...
+            </p>
+            <div id="missing-categories-container" class="hidden space-y-3 pt-2 border-t border-gray-100">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-500">Categorie e Procedure Consigliate da Attivare</p>
+                <div id="missing-categories-list" class="space-y-3"></div>
+                <button onclick="submitActivateCategories()" class="w-full py-3 bg-black text-white text-xs font-black uppercase tracking-wider rounded-2xl active:scale-95 transition shadow">
+                    Attiva le Categorie Selezionate
+                </button>
+            </div>
+        </section>
+
+        <!-- STEP 1: INGESTIONE RICHIESTA DEL CLIENTE -->
+        <section class="card rounded-3xl p-5 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Nuova Richiesta Cliente</span>
+                <span class="px-2.5 py-1 bg-gray-100 text-gray-700 text-[8px] font-black uppercase tracking-wider rounded-lg">Analisi Intelligente</span>
+            </div>
+            <div class="space-y-1.5">
+                <label for="raw-request-input" class="block text-[10px] font-black uppercase tracking-wider text-gray-700">
+                    Testo Completo della Richiesta del Cliente
+                </label>
+                <textarea id="raw-request-input" rows="4" placeholder="Incolla qui la richiesta del cliente anche disordinata: ad esempio 'Cena aziendale per 45 persone il 12 ottobre, 2 persone celiache e 1 vegetariana, budget circa 70 euro a persona, allestimento ore 18, musica dal vivo'..." class="w-full bg-gray-50 border border-border rounded-2xl p-3 text-xs text-black focus:outline-none focus:border-black transition-colors resize-y"></textarea>
+            </div>
+            <button id="btn-parse-request" onclick="handleParseRequest()" class="w-full py-3.5 bg-black text-white text-xs font-black uppercase tracking-widest rounded-2xl active:scale-95 transition shadow flex items-center justify-center gap-2">
+                <i class="fas fa-wand-magic-sparkles text-xs"></i>
+                <span>Analizza Richiesta ed Estrai Parametri</span>
+            </button>
+            <div id="date-conflict-alert" class="hidden bg-amber-50 border border-amber-200 p-4 rounded-2xl space-y-1">
+                <div class="flex items-center gap-2 text-amber-900 text-xs font-black uppercase tracking-wider">
+                    <i class="fas fa-triangle-exclamation text-amber-600"></i>
+                    <span>Attenzione Conflitto Date</span>
+                </div>
+                <p id="date-conflict-text" class="text-xs text-amber-800 font-medium leading-relaxed"></p>
+            </div>
+        </section>
+
+        <!-- STEP 2: PARAMETRI ESTRATTI E CORREZIONI MANUALI -->
+        <section id="event-plan-details-section" class="hidden card rounded-3xl p-5 space-y-5 shadow-sm">
+            <div class="flex items-center justify-between">
+                <div>
+                    <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Dettagli Piano Evento</span>
+                    <h2 class="text-xs font-black uppercase tracking-wide mt-0.5" id="display-plan-id">Piano in Elaborazione</h2>
+                </div>
+                <span id="plan-status-badge" class="px-2.5 py-1 bg-blue-100 text-blue-800 text-[8px] font-black uppercase tracking-wider rounded-lg">Bozza</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Data dell Evento</label>
+                    <input type="date" id="plan-event-date" class="w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-bold text-black focus:outline-none focus:border-black">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Orario di Inizio</label>
+                    <input type="text" id="plan-event-time" placeholder="es. 12:30" class="w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-bold text-black focus:outline-none focus:border-black">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Numero di Persone</label>
+                    <input type="number" id="plan-pax-input" onchange="onManualPaxChange(this.value)" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-bold text-black focus:outline-none focus:border-black">
+                </div>
+                <div class="space-y-1">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Budget per Persona in Euro</label>
+                    <input type="number" id="plan-budget-input" placeholder="0" class="hide-arrows w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-bold text-black focus:outline-none focus:border-black">
+                </div>
+                <div class="space-y-1 col-span-2">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Allergie e Diete Particolari</label>
+                    <input type="text" id="plan-allergie-input" placeholder="Nessuna allergia segnalata" class="w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-bold text-black focus:outline-none focus:border-black">
+                </div>
+                <div class="space-y-1 col-span-2">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Condizioni Meteo Previste</label>
+                    <input type="text" id="plan-meteo-input" placeholder="Non specificato" class="w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-bold text-black focus:outline-none focus:border-black">
+                </div>
+                <div class="space-y-1 col-span-2">
+                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Collaboratori Esterni e Servizi Speciali</label>
+                    <input type="text" id="plan-crew-input" placeholder="Nessun collaboratore esterno" class="w-full bg-gray-50 border border-border rounded-xl p-2 text-xs font-bold text-black focus:outline-none focus:border-black">
+                </div>
+            </div>
+
+            <!-- SIMULATORE WHAT-IF SLIDER PAX E CONTO ECONOMICO -->
+            <div class="border-t border-gray-100 pt-4 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Simulatore Finanziario Dinamico</span>
+                        <h3 class="text-xs font-black uppercase text-black mt-0.5">Variazione Numero di Persone</h3>
+                    </div>
+                    <span id="slider-pax-display" class="px-3 py-1 bg-black text-white text-xs font-black rounded-xl">0 Persone</span>
+                </div>
+
+                <div class="space-y-2">
+                    <input type="range" id="pax-slider" min="10" max="200" step="1" oninput="onPaxSliderChange(this.value)">
+                    <div class="flex justify-between text-[8px] font-black uppercase text-gray-400">
+                        <span id="slider-min-label">10 Persone</span>
+                        <span id="slider-max-label">200 Persone</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl">
+                        <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Ricavi Totali Stimati</span>
+                        <span class="text-base font-black text-black block mt-0.5" id="fin-revenue">0,00 €</span>
+                    </div>
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl">
+                        <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Costo Totale Previsto</span>
+                        <span class="text-base font-black text-gray-700 block mt-0.5" id="fin-cost">0,00 €</span>
+                    </div>
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl">
+                        <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Margine Netto in Euro</span>
+                        <span class="text-base font-black text-emerald-700 block mt-0.5" id="fin-margin">0,00 €</span>
+                    </div>
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl">
+                        <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Margine Netto Percentuale</span>
+                        <span class="text-base font-black text-emerald-700 block mt-0.5" id="fin-margin-pct">0,0 %</span>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 border border-border p-3.5 rounded-2xl space-y-2">
+                    <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Fabbisogno Operativo Calcolato</span>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="flex items-center justify-between py-1 border-b border-gray-200">
+                            <span class="text-gray-600 font-medium">Tavoli Tondi</span>
+                            <span class="font-black text-black" id="qty-tables">0</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1 border-b border-gray-200">
+                            <span class="text-gray-600 font-medium">Camerieri Sala</span>
+                            <span class="font-black text-black" id="qty-waiters">0</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1">
+                            <span class="text-gray-600 font-medium">Chilogrammi Ghiaccio</span>
+                            <span class="font-black text-black" id="qty-ice">0</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1">
+                            <span class="text-gray-600 font-medium">Mastelli Coleman</span>
+                            <span class="font-black text-black" id="qty-buckets">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROPOSTA MENU STAGIONALE -->
+            <div class="border-t border-gray-100 pt-4 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Proposta Piatti Stagionali</span>
+                    <button onclick="handleSeasonalMenuProposal()" class="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-black text-[9px] font-black uppercase tracking-wider rounded-xl transition flex items-center gap-1.5">
+                        <i class="fas fa-utensils text-[9px]"></i>
+                        <span>Proponi Menu Stagionale</span>
+                    </button>
+                </div>
+                <div id="seasonal-menu-container" class="hidden space-y-2">
+                    <div id="seasonal-menu-list" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- MATRICE VISTI OPERATIVI -->
+            <div class="border-t border-gray-100 pt-4 space-y-3">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Stato Visti Operativi dei Responsabili</span>
+                <div class="space-y-2.5">
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl flex items-start justify-between gap-3">
+                        <div class="space-y-0.5 flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-hat-chef text-xs text-gray-700"></i>
+                                <span class="text-xs font-black uppercase tracking-wider text-black">Chef di Cucina</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500" id="chef-signoff-notes">Nessuna nota</p>
+                        </div>
+                        <span id="chef-signoff-badge" class="px-2.5 py-1 bg-gray-200 text-gray-700 text-[8px] font-black uppercase rounded-lg shrink-0">In Attesa</span>
+                    </div>
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl flex items-start justify-between gap-3">
+                        <div class="space-y-0.5 flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-bell-concierge text-xs text-gray-700"></i>
+                                <span class="text-xs font-black uppercase tracking-wider text-black">Maître di Sala</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500" id="maitre-signoff-notes">Nessuna nota</p>
+                        </div>
+                        <span id="maitre-signoff-badge" class="px-2.5 py-1 bg-gray-200 text-gray-700 text-[8px] font-black uppercase rounded-lg shrink-0">In Attesa</span>
+                    </div>
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl flex items-start justify-between gap-3">
+                        <div class="space-y-0.5 flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-truck-fast text-xs text-gray-700"></i>
+                                <span class="text-xs font-black uppercase tracking-wider text-black">Responsabile Logistica</span>
+                            </div>
+                            <p class="text-[10px] text-gray-500" id="logistics-signoff-notes">Nessuna nota</p>
+                        </div>
+                        <span id="logistics-signoff-badge" class="px-2.5 py-1 bg-gray-200 text-gray-700 text-[8px] font-black uppercase rounded-lg shrink-0">In Attesa</span>
+                    </div>
+                </div>
+
+                <div class="bg-blue-50/60 border border-blue-100 p-3 rounded-2xl space-y-2 mt-3">
+                    <span class="text-[9px] font-black uppercase tracking-wider text-blue-950 block">Collegamenti per Revisione Operativa</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="openReviewPage('chef')" class="py-2 px-1 bg-white border border-blue-200 rounded-xl text-[9px] font-black uppercase text-blue-950 hover:bg-blue-50 transition text-center truncate">
+                            Chef
+                        </button>
+                        <button onclick="openReviewPage('maitre')" class="py-2 px-1 bg-white border border-blue-200 rounded-xl text-[9px] font-black uppercase text-blue-950 hover:bg-blue-50 transition text-center truncate">
+                            Maître
+                        </button>
+                        <button onclick="openReviewPage('logistics')" class="py-2 px-1 bg-white border border-blue-200 rounded-xl text-[9px] font-black uppercase text-blue-950 hover:bg-blue-50 transition text-center truncate">
+                            Logistica
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AZIONI DI CONFERMA E MATERIALIZZAZIONE -->
+            <div class="border-t border-gray-100 pt-4 space-y-3">
+                <div id="materialize-container" class="hidden">
+                    <button onclick="handleMaterializeJobs()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition shadow-lg flex items-center justify-center gap-2">
+                        <i class="fas fa-check-double text-xs"></i>
+                        <span>Materializza Ordini di Servizio</span>
+                    </button>
+                </div>
+                <div id="force-confirm-container" class="space-y-2">
+                    <button onclick="openForceConfirmModal()" class="w-full py-3 bg-gray-900 hover:bg-black active:scale-95 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition flex items-center justify-center gap-2">
+                        <i class="fas fa-shield-halved text-xs"></i>
+                        <span>Forza Conferma del Piano Evento</span>
+                    </button>
+                </div>
+                <div id="print-links-container" class="hidden bg-gray-50 border border-border p-3.5 rounded-2xl space-y-2">
+                    <span class="text-[9px] font-black uppercase tracking-wider text-gray-500 block">Stampa Ordini di Servizio per Ruolo</span>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="openPrintPage('chef')" class="py-2 bg-white border border-border rounded-xl text-[9px] font-black uppercase text-black hover:bg-gray-100 transition text-center">
+                            Stampa Chef
+                        </button>
+                        <button onclick="openPrintPage('maitre')" class="py-2 bg-white border border-border rounded-xl text-[9px] font-black uppercase text-black hover:bg-gray-100 transition text-center">
+                            Stampa Maître
+                        </button>
+                        <button onclick="openPrintPage('logistics')" class="py-2 bg-white border border-border rounded-xl text-[9px] font-black uppercase text-black hover:bg-gray-100 transition text-center">
+                            Stampa Logistica
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL FORZA CONFERMA -->
+    <div id="force-confirm-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-gray-200">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black uppercase tracking-widest text-amber-700">Operazione del Titolare</span>
+                <button onclick="closeForceConfirmModal()" class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 hover:text-black flex items-center justify-center">
+                    <i class="fas fa-times text-xs"></i>
+                </button>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-sm font-black uppercase text-black">Forza Conferma Piano Evento</h3>
+                <p class="text-xs text-gray-600 font-medium">
+                    La conferma forzata scavalca eventuali richieste di modifica non ancora risolte. È obbligatorio specificare la motivazione aziendale.
+                </p>
+            </div>
+            <div class="space-y-1">
+                <label for="force-confirm-reason-input" class="text-[9px] font-black text-gray-400 uppercase tracking-wider block">Motivo della Conferma Forzata</label>
+                <textarea id="force-confirm-reason-input" rows="3" placeholder="Inserisci il motivo obbligatorio..." class="w-full bg-gray-50 border border-border rounded-xl p-2.5 text-xs text-black focus:outline-none focus:border-black resize-y"></textarea>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeForceConfirmModal()" class="flex-1 py-2.5 bg-gray-100 text-gray-700 text-xs font-black uppercase rounded-xl">Annulla</button>
+                <button onclick="submitForceConfirm()" class="flex-1 py-2.5 bg-black text-white text-xs font-black uppercase rounded-xl">Conferma Ora</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGICA E BACKEND INTEGRATION -->
+    <script>
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0cf2c897-c5b1-4ef3-92df-6498671245c2";
+        let ash = '';
+        let currentEventPlan = null;
+        let missingCategoriesList = [];
+        const currencyFormatter = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                try { tg.ready(); tg.expand(); } catch (e) { console.warn("TG Init:", e); }
+            }
+            const urlParams = new URLSearchParams(window.location.search);
+            ash = urlParams.get('ash') || '';
+            const existingPlanId = urlParams.get('event_plan_id') || '';
+            if (existingPlanId) {
+                loadEventPlan(existingPlanId);
+            } else {
+                runCatalogAudit();
+            }
+        });
+
+        function showLoader(message = "Caricamento in corso...") {
+            const loader = document.getElementById('page-loader');
+            const msgEl = document.getElementById('loader-message');
+            if (msgEl) msgEl.innerText = message;
+            if (loader) { loader.classList.remove('hidden', 'opacity-0'); loader.classList.add('opacity-100'); }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('page-loader');
+            if (loader) { loader.classList.add('opacity-0'); setTimeout(() => loader.classList.add('hidden'), 300); }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastBody = document.getElementById('toast-body');
+            const toastText = document.getElementById('toast-text');
+            if (!toast || !toastText) return;
+            toastText.innerText = message;
+            if (isError) {
+                toastBody.classList.remove('bg-black');
+                toastBody.classList.add('bg-red-700');
+            } else {
+                toastBody.classList.remove('bg-red-700');
+                toastBody.classList.add('bg-black');
+            }
+            toast.classList.remove('hidden');
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                try { window.Telegram.WebApp.HapticFeedback.notificationOccurred(isError ? 'error' : 'success'); } catch (e) {}
+            }
+            setTimeout(() => hideToast(), 4000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            if (toast) toast.classList.add('hidden');
+        }
+
+        async function callWebhook(action, extraData = {}) {
+            const payload = {
+                action: action,
+                _auth: window.Telegram?.WebApp?.initData || '',
+                ash: ash,
+                ...extraData
+            };
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || ("Errore del server con codice " + response.status));
+            }
+            return await response.json();
+        }
+
+        async function runCatalogAudit() {
+            showLoader("Verifica catalogo aziendale...");
+            try {
+                const res = await callWebhook('check_catalog_readiness');
+                const badge = document.getElementById('catalog-status-badge');
+                const summary = document.getElementById('catalog-summary-text');
+                const missingContainer = document.getElementById('missing-categories-container');
+                const list = document.getElementById('missing-categories-list');
+
+                if (res.success) {
+                    if (res.coverage_summary && summary) summary.innerText = res.coverage_summary;
+                    missingCategoriesList = res.missing_categories || [];
+                    if (missingCategoriesList.length > 0) {
+                        badge.className = "px-2.5 py-1 bg-amber-100 text-amber-900 text-[8px] font-black uppercase tracking-wider rounded-lg";
+                        badge.innerText = "Attivazione Richiesta";
+                        list.innerHTML = missingCategoriesList.map((cat, idx) => {
+                            const typeName = cat.type === 'SOP' ? 'Procedura Operativa Standard' : (cat.type === 'BOM' ? 'Distinta Base Materiali' : 'Prodotto o Servizio');
+                            const draftText = cat.draft_content?.draft_procedure_text || '';
+                            return `
+                            <div class="bg-gray-50 border border-border p-3.5 rounded-2xl space-y-2">
+                                <label class="flex items-start gap-2.5 cursor-pointer">
+                                    <input type="checkbox" id="cat-checkbox-${idx}" checked class="mt-0.5 w-4 h-4 rounded text-black border-gray-300 focus:ring-black">
+                                    <div class="flex-1 min-w-0">
+                                        <span class="text-xs font-black uppercase text-black block">${escapeHtml(cat.suggested_name || 'Nuova Categoria')}</span>
+                                        <span class="text-[9px] text-gray-500 font-bold uppercase tracking-wider block">${typeName}</span>
+                                        <p class="text-[11px] text-gray-600 mt-1 leading-snug">${escapeHtml(cat.reason || '')}</p>
+                                    </div>
+                                </label>
+                                <div class="space-y-1 pt-1">
+                                    <span class="text-[8px] font-black uppercase text-gray-400 block">Testo Bozza Procedura Modificabile</span>
+                                    <textarea id="cat-text-${idx}" rows="3" class="w-full bg-white border border-border rounded-xl p-2 text-xs text-black focus:outline-none focus:border-black">${escapeHtml(draftText)}</textarea>
+                                </div>
+                            </div>`;
+                        }).join('');
+                        missingContainer.classList.remove('hidden');
+                    } else {
+                        badge.className = "px-2.5 py-1 bg-emerald-100 text-emerald-900 text-[8px] font-black uppercase tracking-wider rounded-lg";
+                        badge.innerText = "Catalogo Pronto";
+                        missingContainer.classList.add('hidden');
+                    }
+                }
+            } catch (err) {
+                console.warn("Audit catalogo non riuscito:", err);
+                const badge = document.getElementById('catalog-status-badge');
+                if (badge) {
+                    badge.className = "px-2.5 py-1 bg-gray-200 text-gray-700 text-[8px] font-black uppercase rounded-lg";
+                    badge.innerText = "Verifica non eseguita";
+                }
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function submitActivateCategories() {
+            const approved = [];
+            missingCategoriesList.forEach((cat, idx) => {
+                const checkbox = document.getElementById("cat-checkbox-" + idx);
+                const textarea = document.getElementById("cat-text-" + idx);
+                if (checkbox && checkbox.checked) {
+                    const clonedCat = JSON.parse(JSON.stringify(cat));
+                    if (!clonedCat.draft_content) clonedCat.draft_content = {};
+                    clonedCat.draft_content.draft_procedure_text = textarea ? textarea.value : '';
+                    approved.push(clonedCat);
+                }
+            });
+            if (approved.length === 0) {
+                showToast("Seleziona almeno una categoria da attivare.", true);
+                return;
+            }
+            showLoader("Attivazione categorie in corso...");
+            try {
+                const res = await callWebhook('activate_categories', { approved_categories: approved });
+                if (res.success) {
+                    showToast("Categorie e procedure attivate con successo!");
+                    document.getElementById('missing-categories-container').classList.add('hidden');
+                    const badge = document.getElementById('catalog-status-badge');
+                    if (badge) {
+                        badge.className = "px-2.5 py-1 bg-emerald-100 text-emerald-900 text-[8px] font-black uppercase tracking-wider rounded-lg";
+                        badge.innerText = "Catalogo Aggiornato";
+                    }
+                } else {
+                    showToast(res.error || "Impossibile attivare le categorie.", true);
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function handleParseRequest() {
+            const raw = document.getElementById('raw-request-input')?.value || '';
+            if (!raw.trim()) {
+                showToast("Inserisci il testo della richiesta da analizzare.", true);
+                return;
+            }
+            showLoader("Analisi intelligente della richiesta in corso...");
+            try {
+                const res = await callWebhook('parse_event_request', { raw_request: raw });
+                if (res.success && res.event_plan) {
+                    currentEventPlan = res.event_plan;
+                    renderEventPlan(currentEventPlan);
+                    const alertEl = document.getElementById('date-conflict-alert');
+                    const alertText = document.getElementById('date-conflict-text');
+                    if (res.date_conflict_warning && alertEl && alertText) {
+                        alertText.innerText = res.date_conflict_warning;
+                        alertEl.classList.remove('hidden');
+                    } else if (alertEl) {
+                        alertEl.classList.add('hidden');
+                    }
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('event_plan_id', currentEventPlan.event_plan_id);
+                    window.history.replaceState({}, '', url.toString());
+                    await computeFinancials(currentEventPlan.pax || 0);
+                    showToast("Parametri estratti con successo!");
+                } else {
+                    showToast(res.error || "Impossibile estrarre i parametri della richiesta.", true);
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function loadEventPlan(planId) {
+            showLoader("Caricamento piano evento...");
+            try {
+                const res = await callWebhook('get_event_plan', { event_plan_id: planId });
+                if (res.success && res.event_plan) {
+                    currentEventPlan = res.event_plan;
+                    renderEventPlan(currentEventPlan);
+                    await computeFinancials(currentEventPlan.pax || 0);
+                } else {
+                    showToast("Piano evento non trovato.", true);
+                    runCatalogAudit();
+                }
+            } catch (err) {
+                console.warn("Caricamento piano non riuscito:", err);
+                runCatalogAudit();
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function renderEventPlan(plan) {
+            const section = document.getElementById('event-plan-details-section');
+            if (section) section.classList.remove('hidden');
+            const idDisplay = document.getElementById('display-plan-id');
+            if (idDisplay) idDisplay.innerText = "Piano Evento " + plan.event_plan_id;
+            const badge = document.getElementById('plan-status-badge');
+            if (badge) {
+                const statusMap = {
+                    'DRAFT': { label: 'Bozza', class: 'bg-gray-100 text-gray-800' },
+                    'IN_REVIEW': { label: 'In Revisione', class: 'bg-amber-100 text-amber-800' },
+                    'CONFIRMED': { label: 'Confermato', class: 'bg-emerald-100 text-emerald-800' },
+                    'IN_EXECUTION': { label: 'In Esecuzione', class: 'bg-blue-100 text-blue-800' }
+                };
+                const st = statusMap[plan.status] || { label: plan.status, class: 'bg-gray-100 text-gray-800' };
+                badge.className = "px-2.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-lg " + st.class;
+                badge.innerText = st.label;
+            }
+            const dateInput = document.getElementById('plan-event-date');
+            if (dateInput) dateInput.value = plan.event_date || '';
+            const timeInput = document.getElementById('plan-event-time');
+            if (timeInput) timeInput.value = plan.orario_evento || '';
+            const paxInput = document.getElementById('plan-pax-input');
+            if (paxInput) paxInput.value = plan.pax || 0;
+            const budgetInput = document.getElementById('plan-budget-input');
+            if (budgetInput) budgetInput.value = plan.budget_indicativo || '';
+            const allergieInput = document.getElementById('plan-allergie-input');
+            if (allergieInput) allergieInput.value = (plan.allergie || []).join(', ');
+            const meteoInput = document.getElementById('plan-meteo-input');
+            if (meteoInput) meteoInput.value = plan.meteo_previsto || '';
+            const crewInput = document.getElementById('plan-crew-input');
+            if (crewInput) crewInput.value = (plan.crew_esterna || []).join(', ');
+
+            const pax = Number(plan.pax) || 20;
+            const slider = document.getElementById('pax-slider');
+            const minLabel = document.getElementById('slider-min-label');
+            const maxLabel = document.getElementById('slider-max-label');
+            const display = document.getElementById('slider-pax-display');
+            const minPax = Math.max(5, Math.floor(pax * 0.5));
+            const maxPax = Math.max(30, Math.ceil(pax * 2.0));
+            if (slider) { slider.min = minPax; slider.max = maxPax; slider.value = pax; }
+            if (minLabel) minLabel.innerText = minPax + " Persone";
+            if (maxLabel) maxLabel.innerText = maxPax + " Persone";
+            if (display) display.innerText = pax + " Persone";
+
+            renderSignoffStatus('chef', plan.chef_signoff);
+            renderSignoffStatus('maitre', plan.maitre_signoff);
+            renderSignoffStatus('logistics', plan.logistics_signoff);
+
+            const matContainer = document.getElementById('materialize-container');
+            const printContainer = document.getElementById('print-links-container');
+            if (plan.status === 'CONFIRMED' || plan.status === 'IN_EXECUTION') {
+                if (matContainer) matContainer.classList.remove('hidden');
+                if (printContainer) printContainer.classList.remove('hidden');
+            } else {
+                if (matContainer) matContainer.classList.add('hidden');
+                if (printContainer) printContainer.classList.add('hidden');
+            }
+        }
+
+        function renderSignoffStatus(role, signoff) {
+            const badge = document.getElementById(role + "-signoff-badge");
+            const notesEl = document.getElementById(role + "-signoff-notes");
+            if (!badge) return;
+            const status = signoff?.status || 'PENDING';
+            const notes = signoff?.notes || '';
+            if (notesEl) notesEl.innerText = notes ? ("Nota: " + notes) : 'Nessuna nota comunicata';
+            if (status === 'APPROVED') {
+                badge.className = "px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[8px] font-black uppercase rounded-lg shrink-0";
+                badge.innerText = "Approvato";
+            } else if (status === 'CHANGES_REQUESTED') {
+                badge.className = "px-2.5 py-1 bg-red-100 text-red-800 text-[8px] font-black uppercase rounded-lg shrink-0";
+                badge.innerText = "Modifiche Richieste";
+            } else {
+                badge.className = "px-2.5 py-1 bg-gray-200 text-gray-700 text-[8px] font-black uppercase rounded-lg shrink-0";
+                badge.innerText = "In Attesa";
+            }
+        }
+
+        async function computeFinancials(paxValue) {
+            if (!currentEventPlan?.event_plan_id) return;
+            try {
+                const res = await callWebhook('compute_financials', {
+                    event_plan_id: currentEventPlan.event_plan_id,
+                    pax_override: Number(paxValue)
+                });
+                if (res.success && res.financial_snapshot) {
+                    const fin = res.financial_snapshot;
+                    const qty = res.quantities_preview || {};
+                    const revEl = document.getElementById('fin-revenue');
+                    const costEl = document.getElementById('fin-cost');
+                    const marginEl = document.getElementById('fin-margin');
+                    const marginPctEl = document.getElementById('fin-margin-pct');
+                    if (revEl) revEl.innerText = currencyFormatter.format(fin.total_revenue || 0);
+                    if (costEl) costEl.innerText = currencyFormatter.format(fin.total_cost || 0);
+                    if (marginEl) marginEl.innerText = currencyFormatter.format(fin.net_margin || 0);
+                    if (marginPctEl) marginPctEl.innerText = (fin.net_margin_pct || 0).toFixed(1) + " %";
+
+                    const tblEl = document.getElementById('qty-tables');
+                    const wtrEl = document.getElementById('qty-waiters');
+                    const iceEl = document.getElementById('qty-ice');
+                    const bktEl = document.getElementById('qty-buckets');
+                    if (tblEl) tblEl.innerText = (qty.round_tables || 0) + " tavoli";
+                    if (wtrEl) wtrEl.innerText = (qty.waiters || 0) + " camerieri";
+                    if (iceEl) iceEl.innerText = (qty.ice_kg || 0) + " chilogrammi";
+                    if (bktEl) bktEl.innerText = (qty.coleman_100l_buckets || 0) + " mastelli";
+                }
+            } catch (err) {
+                console.warn("Ricalcolo finanziario non riuscito:", err);
+            }
+        }
+
+        function onPaxSliderChange(val) {
+            const display = document.getElementById('slider-pax-display');
+            if (display) display.innerText = val + " Persone";
+            const paxInput = document.getElementById('plan-pax-input');
+            if (paxInput) paxInput.value = val;
+            computeFinancials(val);
+        }
+
+        function onManualPaxChange(val) {
+            const slider = document.getElementById('pax-slider');
+            if (slider) slider.value = val;
+            const display = document.getElementById('slider-pax-display');
+            if (display) display.innerText = val + " Persone";
+            computeFinancials(val);
+        }
+
+        async function handleSeasonalMenuProposal() {
+            const paxInput = document.getElementById('plan-pax-input');
+            const pax = Number(paxInput?.value) || currentEventPlan?.pax || 20;
+            showLoader("Elaborazione proposta menu stagionale...");
+            try {
+                const res = await callWebhook('get_seasonal_menu_proposal', { pax: pax });
+                if (res.success) {
+                    const proposed = res.proposed_items || [];
+                    const container = document.getElementById('seasonal-menu-container');
+                    const list = document.getElementById('seasonal-menu-list');
+                    if (proposed.length > 0) {
+                        list.innerHTML = proposed.map(p => `
+                            <div class="bg-gray-50 border border-border p-3 rounded-2xl space-y-1">
+                                <span class="text-xs font-black uppercase text-black block">${escapeHtml(p.callback_data || 'Piatto di Stagione')}</span>
+                                <p class="text-[11px] text-gray-600 leading-snug">${escapeHtml(p.reason || 'Consigliato per la stagione in corso')}</p>
+                            </div>
+                        `).join('');
+                        container.classList.remove('hidden');
+                        showToast("Proposta menu generata!");
+                    } else {
+                        showToast("Nessun piatto trovato nel catalogo con corrispondenza stagionale.", true);
+                    }
+                } else {
+                    showToast(res.error || "Impossibile generare la proposta menu.", true);
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function openReviewPage(role) {
+            if (!currentEventPlan?.event_plan_id) { showToast("Crea prima un piano evento.", true); return; }
+            const url = "event_review.html?event_plan_id=" + encodeURIComponent(currentEventPlan.event_plan_id) + "&role=" + encodeURIComponent(role) + "&ash=" + encodeURIComponent(ash);
+            window.location.href = url;
+        }
+
+        function openPrintPage(role) {
+            if (!currentEventPlan?.event_plan_id) { showToast("Crea prima un piano evento.", true); return; }
+            const url = "event_ods_print.html?event_plan_id=" + encodeURIComponent(currentEventPlan.event_plan_id) + "&role=" + encodeURIComponent(role) + "&ash=" + encodeURIComponent(ash);
+            window.open(url, '_blank');
+        }
+
+        async function handleMaterializeJobs() {
+            if (!currentEventPlan?.event_plan_id) return;
+            showLoader("Generazione ordini di servizio reali...");
+            try {
+                const res = await callWebhook('materialize_event_jobs', { event_plan_id: currentEventPlan.event_plan_id });
+                if (res.success) {
+                    currentEventPlan = res.event_plan;
+                    renderEventPlan(currentEventPlan);
+                    const jobCount = (res.materialized_job_ids || []).length;
+                    showToast("Materializzati " + jobCount + " ordini di servizio operativi con successo!");
+                } else {
+                    showToast(res.error || "Impossibile materializzare gli ordini di servizio.", true);
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function openForceConfirmModal() {
+            if (!currentEventPlan?.event_plan_id) { showToast("Nessun piano evento attivo.", true); return; }
+            const modal = document.getElementById('force-confirm-modal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeForceConfirmModal() {
+            const modal = document.getElementById('force-confirm-modal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function submitForceConfirm() {
+            const reasonInput = document.getElementById('force-confirm-reason-input');
+            const reason = reasonInput?.value || '';
+            if (!reason.trim()) { showToast("Inserisci il motivo obbligatorio per forzare la conferma.", true); return; }
+            closeForceConfirmModal();
+            showLoader("Applicazione conferma forzata...");
+            try {
+                const res = await callWebhook('force_confirm', {
+                    event_plan_id: currentEventPlan.event_plan_id,
+                    reason: reason.trim()
+                });
+                if (res.success && res.event_plan) {
+                    currentEventPlan = res.event_plan;
+                    renderEventPlan(currentEventPlan);
+                    showToast("Piano evento confermato dal titolare con successo!");
+                } else {
+                    showToast(res.error || "Impossibile forzare la conferma.", true);
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function refreshPlanData() {
+            if (currentEventPlan?.event_plan_id) { loadEventPlan(currentEventPlan.event_plan_id); }
+            else { runCatalogAudit(); }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

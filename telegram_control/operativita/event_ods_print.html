@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS - Stampa Ordine di Servizio</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        bg: '#fafafa',
+                        surface: '#ffffff',
+                        border: '#eeeeee'
+                    },
+                    borderRadius: {
+                        '3xl': '1.5rem',
+                        '4xl': '2rem'
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafafa;
+            color: #000000;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #eeeeee;
+        }
+
+        /* Stili Ottimizzati per la Stampa Professionale */
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-page {
+                box-shadow: none !important;
+                border: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                max-width: 100% !important;
+                width: 100% !important;
+            }
+            .print-border {
+                border: 1px solid #000000 !important;
+            }
+            .print-border-b {
+                border-bottom: 1px solid #000000 !important;
+            }
+            .print-bg-gray {
+                background-color: #f3f4f6 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .print-avoid-break {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            @page {
+                margin: 1.2cm;
+                size: A4 portrait;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-12">
+
+    <!-- LOADER OVERLAY -->
+    <div id="page-loader" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-3 transition-opacity duration-300 no-print">
+        <div class="w-10 h-10 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
+        <p class="text-xs font-black uppercase tracking-wider text-gray-700" id="loader-message">Generazione Documento di Stampa...</p>
+    </div>
+
+    <!-- NOTIFICA TOAST -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300 max-w-sm w-11/12 no-print">
+        <div id="toast-body" class="bg-black text-white px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-3 text-xs font-medium">
+            <span id="toast-text">Notifica</span>
+            <button onclick="hideToast()" class="text-gray-400 hover:text-white" title="Chiudi notifica">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- BARRA DI CONTROLLO STAMPA IN TESTA (NASCOSTA IN STAMPA) -->
+    <header class="bg-white border-b border-border sticky top-0 z-40 no-print">
+        <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded">SiteBoS</span>
+                <h1 class="text-sm font-black uppercase tracking-tight mt-0.5 truncate">Anteprima Ordine di Servizio</h1>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="window.close()" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-black text-xs font-bold rounded-xl transition">
+                    Chiudi
+                </button>
+                <button onclick="window.print()" class="px-4 py-2 bg-black hover:bg-gray-900 text-white text-xs font-black uppercase tracking-wider rounded-xl transition shadow flex items-center gap-1.5">
+                    <i class="fas fa-print text-xs"></i>
+                    <span>Stampa</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- FOGLIO ORDINE DI SERVIZIO STAMPABILE -->
+    <main class="max-w-3xl w-full mx-auto px-4 sm:px-6 mt-4 flex-1">
+        <div class="card rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm print-page">
+
+            <!-- INTESTAZIONE UFFICIALE ORDINE DI SERVIZIO -->
+            <div class="border-b-2 border-black pb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-1 bg-black text-white text-[9px] font-black uppercase tracking-widest rounded">SiteBoS</span>
+                        <span class="text-xs font-black uppercase tracking-wider text-gray-500">Documento Ufficiale</span>
+                    </div>
+                    <h1 class="text-xl sm:text-2xl font-black uppercase tracking-tight text-black mt-1">Ordine di Servizio Operativo</h1>
+                    <p class="text-xs font-bold uppercase tracking-wider text-gray-700" id="ods-role-title">Reparto Operativo</p>
+                </div>
+                <div class="sm:text-right space-y-1">
+                    <span class="text-[9px] font-black uppercase text-gray-400 block">Identificativo Piano Evento</span>
+                    <span class="text-sm font-black text-black block" id="ods-plan-id">Piano in Generazione</span>
+                    <div class="mt-1">
+                        <span id="ods-status-badge" class="px-2.5 py-1 bg-gray-100 text-black text-[8px] font-black uppercase tracking-wider rounded print-border">
+                            Confermato per Esecuzione
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 1: SCHEDA RIEPILOGO EVENTO -->
+            <section class="space-y-2 print-avoid-break">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Dati Generali dell Evento</span>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div class="bg-gray-50 border border-border p-3 rounded-xl print-bg-gray print-border">
+                        <span class="text-[8px] font-black uppercase text-gray-500 block">Data dell Evento</span>
+                        <span class="text-xs font-black text-black block mt-0.5" id="ods-event-date">--/--/----</span>
+                    </div>
+                    <div class="bg-gray-50 border border-border p-3 rounded-xl print-bg-gray print-border">
+                        <span class="text-[8px] font-black uppercase text-gray-500 block">Orario di Inizio</span>
+                        <span class="text-xs font-black text-black block mt-0.5" id="ods-event-time">--:--</span>
+                    </div>
+                    <div class="bg-gray-50 border border-border p-3 rounded-xl print-bg-gray print-border col-span-2">
+                        <span class="text-[8px] font-black uppercase text-gray-500 block">Numero Totale di Persone</span>
+                        <span class="text-xs font-black text-black block mt-0.5" id="ods-event-pax">0 Persone</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEZIONE 2: ALLERGIE ALIMENTARI E PRESCRIZIONI DIETETICHE -->
+            <section id="ods-allergie-section" class="hidden print-avoid-break">
+                <div class="border-2 border-black p-4 rounded-xl space-y-1 bg-gray-50 print-bg-gray">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-triangle-exclamation text-black text-xs"></i>
+                        <span class="text-xs font-black uppercase tracking-wider text-black">Prescrizioni Dietetiche e Allergie</span>
+                    </div>
+                    <p class="text-xs font-bold text-black leading-relaxed" id="ods-allergie-content">Nessuna allergia segnalata</p>
+                </div>
+            </section>
+
+            <!-- SEZIONE 3: CONDIZIONI METEO E COLLABORATORI -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs print-avoid-break">
+                <div class="border border-border p-3 rounded-xl print-border">
+                    <span class="text-[8px] font-black uppercase text-gray-500 block">Condizioni Meteorologiche Previste</span>
+                    <span class="font-bold text-black mt-0.5 block" id="ods-event-meteo">Non specificato</span>
+                </div>
+                <div class="border border-border p-3 rounded-xl print-border">
+                    <span class="text-[8px] font-black uppercase text-gray-500 block">Collaboratori e Personale Esterno</span>
+                    <span class="font-bold text-black mt-0.5 block" id="ods-event-crew">Nessun collaboratore esterno</span>
+                </div>
+            </section>
+
+            <!-- SEZIONE 4: TABELLA ORARIA DI SVOLGIMENTO (RUN OF SHOW) -->
+            <section id="ods-run-of-show-section" class="space-y-2 print-avoid-break">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Tabella Oraria di Svolgimento</span>
+                <div class="border border-black rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-gray-100 border-b border-black text-[9px] font-black uppercase tracking-wider print-bg-gray">
+                                <th class="py-2 px-3 border-r border-black w-24">Orario</th>
+                                <th class="py-2 px-3 border-r border-black">Fase Operativa</th>
+                                <th class="py-2 px-3 w-36">Reparto Responsabile</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ods-run-of-show-body" class="divide-y divide-gray-200">
+                            <!-- Popolato dinamicamente da JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SEZIONE 5: COMPITI E MANSIONI SPECIFICHE PER IL REPARTO -->
+            <section class="space-y-2 print-avoid-break">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Compiti e Mansioni Operative del Reparto</span>
+                <div id="ods-tasks-container" class="space-y-2">
+                    <!-- Popolato dinamicamente da JavaScript -->
+                </div>
+            </section>
+
+            <!-- SEZIONE 6: NOTE DI REVISIONE E VISTI -->
+            <section class="border border-border p-4 rounded-xl space-y-2 print-border print-avoid-break">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-500 block">Note di Revisione e Presa d Atto</span>
+                <div class="space-y-1 text-xs">
+                    <div class="flex items-start justify-between gap-2">
+                        <span class="font-bold text-gray-600">Stato Visto del Reparto:</span>
+                        <span class="font-black text-black uppercase" id="ods-signoff-status">Approvato</span>
+                    </div>
+                    <div id="ods-signoff-notes-row" class="text-gray-700">
+                        <span class="font-bold">Annotazioni:</span>
+                        <span id="ods-signoff-notes-text">Nessuna nota comunicata</span>
+                    </div>
+                    <div id="ods-force-confirm-row" class="hidden pt-1 border-t border-dashed border-gray-300 text-amber-950 font-bold">
+                        <span>Annotazione del Titolare per Conferma Forzata:</span>
+                        <span id="ods-force-confirm-text" class="block font-normal mt-0.5 text-black"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SEZIONE 7: SPAZIO FIRME E PRESA IN CARICO -->
+            <section class="pt-6 border-t-2 border-black grid grid-cols-2 gap-8 text-xs print-avoid-break">
+                <div class="space-y-8">
+                    <span class="font-bold text-gray-600 uppercase text-[9px] block">Firma del Responsabile di Reparto</span>
+                    <div class="border-b border-black w-full pb-1 text-gray-400 text-[10px]">Data e Firma per Presa in Carico</div>
+                </div>
+                <div class="space-y-8">
+                    <span class="font-bold text-gray-600 uppercase text-[9px] block">Firma della Direzione Aziendale</span>
+                    <div class="border-b border-black w-full pb-1 text-gray-400 text-[10px]">Data e Firma del Titolare</div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- SCRIPT LOGICA OPERATIVA E DATI -->
+    <script>
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0cf2c897-c5b1-4ef3-92df-6498671245c2";
+        
+        let ash = '';
+        let eventPlanId = '';
+        let currentRole = 'chef';
+        let currentEventPlan = null;
+
+        const roleConfig = {
+            'chef': {
+                title: 'Reparto Cucina e Gastronomia - Chef di Cucina',
+                signoffKey: 'chef_signoff',
+                defaultTasks: [
+                    'Pianificazione linee di cottura e preparazione del menu stabilito',
+                    'Allestimento postazione dedicata per prescrizioni dietetiche e celiachia',
+                    'Rilevazione e registrazione temperature di conservazione HACCP',
+                    'Impiattamento e rispetto della sequenza delle portate'
+                ]
+            },
+            'maitre': {
+                title: 'Reparto Sala e Ricevimento - Maître di Sala',
+                signoffKey: 'maitre_signoff',
+                defaultTasks: [
+                    'Disposizione e mise en place dei tavoli tondi e plance buffet',
+                    'Assegnazione dei ranghi di servizio al personale di sala',
+                    'Coordinamento accoglienza, orari servizio e tempistiche di sala',
+                    'Gestione bevande e servizio al tavolo per gli ospiti'
+                ]
+            },
+            'logistics': {
+                title: 'Reparto Logistica e Trasporti - Responsabile Logistica',
+                signoffKey: 'logistics_signoff',
+                defaultTasks: [
+                    'Carico, trasporto e gestione chilogrammi di ghiaccio necessari',
+                    'Posizionamento e rifornimento mastelli termici Coleman cento litri',
+                    'Controllo integrità attrezzature noleggiate in arrivo e in partenza',
+                    'Logistica inversa e recupero dotazioni a termine evento'
+                ]
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                try {
+                    tg.ready();
+                    tg.expand();
+                } catch (e) {
+                    console.warn("Telegram WebApp Init:", e);
+                }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            ash = urlParams.get('ash') || '';
+            eventPlanId = urlParams.get('event_plan_id') || '';
+            
+            const rawRole = (urlParams.get('role') || 'chef').toLowerCase();
+            if (['chef', 'maitre', 'logistics'].includes(rawRole)) {
+                currentRole = rawRole;
+            } else if (rawRole.includes('fattorino') || rawRole.includes('logistica')) {
+                currentRole = 'logistics';
+            } else if (rawRole.includes('sala')) {
+                currentRole = 'maitre';
+            } else {
+                currentRole = 'chef';
+            }
+
+            setupHeaderRole();
+            if (eventPlanId) {
+                loadEventPlanData();
+            } else {
+                showToast("Identificativo piano evento non specificato.", true);
+            }
+        });
+
+        function setupHeaderRole() {
+            const cfg = roleConfig[currentRole] || roleConfig['chef'];
+            const roleEl = document.getElementById('ods-role-title');
+            if (roleEl) roleEl.innerText = cfg.title;
+        }
+
+        function showLoader(message = "Generazione in corso...") {
+            const loader = document.getElementById('page-loader');
+            const msgEl = document.getElementById('loader-message');
+            if (msgEl) msgEl.innerText = message;
+            if (loader) {
+                loader.classList.remove('hidden', 'opacity-0');
+                loader.classList.add('opacity-100');
+            }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('page-loader');
+            if (loader) {
+                loader.classList.add('opacity-0');
+                setTimeout(() => loader.classList.add('hidden'), 300);
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastBody = document.getElementById('toast-body');
+            const toastText = document.getElementById('toast-text');
+            if (!toast || !toastText) return;
+
+            toastText.innerText = message;
+            if (isError) {
+                toastBody.classList.remove('bg-black');
+                toastBody.classList.add('bg-red-700');
+            } else {
+                toastBody.classList.remove('bg-red-700');
+                toastBody.classList.add('bg-black');
+            }
+
+            toast.classList.remove('hidden');
+            setTimeout(() => hideToast(), 4000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            if (toast) toast.classList.add('hidden');
+        }
+
+        async function callWebhook(action, extraData = {}) {
+            const payload = {
+                action: action,
+                _auth: window.Telegram?.WebApp?.initData || '',
+                ash: ash,
+                ...extraData
+            };
+
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || ("Errore del server con codice " + response.status));
+            }
+
+            return await response.json();
+        }
+
+        async function loadEventPlanData() {
+            showLoader("Generazione documento per la stampa...");
+            try {
+                const res = await callWebhook('get_event_plan', { event_plan_id: eventPlanId });
+                if (res.success && res.event_plan) {
+                    currentEventPlan = res.event_plan;
+                    renderPrintDocument(currentEventPlan);
+                } else {
+                    showToast(res.error || "Piano evento non trovato.", true);
+                }
+            } catch (err) {
+                console.warn("Recupero dati piano non riuscito:", err);
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function renderPrintDocument(plan) {
+            // Intestazione
+            const planIdEl = document.getElementById('ods-plan-id');
+            const statusBadge = document.getElementById('ods-status-badge');
+
+            if (planIdEl) planIdEl.innerText = "Piano " + plan.event_plan_id;
+            if (statusBadge) {
+                const statusMap = {
+                    'CONFIRMED': 'Confermato per Esecuzione',
+                    'IN_EXECUTION': 'In Esecuzione',
+                    'IN_REVIEW': 'In Fase di Revisione',
+                    'DRAFT': 'Documento in Bozza'
+                };
+                statusBadge.innerText = statusMap[plan.status] || plan.status;
+            }
+
+            // Dati Generali
+            const dateEl = document.getElementById('ods-event-date');
+            const timeEl = document.getElementById('ods-event-time');
+            const paxEl = document.getElementById('ods-event-pax');
+            const meteoEl = document.getElementById('ods-event-meteo');
+            const crewEl = document.getElementById('ods-event-crew');
+
+            if (dateEl) dateEl.innerText = plan.event_date || 'Non specificata';
+            if (timeEl) timeEl.innerText = plan.orario_evento || 'Non specificato';
+            if (paxEl) paxEl.innerText = (plan.pax || 0) + ' Persone';
+            if (meteoEl) meteoEl.innerText = plan.meteo_previsto || 'Non specificato';
+            if (crewEl) crewEl.innerText = (plan.crew_esterna || []).length > 0 ? plan.crew_esterna.join(', ') : 'Nessun collaboratore esterno';
+
+            // Allergie alimentari
+            const allergieSec = document.getElementById('ods-allergie-section');
+            const allergieContent = document.getElementById('ods-allergie-content');
+            const allergieList = plan.allergie || [];
+            if (allergieList.length > 0 && allergieSec && allergieContent) {
+                allergieContent.innerText = "Attenzione: predisporre alimenti e porzioni separate per " + allergieList.join(', ');
+                allergieSec.classList.remove('hidden');
+            } else if (allergieSec) {
+                allergieSec.classList.add('hidden');
+            }
+
+            // Tabella Run of Show
+            renderRunOfShowTable(plan.run_of_show || []);
+
+            // Compiti specifici per il ruolo
+            renderTasksList(plan);
+
+            // Note e Visti
+            renderSignoffSummary(plan);
+        }
+
+        function renderRunOfShowTable(ros) {
+            const body = document.getElementById('ods-run-of-show-body');
+            if (!body) return;
+
+            if (ros.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="py-3 px-3 text-center text-gray-500 font-medium">
+                            Scaletta oraria in definizione
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            body.innerHTML = ros.map(item => `
+                <tr class="border-b border-gray-200">
+                    <td class="py-2 px-3 font-black border-r border-gray-200">${escapeHtml(item.time || '--:--')}</td>
+                    <td class="py-2 px-3 font-medium border-r border-gray-200">${escapeHtml(item.phase || '')}</td>
+                    <td class="py-2 px-3 font-bold uppercase text-[9px] text-gray-700">${escapeHtml(item.owner_role || '')}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTasksList(plan) {
+            const container = document.getElementById('ods-tasks-container');
+            if (!container) return;
+
+            const cfg = roleConfig[currentRole] || roleConfig['chef'];
+            const allTasks = plan.planned_tasks || [];
+
+            const matchingTasks = allTasks.filter(t => {
+                const r = (t.role || '').toLowerCase();
+                if (currentRole === 'chef') return r.includes('chef') || r.includes('cucina');
+                if (currentRole === 'maitre') return r.includes('maitre') || r.includes('sala');
+                if (currentRole === 'logistics') return r.includes('logist') || r.includes('fattorin') || r.includes('trasport');
+                return false;
+            });
+
+            if (matchingTasks.length > 0) {
+                container.innerHTML = matchingTasks.map(task => `
+                    <div class="border border-border p-3 rounded-xl print-border space-y-1 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-black shrink-0"></span>
+                            <span class="font-black text-black uppercase">${escapeHtml(task.description || 'Compito')}</span>
+                        </div>
+                        ${task.technical_notes ? `<p class="text-gray-700 pl-4 font-medium">${escapeHtml(task.technical_notes)}</p>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                const defaultList = cfg.defaultTasks || [];
+                container.innerHTML = defaultList.map(taskText => `
+                    <div class="border border-border p-2.5 rounded-xl print-border flex items-center gap-2.5 text-xs">
+                        <span class="w-2 h-2 rounded-full bg-black shrink-0"></span>
+                        <span class="font-bold text-gray-900">${escapeHtml(taskText)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderSignoffSummary(plan) {
+            const cfg = roleConfig[currentRole] || roleConfig['chef'];
+            const signoff = plan[cfg.signoffKey] || { status: 'PENDING', notes: '' };
+
+            const statusEl = document.getElementById('ods-signoff-status');
+            const notesEl = document.getElementById('ods-signoff-notes-text');
+            const forceRow = document.getElementById('ods-force-confirm-row');
+            const forceText = document.getElementById('ods-force-confirm-text');
+
+            if (statusEl) {
+                const stMap = {
+                    'APPROVED': 'Approvato con Validazione',
+                    'CHANGES_REQUESTED': 'Richieste Modifiche',
+                    'PENDING': 'In Attesa'
+                };
+                statusEl.innerText = stMap[signoff.status] || signoff.status;
+            }
+
+            if (notesEl) {
+                notesEl.innerText = signoff.notes ? signoff.notes : 'Nessuna annotazione particolare comunicata';
+            }
+
+            if (plan.forced_confirm_reason && forceRow && forceText) {
+                forceText.innerText = plan.forced_confirm_reason;
+                forceRow.classList.remove('hidden');
+            } else if (forceRow) {
+                forceRow.classList.add('hidden');
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>

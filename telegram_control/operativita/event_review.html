@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS - Revisione Operativa Evento</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#000000',
+                        bg: '#fafafa',
+                        surface: '#ffffff',
+                        border: '#eeeeee'
+                    },
+                    borderRadius: {
+                        '3xl': '1.5rem',
+                        '4xl': '2rem'
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafafa;
+            color: #000000;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .card {
+            background-color: #ffffff;
+            border: 1px solid #eeeeee;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-24">
+
+    <!-- LOADER OVERLAY -->
+    <div id="page-loader" class="fixed inset-0 bg-white/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center gap-3 transition-opacity duration-300">
+        <div class="w-10 h-10 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
+        <p class="text-xs font-black uppercase tracking-wider text-gray-700" id="loader-message">Caricamento Scheda di Revisione...</p>
+    </div>
+
+    <!-- NOTIFICA TOAST -->
+    <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 hidden transition-all duration-300 max-w-sm w-11/12">
+        <div id="toast-body" class="bg-black text-white px-4 py-3 rounded-2xl shadow-xl flex items-center justify-between gap-3 text-xs font-medium">
+            <span id="toast-text">Notifica</span>
+            <button onclick="hideToast()" class="text-gray-400 hover:text-white" title="Chiudi notifica">
+                <i class="fas fa-times text-xs"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- HEADER PRINCIPALE (MOBILE-FIRST) -->
+    <header class="bg-white border-b border-border sticky top-0 z-40">
+        <div class="max-w-xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase tracking-widest rounded">SiteBoS</span>
+                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider" id="header-role-subtitle">Revisione Operativa</span>
+                </div>
+                <h1 class="text-base font-black uppercase tracking-tight mt-0.5 truncate" id="header-role-title">Revisione Reparto</h1>
+            </div>
+            <button onclick="loadEventPlanData()" class="w-9 h-9 bg-gray-100 hover:bg-gray-200 active:scale-95 text-black rounded-xl flex items-center justify-center transition-colors shrink-0" title="Aggiorna dati">
+                <i class="fas fa-rotate text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENITORE PRINCIPALE (COLONNA SINGOLA MOBILE) -->
+    <main class="max-w-xl w-full mx-auto px-4 mt-4 flex-1 space-y-5">
+
+        <!-- SCHEDA RIEPILOGO GENERALE EVENTO -->
+        <section class="card rounded-3xl p-5 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Riepilogo Evento</span>
+                <span id="review-plan-status-badge" class="px-2.5 py-1 bg-gray-100 text-gray-700 text-[8px] font-black uppercase tracking-wider rounded-lg">Bozza</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2.5">
+                <div class="bg-gray-50 border border-border p-3 rounded-2xl">
+                    <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Data dell Evento</span>
+                    <span class="text-sm font-black text-black block mt-0.5" id="sum-event-date">Non specificata</span>
+                </div>
+                <div class="bg-gray-50 border border-border p-3 rounded-2xl">
+                    <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Orario di Inizio</span>
+                    <span class="text-sm font-black text-black block mt-0.5" id="sum-event-time">Non specificato</span>
+                </div>
+                <div class="bg-gray-50 border border-border p-3 rounded-2xl col-span-2">
+                    <span class="text-[8px] font-black text-gray-400 uppercase tracking-wider block">Numero di Persone o Coperti</span>
+                    <span class="text-base font-black text-black block mt-0.5" id="sum-event-pax">0 Persone</span>
+                </div>
+            </div>
+
+            <!-- ATTENZIONE ALLERGIE E DIETE -->
+            <div id="allergie-alert-box" class="hidden bg-red-50 border border-red-200 p-4 rounded-2xl space-y-1">
+                <div class="flex items-center gap-2 text-red-950 text-xs font-black uppercase tracking-wider">
+                    <i class="fas fa-triangle-exclamation text-red-600"></i>
+                    <span>Attenzione Prescrizioni Dietetiche e Allergie</span>
+                </div>
+                <p id="allergie-text" class="text-xs text-red-900 font-bold leading-relaxed"></p>
+            </div>
+
+            <!-- CONDIZIONI METEO E COLLABORATORI -->
+            <div class="space-y-2 text-xs">
+                <div class="flex items-start justify-between py-1.5 border-b border-gray-100">
+                    <span class="text-gray-500 font-medium">Condizioni Meteo Previste</span>
+                    <span class="font-bold text-black text-right" id="sum-event-meteo">Non specificato</span>
+                </div>
+                <div class="flex items-start justify-between py-1.5 border-b border-gray-100">
+                    <span class="text-gray-500 font-medium">Collaboratori e Personale Esterno</span>
+                    <span class="font-bold text-black text-right" id="sum-event-crew">Nessun collaboratore</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- COMPITI E MANSIONI SPECIFICHE PER IL RUOLO -->
+        <section class="card rounded-3xl p-5 space-y-4 shadow-sm">
+            <div class="flex items-center justify-between">
+                <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Compiti Operativi di Reparto</span>
+                <span id="role-task-count-badge" class="px-2 py-0.5 bg-black text-white text-[8px] font-black uppercase rounded">Incarichi</span>
+            </div>
+
+            <div id="role-tasks-container" class="space-y-3">
+                <!-- Popolato dinamicamente da JavaScript -->
+            </div>
+        </section>
+
+        <!-- TABELLA ORARIA DI SVOLGIMENTO (RUN OF SHOW) -->
+        <section id="run-of-show-section" class="card rounded-3xl p-5 space-y-3 shadow-sm">
+            <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Tabella Oraria di Svolgimento</span>
+            <div id="run-of-show-list" class="space-y-2">
+                <!-- Popolato dinamicamente -->
+            </div>
+        </section>
+
+        <!-- STATO ATTUALE DELLA REVISIONE -->
+        <section class="card rounded-3xl p-5 space-y-3 shadow-sm">
+            <span class="text-[9px] font-black uppercase tracking-widest text-gray-400 block">Stato della Tua Revisione</span>
+            <div class="bg-gray-50 border border-border p-3.5 rounded-2xl flex items-center justify-between gap-3">
+                <div class="space-y-0.5 flex-1 min-w-0">
+                    <span class="text-xs font-black uppercase text-black block" id="current-signoff-label">In Attesa di Valutazione</span>
+                    <p class="text-[10px] text-gray-500 truncate" id="current-signoff-notes">Nessuna nota registrata</p>
+                </div>
+                <span id="current-signoff-badge" class="px-2.5 py-1 bg-gray-200 text-gray-700 text-[8px] font-black uppercase rounded-lg shrink-0">In Attesa</span>
+            </div>
+        </section>
+
+        <!-- AREA RICHIESTA MODIFICHE ESPANDIBILE -->
+        <section id="change-request-section" class="hidden card rounded-3xl p-5 space-y-3 border-amber-200 bg-amber-50/40 shadow-sm">
+            <div class="flex items-center gap-2 text-amber-950 text-xs font-black uppercase tracking-wider">
+                <i class="fas fa-pen-to-square text-amber-600"></i>
+                <span>Dettaglio Modifiche Richieste</span>
+            </div>
+            <p class="text-[11px] text-amber-900 font-medium leading-relaxed">
+                Specifica con chiarezza quali variazioni di orario, personale, quantità o procedure sono necessarie prima dell approvazione.
+            </p>
+            <textarea id="change-request-notes-input" rows="3" placeholder="Scrivi qui le motivazioni e le modifiche necessarie..." class="w-full bg-white border border-amber-200 rounded-2xl p-3 text-xs text-black focus:outline-none focus:border-black resize-y"></textarea>
+            <div class="flex gap-2">
+                <button onclick="cancelChangeRequestMode()" class="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-black uppercase rounded-2xl transition">
+                    Annulla
+                </button>
+                <button onclick="submitSignoffAction('CHANGES_REQUESTED')" class="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white text-xs font-black uppercase tracking-wider rounded-2xl transition shadow">
+                    Invia Richiesta
+                </button>
+            </div>
+        </section>
+
+        <!-- BANNER CONFERMA INVIO AVVENUTO -->
+        <section id="submitted-confirmation-card" class="hidden card rounded-3xl p-5 space-y-2 bg-emerald-50 border-emerald-200 text-center">
+            <i class="fas fa-circle-check text-emerald-600 text-2xl"></i>
+            <h3 class="text-xs font-black uppercase text-emerald-950">Revisione Inviata con Successo</h3>
+            <p class="text-xs text-emerald-800 font-medium leading-relaxed" id="submitted-message-text">
+                Il tuo riscontro operativo è stato registrato ed è visibile al titolare.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- BARRA AZIONI BOTTOM FISSA (SOLO MOBILE TOUCH) -->
+    <div id="bottom-actions-bar" class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-border p-4 z-40">
+        <div class="max-w-xl mx-auto flex gap-3">
+            <button id="btn-request-changes" onclick="openChangeRequestMode()" class="flex-1 py-3.5 bg-white hover:bg-gray-50 border-2 border-black text-black active:scale-95 text-xs font-black uppercase tracking-wider rounded-2xl transition flex items-center justify-center gap-1.5">
+                <i class="fas fa-exclamation text-xs"></i>
+                <span>Richiedi Modifiche</span>
+            </button>
+            <button id="btn-approve" onclick="submitSignoffAction('APPROVED')" class="flex-1 py-3.5 bg-black hover:bg-gray-900 active:scale-95 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition shadow-lg flex items-center justify-center gap-1.5">
+                <i class="fas fa-check text-xs"></i>
+                <span>Approva Piano</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- SCRIPT LOGICA OPERATIVA -->
+    <script>
+        const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/0cf2c897-c5b1-4ef3-92df-6498671245c2";
+        
+        let ash = '';
+        let eventPlanId = '';
+        let currentRole = 'chef';
+        let currentEventPlan = null;
+
+        const roleConfig = {
+            'chef': {
+                title: 'Chef di Cucina',
+                subtitle: 'Reparto Cucina e Gastronomia',
+                icon: 'fa-hat-chef',
+                signoffKey: 'chef_signoff',
+                defaultTasks: [
+                    'Preparazione e impiattamento menu concordato',
+                    'Allestimento linea celiaci e gestione allergeni separata',
+                    'Controllo temperature e rispetto procedure HACCP'
+                ]
+            },
+            'maitre': {
+                title: 'Maître di Sala',
+                subtitle: 'Reparto Sala e Ricevimento',
+                icon: 'fa-bell-concierge',
+                signoffKey: 'maitre_signoff',
+                defaultTasks: [
+                    'Allestimento e mise en place tavoli tondi e plance buffet',
+                    'Assegnazione ranghi e coordinamento personale di sala',
+                    'Accoglienza ospiti e rispetto scaletta oraria del servizio'
+                ]
+            },
+            'logistics': {
+                title: 'Responsabile Logistica',
+                subtitle: 'Reparto Trasporti e Magazzino',
+                icon: 'fa-truck-fast',
+                signoffKey: 'logistics_signoff',
+                defaultTasks: [
+                    'Carico, trasporto e rifornimento chilogrammi di ghiaccio',
+                    'Posizionamento mastelli termici Coleman cento litri',
+                    'Logistica inversa e recupero attrezzature a fine evento'
+                ]
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                try {
+                    tg.ready();
+                    tg.expand();
+                } catch (e) {
+                    console.warn("Telegram WebApp Init:", e);
+                }
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            ash = urlParams.get('ash') || '';
+            eventPlanId = urlParams.get('event_plan_id') || '';
+            
+            const rawRole = (urlParams.get('role') || 'chef').toLowerCase();
+            if (['chef', 'maitre', 'logistics'].includes(rawRole)) {
+                currentRole = rawRole;
+            } else if (rawRole.includes('fattorino') || rawRole.includes('logistica')) {
+                currentRole = 'logistics';
+            } else if (rawRole.includes('sala')) {
+                currentRole = 'maitre';
+            } else {
+                currentRole = 'chef';
+            }
+
+            setupRoleUI();
+            if (eventPlanId) {
+                loadEventPlanData();
+            } else {
+                showToast("Identificativo piano evento non specificato.", true);
+            }
+        });
+
+        function setupRoleUI() {
+            const cfg = roleConfig[currentRole] || roleConfig['chef'];
+            const titleEl = document.getElementById('header-role-title');
+            const subtitleEl = document.getElementById('header-role-subtitle');
+
+            if (titleEl) titleEl.innerText = cfg.title;
+            if (subtitleEl) subtitleEl.innerText = cfg.subtitle;
+        }
+
+        function showLoader(message = "Caricamento in corso...") {
+            const loader = document.getElementById('page-loader');
+            const msgEl = document.getElementById('loader-message');
+            if (msgEl) msgEl.innerText = message;
+            if (loader) {
+                loader.classList.remove('hidden', 'opacity-0');
+                loader.classList.add('opacity-100');
+            }
+        }
+
+        function hideLoader() {
+            const loader = document.getElementById('page-loader');
+            if (loader) {
+                loader.classList.add('opacity-0');
+                setTimeout(() => loader.classList.add('hidden'), 300);
+            }
+        }
+
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastBody = document.getElementById('toast-body');
+            const toastText = document.getElementById('toast-text');
+            if (!toast || !toastText) return;
+
+            toastText.innerText = message;
+            if (isError) {
+                toastBody.classList.remove('bg-black');
+                toastBody.classList.add('bg-red-700');
+            } else {
+                toastBody.classList.remove('bg-red-700');
+                toastBody.classList.add('bg-black');
+            }
+
+            toast.classList.remove('hidden');
+            if (window.Telegram?.WebApp?.HapticFeedback) {
+                try {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred(isError ? 'error' : 'success');
+                } catch (e) {}
+            }
+
+            setTimeout(() => hideToast(), 4000);
+        }
+
+        function hideToast() {
+            const toast = document.getElementById('toast');
+            if (toast) toast.classList.add('hidden');
+        }
+
+        async function callWebhook(action, extraData = {}) {
+            const payload = {
+                action: action,
+                _auth: window.Telegram?.WebApp?.initData || '',
+                ash: ash,
+                ...extraData
+            };
+
+            const response = await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || ("Errore del server con codice " + response.status));
+            }
+
+            return await response.json();
+        }
+
+        async function loadEventPlanData() {
+            showLoader("Caricamento piano evento...");
+            try {
+                const res = await callWebhook('get_event_plan', { event_plan_id: eventPlanId });
+                if (res.success && res.event_plan) {
+                    currentEventPlan = res.event_plan;
+                    renderReviewData(currentEventPlan);
+                } else {
+                    showToast(res.error || "Piano evento non trovato.", true);
+                }
+            } catch (err) {
+                console.warn("Recupero piano evento non riuscito:", err);
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function renderReviewData(plan) {
+            // Stato piano badge
+            const statusBadge = document.getElementById('review-plan-status-badge');
+            if (statusBadge) {
+                const statusMap = {
+                    'DRAFT': { label: 'Bozza', class: 'bg-gray-100 text-gray-800' },
+                    'IN_REVIEW': { label: 'In Revisione', class: 'bg-amber-100 text-amber-800' },
+                    'CONFIRMED': { label: 'Confermato', class: 'bg-emerald-100 text-emerald-800' },
+                    'IN_EXECUTION': { label: 'In Esecuzione', class: 'bg-blue-100 text-blue-800' }
+                };
+                const st = statusMap[plan.status] || { label: plan.status, class: 'bg-gray-100 text-gray-800' };
+                statusBadge.className = "px-2.5 py-1 text-[8px] font-black uppercase tracking-wider rounded-lg " + st.class;
+                statusBadge.innerText = st.label;
+            }
+
+            // Riepilogo generale
+            const dateEl = document.getElementById('sum-event-date');
+            const timeEl = document.getElementById('sum-event-time');
+            const paxEl = document.getElementById('sum-event-pax');
+            const meteoEl = document.getElementById('sum-event-meteo');
+            const crewEl = document.getElementById('sum-event-crew');
+
+            if (dateEl) dateEl.innerText = plan.event_date || 'Non specificata';
+            if (timeEl) timeEl.innerText = plan.orario_evento || 'Non specificato';
+            if (paxEl) paxEl.innerText = (plan.pax || 0) + ' Persone';
+            if (meteoEl) meteoEl.innerText = plan.meteo_previsto || 'Non specificato';
+            if (crewEl) crewEl.innerText = (plan.crew_esterna || []).length > 0 ? plan.crew_esterna.join(', ') : 'Nessun collaboratore esterno';
+
+            // Allergie alimentari
+            const allergieBox = document.getElementById('allergie-alert-box');
+            const allergieText = document.getElementById('allergie-text');
+            const allergieList = plan.allergie || [];
+            if (allergieList.length > 0 && allergieBox && allergieText) {
+                allergieText.innerText = "Presenza di persone con diete speciali o allergie: " + allergieList.join(', ');
+                allergieBox.classList.remove('hidden');
+            } else if (allergieBox) {
+                allergieBox.classList.add('hidden');
+            }
+
+            // Compiti specifici per il ruolo
+            renderRoleTasks(plan);
+
+            // Tabella oraria
+            renderRunOfShow(plan.run_of_show || []);
+
+            // Stato visto del ruolo
+            renderRoleSignoff(plan);
+        }
+
+        function renderRoleTasks(plan) {
+            const container = document.getElementById('role-tasks-container');
+            const countBadge = document.getElementById('role-task-count-badge');
+            if (!container) return;
+
+            const cfg = roleConfig[currentRole] || roleConfig['chef'];
+            const allTasks = plan.planned_tasks || [];
+            
+            // Filtra compiti per ruolo
+            const matchingTasks = allTasks.filter(t => {
+                const r = (t.role || '').toLowerCase();
+                if (currentRole === 'chef') return r.includes('chef') || r.includes('cucina');
+                if (currentRole === 'maitre') return r.includes('maitre') || r.includes('sala');
+                if (currentRole === 'logistics') return r.includes('logist') || r.includes('fattorin') || r.includes('trasport');
+                return false;
+            });
+
+            if (matchingTasks.length > 0) {
+                if (countBadge) countBadge.innerText = matchingTasks.length + " Incarichi";
+                container.innerHTML = matchingTasks.map(task => `
+                    <div class="bg-gray-50 border border-border p-3.5 rounded-2xl space-y-1.5">
+                        <div class="flex items-start justify-between gap-2">
+                            <span class="text-xs font-black uppercase text-black block">${escapeHtml(task.description || 'Compito Operativo')}</span>
+                        </div>
+                        ${task.technical_notes ? `<p class="text-[11px] text-gray-600 leading-snug">${escapeHtml(task.technical_notes)}</p>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                // Mostra i compiti sintetici operativi di default per il ruolo
+                const defaultList = cfg.defaultTasks || [];
+                if (countBadge) countBadge.innerText = defaultList.length + " Incarichi";
+                container.innerHTML = defaultList.map(taskText => `
+                    <div class="bg-gray-50 border border-border p-3.5 rounded-2xl flex items-center gap-3">
+                        <i class="fas fa-check text-black text-xs shrink-0"></i>
+                        <span class="text-xs font-bold text-gray-800">${escapeHtml(taskText)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function renderRunOfShow(ros) {
+            const list = document.getElementById('run-of-show-list');
+            if (!list) return;
+
+            if (ros.length === 0) {
+                list.innerHTML = `
+                    <div class="bg-gray-50 border border-border p-3 rounded-2xl text-center">
+                        <p class="text-[11px] text-gray-500 font-medium">Scaletta oraria in fase di definizione da parte della direzione</p>
+                    </div>`;
+                return;
+            }
+
+            list.innerHTML = ros.map(item => `
+                <div class="bg-gray-50 border border-border p-3 rounded-2xl flex items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-2.5">
+                        <span class="px-2 py-1 bg-black text-white font-black rounded-lg text-[9px]">${escapeHtml(item.time || '--:--')}</span>
+                        <span class="font-bold text-black">${escapeHtml(item.phase || 'Fase')}</span>
+                    </div>
+                    <span class="text-[9px] font-black uppercase text-gray-500">${escapeHtml(item.owner_role || '')}</span>
+                </div>
+            `).join('');
+        }
+
+        function renderRoleSignoff(plan) {
+            const cfg = roleConfig[currentRole] || roleConfig['chef'];
+            const signoff = plan[cfg.signoffKey] || { status: 'PENDING', notes: '' };
+
+            const badge = document.getElementById('current-signoff-badge');
+            const label = document.getElementById('current-signoff-label');
+            const notesEl = document.getElementById('current-signoff-notes');
+            const bottomBar = document.getElementById('bottom-actions-bar');
+            const confCard = document.getElementById('submitted-confirmation-card');
+            const confMsg = document.getElementById('submitted-message-text');
+
+            if (notesEl) {
+                notesEl.innerText = signoff.notes ? ("Nota: " + signoff.notes) : 'Nessuna nota registrata';
+            }
+
+            if (signoff.status === 'APPROVED') {
+                if (badge) {
+                    badge.className = "px-2.5 py-1 bg-emerald-100 text-emerald-800 text-[8px] font-black uppercase rounded-lg shrink-0";
+                    badge.innerText = "Approvato";
+                }
+                if (label) label.innerText = "Piano Approvato";
+                if (bottomBar) bottomBar.classList.add('hidden');
+                if (confCard) confCard.classList.remove('hidden');
+                if (confMsg) confMsg.innerText = "Hai approvato questo piano operativo. Eventuali ulteriori modifiche saranno coordinate dal titolare.";
+            } else if (signoff.status === 'CHANGES_REQUESTED') {
+                if (badge) {
+                    badge.className = "px-2.5 py-1 bg-red-100 text-red-800 text-[8px] font-black uppercase rounded-lg shrink-0";
+                    badge.innerText = "Modifiche Richieste";
+                }
+                if (label) label.innerText = "Modifiche Richieste";
+                if (bottomBar) bottomBar.classList.add('hidden');
+                if (confCard) {
+                    confCard.classList.remove('hidden', 'bg-emerald-50', 'border-emerald-200');
+                    confCard.classList.add('bg-amber-50', 'border-amber-200');
+                }
+                if (confMsg) confMsg.innerText = "La tua richiesta di modifica è stata inoltrata al titolare per l adeguamento dello scenario.";
+            } else {
+                if (badge) {
+                    badge.className = "px-2.5 py-1 bg-gray-200 text-gray-700 text-[8px] font-black uppercase rounded-lg shrink-0";
+                    badge.innerText = "In Attesa";
+                }
+                if (label) label.innerText = "In Attesa di Valutazione";
+                if (bottomBar) bottomBar.classList.remove('hidden');
+                if (confCard) confCard.classList.add('hidden');
+            }
+        }
+
+        function openChangeRequestMode() {
+            const section = document.getElementById('change-request-section');
+            if (section) {
+                section.classList.remove('hidden');
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+            const bottomBar = document.getElementById('bottom-actions-bar');
+            if (bottomBar) bottomBar.classList.add('hidden');
+        }
+
+        function cancelChangeRequestMode() {
+            const section = document.getElementById('change-request-section');
+            if (section) section.classList.add('hidden');
+            const bottomBar = document.getElementById('bottom-actions-bar');
+            if (bottomBar) bottomBar.classList.remove('hidden');
+        }
+
+        async function submitSignoffAction(status) {
+            let notes = '';
+            if (status === 'CHANGES_REQUESTED') {
+                const notesInput = document.getElementById('change-request-notes-input');
+                notes = (notesInput?.value || '').trim();
+                if (!notes) {
+                    showToast("Inserisci la nota obbligatoria con le modifiche richieste.", true);
+                    return;
+                }
+            }
+
+            showLoader("Registrazione revisione in corso...");
+            try {
+                const res = await callWebhook('update_signoff', {
+                    event_plan_id: eventPlanId,
+                    role: currentRole,
+                    status: status,
+                    notes: notes
+                });
+
+                if (res.success && res.event_plan) {
+                    currentEventPlan = res.event_plan;
+                    renderReviewData(currentEventPlan);
+                    cancelChangeRequestMode();
+                    showToast(status === 'APPROVED' ? "Piano approvato con successo!" : "Richiesta di modifica inviata!");
+                } else {
+                    showToast(res.error || "Impossibile registrare la revisione.", true);
+                }
+            } catch (err) {
+                showToast(err.message, true);
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+    </script>
+</body>
+</html>
