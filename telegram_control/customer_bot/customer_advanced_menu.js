@@ -20,6 +20,10 @@
 
     const tg = window.Telegram && window.Telegram.WebApp;
     let historyLoaded = false;
+    let pendingAttachment = null;
+    const MAX_ATTACHMENT_BYTES = 4 * 1024 * 1024; // 4MB, limite ragionevole lato client
+    const CONSENT_KEY = 'sitebos_customer_consent_v1';
+    const CONSENT_VERSION = '1.0';
 
     function injectDrawer() {
         if (document.getElementById('customer-menu-overlay')) return;
@@ -39,7 +43,10 @@
                         <div id="cam-chat-container" class="space-y-3 text-[11px] leading-relaxed max-h-64 overflow-y-auto">
                             <div class="text-slate-400">Scrivi una domanda, l'assistente ti risponde qui.</div>
                         </div>
+                        <div id="cam-attach-preview" class="hidden items-center gap-1.5 text-[9px] text-slate-500 bg-slate-50 border border-slate-100 rounded-xl px-2.5 py-1.5"></div>
                         <div class="flex items-center gap-2">
+                            <input type="file" id="cam-attach-input" accept="image/*,application/pdf" class="hidden">
+                            <button onclick="window.CustomerAdvancedMenu.pickAttachment()" class="w-9 h-9 bg-white border border-slate-200 text-slate-500 rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition" title="Allega immagine o PDF"><i class="fas fa-paperclip text-xs"></i></button>
                             <input type="text" id="cam-chat-input" placeholder="Scrivi una richiesta..." class="flex-1 bg-white border border-slate-200 text-slate-800 rounded-xl py-2.5 px-3 text-[11px] focus:outline-none focus:border-slate-400">
                             <button onclick="window.CustomerAdvancedMenu.sendChat()" class="w-10 h-10 bg-slate-950 text-white rounded-xl flex items-center justify-center shrink-0 active:scale-95 transition"><i class="fas fa-paper-plane text-xs"></i></button>
                         </div>
@@ -120,13 +127,115 @@
         container.scrollTop = container.scrollHeight;
     }
 
+    // --- Allegati (immagine/PDF): l'owner decide da bot_config.html se accettarli
+    // (permissions.allow_images/allow_files) - il rifiuto vero e proprio arriva dal
+    // backend, qui solo raccolta/conversione file -> base64.
+    function pickAttachment() {
+        const input = document.getElementById('cam-attach-input');
+        if (!input) return;
+        input.onchange = handleAttachmentSelected;
+        input.click();
+    }
+
+    function handleAttachmentSelected(e) {
+        const file = e.target.files && e.target.files[0];
+        e.target.value = '';
+        if (!file) return;
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+            addChatMessage('ai', 'File troppo grande (massimo 4MB).');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = String(reader.result || '');
+            const base64 = result.split(',')[1] || '';
+            if (!base64) return;
+            pendingAttachment = { mimeType: file.type || 'application/octet-stream', data: base64 };
+            showAttachmentPreview(file.name);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function showAttachmentPreview(name) {
+        const el = document.getElementById('cam-attach-preview');
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+        el.innerHTML = `<i class="fas fa-paperclip"></i><span class="flex-1 truncate">${escapeHtml(name)}</span><button onclick="window.CustomerAdvancedMenu.clearAttachment()" class="text-slate-400"><i class="fas fa-times"></i></button>`;
+    }
+
+    function clearAttachment() {
+        pendingAttachment = null;
+        const el = document.getElementById('cam-attach-preview');
+        if (el) { el.classList.add('hidden'); el.classList.remove('flex'); el.innerHTML = ''; }
+    }
+
+    // --- Primo accesso: disclaimer privacy/uso AI, consenso valido 1 anno.
+    // Il log "vero" resta lato cliente (localStorage): il POST verso il backend
+    // e' solo un'annotazione best-effort su active_session per l'owner/audit,
+    // non blocca mai la UX se fallisce.
+    function hasValidConsent() {
+        try {
+            const raw = localStorage.getItem(CONSENT_KEY);
+            if (!raw) return false;
+            const data = JSON.parse(raw);
+            return !!(data && data.accepted && data.expires && new Date(data.expires).getTime() > Date.now());
+        } catch (err) {
+            return false;
+        }
+    }
+
+    function acceptConsent() {
+        const expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+        try {
+            localStorage.setItem(CONSENT_KEY, JSON.stringify({ accepted: true, acceptedAt: new Date().toISOString(), expires }));
+        } catch (err) { /* storage non disponibile: si ripropone al prossimo giro, non blocca l'uso */ }
+        const overlay = document.getElementById('customer-consent-overlay');
+        if (overlay) overlay.remove();
+        if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+        if (ash) {
+            fetch(WH_CHAT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event: 'consent_accept',
+                    consent_version: CONSENT_VERSION,
+                    _auth: (tg && tg.initData) || 'debug_auth_mode',
+                    ash: ash
+                })
+            }).catch(() => {});
+        }
+    }
+
+    function checkPrivacyConsent() {
+        if (hasValidConsent() || document.getElementById('customer-consent-overlay')) return;
+        const html = `
+        <div id="customer-consent-overlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-[999999] flex items-end sm:items-center justify-center">
+            <div class="w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-shield-halved text-slate-800"></i>
+                    <h3 class="text-xs font-black uppercase tracking-widest text-slate-800">Privacy e Intelligenza Artificiale</h3>
+                </div>
+                <div class="text-[11px] leading-relaxed text-slate-600 space-y-2.5">
+                    <p>Questa app utilizza un assistente basato su intelligenza artificiale per rispondere alle tue richieste e guidarti nei servizi disponibili.</p>
+                    <p>Non conserviamo dati personali identificativi (nome, indirizzo, telefono): solo informazioni operative anonime necessarie al funzionamento del servizio.</p>
+                    <p>Continuando accetti l'elaborazione dei tuoi messaggi tramite intelligenza artificiale, in conformita' con la normativa sulla privacy vigente.</p>
+                </div>
+                <button onclick="window.CustomerAdvancedMenu.acceptConsent()" class="w-full py-3.5 bg-slate-950 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest active:scale-95 transition">Accetto</button>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+    }
+
     async function sendChat() {
         const input = document.getElementById('cam-chat-input');
         if (!input) return;
         const text = input.value.trim();
-        if (!text) return;
-        addChatMessage('user', text);
+        if (!text && !pendingAttachment) return;
+        addChatMessage('user', text || '📎 Allegato inviato');
         input.value = '';
+        const attachmentToSend = pendingAttachment;
+        clearAttachment();
         try {
             const response = await fetch(WH_CHAT, {
                 method: 'POST',
@@ -134,6 +243,7 @@
                 body: JSON.stringify({
                     action: 'npl_chat',
                     message: text,
+                    attachment: attachmentToSend || undefined,
                     // Usa-e-getta: gia' sul telefono del cliente (Telegram), serve solo a
                     // personalizzare QUESTA risposta. Il backend non lo salva mai.
                     display_name: (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.first_name) || '',
@@ -229,12 +339,17 @@
         window.location.href = `ticket.html${qs}`;
     }
 
-    window.CustomerAdvancedMenu = { open, close, sendChat, openTicket };
+    window.CustomerAdvancedMenu = { open, close, sendChat, openTicket, pickAttachment, clearAttachment, acceptConsent };
+
+    function init() {
+        injectTriggerButton();
+        checkPrivacyConsent();
+    }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', injectTriggerButton);
+        document.addEventListener('DOMContentLoaded', init);
     } else {
-        injectTriggerButton();
+        init();
     }
 
 })(window);
