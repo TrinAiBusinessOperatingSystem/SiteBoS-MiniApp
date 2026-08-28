@@ -228,15 +228,16 @@
             </div>
         </div>
 
-        <!-- RIATTIVA SOCIAL se non esiste -->
+        <!-- Nessun prompt social salvato per questo servizio: resta comunque possibile
+             generare/sostituire l'immagine, che non dipende dai prompt social -->
         <div id="noSocialSection" class="hidden text-center py-12 fade-in-up">
             <div class="w-16 h-16 bg-gray-50 rounded-3xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
-                <i class="fas fa-share-nodes text-2xl text-gray-300"></i>
+                <i class="fas fa-image text-2xl text-gray-300"></i>
             </div>
-            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Nessun post social trovato</p>
-            <button onclick="activateSocial()"
-                class="px-6 py-3.5 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition shadow-md">
-                <i class="fas fa-plus mr-2"></i> Attiva Social
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Nessun prompt social salvato</p>
+            <button onclick="generateImage()"
+                class="px-6 py-3.5 bg-slate-950 text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition shadow-md">
+                <i class="fas fa-image mr-2"></i> Genera Immagine
             </button>
         </div>
 
@@ -602,15 +603,14 @@
         }
 
         window.generateImage = async () => {
-            // NOTA: createPost.workflow.ts non distingue davvero le azioni 'generate_image' e
-            // 'activate_social' (un solo gate verifica solo che body.action esista, nessuna
-            // diramazione reale sul valore) — entrambe eseguono l'intera pipeline completa,
-            // inclusa la pubblicazione. Il testo di conferma qui sotto riflette questo,
-            // per non far credere all'operatore che stia generando solo un'anteprima.
+            // 2026-08-28: "Genera Immagine" genera davvero una nuova immagine (Gemini)
+            // e la sostituisce sul minisite (stesso file che il cliente vede già oggi).
+            // Nessuna caption social, nessun invio Telegram di riepilogo, nessuna coda
+            // di pubblicazione: solo generazione + sostituzione. Ricevi una notifica
+            // Telegram di conferma quando l'immagine è stata sostituita.
             if (tg && tg.showConfirm) {
-                tg.showConfirm("Generare un'immagine per questo post? Il contenuto verrà generato e inviato su Telegram, come con \"Attiva Social\".", async ok => {
+                tg.showConfirm("Generare una nuova immagine per questo servizio? Sostituirà quella attuale sul minisite.", async ok => {
                     if (ok) {
-                        await savePrompts();
                         fetch(WEBHOOK_SOCIAL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -666,27 +666,11 @@
             }
         };
 
-        window.activateSocial = () => {
-            if (tg && tg.showConfirm) {
-                tg.showConfirm('Attivare SOCIAL? Il contenuto verra generato e inviato su Telegram.', ok => {
-                    if (ok) {
-                        fetch(WEBHOOK_SOCIAL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: 'activate_social',
-                                sop_id: sopId,
-                                ash: ash,
-                                msg: msg,
-                                _auth: tg ? tg.initData : ''
-                            }),
-                            keepalive: true
-                        });
-                        setTimeout(() => tg.close(), 2000);
-                    }
-                });
-            }
-        };
+        // NOTA 2026-08-28: "Attiva Social" (activate_social) rimossa da questa pagina
+        // su decisione esplicita dell'Architetto — la pubblicazione sui social non è
+        // compito di questo editor. "Genera Immagine" ora genera davvero una nuova
+        // immagine e la sostituisce sul minisite (nient'altro: niente Telegram di
+        // riepilogo social, niente coda di pubblicazione). Vedi generateImage() sopra.
 
         window.copyToClipboard = (elementId) => {
             const el = document.getElementById(elementId);
