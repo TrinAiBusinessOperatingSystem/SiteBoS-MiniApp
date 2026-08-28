@@ -153,6 +153,11 @@
                 <i class="fa-solid fa-solar-panel"></i>
                 <span>2. Voc/Isc Stringa Fotovoltaica & Temperatura</span>
             </button>
+
+            <button type="button" id="tab-btn-inclinometer" onclick="switchTab('inclinometer')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-compass-drafting"></i>
+                <span>3. Inclinometro Falda e Ombreggiamento</span>
+            </button>
         </div>
     </div>
 
@@ -767,9 +772,290 @@
 
             </div>
 
-        </div>
+        </div> <!-- FINE SEZIONE 2: STRINGA FOTOVOLTAICA -->
 
-    </main>
+        <!-- =================================================================== -->
+        <!-- SEZIONE 3: INCLINOMETRO FALDA & OMBREGGIAMENTO (TAB INCLINOMETER)  -->
+        <!-- =================================================================== -->
+        <div id="section-inclinometer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hidden">
+            
+            <!-- COLONNA SINISTRA: MISURAZIONE LIVE & PARAMETRI FALDA (7 Colonne) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1. MISURAZIONE SENSORI DISPOSITIVO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-compass-drafting"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Rilevamento Giroscopio e Bussola</h2>
+                                <p class="text-[11px] text-slate-500">Appoggia lo smartphone piatto o sul bordo della falda</p>
+                            </div>
+                        </div>
+                        <span id="sensor-status-badge" class="text-[10px] font-black text-slate-700 bg-slate-100 border border-slate-300 px-2.5 py-0.5 rounded-full uppercase">Sensore Manuale</span>
+                    </div>
+
+                    <!-- Pulsante Attivazione Sensore -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-amber-50/70 border border-amber-200 rounded-2xl">
+                        <div class="text-xs text-amber-950 space-y-0.5 text-center sm:text-left">
+                            <div class="font-black flex items-center gap-1.5 justify-center sm:justify-start">
+                                <i class="fa-solid fa-mobile-screen"></i>
+                                <span>Sensore di Orientamento Dispositivo</span>
+                            </div>
+                            <p class="text-[11px] text-amber-900/80">Richiede autorizzazione browser su smartphone iOS/Android.</p>
+                        </div>
+                        <button type="button" id="btn-request-sensor" onclick="requestOrientationPermission()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black px-4 py-2.5 rounded-xl transition shadow-sm shrink-0 flex items-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-satellite-dish"></i>
+                            <span id="btn-sensor-label">Attiva Sensori Telefono</span>
+                        </button>
+                    </div>
+
+                    <!-- Visualizzatori Grafici Live (Bussola + Inclinometro) -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        
+                        <!-- Bussola Azimut -->
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Esposizione / Azimut</span>
+                            
+                            <!-- Quadrante Bussola -->
+                            <div class="relative w-28 h-28 rounded-full border-2 border-slate-300 bg-white shadow-inner flex items-center justify-center">
+                                <span class="absolute top-1 text-[9px] font-black text-slate-400">N (0°)</span>
+                                <span class="absolute right-1 text-[9px] font-black text-slate-400">E (90°)</span>
+                                <span class="absolute bottom-1 text-[9px] font-black text-amber-600 font-bold">S (180°)</span>
+                                <span class="absolute left-1 text-[9px] font-black text-slate-400">O (270°)</span>
+                                
+                                <!-- Ago Bussola Rotante -->
+                                <div id="compass-needle" class="w-1.5 h-20 bg-gradient-to-t from-amber-500 via-slate-800 to-slate-400 rounded-full transition-transform duration-150 origin-center" style="transform: rotate(180deg);"></div>
+                                <div class="w-3 h-3 rounded-full bg-slate-900 absolute z-10"></div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span id="val-azimuth-deg" class="text-xl font-black font-mono text-slate-900">180°</span>
+                                <span id="val-azimuth-cardinal" class="text-xs font-black px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300">SUD</span>
+                            </div>
+                        </div>
+
+                        <!-- Goniometro Inclinazione Falda -->
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Inclinazione / Tilt Falda</span>
+                            
+                            <!-- Arco Goniometro -->
+                            <div class="relative w-28 h-28 rounded-full border-2 border-slate-300 bg-white shadow-inner flex items-center justify-center overflow-hidden">
+                                <div class="absolute bottom-0 w-full h-1/2 bg-slate-100 border-t border-slate-200"></div>
+                                <div id="tilt-level-bar" class="w-24 h-1.5 bg-amber-500 rounded-full transition-transform duration-150 origin-center" style="transform: rotate(-30deg);"></div>
+                                <div class="w-3 h-3 rounded-full bg-slate-900 absolute z-10"></div>
+                                <div class="absolute bottom-2 text-[9px] font-mono text-slate-500 font-bold">Ottimale: 30°-35°</div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                <span id="val-tilt-deg" class="text-xl font-black font-mono text-slate-900">30°</span>
+                                <span id="val-tilt-evaluation" class="text-xs font-black px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300">Ottimale Italia</span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Controlli Fallback / Regolazione Manuale -->
+                    <div class="space-y-4 pt-2 border-t border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black text-slate-700 uppercase tracking-wider">Regolazione Manuale Inclinazione & Esposizione</span>
+                            <span class="text-[10px] text-slate-400">Regola se offline o da desktop</span>
+                        </div>
+
+                        <!-- Slider Inclinazione Tilt -->
+                        <div class="space-y-2">
+                            <div class="flex items-center justify-between text-xs font-bold">
+                                <span class="text-slate-600">Inclinazione (Tilt):</span>
+                                <span id="slider-tilt-val" class="font-mono text-slate-900 font-black">30°</span>
+                            </div>
+                            <input type="range" id="input-manual-tilt" min="0" max="90" value="30" step="1" oninput="onManualTiltChange(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                            <div class="flex gap-1.5">
+                                <button type="button" onclick="setTiltPreset(0)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">0° Piano</button>
+                                <button type="button" onclick="setTiltPreset(15)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">15°</button>
+                                <button type="button" onclick="setTiltPreset(30)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-amber-100 text-amber-900 font-black transition">30° Standard</button>
+                                <button type="button" onclick="setTiltPreset(35)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">35° Ottimale</button>
+                                <button type="button" onclick="setTiltPreset(45)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">45° Ripido</button>
+                            </div>
+                        </div>
+
+                        <!-- Slider Orientamento Azimut -->
+                        <div class="space-y-2 pt-2">
+                            <div class="flex items-center justify-between text-xs font-bold">
+                                <span class="text-slate-600">Esposizione (Azimut Bussola):</span>
+                                <span id="slider-azimuth-val" class="font-mono text-slate-900 font-black">180° (Sud)</span>
+                            </div>
+                            <input type="range" id="input-manual-azimuth" min="0" max="360" value="180" step="1" oninput="onManualAzimuthChange(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500">
+                            <div class="flex gap-1.5">
+                                <button type="button" onclick="setAzimuthPreset(90)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">90° Est</button>
+                                <button type="button" onclick="setAzimuthPreset(135)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">135° SE</button>
+                                <button type="button" onclick="setAzimuthPreset(180)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-amber-100 text-amber-900 font-black transition">180° Sud</button>
+                                <button type="button" onclick="setAzimuthPreset(225)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">225° SO</button>
+                                <button type="button" onclick="setAzimuthPreset(270)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">270° Ovest</button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+                <!-- 2. ANALISI OMBREGGIAMENTO ORIZZONTE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-cloud-sun"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Analisi Ombreggiamento Orizzonte</h2>
+                                <p class="text-[11px] text-slate-500">Presenza di ostacoli vicini (edifici, alberi, colline, camini)</p>
+                            </div>
+                        </div>
+                        <span id="badge-shading-loss" class="text-[10px] font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase">Nessuna Perdita (0%)</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Tipo Ostacolo -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                                Tipologia e Posizione Ostacolo
+                            </label>
+                            <select id="select-obstacle-type" onchange="onObstacleChanged()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="none" selected>☀️ Nessun Ostacolo • Orizzonte Libero</option>
+                                <option value="east">🌳 Edifici / Alberi a Est (Ombra Mattutina)</option>
+                                <option value="west">🏢 Edifici / Alberi a Ovest (Ombra Pomeridiana)</option>
+                                <option value="south">🏔️ Ostacolo Frontale a Sud (Ombra Invernale)</option>
+                                <option value="chimney">🧱 Camino / Lucernario sulla Falda (Ombra Puntuale)</option>
+                            </select>
+                        </div>
+
+                        <!-- Severità / Altezza Ostacolo -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider">
+                                Severità / Angolo di Elevazione Ostacolo
+                            </label>
+                            <select id="select-obstacle-severity" onchange="onObstacleChanged()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-slate-900 transition">
+                                <option value="low" selected>Bassa • Ostacolo Basso (&lt; 15° orizzonte)</option>
+                                <option value="medium">Media • Ostacolo Medio (15° - 30° orizzonte)</option>
+                                <option value="high">Alta • Ostacolo Ravvicinato / Alto (&gt; 30°)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Nota Assistiva Ombreggiamento -->
+                    <div id="box-shading-advice" class="p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-700 leading-relaxed font-medium">
+                        Orizzonte solare libero da ostacoli significativi. La produzione annua non risente di perdite da ombreggiamento sistematico.
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: REPORT VERIFICA & STIMA RESA (5 Colonne) -->
+            <div class="lg:col-span-5 space-y-6">
+
+                <!-- CARD HERO: RESOCONTO RILIEVO FALDA -->
+                <section class="bg-gradient-to-br from-slate-900 via-amber-950 to-slate-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden space-y-5">
+                    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-amber-200">Verifica Orientamento Falda</h3>
+                        </div>
+                        <span id="badge-italy-compliance" class="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">Ottimale per l'Italia</span>
+                    </div>
+
+                    <!-- Metriche Rendimento Stimato -->
+                    <div class="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-300">Rendimento Geometrico & Resa Stimata</span>
+                        
+                        <div class="grid grid-cols-2 gap-3 items-center">
+                            <div class="p-3 rounded-xl bg-white/10 border border-white/10 text-center">
+                                <span class="text-[10px] text-slate-300 block">Fattore Geometrico</span>
+                                <span id="out-geometric-factor" class="text-2xl font-black font-mono text-amber-400">99.5%</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-white/10 border border-white/10 text-center">
+                                <span class="text-[10px] text-slate-300 block">Resa con Ombre</span>
+                                <span id="out-total-efficiency" class="text-2xl font-black font-mono text-emerald-400">99.5%</span>
+                            </div>
+                        </div>
+
+                        <!-- Barra Efficienza -->
+                        <div class="space-y-1 pt-1">
+                            <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                                <div id="bar-efficiency" class="bg-gradient-to-r from-amber-400 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 99.5%;"></div>
+                            </div>
+                            <div class="flex justify-between text-[10px] font-mono text-slate-400 px-0.5">
+                                <span>Tilt 30°-35° • Sud ±45°</span>
+                                <span id="lbl-efficiency-desc">Massima Efficienza</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dettaglio Parametri Rilevati -->
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                            <span class="text-slate-300">Inclinazione Misurata:</span>
+                            <span id="out-report-tilt" class="font-mono font-black text-white">30° (Target 30°-35°)</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                            <span class="text-slate-300">Esposizione / Azimut:</span>
+                            <span id="out-report-azimuth" class="font-mono font-black text-white">180° Sud (Target 135°-225°)</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                            <span class="text-slate-300">Detrazione Ombreggiamento:</span>
+                            <span id="out-report-shading" class="font-mono font-black text-emerald-300">-0.0%</span>
+                        </div>
+                    </div>
+
+                    <!-- Raccomandazione Tecnica per Cantiere -->
+                    <div class="p-3 bg-amber-500/10 border border-amber-400/20 rounded-2xl space-y-1">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-amber-300">Nota Tecnica Installatore</span>
+                        <p id="out-installer-advice" class="text-xs text-slate-200 leading-relaxed font-medium">
+                            Falda ideale per l'irraggiamento sul territorio italiano. Massima producibilità specifica attesa (1.200 - 1.450 kWh/kWp/anno in base alla latitudine).
+                        </p>
+                    </div>
+
+                    <!-- Azioni Scheda Inclinometro -->
+                    <div class="pt-2 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" onclick="copyInclinometerReportToClipboard()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-3 px-3 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Verbale Rilievo</span>
+                        </button>
+                        <button type="button" onclick="resetInclinometer()" class="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold py-3 px-3 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                            <span>Reimposta</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- TABELLA DI RIFERIMENTO RESA FOTOVOLTAICA ITALIA -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <i class="fa-solid fa-table-cells text-amber-600 text-sm"></i>
+                        <h4 class="font-black text-xs text-slate-900 uppercase tracking-wider">Tabella Resa Indicativa per Orientamento (Italia)</h4>
+                    </div>
+                    <div class="space-y-2 text-xs">
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                            <span class="font-bold text-slate-800">Sud (180°) • Tilt 30°-35°</span>
+                            <span class="font-mono font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">100% (Ottimale)</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                            <span class="font-bold text-slate-800">Sud-Est / Sud-Ovest • Tilt 20°-40°</span>
+                            <span class="font-mono font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg">93% - 96%</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                            <span class="font-bold text-slate-800">Est / Ovest • Tilt 20°-30°</span>
+                            <span class="font-mono font-black text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg">80% - 85%</span>
+                        </div>
+                        <div class="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                            <span class="font-bold text-slate-800">Nord • Qualsiasi Tilt</span>
+                            <span class="font-mono font-black text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-lg">&lt; 65% (Sconsigliato)</span>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+        </div> <!-- FINE SEZIONE 3: INCLINOMETRO FALDA -->
 
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div id="impianti-toast" class="fixed bottom-6 right-6 z-50 transition-all duration-300 opacity-0 pointer-events-none">
@@ -849,6 +1135,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             recalcCableSizing();
             recalcPvString();
+            recalcInclinometer();
         });
 
         /* ── GESTIONE TABS ── */
@@ -856,20 +1143,21 @@
             activeTab = tabId;
             const btnCables = document.getElementById('tab-btn-cables');
             const btnSolar = document.getElementById('tab-btn-solar');
+            const btnInclinometer = document.getElementById('tab-btn-inclinometer');
             const secCables = document.getElementById('section-cables');
             const secSolar = document.getElementById('section-solar');
+            const secInclinometer = document.getElementById('section-inclinometer');
 
-            if (tabId === 'cables') {
-                btnCables.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
-                btnSolar.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
-                secCables.classList.remove('hidden');
-                secSolar.classList.add('hidden');
-            } else {
-                btnCables.className = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
-                btnSolar.className = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
-                secCables.classList.add('hidden');
-                secSolar.classList.remove('hidden');
-            }
+            const activeClass = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+            const inactiveClass = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+
+            if (btnCables) btnCables.className = (tabId === 'cables' ? activeClass : inactiveClass);
+            if (btnSolar) btnSolar.className = (tabId === 'solar' ? activeClass : inactiveClass);
+            if (btnInclinometer) btnInclinometer.className = (tabId === 'inclinometer' ? activeClass : inactiveClass);
+
+            if (secCables) secCables.classList.toggle('hidden', tabId !== 'cables');
+            if (secSolar) secSolar.classList.toggle('hidden', tabId !== 'solar');
+            if (secInclinometer) secInclinometer.classList.toggle('hidden', tabId !== 'inclinometer');
 
             if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
         }
@@ -1355,7 +1643,7 @@ VERDETTO INDICATIVO: ${verdict}
 
                 recalcCableSizing();
                 showToast('Calcolatore cavi reimpostato!');
-            } else {
+            } else if (activeTab === 'solar') {
                 const countInp = document.getElementById('input-pv-count');
                 const vocInp = document.getElementById('input-pv-voc');
                 const vmppInp = document.getElementById('input-pv-vmpp');
@@ -1372,9 +1660,337 @@ VERDETTO INDICATIVO: ${verdict}
 
                 recalcPvString();
                 showToast('Calcolatore fotovoltaico reimpostato!');
+            } else if (activeTab === 'inclinometer') {
+                resetInclinometer();
             }
 
             if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        /* ── GESTIONE INCLINOMETRO FALDA & OMBREGGIAMENTO ── */
+        let inclinometerTilt = 30; // deg
+        let inclinometerAzimuth = 180; // deg (Sud)
+        let sensorActive = false;
+        let obstacleType = 'none';
+        let obstacleSeverity = 'low';
+
+        async function requestOrientationPermission() {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const response = await DeviceOrientationEvent.requestPermission();
+                    if (response === 'granted') {
+                        startSensorListener();
+                    } else {
+                        updateSensorStatus('Permesso Negato • Uso Manuale', false);
+                        showToast('Permesso giroscopio negato. Usa i controlli manuali.');
+                    }
+                } catch (err) {
+                    console.warn('Errore richiesta sensori iOS:', err);
+                    updateSensorStatus('Sensore Non Disponibile • Manuale', false);
+                    showToast('Impossibile accedere ai sensori. Usa i controlli manuali.');
+                }
+            } else if (window.DeviceOrientationEvent) {
+                startSensorListener();
+            } else {
+                updateSensorStatus('Sensore Non Supportato • Manuale', false);
+                showToast('Sensore giroscopio non supportato su questo dispositivo.');
+            }
+        }
+
+        function startSensorListener() {
+            window.addEventListener('deviceorientation', handleOrientationEvent, true);
+            sensorActive = true;
+            updateSensorStatus('Sensore Live Attivo', true);
+            const btn = document.getElementById('btn-request-sensor');
+            const lbl = document.getElementById('btn-sensor-label');
+            if (lbl) lbl.innerText = 'Disattiva Sensori';
+            if (btn) btn.onclick = stopSensorListener;
+            showToast('Sensore giroscopio attivato!');
+        }
+
+        function stopSensorListener() {
+            window.removeEventListener('deviceorientation', handleOrientationEvent, true);
+            sensorActive = false;
+            updateSensorStatus('Sensore Manuale', false);
+            const btn = document.getElementById('btn-request-sensor');
+            const lbl = document.getElementById('btn-sensor-label');
+            if (lbl) lbl.innerText = 'Attiva Sensori Telefono';
+            if (btn) btn.onclick = requestOrientationPermission;
+            showToast('Sensore disattivato. Modalità manuale.');
+        }
+
+        function updateSensorStatus(text, isActive) {
+            const badge = document.getElementById('sensor-status-badge');
+            if (badge) {
+                badge.innerText = text;
+                if (isActive) {
+                    badge.className = 'text-[10px] font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase';
+                } else {
+                    badge.className = 'text-[10px] font-black text-slate-700 bg-slate-100 border border-slate-300 px-2.5 py-0.5 rounded-full uppercase';
+                }
+            }
+        }
+
+        function handleOrientationEvent(event) {
+            if (event.beta === null && event.gamma === null && event.alpha === null) {
+                updateSensorStatus('Sensore Non Disponibile • Manuale', false);
+                return;
+            }
+
+            // Inclinazione fronte-retro (beta). Quando appoggiato sulla falda, l'inclinazione reale è l'angolo rispetto all'orizzonte
+            let tilt = Math.round(Math.abs(event.beta || 0));
+            if (tilt > 90) tilt = 180 - tilt;
+            tilt = Math.max(0, Math.min(90, tilt));
+
+            // Bussola (alpha o webkitCompassHeading per iOS)
+            let azimuth = 180;
+            if (event.webkitCompassHeading !== undefined) {
+                azimuth = Math.round(event.webkitCompassHeading);
+            } else if (event.alpha !== null) {
+                azimuth = Math.round(360 - event.alpha);
+            }
+            azimuth = (azimuth % 360 + 360) % 360;
+
+            inclinometerTilt = tilt;
+            inclinometerAzimuth = azimuth;
+
+            const manualTilt = document.getElementById('input-manual-tilt');
+            const manualAzimuth = document.getElementById('input-manual-azimuth');
+            if (manualTilt) manualTilt.value = tilt;
+            if (manualAzimuth) manualAzimuth.value = azimuth;
+
+            recalcInclinometer();
+        }
+
+        function onManualTiltChange(val) {
+            inclinometerTilt = Math.max(0, Math.min(90, parseInt(val, 10) || 0));
+            recalcInclinometer();
+        }
+
+        function onManualAzimuthChange(val) {
+            inclinometerAzimuth = Math.max(0, Math.min(360, parseInt(val, 10) || 0));
+            recalcInclinometer();
+        }
+
+        function setTiltPreset(deg) {
+            inclinometerTilt = deg;
+            const input = document.getElementById('input-manual-tilt');
+            if (input) input.value = deg;
+            recalcInclinometer();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setAzimuthPreset(deg) {
+            inclinometerAzimuth = deg;
+            const input = document.getElementById('input-manual-azimuth');
+            if (input) input.value = deg;
+            recalcInclinometer();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onObstacleChanged() {
+            const selType = document.getElementById('select-obstacle-type');
+            const selSev = document.getElementById('select-obstacle-severity');
+            if (selType) obstacleType = selType.value;
+            if (selSev) obstacleSeverity = selSev.value;
+            recalcInclinometer();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function getCardinalDirection(deg) {
+            if (deg >= 338 || deg < 23) return { name: 'NORD', short: 'N', isSouth: false };
+            if (deg >= 23 && deg < 68) return { name: 'NORD-EST', short: 'NE', isSouth: false };
+            if (deg >= 68 && deg < 113) return { name: 'EST', short: 'E', isSouth: false };
+            if (deg >= 113 && deg < 158) return { name: 'SUD-EST', short: 'SE', isSouth: true };
+            if (deg >= 158 && deg < 203) return { name: 'SUD', short: 'S', isSouth: true };
+            if (deg >= 203 && deg < 248) return { name: 'SUD-OVEST', short: 'SO', isSouth: true };
+            if (deg >= 248 && deg < 293) return { name: 'OVEST', short: 'O', isSouth: false };
+            return { name: 'NORD-OVEST', short: 'NO', isSouth: false };
+        }
+
+        function recalcInclinometer() {
+            const tilt = inclinometerTilt;
+            const azimuth = inclinometerAzimuth;
+
+            // Aggiornamento grafica bussola e goniometro
+            const needle = document.getElementById('compass-needle');
+            const tiltBar = document.getElementById('tilt-level-bar');
+            if (needle) needle.style.transform = `rotate(${azimuth}deg)`;
+            if (tiltBar) tiltBar.style.transform = `rotate(-${tilt}deg)`;
+
+            const cardinal = getCardinalDirection(azimuth);
+            const valAzimuthDeg = document.getElementById('val-azimuth-deg');
+            const valAzimuthCard = document.getElementById('val-azimuth-cardinal');
+            const sliderAzimuthVal = document.getElementById('slider-azimuth-val');
+
+            if (valAzimuthDeg) valAzimuthDeg.innerText = `${azimuth}°`;
+            if (valAzimuthCard) valAzimuthCard.innerText = cardinal.name;
+            if (sliderAzimuthVal) sliderAzimuthVal.innerText = `${azimuth}° (${cardinal.name})`;
+
+            const valTiltDeg = document.getElementById('val-tilt-deg');
+            const valTiltEval = document.getElementById('val-tilt-evaluation');
+            const sliderTiltVal = document.getElementById('slider-tilt-val');
+
+            if (valTiltDeg) valTiltDeg.innerText = `${tilt}°`;
+            if (sliderTiltVal) sliderTiltVal.innerText = `${tilt}°`;
+
+            // Valutazione Tilt
+            let tiltStatus = 'Accettabile';
+            if (tilt >= 30 && tilt <= 35) {
+                tiltStatus = 'Ottimale Italia';
+                if (valTiltEval) valTiltEval.className = 'text-xs font-black px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-900 border border-emerald-300';
+            } else if (tilt >= 20 && tilt <= 45) {
+                tiltStatus = 'Buono (20°-45°)';
+                if (valTiltEval) valTiltEval.className = 'text-xs font-black px-2 py-0.5 rounded-lg bg-amber-100 text-amber-900 border border-amber-300';
+            } else {
+                tiltStatus = tilt < 20 ? 'Basso Tilt (<20°)' : 'Ripido (>45°)';
+                if (valTiltEval) valTiltEval.className = 'text-xs font-black px-2 py-0.5 rounded-lg bg-slate-100 text-slate-800 border border-slate-300';
+            }
+            if (valTiltEval) valTiltEval.innerText = tiltStatus;
+
+            // Calcolo scostamento da Sud (180°) e da Tilt Ottimale (32.5°)
+            let azDiff = Math.abs(azimuth - 180);
+            if (azDiff > 180) azDiff = 360 - azDiff;
+
+            let tiltDiff = Math.abs(tilt - 32.5);
+
+            // Calcolo Rendimento Geometrico Teorico
+            let geomLoss = (azDiff * 0.20) + (tiltDiff * 0.32);
+            let geomFactor = Math.max(45, Math.min(100, Math.round((100 - geomLoss) * 10) / 10));
+
+            // Calcolo Perdita Ombreggiamento
+            let shadingLoss = 0;
+            let shadingAdvice = 'Orizzonte solare libero da ostacoli significativi. Nessuna perdita rilevante da ombreggiamento.';
+            if (obstacleType === 'east' || obstacleType === 'west') {
+                shadingLoss = obstacleSeverity === 'low' ? 4 : (obstacleSeverity === 'medium' ? 10 : 18);
+                shadingAdvice = `Ostacolo laterale (${obstacleType === 'east' ? 'Est' : 'Ovest'}). Riduce l'irraggiamento ${obstacleType === 'east' ? 'mattutino' : 'pomeridiano'}. Consigliato uso di inverter con inseguitori MPPT indipendenti per stringa.`;
+            } else if (obstacleType === 'south') {
+                shadingLoss = obstacleSeverity === 'low' ? 6 : (obstacleSeverity === 'medium' ? 15 : 28);
+                shadingAdvice = `Ostacolo frontale a Sud. Impatta fortemente nei mesi invernali con sole basso all'orizzonte. Valutare ottimizzatori di potenza o arretramento moduli.`;
+            } else if (obstacleType === 'chimney') {
+                shadingLoss = obstacleSeverity === 'low' ? 3 : (obstacleSeverity === 'medium' ? 8 : 15);
+                shadingAdvice = `Ombreggiamento puntuale da camino/lucernario. Obbligatorio l'uso di ottimizzatori di potenza (DC-DC) sui soli moduli impattati per non penalizzare l'intera stringa.`;
+            }
+
+            const badgeShadingLoss = document.getElementById('badge-shading-loss');
+            const boxShadingAdvice = document.getElementById('box-shading-advice');
+            if (badgeShadingLoss) {
+                if (shadingLoss === 0) {
+                    badgeShadingLoss.innerText = 'Nessuna Perdita (0%)';
+                    badgeShadingLoss.className = 'text-[10px] font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase';
+                } else {
+                    badgeShadingLoss.innerText = `Perdita Stimata -${shadingLoss}%`;
+                    badgeShadingLoss.className = 'text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full uppercase';
+                }
+            }
+            if (boxShadingAdvice) boxShadingAdvice.innerText = shadingAdvice;
+
+            // Rendimento Complessivo con Ombre
+            let totalEfficiency = Math.round((geomFactor * (1 - (shadingLoss / 100))) * 10) / 10;
+
+            // Badge e Raccomandazione Cantiere
+            const badgeCompliance = document.getElementById('badge-italy-compliance');
+            const outGeom = document.getElementById('out-geometric-factor');
+            const outTotalEff = document.getElementById('out-total-efficiency');
+            const barEff = document.getElementById('bar-efficiency');
+            const lblEffDesc = document.getElementById('lbl-efficiency-desc');
+            const outTilt = document.getElementById('out-report-tilt');
+            const outAzimuth = document.getElementById('out-report-azimuth');
+            const outShading = document.getElementById('out-report-shading');
+            const outAdvice = document.getElementById('out-installer-advice');
+
+            if (outGeom) outGeom.innerText = `${geomFactor.toFixed(1)}%`;
+            if (outTotalEff) outTotalEff.innerText = `${totalEfficiency.toFixed(1)}%`;
+            if (barEff) barEff.style.width = `${totalEfficiency}%`;
+
+            if (outTilt) outTilt.innerText = `${tilt}° (Ottimale: 30°-35°)`;
+            if (outAzimuth) outAzimuth.innerText = `${azimuth}° ${cardinal.name} (Ottimale: 180° Sud ±45°)`;
+            if (outShading) {
+                outShading.innerText = `-${shadingLoss.toFixed(1)}%`;
+                outShading.className = shadingLoss === 0 ? 'font-mono font-black text-emerald-300' : 'font-mono font-black text-amber-300';
+            }
+
+            // Verifica regola piano: Tilt 30-35°, Sud ±45° (azimuth 135° - 225°)
+            const isOptimalOrientation = (tilt >= 25 && tilt <= 40) && (azimuth >= 135 && azimuth <= 225);
+            const isAcceptableOrientation = (azimuth >= 90 && azimuth <= 270);
+
+            if (isOptimalOrientation) {
+                if (badgeCompliance) {
+                    badgeCompliance.innerText = "Ottimale per l'Italia (Sud ±45°, Tilt 30°-35°)";
+                    badgeCompliance.className = 'text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+                }
+                if (lblEffDesc) lblEffDesc.innerText = 'Massima Efficienza (95-100%)';
+                if (outAdvice) {
+                    outAdvice.innerText = "Falda ideale per l'irraggiamento sul territorio italiano. Massima producibilità specifica attesa (1.200 - 1.450 kWh/kWp/anno in base alla latitudine).";
+                }
+            } else if (isAcceptableOrientation) {
+                if (badgeCompliance) {
+                    badgeCompliance.innerText = "Orientamento Accettabile (Resa 80-92%)";
+                    badgeCompliance.className = 'text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30';
+                }
+                if (lblEffDesc) lblEffDesc.innerText = 'Efficienza Buona (80-92%)';
+                if (outAdvice) {
+                    outAdvice.innerText = "Orientamento est/ovest o tilt non standard. Producibilità ridotta del 10-18% rispetto all'azimut Sud puro. Consigliato sovradimensionamento del generatore FV o zavorre di correzione su tetto piano.";
+                }
+            } else {
+                if (badgeCompliance) {
+                    badgeCompliance.innerText = "Orientamento Sfavorevole (Esposizione Nord)";
+                    badgeCompliance.className = 'text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-400/30';
+                }
+                if (lblEffDesc) lblEffDesc.innerText = 'Resa Penalizzata (< 75%)';
+                if (outAdvice) {
+                    outAdvice.innerText = "Esposizione verso i quadranti Nord. Sconsigliata l'installazione salvo vincoli architettonici stringenti o elevato autoconsumo estivo diffuso.";
+                }
+            }
+        }
+
+        function copyInclinometerReportToClipboard() {
+            const cardinal = getCardinalDirection(inclinometerAzimuth);
+            const isOptimal = (inclinometerTilt >= 25 && inclinometerTilt <= 40) && (inclinometerAzimuth >= 135 && inclinometerAzimuth <= 225);
+
+            let txt = `☀️ *SiteBoS Impianti • Verbale Rilievo Falda & Ombreggiamento*\n`;
+            txt += `Inclinazione Falda (Tilt): *${inclinometerTilt}°* (Target ottimale Italia: 30°-35°)\n`;
+            txt += `Esposizione (Azimut): *${inclinometerAzimuth}° (${cardinal.name})* (Target ottimale: 180° Sud ±45°)\n`;
+            txt += `Conformità Falda: ${isOptimal ? '✅ OTTIMALE PER ITALIA' : '⚠️ NON OTTIMALE'}\n\n`;
+            txt += `📊 *Rendimento Calcolato:*\n`;
+            let azDiff = Math.abs(inclinometerAzimuth - 180);
+            if (azDiff > 180) azDiff = 360 - azDiff;
+            let tiltDiff = Math.abs(inclinometerTilt - 32.5);
+            let geomLoss = (azDiff * 0.20) + (tiltDiff * 0.32);
+            let geomFactor = Math.max(45, Math.min(100, Math.round((100 - geomLoss) * 10) / 10));
+            txt += `  • Fattore Geometrico: ${geomFactor.toFixed(1)}%\n`;
+            if (obstacleType !== 'none') {
+                txt += `  • Ostacolo Rilevato: ${obstacleType} (${obstacleSeverity})\n`;
+            }
+            txt += `  • Stima Resa Complessiva: *${document.getElementById('out-total-efficiency')?.innerText || '99.5%'}*\n\n`;
+            txt += `📋 *Nota Installatore:* ${document.getElementById('out-installer-advice')?.innerText || ''}\n`;
+            txt += `_Rilievo assistivo client-side conforme a Guida CEI 82-25._`;
+
+            copyTextToClipboard(txt, 'Verbale rilievo falda copiato!');
+        }
+
+        function resetInclinometer() {
+            if (sensorActive) {
+                stopSensorListener();
+            }
+            inclinometerTilt = 30;
+            inclinometerAzimuth = 180;
+            obstacleType = 'none';
+            obstacleSeverity = 'low';
+
+            const inTilt = document.getElementById('input-manual-tilt');
+            const inAz = document.getElementById('input-manual-azimuth');
+            const selType = document.getElementById('select-obstacle-type');
+            const selSev = document.getElementById('select-obstacle-severity');
+
+            if (inTilt) inTilt.value = 30;
+            if (inAz) inAz.value = 180;
+            if (selType) selType.value = 'none';
+            if (selSev) selSev.value = 'low';
+
+            updateSensorStatus('Sensore Manuale', false);
+            recalcInclinometer();
+            showToast('Inclinometro falda reimpostato!');
         }
 
         /* ── NAVIGAZIONE DESK BOARD ── */

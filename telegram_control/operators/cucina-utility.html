@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Agente Utility Cucina & Impasti (Food)</title>
+    
+    <!-- Telegram WebApp SDK & SiteBoS TWA Guard -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    
+    <!-- Tailwind CSS, Google Fonts & FontAwesome 6 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        food: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        }
+                    }
+                }
+            }
+        };
+
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const ash = urlParams.get('ash');
+            
+            if (!isTelegramSession && !ash) {
+                console.log('ℹ️ [Cucina Utility] Inizializzazione sessione operatore cucina.');
+            }
+        })();
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        }
+
+        .tab-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+        .tab-inactive:hover {
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .card-interactive {
+            transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .card-interactive:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER PRINCIPALE CUCINA DESK (100% LIGHT THEME) -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur shrink-0 shadow-sm">
+        <!-- Logo & Titolo -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-white flex items-center justify-center font-black shadow-sm shrink-0">
+                <i class="fa-solid fa-utensils text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="font-black text-slate-900 text-base tracking-tight">SiteBoS Cucina & Impasti Desk</h1>
+                    <span class="text-[10px] font-black text-orange-900 bg-orange-100 border border-orange-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Verticale Food</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Calcolo Deterministico • 100% Client-Side</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-semibold hidden md:inline">• Idro-Farina, Calcolo Temperatura Acqua, Teglie & Sfrido Reale</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button onclick="resetActiveTab()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 active:scale-95 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5" title="Reimposta la scheda corrente ai valori predefiniti">
+                <i class="fa-solid fa-rotate-left text-xs"></i>
+                <span class="hidden sm:inline">Reimposta</span>
+            </button>
+
+            <button onclick="goToDeskBoard()" class="bg-slate-900 hover:bg-black text-white text-xs font-black px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-desktop"></i>
+                <span>Desk Board</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- BARRA DI NAVIGAZIONE TAB UTILITY CUCINA -->
+    <div class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sticky top-[69px] z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+            <button type="button" id="tab-btn-dough" onclick="switchTab('dough')" class="tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-wheat-awn text-orange-500"></i>
+                <span>1. Idro-Farina e Controllo Temperatura</span>
+            </button>
+
+            <button type="button" id="tab-btn-pan" onclick="switchTab('pan')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-shapes text-amber-500"></i>
+                <span>2. Convertitore Teglia Tonda e Rettangolare</span>
+            </button>
+
+            <button type="button" id="tab-btn-waste" onclick="switchTab('waste')" class="tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-scale-unbalanced-flip text-emerald-500"></i>
+                <span>3. Sfrido Reale e Porzionatura</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WORKSPACE PRINCIPALE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 1: IDRO-FARINA & CONTROLLO TEMPERATURA (TAB DOUGH)          -->
+        <!-- =================================================================== -->
+        <div id="section-dough" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- COLONNA SINISTRA: INPUT PARAMETRI IMPASTO & TEMPERATURE (7 Colonne) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1.1 CALCOLO TEMPERATURA ACQUA IMPASTO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-temperature-half"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Calcolo Temperatura Acqua Impasto</h2>
+                                <p class="text-[11px] text-slate-500">Regola delle 3 Temperature: Acqua = (3 × T_Finale) − (T_Ambiente + T_Farina + T_Attrito)</p>
+                            </div>
+                        </div>
+                        <span id="badge-temp-target" class="text-[10px] font-black text-orange-900 bg-orange-100 border border-orange-300 px-2.5 py-0.5 rounded-full uppercase font-mono">Target: 24°C</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Temp Finale Desiderata -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-temp-target">
+                                Temp. Finale Impasto Desiderata (°C)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="stepNumberInput('input-temp-target', -1, 18, 32)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">-</button>
+                                <input type="number" id="input-temp-target" value="24" min="18" max="32" step="1" oninput="recalcDough()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono focus:outline-none focus:border-orange-500 transition">
+                                <button type="button" onclick="stepNumberInput('input-temp-target', 1, 18, 32)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Temp Ambiente -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-temp-room">
+                                Temp. Ambiente Laboratorio (°C)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="stepNumberInput('input-temp-room', -1, 10, 40)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">-</button>
+                                <input type="number" id="input-temp-room" value="22" min="10" max="40" step="1" oninput="onRoomTempChange(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono focus:outline-none focus:border-orange-500 transition">
+                                <button type="button" onclick="stepNumberInput('input-temp-room', 1, 10, 40)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Temp Farina -->
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-temp-flour">
+                                    Temp. Farina (°C)
+                                </label>
+                                <button type="button" onclick="syncFlourWithRoomTemp()" class="text-[10px] text-orange-600 font-bold hover:underline">Auto (T_Amb - 1°C)</button>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="stepNumberInput('input-temp-flour', -1, 10, 35)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">-</button>
+                                <input type="number" id="input-temp-flour" value="21" min="10" max="35" step="1" oninput="recalcDough()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono focus:outline-none focus:border-orange-500 transition">
+                                <button type="button" onclick="stepNumberInput('input-temp-flour', 1, 10, 35)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">+</button>
+                            </div>
+                        </div>
+
+                        <!-- Riscaldamento Impastatrice (Attrito) -->
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="select-mixer-type">
+                                Tipo Impastatrice (Riscaldamento Attrito)
+                            </label>
+                            <select id="select-mixer-type" onchange="onMixerTypeChange(this.value)" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-orange-500 transition">
+                                <option value="0">✋ Impasto a Mano / Planetaria Lenta (+0°C)</option>
+                                <option value="1">🥣 Braccia Tuffanti (+1°C)</option>
+                                <option value="2">🔱 Forcella (+2°C)</option>
+                                <option value="3" selected>🌀 Spirale Monofase / Standard (+3°C)</option>
+                                <option value="4">⚡ Spirale Alta Velocità / Idro Alta (+4°C)</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.2 FORMULAZIONE RICETTA IDRO-FARINA -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-calculator"></i>
+                            </div>
+                            <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Bilanciamento Percentuali Ricetta (Bakers %)</h2>
+                        </div>
+                        <span class="text-[10px] font-bold text-slate-400">Calcolato su Base Farina (100%)</span>
+                    </div>
+
+                    <!-- Massa Farina & Idratazione -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-dough-flour-grams">
+                                Farina Totale (g)
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="stepNumberInput('input-dough-flour-grams', -100, 100, 50000)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">-</button>
+                                <input type="number" id="input-dough-flour-grams" value="1000" min="100" max="50000" step="50" oninput="recalcDough()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono focus:outline-none focus:border-orange-500 transition">
+                                <button type="button" onclick="stepNumberInput('input-dough-flour-grams', 100, 100, 50000)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition flex items-center justify-center shrink-0 active:scale-95">+</button>
+                            </div>
+                            <div class="flex gap-1 pt-1">
+                                <button type="button" onclick="setFlourWeightPreset(500)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">500g</button>
+                                <button type="button" onclick="setFlourWeightPreset(1000)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-orange-100 text-orange-900 font-black transition">1 kg</button>
+                                <button type="button" onclick="setFlourWeightPreset(2500)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">2.5 kg</button>
+                                <button type="button" onclick="setFlourWeightPreset(5000)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">5 kg</button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-dough-hydration-pct">
+                                    Idratazione (% Acqua)
+                                </label>
+                                <span id="lbl-hydration-val" class="font-mono text-xs font-black text-orange-600">65%</span>
+                            </div>
+                            <input type="range" id="input-dough-hydration-pct" min="50" max="95" value="65" step="1" oninput="onHydrationSliderChange(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-orange-500">
+                            <div class="flex gap-1 pt-1">
+                                <button type="button" onclick="setHydrationPreset(58)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">58% Pane</button>
+                                <button type="button" onclick="setHydrationPreset(65)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-orange-100 text-orange-900 font-black transition">65% Pizza</button>
+                                <button type="button" onclick="setHydrationPreset(75)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">75% Pala</button>
+                                <button type="button" onclick="setHydrationPreset(80)" class="flex-1 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">80% Teglia</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Parametri Aggiuntivi: Sale, Lievito, Olio -->
+                    <div class="grid grid-cols-3 gap-3 pt-2">
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-black text-slate-600 uppercase" for="input-dough-salt-pct">Sale (%)</label>
+                            <input type="number" id="input-dough-salt-pct" value="2.5" min="0" max="5" step="0.1" oninput="recalcDough()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-xs font-black rounded-xl p-2.5 font-mono">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-black text-slate-600 uppercase" for="input-dough-yeast-pct">Lievito (%)</label>
+                            <input type="number" id="input-dough-yeast-pct" value="0.3" min="0" max="5" step="0.05" oninput="recalcDough()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-xs font-black rounded-xl p-2.5 font-mono">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-black text-slate-600 uppercase" for="input-dough-oil-pct">Olio / Strutto (%)</label>
+                            <input type="number" id="input-dough-oil-pct" value="2.0" min="0" max="10" step="0.5" oninput="recalcDough()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-xs font-black rounded-xl p-2.5 font-mono">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.3 BONUS: RICALCOLO MISCELA FARINE (W / PROTEINE PONDERATE) -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-slate-900 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-scale-balanced"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">3. Miscela di 2 Farine (W Medio Ponderato)</h3>
+                                <p class="text-[11px] text-slate-500">Calcola la forza W risultante dalla combinazione di due farine</p>
+                            </div>
+                        </div>
+                        <span id="badge-blend-w" class="text-[10px] font-black text-slate-900 bg-slate-100 border border-slate-300 px-2.5 py-0.5 rounded-full uppercase font-mono">W 280 (Medio-Forte)</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <!-- Farina 1 (Forte) -->
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                            <div class="flex justify-between items-center text-xs font-black text-slate-800">
+                                <span>Farina 1 (Forte / Manitoba)</span>
+                                <span id="lbl-flour1-pct" class="text-orange-600 font-mono">60%</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500">Forza W1</label>
+                                    <input type="number" id="input-flour1-w" value="340" min="100" max="450" step="10" oninput="recalcFlourBlend()" class="w-full bg-white border border-slate-200 text-xs font-black rounded-xl p-2 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500">Quota Miscela (%)</label>
+                                    <input type="number" id="input-flour1-pct" value="60" min="0" max="100" step="5" oninput="onFlour1PctChange(this.value)" class="w-full bg-white border border-slate-200 text-xs font-black rounded-xl p-2 font-mono">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Farina 2 (Debole) -->
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                            <div class="flex justify-between items-center text-xs font-black text-slate-800">
+                                <span>Farina 2 (Debole / Base)</span>
+                                <span id="lbl-flour2-pct" class="text-slate-600 font-mono">40%</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500">Forza W2</label>
+                                    <input type="number" id="input-flour2-w" value="190" min="100" max="450" step="10" oninput="recalcFlourBlend()" class="w-full bg-white border border-slate-200 text-xs font-black rounded-xl p-2 font-mono">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] font-bold text-slate-500">Quota Miscela (%)</label>
+                                    <input type="number" id="input-flour2-pct" value="40" min="0" max="100" step="5" readonly class="w-full bg-slate-100 border border-slate-200 text-xs font-black rounded-xl p-2 font-mono text-slate-500">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: SCHEDA RICETTA & RISULTATO TEMPERATURA (5 Colonne) -->
+            <div class="lg:col-span-5 space-y-6">
+
+                <!-- CARD HERO: TEMPERATURA ACQUA & RICETTA INVASATA -->
+                <section class="bg-gradient-to-br from-slate-900 via-orange-950 to-slate-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden space-y-5">
+                    
+                    <!-- Header Risultato Temp Acqua -->
+                    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-orange-400 animate-pulse"></span>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-orange-200">Temperatura Acqua Calcolata</h3>
+                        </div>
+                        <span id="badge-temp-warning" class="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">Acqua Fresca Normale</span>
+                    </div>
+
+                    <!-- Hero Temp Display -->
+                    <div class="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Usa Acqua A:</span>
+                            <div class="flex items-baseline gap-2">
+                                <span id="out-water-temp" class="text-4xl sm:text-5xl font-black font-mono text-orange-400">26.0°C</span>
+                            </div>
+                            <p id="out-water-advice" class="text-xs text-slate-300 mt-1">Acqua di rubinetto a temperatura ambiente.</p>
+                        </div>
+                        <div class="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl text-orange-300">
+                            <i class="fa-solid fa-droplet"></i>
+                        </div>
+                    </div>
+
+                    <!-- Grammature Esatte Ricetta -->
+                    <div class="space-y-2">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-300">Massa Ingredienti per Ciotola</span>
+                        
+                        <div class="space-y-1.5 text-xs font-mono">
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Farina Totale (100%):</span>
+                                <span id="out-dough-flour-g" class="font-black text-white">1000 g</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-orange-500/20 border border-orange-400/30">
+                                <span class="text-orange-200">Acqua Calcolata:</span>
+                                <span id="out-dough-water-g" class="font-black text-orange-300">650 g</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Sale Marino:</span>
+                                <span id="out-dough-salt-g" class="font-black text-white">25 g</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Lievito Fresco / Secco:</span>
+                                <span id="out-dough-yeast-g" class="font-black text-white">3.0 g (Fresco)</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Olio / Grassi:</span>
+                                <span id="out-dough-oil-g" class="font-black text-white">20 g</span>
+                            </div>
+                        </div>
+
+                        <!-- Peso Totale Impasto -->
+                        <div class="pt-2 border-t border-white/10 flex items-center justify-between text-xs px-1">
+                            <span class="font-bold text-slate-300">PESO TOTALE IMPASTO:</span>
+                            <span id="out-dough-total-weight" class="text-base font-black font-mono text-emerald-300">1698 g (1.70 kg)</span>
+                        </div>
+                    </div>
+
+                    <!-- Azioni Scheda Impasto -->
+                    <div class="pt-2 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" onclick="copyDoughRecipeToClipboard()" class="w-full bg-orange-500 hover:bg-orange-400 text-slate-950 text-xs font-black py-3 px-3 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Ricetta Impasto</span>
+                        </button>
+                        <button type="button" onclick="resetDoughCalculator()" class="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold py-3 px-3 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                            <span>Reimposta</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div> <!-- FINE SEZIONE 1: IDRO-FARINA -->
+
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 2: CONVERTITORE TEGLIA TONDA ↔ RETTANGOLARE (TAB PAN)       -->
+        <!-- =================================================================== -->
+        <div id="section-pan" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hidden">
+            
+            <!-- COLONNA SINISTRA: CONFIGURAZIONE FORMA ORIGINE E DESTINAZIONE (7 Colonne) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 2.1 TEGLIA DI ORIGINE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-vector-square"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Teglia di Origine / Riferimento</h2>
+                                <p class="text-[11px] text-slate-500">Imposta le dimensioni della teglia o del panetto che già conosci</p>
+                            </div>
+                        </div>
+                        <span id="badge-source-shape" class="text-[10px] font-black text-amber-900 bg-amber-100 border border-amber-300 px-2.5 py-0.5 rounded-full uppercase font-mono">Tonda Ø 32 cm</span>
+                    </div>
+
+                    <!-- Tipo Forma Origine -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="setSourceShape('round')" id="btn-src-round" class="p-3 rounded-2xl border-2 text-center transition bg-slate-900 text-white border-slate-900 shadow-sm">
+                            <i class="fa-solid fa-circle text-xs mb-1"></i>
+                            <div class="text-xs font-black">Tonda (Diametro)</div>
+                        </button>
+                        <button type="button" onclick="setSourceShape('rect')" id="btn-src-rect" class="p-3 rounded-2xl border-2 text-center transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">
+                            <i class="fa-solid fa-square text-xs mb-1"></i>
+                            <div class="text-xs font-black">Rettangolare (Base × Altezza)</div>
+                        </button>
+                    </div>
+
+                    <!-- Dimensioni Origine -->
+                    <div id="box-src-round-dims" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-src-diameter">
+                                Diametro Teglia Origine (cm)
+                            </label>
+                            <input type="number" id="input-src-diameter" value="32" min="10" max="100" step="1" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-src-dough-weight">
+                                Peso Panetto Riferimento (g)
+                            </label>
+                            <input type="number" id="input-src-dough-weight" value="280" min="50" max="3000" step="10" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                        </div>
+                    </div>
+
+                    <div id="box-src-rect-dims" class="hidden grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-black text-slate-600 uppercase" for="input-src-rect-w">Larghezza (cm)</label>
+                            <input type="number" id="input-src-rect-w" value="30" min="5" max="150" step="1" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-xs font-black rounded-xl p-2.5 font-mono">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-black text-slate-600 uppercase" for="input-src-rect-h">Lunghezza (cm)</label>
+                            <input type="number" id="input-src-rect-h" value="40" min="5" max="150" step="1" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-xs font-black rounded-xl p-2.5 font-mono">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-[10px] font-black text-slate-600 uppercase" for="input-src-rect-weight">Peso Panetto (g)</label>
+                            <input type="number" id="input-src-rect-weight" value="650" min="50" max="3000" step="10" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-xs font-black rounded-xl p-2.5 font-mono">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2.2 TEGLIA DI DESTINAZIONE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-orange-600 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">2. Teglia di Destinazione (Nuovo Formato)</h2>
+                                <p class="text-[11px] text-slate-500">Seleziona la forma e le misure della teglia su cui vuoi trasferire l'impasto</p>
+                            </div>
+                        </div>
+                        <span id="badge-target-shape" class="text-[10px] font-black text-orange-900 bg-orange-100 border border-orange-300 px-2.5 py-0.5 rounded-full uppercase font-mono">Rettangolare 30×40</span>
+                    </div>
+
+                    <!-- Tipo Forma Destinazione -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="setTargetShape('round')" id="btn-tgt-round" class="p-3 rounded-2xl border-2 text-center transition bg-white border-slate-200 text-slate-700 hover:border-slate-400">
+                            <i class="fa-solid fa-circle text-xs mb-1"></i>
+                            <div class="text-xs font-black">Tonda (Diametro)</div>
+                        </button>
+                        <button type="button" onclick="setTargetShape('rect')" id="btn-tgt-rect" class="p-3 rounded-2xl border-2 text-center transition bg-slate-900 text-white border-slate-900 shadow-sm">
+                            <i class="fa-solid fa-square text-xs mb-1"></i>
+                            <div class="text-xs font-black">Rettangolare (Base × Altezza)</div>
+                        </button>
+                    </div>
+
+                    <!-- Dimensioni Destinazione -->
+                    <div id="box-tgt-round-dims" class="hidden space-y-1.5 pt-1">
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-tgt-diameter">
+                            Diametro Nuova Teglia (cm)
+                        </label>
+                        <input type="number" id="input-tgt-diameter" value="28" min="10" max="100" step="1" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                    </div>
+
+                    <div id="box-tgt-rect-dims" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-tgt-rect-w">
+                                Larghezza Nuova Teglia (cm)
+                            </label>
+                            <input type="number" id="input-tgt-rect-w" value="30" min="5" max="150" step="1" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                        </div>
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-tgt-rect-h">
+                                Lunghezza Nuova Teglia (cm)
+                            </label>
+                            <input type="number" id="input-tgt-rect-h" value="40" min="5" max="150" step="1" oninput="recalcPanConversion()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Presets Teglie Standard Professionali -->
+                    <div class="space-y-1 pt-2 border-t border-slate-100">
+                        <span class="text-[10px] font-black text-slate-400 uppercase">Formati Professionali Comuni</span>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                            <button type="button" onclick="applyPanPreset('rect', 30, 40)" class="py-1.5 px-2 rounded-xl text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">30×40 Teglia Casa</button>
+                            <button type="button" onclick="applyPanPreset('rect', 40, 60)" class="py-1.5 px-2 rounded-xl text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">40×60 Pasticceria</button>
+                            <button type="button" onclick="applyPanPreset('round', 33, 0)" class="py-1.5 px-2 rounded-xl text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Ø 33 Piatto Napoletana</button>
+                            <button type="button" onclick="applyPanPreset('round', 24, 0)" class="py-1.5 px-2 rounded-xl text-[10px] font-mono font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">Ø 24 Padellino / Focaccia</button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: RISULTATO CONVERSIONE & PESO PANETTO (5 Colonne) -->
+            <div class="lg:col-span-5 space-y-6">
+
+                <!-- CARD HERO: PESO PANETTO ADATTATO -->
+                <section class="bg-gradient-to-br from-slate-900 via-amber-950 to-slate-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden space-y-5">
+                    
+                    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-amber-200">Peso Panetto Nuova Teglia</h3>
+                        </div>
+                        <span id="badge-pan-ratio" class="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-white/10 text-white border border-white/20">Fattore: ×1.49</span>
+                    </div>
+
+                    <!-- Display Peso Risultante -->
+                    <div class="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Peso Impasto Calcolato:</span>
+                            <div class="flex items-baseline gap-2">
+                                <span id="out-target-dough-weight" class="text-4xl sm:text-5xl font-black font-mono text-amber-400">418 g</span>
+                            </div>
+                            <p id="out-pan-density-note" class="text-xs text-slate-300 mt-1">Densità costante: 0.35 g/cm²</p>
+                        </div>
+                        <div class="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl text-amber-300">
+                            <i class="fa-solid fa-scale-balanced"></i>
+                        </div>
+                    </div>
+
+                    <!-- Confronto Superfici & Dimensioni -->
+                    <div class="space-y-2 text-xs">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-300">Confronto Superficie Teglie</span>
+                        
+                        <div class="space-y-1.5 font-mono">
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Area Teglia Origine:</span>
+                                <span id="out-src-area" class="font-black text-white">804 cm²</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-amber-500/20 border border-amber-400/30">
+                                <span class="text-amber-200">Area Nuova Teglia:</span>
+                                <span id="out-tgt-area" class="font-black text-amber-300">1200 cm²</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Variazione Superficie:</span>
+                                <span id="out-area-delta" class="font-black text-emerald-400">+49.2%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Azioni Scheda Teglia -->
+                    <div class="pt-2 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" onclick="copyPanConversionToClipboard()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-3 px-3 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Calcolo Teglia</span>
+                        </button>
+                        <button type="button" onclick="resetPanConverter()" class="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold py-3 px-3 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                            <span>Reimposta</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div> <!-- FINE SEZIONE 2: TEGLIE -->
+
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE 3: SFRIDO REALE & PORZIONATURA (TAB WASTE)                  -->
+        <!-- =================================================================== -->
+        <div id="section-waste" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start hidden">
+            
+            <!-- COLONNA SINISTRA: INPUT MATERIA PRIMA E PESI (7 Colonne) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 3.1 RILEVAZIONE SFRIDO DI LAVORAZIONE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-scale-unbalanced"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Rilevamento Pesi Lordo e Netto</h2>
+                                <p class="text-[11px] text-slate-500">Misura lo scarto reale di pulizia e mondatura per correggere il food cost</p>
+                            </div>
+                        </div>
+                        <span id="badge-waste-pct" class="text-[10px] font-black text-emerald-900 bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 rounded-full uppercase font-mono">Sfrido: 35.0%</span>
+                    </div>
+
+                    <!-- Nome Ingrediente & Categoria -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-waste-item-name">
+                            Nome Materia Prima / Ingrediente
+                        </label>
+                        <input type="text" id="input-waste-item-name" value="Carciofi Freschi Interi" placeholder="Es. Salmone intero, Filetto di manzo, Carciofi..." class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold rounded-2xl p-3 focus:outline-none focus:border-emerald-600 transition">
+                    </div>
+
+                    <!-- Pesi Grezzo e Lavorato -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-waste-gross-weight">
+                                Peso Lordo / Acquistato (g)
+                            </label>
+                            <input type="number" id="input-waste-gross-weight" value="1000" min="1" max="100000" step="10" oninput="recalcWaste()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-waste-net-weight">
+                                Peso Netto / Edibile Lavorato (g)
+                            </label>
+                            <input type="number" id="input-waste-net-weight" value="650" min="1" max="100000" step="10" oninput="recalcWaste()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Costo d'Acquisto al kg Lordo -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-waste-gross-cost-kg">
+                                Costo Acquisto Lordo (€/kg)
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="input-waste-gross-cost-kg" value="4.50" min="0" max="1000" step="0.10" oninput="recalcWaste()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                                <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">€/kg</span>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1.5">
+                            <label class="block text-[11px] font-black text-slate-700 uppercase tracking-wider" for="input-waste-portion-size">
+                                Grammatura Singola Porzione (g)
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="input-waste-portion-size" value="150" min="10" max="5000" step="10" oninput="recalcWaste()" class="w-full bg-slate-50 border border-slate-200 text-slate-900 text-center text-sm font-black rounded-2xl py-2.5 font-mono">
+                                <span class="absolute right-3 top-2.5 text-xs text-slate-400 font-bold">g/porz</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3.2 PRESET SFRIDI TIPICI DELLA RISTORAZIONE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <i class="fa-solid fa-book-bookmark text-emerald-600 text-sm"></i>
+                        <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">Tabelle di Sfrido Tipico della Ristorazione</h3>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        <button type="button" onclick="applyWastePreset('Carciofi Interi', 1000, 450, 4.50, 120)" class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition">
+                            <span class="text-xs font-black block">Carciofi</span>
+                            <span class="text-[10px] text-slate-500 font-mono">Sfrido ~55%</span>
+                        </button>
+                        <button type="button" onclick="applyWastePreset('Salmone Intero', 4000, 2600, 12.00, 180)" class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition">
+                            <span class="text-xs font-black block">Pesce Intero</span>
+                            <span class="text-[10px] text-slate-500 font-mono">Sfrido ~35%</span>
+                        </button>
+                        <button type="button" onclick="applyWastePreset('Filetto di Manzo', 3000, 2550, 28.00, 200)" class="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition">
+                            <span class="text-xs font-black block">Filetto / Carni</span>
+                            <span class="text-[10px] text-slate-500 font-mono">Sfrido ~15%</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: COSTO REALE NETTO & FOOD COST BOM (5 Colonne) -->
+            <div class="lg:col-span-5 space-y-6">
+
+                <!-- CARD HERO: COSTO REALE NETTO AL KG -->
+                <section class="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden space-y-5">
+                    
+                    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <h3 class="text-xs font-black uppercase tracking-widest text-emerald-200">Costo Reale al Kg Netto</h3>
+                        </div>
+                        <span id="badge-waste-cost-mult" class="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">Fattore BOM: ×1.54</span>
+                    </div>
+
+                    <!-- Display Costo Reale -->
+                    <div class="p-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-between">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Costo Effettivo Edibile:</span>
+                            <div class="flex items-baseline gap-2">
+                                <span id="out-real-net-cost-kg" class="text-4xl sm:text-5xl font-black font-mono text-emerald-400">€ 6.92</span>
+                                <span class="text-xs text-slate-400 font-bold">/ kg netto</span>
+                            </div>
+                            <p id="out-waste-summary-line" class="text-xs text-slate-300 mt-1">Costo lordo € 4.50/kg con resa 65.0%</p>
+                        </div>
+                        <div class="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-2xl text-emerald-300">
+                            <i class="fa-solid fa-receipt"></i>
+                        </div>
+                    </div>
+
+                    <!-- Metriche Porzionatura & Resa -->
+                    <div class="space-y-2 text-xs">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-slate-300">Analisi Resa e Porzionatura</span>
+                        
+                        <div class="space-y-1.5 font-mono">
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Percentuale Resa Netta:</span>
+                                <span id="out-waste-yield-pct" class="font-black text-emerald-300">65.0%</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Percentuale Sfrido Scarto:</span>
+                                <span id="out-waste-loss-pct" class="font-black text-amber-300">35.0% (350 g)</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-white/5 border border-white/10">
+                                <span class="text-slate-300">Porzioni Ricavabili:</span>
+                                <span id="out-waste-portions-count" class="font-black text-white">4.3 Porzioni</span>
+                            </div>
+                            <div class="flex justify-between p-2.5 rounded-xl bg-emerald-500/20 border border-emerald-400/30">
+                                <span class="text-emerald-200">Costo Materia Prima per Porzione:</span>
+                                <span id="out-waste-cost-per-portion" class="font-black text-emerald-300">€ 1.04</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Nota Assistiva Distinta Base BOM -->
+                    <div class="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-1 text-xs">
+                        <span class="text-[10px] font-black uppercase tracking-wider text-emerald-300">Impatto sul Food Cost in Distinta Base</span>
+                        <p class="text-slate-200 leading-relaxed font-medium">
+                            Nel calcolo del piatto in distinta base (BOM), inserire sempre il costo netto corretto (€/kg netto) per evitare di sottostimare il costo porzione a causa degli scarti di mondatura.
+                        </p>
+                    </div>
+
+                    <!-- Azioni Scheda Sfrido -->
+                    <div class="pt-2 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button type="button" onclick="copyWasteReportToClipboard()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black py-3 px-3 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Scheda Sfrido</span>
+                        </button>
+                        <button type="button" onclick="resetWasteCalculator()" class="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold py-3 px-3 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-rotate-left text-xs"></i>
+                            <span>Reimposta</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div> <!-- FINE SEZIONE 3: SFRIDO -->
+
+    </main>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="cucina-toast" class="fixed bottom-6 right-6 z-50 transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-emerald-400"></i>
+            <span id="toast-text">Dati copiati negli appunti</span>
+        </div>
+    </div>
+
+    <!-- MOTORE CALCOLI CUCINA E LOGICA APPLICATIVA JAVASCRIPT -->
+    <script>
+        'use strict';
+
+        /* ── INIZIALIZZAZIONE TELEGRAM WEBAPP ── */
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            try {
+                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
+                if (tg.expand) tg.expand();
+                if (tg.ready) tg.ready();
+                if (tg.BackButton) {
+                    tg.BackButton.show();
+                    tg.BackButton.onClick(() => goToDeskBoard());
+                }
+            } catch (e) {
+                console.warn('Errore init Telegram WebApp:', e);
+            }
+        }
+
+        /* ── STATO APPLICATIVO CUCINA ── */
+        let activeTab = 'dough'; // 'dough' | 'pan' | 'waste'
+
+        /* ── AVVIO DOM ── */
+        document.addEventListener('DOMContentLoaded', () => {
+            recalcDough();
+            recalcFlourBlend();
+            recalcPanConversion();
+            recalcWaste();
+        });
+
+        /* ── GESTIONE TABS ── */
+        function switchTab(tabId) {
+            activeTab = tabId;
+            const btnDough = document.getElementById('tab-btn-dough');
+            const btnPan = document.getElementById('tab-btn-pan');
+            const btnWaste = document.getElementById('tab-btn-waste');
+
+            const secDough = document.getElementById('section-dough');
+            const secPan = document.getElementById('section-pan');
+            const secWaste = document.getElementById('section-waste');
+
+            const activeClass = 'tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+            const inactiveClass = 'tab-inactive px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0';
+
+            if (btnDough) btnDough.className = (tabId === 'dough' ? activeClass : inactiveClass);
+            if (btnPan) btnPan.className = (tabId === 'pan' ? activeClass : inactiveClass);
+            if (btnWaste) btnWaste.className = (tabId === 'waste' ? activeClass : inactiveClass);
+
+            if (secDough) secDough.classList.toggle('hidden', tabId !== 'dough');
+            if (secPan) secPan.classList.toggle('hidden', tabId !== 'pan');
+            if (secWaste) secWaste.classList.toggle('hidden', tabId !== 'waste');
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        /* ── STEPPER GENERICO NUMERI ── */
+        function stepNumberInput(id, step, min, max) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            let val = parseFloat(el.value) || 0;
+            val = Math.round((val + step) * 100) / 100;
+            if (min !== undefined && val < min) val = min;
+            if (max !== undefined && val > max) val = max;
+            el.value = val;
+
+            if (id.startsWith('input-temp') || id.startsWith('input-dough')) {
+                recalcDough();
+            } else if (id.startsWith('input-src') || id.startsWith('input-tgt')) {
+                recalcPanConversion();
+            } else if (id.startsWith('input-waste')) {
+                recalcWaste();
+            }
+        }
+
+        /* ── 1. MOTORE CALCOLO IDRO-FARINA & TEMPERATURA ACQUA ── */
+        let mixerFrictionTemp = 3;
+
+        function onMixerTypeChange(val) {
+            mixerFrictionTemp = parseFloat(val) || 0;
+            recalcDough();
+        }
+
+        function onRoomTempChange(val) {
+            const roomT = parseFloat(val) || 22;
+            const flourInput = document.getElementById('input-temp-flour');
+            if (flourInput) {
+                flourInput.value = Math.max(10, roomT - 1);
+            }
+            recalcDough();
+        }
+
+        function syncFlourWithRoomTemp() {
+            const roomT = parseFloat(document.getElementById('input-temp-room')?.value) || 22;
+            const flourInput = document.getElementById('input-temp-flour');
+            if (flourInput) flourInput.value = Math.max(10, roomT - 1);
+            recalcDough();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setFlourWeightPreset(grams) {
+            const el = document.getElementById('input-dough-flour-grams');
+            if (el) el.value = grams;
+            recalcDough();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onHydrationSliderChange(val) {
+            const lbl = document.getElementById('lbl-hydration-val');
+            if (lbl) lbl.innerText = `${val}%`;
+            recalcDough();
+        }
+
+        function setHydrationPreset(pct) {
+            const slider = document.getElementById('input-dough-hydration-pct');
+            const lbl = document.getElementById('lbl-hydration-val');
+            if (slider) slider.value = pct;
+            if (lbl) lbl.innerText = `${pct}%`;
+            recalcDough();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function recalcDough() {
+            const targetT = parseFloat(document.getElementById('input-temp-target')?.value) || 24;
+            const roomT = parseFloat(document.getElementById('input-temp-room')?.value) || 22;
+            const flourT = parseFloat(document.getElementById('input-temp-flour')?.value) || 21;
+            const frictionT = mixerFrictionTemp;
+
+            // FORMULA REGOLA DELLE 3 TEMPERATURE:
+            // Temp Acqua = (3 * Temp Finale Desiderata) - (Temp Ambiente + Temp Farina + Riscaldamento Impastatrice)
+            const waterT = Math.round(((3 * targetT) - (roomT + flourT + frictionT)) * 10) / 10;
+
+            const flourG = parseFloat(document.getElementById('input-dough-flour-grams')?.value) || 1000;
+            const hydrPct = parseFloat(document.getElementById('input-dough-hydration-pct')?.value) || 65;
+            const saltPct = parseFloat(document.getElementById('input-dough-salt-pct')?.value) || 2.5;
+            const yeastPct = parseFloat(document.getElementById('input-dough-yeast-pct')?.value) || 0.3;
+            const oilPct = parseFloat(document.getElementById('input-dough-oil-pct')?.value) || 2.0;
+
+            const waterG = Math.round((flourG * (hydrPct / 100)) * 10) / 10;
+            const saltG = Math.round((flourG * (saltPct / 100)) * 10) / 10;
+            const yeastG = Math.round((flourG * (yeastPct / 100)) * 10) / 10;
+            const oilG = Math.round((flourG * (oilPct / 100)) * 10) / 10;
+            const totalWeightG = Math.round((flourG + waterG + saltG + yeastG + oilG) * 10) / 10;
+
+            // Output Display
+            const outWaterT = document.getElementById('out-water-temp');
+            const badgeTarget = document.getElementById('badge-temp-target');
+            const badgeWarning = document.getElementById('badge-temp-warning');
+            const outWaterAdvice = document.getElementById('out-water-advice');
+
+            if (badgeTarget) badgeTarget.innerText = `Target: ${targetT}°C`;
+            if (outWaterT) outWaterT.innerText = `${waterT.toFixed(1)}°C`;
+
+            if (waterT <= 4) {
+                if (badgeWarning) {
+                    badgeWarning.innerText = 'Acqua Ghiacciata Necessaria';
+                    badgeWarning.className = 'text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30';
+                }
+                if (outWaterAdvice) outWaterAdvice.innerText = 'Usare acqua di frigorifero (3-4°C) o sostituire parte dell\'acqua con scaglie di ghiaccio.';
+            } else if (waterT >= 28) {
+                if (badgeWarning) {
+                    badgeWarning.innerText = 'Acqua Tiepida';
+                    badgeWarning.className = 'text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30';
+                }
+                if (outWaterAdvice) outWaterAdvice.innerText = 'Ambiente o farina freddi. Usare acqua tiepida per favorire la fermentazione.';
+            } else {
+                if (badgeWarning) {
+                    badgeWarning.innerText = 'Temperatura Standard';
+                    badgeWarning.className = 'text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+                }
+                if (outWaterAdvice) outWaterAdvice.innerText = 'Temperatura ottimale. Usare acqua fresca di rubinetto.';
+            }
+
+            const outFlourG = document.getElementById('out-dough-flour-g');
+            const outWaterG = document.getElementById('out-dough-water-g');
+            const outSaltG = document.getElementById('out-dough-salt-g');
+            const outYeastG = document.getElementById('out-dough-yeast-g');
+            const outOilG = document.getElementById('out-dough-oil-g');
+            const outTotalWeight = document.getElementById('out-dough-total-weight');
+
+            if (outFlourG) outFlourG.innerText = `${flourG} g`;
+            if (outWaterG) outWaterG.innerText = `${waterG} g (${hydrPct}%)`;
+            if (outSaltG) outSaltG.innerText = `${saltG} g (${saltPct}%)`;
+            if (outYeastG) outYeastG.innerText = `${yeastG} g (${yeastPct}%)`;
+            if (outOilG) outOilG.innerText = `${oilG} g (${oilPct}%)`;
+            if (outTotalWeight) outTotalWeight.innerText = `${totalWeightG} g (${(totalWeightG / 1000).toFixed(2)} kg)`;
+        }
+
+        function onFlour1PctChange(val) {
+            const p1 = Math.max(0, Math.min(100, parseInt(val, 10) || 0));
+            const p2 = 100 - p1;
+            const inP2 = document.getElementById('input-flour2-pct');
+            const lblP1 = document.getElementById('lbl-flour1-pct');
+            const lblP2 = document.getElementById('lbl-flour2-pct');
+
+            if (inP2) inP2.value = p2;
+            if (lblP1) lblP1.innerText = `${p1}%`;
+            if (lblP2) lblP2.innerText = `${p2}%`;
+
+            recalcFlourBlend();
+        }
+
+        function recalcFlourBlend() {
+            const w1 = parseFloat(document.getElementById('input-flour1-w')?.value) || 340;
+            const p1 = parseFloat(document.getElementById('input-flour1-pct')?.value) || 60;
+            const w2 = parseFloat(document.getElementById('input-flour2-w')?.value) || 190;
+            const p2 = 100 - p1;
+
+            // W Medio Ponderato = (W1 * P1 + W2 * P2) / 100
+            const avgW = Math.round(((w1 * p1) + (w2 * p2)) / 100);
+
+            const badgeW = document.getElementById('badge-blend-w');
+            if (badgeW) {
+                let desc = 'Debole';
+                if (avgW >= 300) desc = 'Forte (Lunga Lievitazione)';
+                else if (avgW >= 240) desc = 'Media (24-48h)';
+                else if (avgW >= 180) desc = 'Medio-Debole';
+                badgeW.innerText = `W ${avgW} (${desc})`;
+            }
+        }
+
+        function copyDoughRecipeToClipboard() {
+            const flourG = document.getElementById('input-dough-flour-grams')?.value || '1000';
+            const hydrPct = document.getElementById('input-dough-hydration-pct')?.value || '65';
+            const waterT = document.getElementById('out-water-temp')?.innerText || '';
+            const targetT = document.getElementById('input-temp-target')?.value || '24';
+            const totalWeight = document.getElementById('out-dough-total-weight')?.innerText || '';
+
+            let txt = `🍞 *SiteBoS Cucina • Scheda Impasto & Temperatura Acqua*\n`;
+            txt += `Target Impasto: *${targetT}°C* • Idratazione: *${hydrPct}%*\n`;
+            txt += `🌡️ *Temperatura Acqua Calcolata:* *${waterT}*\n\n`;
+            txt += `🥣 *Ricetta in Ciotola:*\n`;
+            txt += `  • Farina Totale: *${document.getElementById('out-dough-flour-g')?.innerText || ''}*\n`;
+            txt += `  • Acqua (${waterT}): *${document.getElementById('out-dough-water-g')?.innerText || ''}*\n`;
+            txt += `  • Sale: *${document.getElementById('out-dough-salt-g')?.innerText || ''}*\n`;
+            txt += `  • Lievito: *${document.getElementById('out-dough-yeast-g')?.innerText || ''}*\n`;
+            txt += `  • Olio / Grassi: *${document.getElementById('out-dough-oil-g')?.innerText || ''}*\n`;
+            txt += `  • *Massa Totale Impasto:* *${totalWeight}*\n\n`;
+            txt += `💡 *Miscela Farine:* ${document.getElementById('badge-blend-w')?.innerText || ''}\n`;
+            txt += `_Regola delle 3 temperature calcolata client-side._`;
+
+            copyTextToClipboard(txt, 'Ricetta impasto copiata!');
+        }
+
+        function resetDoughCalculator() {
+            mixerFrictionTemp = 3;
+            const selMixer = document.getElementById('select-mixer-type');
+            if (selMixer) selMixer.value = '3';
+
+            const inTargetT = document.getElementById('input-temp-target');
+            const inRoomT = document.getElementById('input-temp-room');
+            const inFlourT = document.getElementById('input-temp-flour');
+            if (inTargetT) inTargetT.value = '24';
+            if (inRoomT) inRoomT.value = '22';
+            if (inFlourT) inFlourT.value = '21';
+
+            const inFlourG = document.getElementById('input-dough-flour-grams');
+            const inHydr = document.getElementById('input-dough-hydration-pct');
+            const inSalt = document.getElementById('input-dough-salt-pct');
+            const inYeast = document.getElementById('input-dough-yeast-pct');
+            const inOil = document.getElementById('input-dough-oil-pct');
+
+            if (inFlourG) inFlourG.value = '1000';
+            if (inHydr) inHydr.value = '65';
+            if (inSalt) inSalt.value = '2.5';
+            if (inYeast) inYeast.value = '0.3';
+            if (inOil) inOil.value = '2.0';
+
+            const inW1 = document.getElementById('input-flour1-w');
+            const inP1 = document.getElementById('input-flour1-pct');
+            const inW2 = document.getElementById('input-flour2-w');
+
+            if (inW1) inW1.value = '340';
+            if (inP1) inP1.value = '60';
+            if (inW2) inW2.value = '190';
+            onFlour1PctChange(60);
+
+            recalcDough();
+            showToast('Calcolatore impasto reimpostato!');
+        }
+
+
+        /* ── 2. MOTORE CONVERSIONE TEGLIE TONDA ↔ RETTANGOLARE ── */
+        let sourceShape = 'round'; // 'round' | 'rect'
+        let targetShape = 'rect';  // 'round' | 'rect'
+
+        function setSourceShape(shape) {
+            sourceShape = shape;
+            const btnR = document.getElementById('btn-src-round');
+            const btnSq = document.getElementById('btn-src-rect');
+            const boxR = document.getElementById('box-src-round-dims');
+            const boxSq = document.getElementById('box-src-rect-dims');
+
+            const activeClass = 'p-3 rounded-2xl border-2 text-center transition bg-slate-900 text-white border-slate-900 shadow-sm';
+            const inactiveClass = 'p-3 rounded-2xl border-2 text-center transition bg-white border-slate-200 text-slate-700 hover:border-slate-400';
+
+            if (btnR) btnR.className = (shape === 'round' ? activeClass : inactiveClass);
+            if (btnSq) btnSq.className = (shape === 'rect' ? activeClass : inactiveClass);
+            if (boxR) boxR.classList.toggle('hidden', shape !== 'round');
+            if (boxSq) boxSq.classList.toggle('hidden', shape !== 'rect');
+
+            recalcPanConversion();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function setTargetShape(shape) {
+            targetShape = shape;
+            const btnR = document.getElementById('btn-tgt-round');
+            const btnSq = document.getElementById('btn-tgt-rect');
+            const boxR = document.getElementById('box-tgt-round-dims');
+            const boxSq = document.getElementById('box-tgt-rect-dims');
+
+            const activeClass = 'p-3 rounded-2xl border-2 text-center transition bg-slate-900 text-white border-slate-900 shadow-sm';
+            const inactiveClass = 'p-3 rounded-2xl border-2 text-center transition bg-white border-slate-200 text-slate-700 hover:border-slate-400';
+
+            if (btnR) btnR.className = (shape === 'round' ? activeClass : inactiveClass);
+            if (btnSq) btnSq.className = (shape === 'rect' ? activeClass : inactiveClass);
+            if (boxR) boxR.classList.toggle('hidden', shape !== 'round');
+            if (boxSq) boxSq.classList.toggle('hidden', shape !== 'rect');
+
+            recalcPanConversion();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function applyPanPreset(shape, dim1, dim2) {
+            setTargetShape(shape);
+            if (shape === 'round') {
+                const inD = document.getElementById('input-tgt-diameter');
+                if (inD) inD.value = dim1;
+            } else {
+                const inW = document.getElementById('input-tgt-rect-w');
+                const inH = document.getElementById('input-tgt-rect-h');
+                if (inW) inW.value = dim1;
+                if (inH) inH.value = dim2;
+            }
+            recalcPanConversion();
+        }
+
+        function recalcPanConversion() {
+            // Area Origine
+            let srcArea = 0;
+            let srcWeight = 0;
+
+            if (sourceShape === 'round') {
+                const diam = parseFloat(document.getElementById('input-src-diameter')?.value) || 32;
+                srcArea = Math.PI * Math.pow(diam / 2, 2);
+                srcWeight = parseFloat(document.getElementById('input-src-dough-weight')?.value) || 280;
+                const badge = document.getElementById('badge-source-shape');
+                if (badge) badge.innerText = `Tonda Ø ${diam} cm`;
+            } else {
+                const w = parseFloat(document.getElementById('input-src-rect-w')?.value) || 30;
+                const h = parseFloat(document.getElementById('input-src-rect-h')?.value) || 40;
+                srcArea = w * h;
+                srcWeight = parseFloat(document.getElementById('input-src-rect-weight')?.value) || 650;
+                const badge = document.getElementById('badge-source-shape');
+                if (badge) badge.innerText = `Rettangolare ${w}×${h} cm`;
+            }
+
+            // Area Destinazione
+            let tgtArea = 0;
+            if (targetShape === 'round') {
+                const diam = parseFloat(document.getElementById('input-tgt-diameter')?.value) || 28;
+                tgtArea = Math.PI * Math.pow(diam / 2, 2);
+                const badge = document.getElementById('badge-target-shape');
+                if (badge) badge.innerText = `Tonda Ø ${diam} cm`;
+            } else {
+                const w = parseFloat(document.getElementById('input-tgt-rect-w')?.value) || 30;
+                const h = parseFloat(document.getElementById('input-tgt-rect-h')?.value) || 40;
+                tgtArea = w * h;
+                const badge = document.getElementById('badge-target-shape');
+                if (badge) badge.innerText = `Rettangolare ${w}×${h} cm`;
+            }
+
+            // Densità impasto su area di origine
+            const density = srcArea > 0 ? srcWeight / srcArea : 0.35;
+            const ratio = srcArea > 0 ? (tgtArea / srcArea) : 1;
+            const targetWeight = Math.round(tgtArea * density);
+            const deltaPct = srcArea > 0 ? Math.round(((tgtArea - srcArea) / srcArea) * 1000) / 10 : 0;
+
+            const outWeight = document.getElementById('out-target-dough-weight');
+            const badgeRatio = document.getElementById('badge-pan-ratio');
+            const outDensityNote = document.getElementById('out-pan-density-note');
+            const outSrcArea = document.getElementById('out-src-area');
+            const outTgtArea = document.getElementById('out-tgt-area');
+            const outAreaDelta = document.getElementById('out-area-delta');
+
+            if (outWeight) outWeight.innerText = `${targetWeight} g`;
+            if (badgeRatio) badgeRatio.innerText = `Fattore: ×${ratio.toFixed(2)}`;
+            if (outDensityNote) outDensityNote.innerText = `Densità mantenuta: ${density.toFixed(2)} g/cm²`;
+            if (outSrcArea) outSrcArea.innerText = `${Math.round(srcArea)} cm²`;
+            if (outTgtArea) outTgtArea.innerText = `${Math.round(tgtArea)} cm²`;
+            if (outAreaDelta) {
+                outAreaDelta.innerText = `${deltaPct >= 0 ? '+' : ''}${deltaPct.toFixed(1)}%`;
+                outAreaDelta.className = deltaPct >= 0 ? 'font-black text-emerald-400' : 'font-black text-amber-400';
+            }
+        }
+
+        function copyPanConversionToClipboard() {
+            const srcDesc = document.getElementById('badge-source-shape')?.innerText || '';
+            const tgtDesc = document.getElementById('badge-target-shape')?.innerText || '';
+            const tgtWeight = document.getElementById('out-target-dough-weight')?.innerText || '';
+            const ratio = document.getElementById('badge-pan-ratio')?.innerText || '';
+
+            let txt = `🍕 *SiteBoS Cucina • Conversione Teglia Impasto*\n`;
+            txt += `Teglia Origine: *${srcDesc}*\n`;
+            txt += `Teglia Nuova: *${tgtDesc}*\n`;
+            txt += `⚖️ *Peso Panetto Adattato:* *${tgtWeight}*\n`;
+            txt += `Superficie Origine: ${document.getElementById('out-src-area')?.innerText || ''}\n`;
+            txt += `Superficie Destinazione: ${document.getElementById('out-tgt-area')?.innerText || ''}\n`;
+            txt += `Rapporto di Scala: ${ratio}\n`;
+            txt += `_Spessore e densità impasto preservati con precisione geometrica._`;
+
+            copyTextToClipboard(txt, 'Calcolo teglia copiato!');
+        }
+
+        function resetPanConverter() {
+            setSourceShape('round');
+            setTargetShape('rect');
+
+            const inSrcD = document.getElementById('input-src-diameter');
+            const inSrcW = document.getElementById('input-src-dough-weight');
+            const inTgtW = document.getElementById('input-tgt-rect-w');
+            const inTgtH = document.getElementById('input-tgt-rect-h');
+
+            if (inSrcD) inSrcD.value = '32';
+            if (inSrcW) inSrcW.value = '280';
+            if (inTgtW) inTgtW.value = '30';
+            if (inTgtH) inTgtH.value = '40';
+
+            recalcPanConversion();
+            showToast('Convertitore teglie reimpostato!');
+        }
+
+
+        /* ── 3. MOTORE SFRIDO REALE & PORZIONATURA ── */
+        function applyWastePreset(name, grossG, netG, costKg, portionG) {
+            const inName = document.getElementById('input-waste-item-name');
+            const inGross = document.getElementById('input-waste-gross-weight');
+            const inNet = document.getElementById('input-waste-net-weight');
+            const inCost = document.getElementById('input-waste-gross-cost-kg');
+            const inPortion = document.getElementById('input-waste-portion-size');
+
+            if (inName) inName.value = name;
+            if (inGross) inGross.value = grossG;
+            if (inNet) inNet.value = netG;
+            if (inCost) inCost.value = costKg.toFixed(2);
+            if (inPortion) inPortion.value = portionG;
+
+            recalcWaste();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function recalcWaste() {
+            const grossG = Math.max(1, parseFloat(document.getElementById('input-waste-gross-weight')?.value) || 1000);
+            const netG = Math.max(0.1, parseFloat(document.getElementById('input-waste-net-weight')?.value) || 650);
+            const grossCostKg = parseFloat(document.getElementById('input-waste-gross-cost-kg')?.value) || 4.50;
+            const portionSizeG = Math.max(1, parseFloat(document.getElementById('input-waste-portion-size')?.value) || 150);
+
+            // CALCOLO SFRIDO E RESA:
+            // % Sfrido = ((Lordo - Netto) / Lordo) * 100
+            // % Resa = (Netto / Lordo) * 100
+            const wasteLossG = Math.max(0, grossG - netG);
+            const wasteLossPct = Math.round((wasteLossG / grossG) * 1000) / 10;
+            const yieldPct = Math.round((netG / grossG) * 1000) / 10;
+
+            // Costo Reale Netto al kg = Costo Lordo / (Resa / 100)
+            const realNetCostKg = yieldPct > 0 ? (grossCostKg / (yieldPct / 100)) : grossCostKg;
+            const costMultiplier = yieldPct > 0 ? (100 / yieldPct) : 1;
+
+            // Porzionatura e Costo Porzione
+            const portionsCount = Math.round((netG / portionSizeG) * 10) / 10;
+            const costPerPortion = Math.round((realNetCostKg * (portionSizeG / 1000)) * 100) / 100;
+
+            const badgeWaste = document.getElementById('badge-waste-pct');
+            const badgeMult = document.getElementById('badge-waste-cost-mult');
+            const outRealCost = document.getElementById('out-real-net-cost-kg');
+            const outSummaryLine = document.getElementById('out-waste-summary-line');
+            const outYield = document.getElementById('out-waste-yield-pct');
+            const outLoss = document.getElementById('out-waste-loss-pct');
+            const outPortions = document.getElementById('out-waste-portions-count');
+            const outCostPortion = document.getElementById('out-waste-cost-per-portion');
+
+            if (badgeWaste) badgeWaste.innerText = `Sfrido: ${wasteLossPct.toFixed(1)}%`;
+            if (badgeMult) badgeMult.innerText = `Fattore BOM: ×${costMultiplier.toFixed(2)}`;
+            if (outRealCost) outRealCost.innerText = `€ ${realNetCostKg.toFixed(2)}`;
+            if (outSummaryLine) outSummaryLine.innerText = `Costo lordo € ${grossCostKg.toFixed(2)}/kg con resa ${yieldPct.toFixed(1)}%`;
+
+            if (outYield) outYield.innerText = `${yieldPct.toFixed(1)}% (${netG} g)`;
+            if (outLoss) outLoss.innerText = `${wasteLossPct.toFixed(1)}% (${wasteLossG} g)`;
+            if (outPortions) outPortions.innerText = `${portionsCount} Porzioni da ${portionSizeG}g`;
+            if (outCostPortion) outCostPortion.innerText = `€ ${costPerPortion.toFixed(2)}`;
+        }
+
+        function copyWasteReportToClipboard() {
+            const name = document.getElementById('input-waste-item-name')?.value || 'Materia Prima';
+            const realCost = document.getElementById('out-real-net-cost-kg')?.innerText || '';
+            const yieldPct = document.getElementById('out-waste-yield-pct')?.innerText || '';
+            const costPortion = document.getElementById('out-waste-cost-per-portion')?.innerText || '';
+
+            let txt = `🥗 *SiteBoS Cucina • Scheda Sfrido Reale & Food Cost*\n`;
+            txt += `Ingrediente: *${name}*\n`;
+            txt += `Resa Edibile Netta: *${yieldPct}*\n`;
+            txt += `Sfrido / Scarto: *${document.getElementById('out-waste-loss-pct')?.innerText || ''}*\n\n`;
+            txt += `💰 *Ricalcolo Costo Distinta Base (BOM):*\n`;
+            txt += `  • Costo Acquisto Lordo: € ${document.getElementById('input-waste-gross-cost-kg')?.value || ''}/kg\n`;
+            txt += `  • *Costo Reale al Kg Netto:* *${realCost}/kg*\n`;
+            txt += `  • Costo per Singola Porzione: *${costPortion}*\n`;
+            txt += `  • Moltiplicatore Correzione BOM: *${document.getElementById('badge-waste-cost-mult')?.innerText || ''}*\n\n`;
+            txt += `_Correzione deterministica del food cost per scarti di lavorazione._`;
+
+            copyTextToClipboard(txt, 'Scheda sfrido copiata!');
+        }
+
+        function resetWasteCalculator() {
+            applyWastePreset('Carciofi Freschi Interi', 1000, 650, 4.50, 150);
+            showToast('Calcolatore sfrido reimpostato!');
+        }
+
+        /* ── GESTIONE REIMPOSTAZIONE GLOBALE ── */
+        function resetActiveTab() {
+            if (activeTab === 'dough') {
+                resetDoughCalculator();
+            } else if (activeTab === 'pan') {
+                resetPanConverter();
+            } else if (activeTab === 'waste') {
+                resetWasteCalculator();
+            }
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        /* ── NAVIGAZIONE DESK BOARD ── */
+        function goToDeskBoard() {
+            const urlParams = window.location.search || '';
+            window.location.href = 'desk_board.html' + urlParams;
+        }
+
+        /* ── CLIPBOARD & TOAST ── */
+        function copyTextToClipboard(text, successMsg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(successMsg);
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => fallbackCopyText(text, successMsg));
+            } else {
+                fallbackCopyText(text, successMsg);
+            }
+        }
+
+        function fallbackCopyText(text, successMsg) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(successMsg);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('cucina-toast');
+            const text = document.getElementById('toast-text');
+            if (toast && text) {
+                text.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>

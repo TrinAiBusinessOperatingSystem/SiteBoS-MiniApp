@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SiteBoS | Agente Utility Clinica & Timer Materiali (Dental/Health)</title>
+    
+    <!-- Telegram WebApp SDK & SiteBoS TWA Guard -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="twa_guard.js"></script>
+    
+    <!-- Tailwind CSS, Google Fonts & FontAwesome 6 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        clinical: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e48',
+                        }
+                    }
+                }
+            }
+        };
+
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const ash = urlParams.get('ash');
+            
+            if (!isTelegramSession && !ash) {
+                console.log('ℹ️ [Clinica Utility] Inizializzazione sessione operatore clinico.');
+            }
+        })();
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab-active {
+            background-color: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
+        }
+
+        .tab-inactive {
+            background-color: #ffffff;
+            color: #475569;
+            border-color: #e2e8f0;
+        }
+        .tab-inactive:hover {
+            border-color: #94a3b8;
+            color: #0f172a;
+        }
+
+        .pulse-timer {
+            animation: pulse-border 1.5s infinite;
+        }
+        @keyframes pulse-border {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.92; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
+
+    <!-- HEADER PRINCIPALE CLINICA DESK (100% LIGHT THEME) -->
+    <header class="bg-white border-b border-slate-200 px-4 sm:px-6 py-3.5 flex items-center justify-between gap-4 sticky top-0 z-40 backdrop-blur shrink-0 shadow-sm">
+        <!-- Logo & Titolo -->
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 text-white flex items-center justify-center font-black shadow-sm shrink-0">
+                <i class="fa-solid fa-tooth text-lg"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="font-black text-slate-900 text-base tracking-tight">SiteBoS Clinica & Studio Odontoiatrico</h1>
+                    <span class="text-[10px] font-black text-teal-900 bg-teal-100 border border-teal-300 px-2.5 py-0.5 rounded-full uppercase tracking-wider">Verticale Sanità e Clinica</span>
+                </div>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[10px] font-bold text-emerald-800">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span>Timer Deterministico • 100% Client-Side • Web Audio Allarme</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 font-semibold hidden md:inline">• Presa Impronta Alginato, Siliconi & Fotopolimerizzazione</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Azioni Header -->
+        <div class="flex items-center gap-2 sm:gap-3">
+            <button onclick="resetTimer()" class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 hover:text-slate-900 active:scale-95 text-xs font-bold px-3 py-2 rounded-xl transition flex items-center gap-1.5" title="Reimposta il timer corrente">
+                <i class="fa-solid fa-rotate-left text-xs"></i>
+                <span class="hidden sm:inline">Reimposta</span>
+            </button>
+
+            <button onclick="goToDeskBoard()" class="bg-slate-900 hover:bg-black text-white text-xs font-black px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-2 active:scale-95">
+                <i class="fa-solid fa-desktop"></i>
+                <span>Desk Board</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- BARRA DI NAVIGAZIONE (1 SINGOLO TAB CLINICO OPERATIVO) -->
+    <div class="bg-white border-b border-slate-200 px-4 sm:px-6 py-2.5 sticky top-[69px] z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto flex items-center gap-2 sm:gap-3 overflow-x-auto no-scrollbar">
+            <button type="button" id="tab-btn-timer" class="tab-active px-4 py-2 rounded-xl text-xs font-black transition border flex items-center gap-2 shrink-0">
+                <i class="fa-solid fa-stopwatch text-teal-400"></i>
+                <span>1. Timer Presa Impronta e Matrice</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- WORKSPACE PRINCIPALE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+
+        <!-- =================================================================== -->
+        <!-- SEZIONE UNICA: TIMER PRESA IMPRONTA & MATRICE CLINICA               -->
+        <!-- =================================================================== -->
+        <div id="section-timer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            
+            <!-- COLONNA SINISTRA: SELEZIONE MATERIALE CLINICO & FASI (7 Colonne) -->
+            <div class="lg:col-span-7 space-y-6">
+
+                <!-- 1.1 SELETTORE MATERIALE CLINICO ODONTOIATRICO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xs font-bold">
+                                <i class="fa-solid fa-flask-vial"></i>
+                            </div>
+                            <div>
+                                <h2 class="font-black text-xs text-slate-900 uppercase tracking-wider">1. Selezione Materiale Clinico da Impronta / Ricostruzione</h2>
+                                <p class="text-[11px] text-slate-500">Preset conformi ai tempi medi di miscelazione e polimerizzazione intraorale</p>
+                            </div>
+                        </div>
+                        <span id="badge-selected-material" class="text-[10px] font-black text-teal-900 bg-teal-100 border border-teal-300 px-2.5 py-0.5 rounded-full uppercase font-mono">Alginato Rapido</span>
+                    </div>
+
+                    <!-- Griglia Materiali Clinici -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        
+                        <!-- 1. Alginato Rapido -->
+                        <button type="button" onclick="selectMaterialPreset('alginate_fast')" id="mat-btn-alginate_fast" class="p-3.5 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center text-sm shrink-0 mt-0.5">
+                                <i class="fa-solid fa-hourglass-start"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black">Alginato a Presa Rapida</div>
+                                <div class="text-[11px] text-slate-300">Tempo intraorale: 1 min 30 s (Totale: 2 min 15 s)</div>
+                            </div>
+                        </button>
+
+                        <!-- 2. Alginato Standard -->
+                        <button type="button" onclick="selectMaterialPreset('alginate_std')" id="mat-btn-alginate_std" class="p-3.5 rounded-2xl border-2 text-left transition bg-white border-slate-200 text-slate-800 hover:border-slate-400 flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm shrink-0 mt-0.5">
+                                <i class="fa-solid fa-hourglass-half"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black">Alginato Standard Classico</div>
+                                <div class="text-[11px] text-slate-500">Tempo intraorale: 2 min (Totale: 3 min)</div>
+                            </div>
+                        </button>
+
+                        <!-- 3. Silicone per Addizione (A-Silicone Wash / Putty) -->
+                        <button type="button" onclick="selectMaterialPreset('asilicone')" id="mat-btn-asilicone" class="p-3.5 rounded-2xl border-2 text-left transition bg-white border-slate-200 text-slate-800 hover:border-slate-400 flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm shrink-0 mt-0.5">
+                                <i class="fa-solid fa-cubes"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black">Silicone Addizione (A-Silicone)</div>
+                                <div class="text-[11px] text-slate-500">Presa intraorale: 3 min 30 s (Wash / Putty)</div>
+                            </div>
+                        </button>
+
+                        <!-- 4. Silicone per Condensazione (C-Silicone) -->
+                        <button type="button" onclick="selectMaterialPreset('csilicone')" id="mat-btn-csilicone" class="p-3.5 rounded-2xl border-2 text-left transition bg-white border-slate-200 text-slate-800 hover:border-slate-400 flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm shrink-0 mt-0.5">
+                                <i class="fa-solid fa-layer-group"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black">Silicone Condensazione (C-Silicone)</div>
+                                <div class="text-[11px] text-slate-500">Presa intraorale: 4 min (Totale: 5 min 30 s)</div>
+                            </div>
+                        </button>
+
+                        <!-- 5. Composito Fotopolimerizzazione (Strato Singolo) -->
+                        <button type="button" onclick="selectMaterialPreset('composite_20')" id="mat-btn-composite_20" class="p-3.5 rounded-2xl border-2 text-left transition bg-white border-slate-200 text-slate-800 hover:border-slate-400 flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm shrink-0 mt-0.5">
+                                <i class="fa-solid fa-sun"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black">Fotopolimerizzazione 20s</div>
+                                <div class="text-[11px] text-slate-500">Lampada LED standard / Strato sottile &lt; 2mm</div>
+                            </div>
+                        </button>
+
+                        <!-- 6. Fotopolimerizzazione Estesa / Bulk-Fill (40s) -->
+                        <button type="button" onclick="selectMaterialPreset('composite_40')" id="mat-btn-composite_40" class="p-3.5 rounded-2xl border-2 text-left transition bg-white border-slate-200 text-slate-800 hover:border-slate-400 flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-sm shrink-0 mt-0.5">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black">Fotopolimerizzazione 40s / Bulk</div>
+                                <div class="text-[11px] text-slate-500">Compositi scuri, perni endocanalari, matrici</div>
+                            </div>
+                        </button>
+
+                    </div>
+
+                    <!-- Personalizzazione Manuale Secondi -->
+                    <div class="space-y-3 pt-3 border-t border-slate-100">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[11px] font-black text-slate-700 uppercase tracking-wider">Oppure Regola Durata Manuale Timer</span>
+                            <span id="lbl-custom-time-formatted" class="text-xs font-mono font-black text-teal-700">01:30 (90 sec)</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="button" onclick="adjustTimerSeconds(-10)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black transition shrink-0 active:scale-95">-10s</button>
+                            <input type="range" id="slider-timer-seconds" min="10" max="600" value="90" step="5" oninput="onCustomTimerSlider(this.value)" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600">
+                            <button type="button" onclick="adjustTimerSeconds(10)" class="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black transition shrink-0 active:scale-95">+10s</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 1.2 GUIDA FASI OPERATIVE CLINICHE -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <i class="fa-solid fa-clipboard-list text-teal-600 text-sm"></i>
+                        <h3 class="font-black text-xs text-slate-900 uppercase tracking-wider">Protocollo Operativo Fasi di Presa</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                            <div class="flex items-center gap-1.5 font-black text-slate-800">
+                                <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px]">1</span>
+                                <span>Miscelazione</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 leading-tight">Impasto omogeneo in tazza o su blocchetto, caricamento portaimpronta.</p>
+                        </div>
+
+                        <div class="p-3 rounded-2xl bg-teal-50 border border-teal-200 space-y-1">
+                            <div class="flex items-center gap-1.5 font-black text-teal-900">
+                                <span class="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px]">2</span>
+                                <span>Permanenza Cavo Orale</span>
+                            </div>
+                            <p class="text-[11px] text-teal-800 leading-tight">Posizionamento in arcata, centratura e immobilizzazione assoluta.</p>
+                        </div>
+
+                        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                            <div class="flex items-center gap-1.5 font-black text-slate-800">
+                                <span class="w-5 h-5 rounded-full bg-slate-200 text-slate-800 flex items-center justify-center text-[10px]">3</span>
+                                <span>Disinserzione</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 leading-tight">Sblocco del sigillo periferico con movimento deciso lungo l'asse d'inserzione.</p>
+                        </div>
+                    </div>
+
+                    <!-- Disclaimer Tecnico Mandatorio (Nessun Calcolo Farmacologico / Controllare TDS) -->
+                    <div class="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-2.5 text-xs text-amber-950">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm mt-0.5 shrink-0"></i>
+                        <div class="space-y-0.5">
+                            <p class="font-bold">Avviso di Conformità e Scheda Tecnica:</p>
+                            <p class="text-[11px] text-amber-900/90 leading-relaxed">
+                                I tempi indicati sono calcolati sui valori medi di laboratorio (23°C ambiente, 37°C cavo orale). Temperatura ambiente elevata, acqua calda o umidità accelerano sensibilmente la presa. Verificare sempre la scheda tecnica (TDS) fornita dal produttore dello specifico lotto di materiale in uso.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- COLONNA DESTRA: DISPLAY TIMER LIVE & CONTROLLI (5 Colonne) -->
+            <div class="lg:col-span-5 space-y-6">
+
+                <!-- CARD HERO: TIMER LIVE AD ALTA VISIBILITÀ -->
+                <section id="card-hero-timer" class="bg-gradient-to-br from-slate-900 via-teal-950 to-slate-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden space-y-5 text-center">
+                    
+                    <!-- Header Stato Timer -->
+                    <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                        <div class="flex items-center gap-2">
+                            <span id="timer-live-dot" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                            <span id="timer-state-label" class="text-xs font-black uppercase tracking-widest text-slate-300">In Attesa di Avvio</span>
+                        </div>
+                        <span id="badge-audio-status" class="text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-400/30">
+                            <i class="fa-solid fa-volume-high text-[9px] mr-1"></i>Allarme Attivo
+                        </span>
+                    </div>
+
+                    <!-- Countdown Display Circolare / Gigante -->
+                    <div class="py-4 space-y-2">
+                        <div class="text-[11px] font-black uppercase tracking-widest text-teal-300" id="lbl-timer-material-title">Alginato a Presa Rapida</div>
+                        <div id="display-time-huge" class="text-6xl sm:text-7xl font-black font-mono tracking-tighter text-white drop-shadow-md">
+                            01:30
+                        </div>
+                        <div id="display-phase-detail" class="text-xs text-slate-300 font-semibold px-4">
+                            Fase: Permanenza Intraorale (Portaimpronta in bocca)
+                        </div>
+
+                        <!-- Barra di Avanzamento % -->
+                        <div class="w-full bg-white/10 rounded-full h-3 overflow-hidden mt-4">
+                            <div id="timer-progress-bar" class="bg-gradient-to-r from-teal-400 to-emerald-400 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Pulsanti di Controllo Timer -->
+                    <div class="pt-2 border-t border-white/10 grid grid-cols-2 gap-3">
+                        <button type="button" id="btn-timer-toggle" onclick="toggleTimer()" class="w-full bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black py-4 px-4 rounded-2xl transition shadow-lg flex items-center justify-center gap-2 active:scale-95">
+                            <i id="icon-timer-toggle" class="fa-solid fa-play"></i>
+                            <span id="label-timer-toggle">AVVIA TIMER</span>
+                        </button>
+                        <button type="button" onclick="resetTimer()" class="w-full bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold py-4 px-4 rounded-2xl transition flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-rotate-left"></i>
+                            <span>REIMPOSTA</span>
+                        </button>
+                    </div>
+
+                    <!-- Pulsante Test Suono Allarme Web Audio -->
+                    <div class="pt-1">
+                        <button type="button" onclick="testAudioBeep()" class="text-[11px] text-teal-300/80 hover:text-teal-200 font-bold transition inline-flex items-center gap-1.5">
+                            <i class="fa-solid fa-bell text-[10px]"></i>
+                            <span>Test Segnale Acustico Fine Ciclo</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- SCHEDA SPECIFICHE MATERIALE ATTIVO -->
+                <section class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-3">
+                    <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <i class="fa-solid fa-circle-info text-teal-600 text-sm"></i>
+                        <h4 class="font-black text-xs text-slate-900 uppercase tracking-wider">Riepilogo Parametri Materiale</h4>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                            <span class="text-slate-600">Materiale Selezionato:</span>
+                            <span id="spec-mat-name" class="font-black text-slate-900">Alginato Rapido</span>
+                        </div>
+                        <div class="flex justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-200">
+                            <span class="text-slate-600">Tempo Totale Ciclo:</span>
+                            <span id="spec-mat-duration" class="font-mono font-black text-slate-900">90 secondi</span>
+                        </div>
+                        <div class="flex justify-between p-2.5 rounded-xl bg-teal-50 border border-teal-200">
+                            <span class="text-teal-900 font-bold">Azione al Segnale:</span>
+                            <span id="spec-mat-action" class="font-black text-teal-900">Disinserzione Impronta</span>
+                        </div>
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="button" onclick="copyTimerLogToClipboard()" class="w-full bg-slate-900 hover:bg-black text-white text-xs font-black py-3 px-4 rounded-2xl transition shadow-sm flex items-center justify-center gap-2 active:scale-95">
+                            <i class="fa-regular fa-copy"></i>
+                            <span>Copia Registrazione Presa Impronta</span>
+                        </button>
+                    </div>
+                </section>
+
+            </div>
+
+        </div> <!-- FINE SEZIONE UNICA -->
+
+    </main>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="clinica-toast" class="fixed bottom-6 right-6 z-50 transition-all duration-300 opacity-0 pointer-events-none">
+        <div class="bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl border border-slate-700 flex items-center gap-2">
+            <i class="fa-solid fa-circle-check text-teal-400"></i>
+            <span id="toast-text">Dati copiati negli appunti</span>
+        </div>
+    </div>
+
+    <!-- MOTORE TIMER E LOGICA APPLICATIVA JAVASCRIPT -->
+    <script>
+        'use strict';
+
+        /* ── INIZIALIZZAZIONE TELEGRAM WEBAPP ── */
+        const tg = window.Telegram?.WebApp;
+        if (tg) {
+            try {
+                if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
+                if (tg.expand) tg.expand();
+                if (tg.ready) tg.ready();
+                if (tg.BackButton) {
+                    tg.BackButton.show();
+                    tg.BackButton.onClick(() => goToDeskBoard());
+                }
+            } catch (e) {
+                console.warn('Errore init Telegram WebApp:', e);
+            }
+        }
+
+        /* ── DATABASE PRESET MATERIALI CLINICI ── */
+        const CLINICAL_MATERIALS = {
+            alginate_fast: {
+                id: 'alginate_fast',
+                name: 'Alginato a Presa Rapida',
+                durationSeconds: 90,
+                intraoralText: 'Permanenza Intraorale (90 secondi)',
+                actionText: 'Disinserzione rapida lungo asse d\'inserzione'
+            },
+            alginate_std: {
+                id: 'alginate_std',
+                name: 'Alginato Standard Classico',
+                durationSeconds: 120,
+                intraoralText: 'Permanenza Intraorale (120 secondi)',
+                actionText: 'Disinserzione elastica portaimpronta'
+            },
+            asilicone: {
+                id: 'asilicone',
+                name: 'Silicone per Addizione (A-Silicone)',
+                durationSeconds: 210,
+                intraoralText: 'Presa Intraorale Wash / Putty (3 min 30 s)',
+                actionText: 'Rimozione impronta ad alta stabilità dimensionale'
+            },
+            csilicone: {
+                id: 'csilicone',
+                name: 'Silicone per Condensazione (C-Silicone)',
+                durationSeconds: 240,
+                intraoralText: 'Polimerizzazione C-Silicone (4 minuti)',
+                actionText: 'Disinserzione e colata gesso entro 30 minuti'
+            },
+            composite_20: {
+                id: 'composite_20',
+                name: 'Fotopolimerizzazione Composito 20s',
+                durationSeconds: 20,
+                intraoralText: 'Irraggiamento Lampada LED (20 secondi)',
+                actionText: 'Verifica indurimento strato & applicazione successiva'
+            },
+            composite_40: {
+                id: 'composite_40',
+                name: 'Fotopolimerizzazione 40s / Bulk-Fill',
+                durationSeconds: 40,
+                intraoralText: 'Irraggiamento Profondo Lampada LED (40 secondi)',
+                actionText: 'Polimerizzazione completata. Rifinitura e lucidatura'
+            }
+        };
+
+        /* ── STATO TIMER ── */
+        let selectedMaterialId = 'alginate_fast';
+        let totalDurationSeconds = 90;
+        let remainingSeconds = 90;
+        let isTimerRunning = false;
+        let timerInterval = null;
+
+        /* ── AVVIO DOM ── */
+        document.addEventListener('DOMContentLoaded', () => {
+            updateMaterialUI();
+            updateDisplayTime();
+        });
+
+        /* ── SELEZIONE PRESET MATERIALE ── */
+        function selectMaterialPreset(matId) {
+            if (isTimerRunning) {
+                stopTimer();
+            }
+            selectedMaterialId = matId;
+            const mat = CLINICAL_MATERIALS[matId];
+            if (mat) {
+                totalDurationSeconds = mat.durationSeconds;
+                remainingSeconds = mat.durationSeconds;
+
+                const slider = document.getElementById('slider-timer-seconds');
+                if (slider) slider.value = mat.durationSeconds;
+            }
+
+            updateMaterialUI();
+            updateDisplayTime();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function onCustomTimerSlider(val) {
+            if (isTimerRunning) {
+                stopTimer();
+            }
+            const sec = Math.max(10, Math.min(600, parseInt(val, 10) || 90));
+            totalDurationSeconds = sec;
+            remainingSeconds = sec;
+
+            const lbl = document.getElementById('lbl-custom-time-formatted');
+            if (lbl) lbl.innerText = `${formatSecondsToMMSS(sec)} (${sec} sec)`;
+
+            updateDisplayTime();
+        }
+
+        function adjustTimerSeconds(delta) {
+            const slider = document.getElementById('slider-timer-seconds');
+            if (!slider) return;
+            let current = parseInt(slider.value, 10) || 90;
+            current = Math.max(10, Math.min(600, current + delta));
+            slider.value = current;
+            onCustomTimerSlider(current);
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function updateMaterialUI() {
+            const mat = CLINICAL_MATERIALS[selectedMaterialId];
+            const badge = document.getElementById('badge-selected-material');
+            const lblTitle = document.getElementById('lbl-timer-material-title');
+            const specName = document.getElementById('spec-mat-name');
+            const specDur = document.getElementById('spec-mat-duration');
+            const specAction = document.getElementById('spec-mat-action');
+            const phaseDetail = document.getElementById('display-phase-detail');
+
+            if (mat) {
+                if (badge) badge.innerText = mat.name;
+                if (lblTitle) lblTitle.innerText = mat.name;
+                if (specName) specName.innerText = mat.name;
+                if (specDur) specDur.innerText = `${mat.durationSeconds} secondi (${formatSecondsToMMSS(mat.durationSeconds)})`;
+                if (specAction) specAction.innerText = mat.actionText;
+                if (phaseDetail) phaseDetail.innerText = `Fase: ${mat.intraoralText}`;
+            }
+
+            // Aggiorna pulsanti lista materiali
+            Object.keys(CLINICAL_MATERIALS).forEach(id => {
+                const btn = document.getElementById(`mat-btn-${id}`);
+                if (btn) {
+                    if (id === selectedMaterialId) {
+                        btn.className = 'p-3.5 rounded-2xl border-2 text-left transition bg-slate-900 text-white border-slate-900 shadow-sm flex items-start gap-3';
+                    } else {
+                        btn.className = 'p-3.5 rounded-2xl border-2 text-left transition bg-white border-slate-200 text-slate-800 hover:border-slate-400 flex items-start gap-3';
+                    }
+                }
+            });
+        }
+
+        /* ── GESTIONE CONTROLLI TIMER ── */
+        function toggleTimer() {
+            if (isTimerRunning) {
+                pauseTimer();
+            } else {
+                startTimer();
+            }
+        }
+
+        function startTimer() {
+            if (remainingSeconds <= 0) {
+                remainingSeconds = totalDurationSeconds;
+            }
+            isTimerRunning = true;
+            updateTimerStateUI();
+
+            timerInterval = setInterval(() => {
+                remainingSeconds--;
+                updateDisplayTime();
+
+                if (remainingSeconds <= 0) {
+                    onTimerFinished();
+                }
+            }, 1000);
+
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function pauseTimer() {
+            isTimerRunning = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            updateTimerStateUI();
+            if (tg?.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        }
+
+        function stopTimer() {
+            isTimerRunning = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            remainingSeconds = totalDurationSeconds;
+            updateTimerStateUI();
+            updateDisplayTime();
+        }
+
+        function resetTimer() {
+            stopTimer();
+            showToast('Timer clinico reimpostato');
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('warning');
+        }
+
+        function onTimerFinished() {
+            stopTimer();
+            remainingSeconds = 0;
+            updateDisplayTime();
+
+            // Allarme Acustico e Vibrazione
+            triggerAlarmBeep();
+            triggerHapticAlert();
+
+            const heroCard = document.getElementById('card-hero-timer');
+            const stateLabel = document.getElementById('timer-state-label');
+            const phaseDetail = document.getElementById('display-phase-detail');
+
+            if (stateLabel) stateLabel.innerText = 'PRESA COMPLETATA • DISINSERIRE ORA';
+            if (phaseDetail) phaseDetail.innerText = 'Presa o Polimerizzazione Terminata! Rimuovere portaimpronta / matrice.';
+            if (heroCard) {
+                heroCard.classList.add('pulse-timer');
+                setTimeout(() => heroCard.classList.remove('pulse-timer'), 5000);
+            }
+
+            showToast('⏰ Presa materiale completata! Rimuovere ora.');
+        }
+
+        function updateTimerStateUI() {
+            const btnToggle = document.getElementById('btn-timer-toggle');
+            const labelToggle = document.getElementById('label-timer-toggle');
+            const iconToggle = document.getElementById('icon-timer-toggle');
+            const dot = document.getElementById('timer-live-dot');
+            const stateLabel = document.getElementById('timer-state-label');
+
+            if (isTimerRunning) {
+                if (btnToggle) btnToggle.className = 'w-full bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black py-4 px-4 rounded-2xl transition shadow-lg flex items-center justify-center gap-2 active:scale-95';
+                if (labelToggle) labelToggle.innerText = 'PAUSA TIMER';
+                if (iconToggle) iconToggle.className = 'fa-solid fa-pause';
+                if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping';
+                if (stateLabel) stateLabel.innerText = 'Presa in Corso...';
+            } else {
+                if (btnToggle) btnToggle.className = 'w-full bg-teal-500 hover:bg-teal-400 text-slate-950 text-xs font-black py-4 px-4 rounded-2xl transition shadow-lg flex items-center justify-center gap-2 active:scale-95';
+                if (labelToggle) labelToggle.innerText = remainingSeconds < totalDurationSeconds ? 'RIPRENDI TIMER' : 'AVVIA TIMER';
+                if (iconToggle) iconToggle.className = 'fa-solid fa-play';
+                if (dot) dot.className = 'w-2.5 h-2.5 rounded-full bg-slate-500';
+                if (stateLabel) stateLabel.innerText = remainingSeconds < totalDurationSeconds ? 'In Pausa' : 'Pronto per l\'Avvio';
+            }
+        }
+
+        function updateDisplayTime() {
+            const display = document.getElementById('display-time-huge');
+            const bar = document.getElementById('timer-progress-bar');
+
+            if (display) {
+                display.innerText = formatSecondsToMMSS(remainingSeconds);
+            }
+
+            if (bar && totalDurationSeconds > 0) {
+                const pct = Math.max(0, Math.min(100, (remainingSeconds / totalDurationSeconds) * 100));
+                bar.style.width = `${pct}%`;
+                if (pct <= 20) {
+                    bar.className = 'bg-gradient-to-r from-rose-500 to-amber-500 h-full rounded-full transition-all duration-300';
+                } else {
+                    bar.className = 'bg-gradient-to-r from-teal-400 to-emerald-400 h-full rounded-full transition-all duration-300';
+                }
+            }
+        }
+
+        function formatSecondsToMMSS(sec) {
+            const m = Math.floor(sec / 60);
+            const s = sec % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        /* ── SINTESI AUDIO ALLARME (WEB AUDIO API NATIVA - ZERO FILE ESTERNI) ── */
+        function triggerAlarmBeep() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const ctx = new AudioContext();
+
+                // Sequenza di 3 beeps chiari ad alta frequenza (880Hz -> 1046Hz)
+                const playBeep = (freq, startOffset, duration) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + startOffset);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime + startOffset);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startOffset + duration);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + startOffset);
+                    osc.stop(ctx.currentTime + startOffset + duration);
+                };
+
+                playBeep(880, 0, 0.2);
+                playBeep(880, 0.25, 0.2);
+                playBeep(1174, 0.5, 0.4);
+            } catch (err) {
+                console.warn('Impossibile riprodurre Web Audio beep:', err);
+            }
+        }
+
+        function testAudioBeep() {
+            triggerAlarmBeep();
+            triggerHapticAlert();
+            showToast('Segnale acustico di prova emesso');
+        }
+
+        function triggerHapticAlert() {
+            if (tg?.HapticFeedback) {
+                tg.HapticFeedback.notificationOccurred('error');
+            }
+            if (navigator.vibrate) {
+                navigator.vibrate([200, 100, 200, 100, 400]);
+            }
+        }
+
+        /* ── COPIA REFERTO REGISTRAZIONE ── */
+        function copyTimerLogToClipboard() {
+            const mat = CLINICAL_MATERIALS[selectedMaterialId];
+            let txt = `🦷 *SiteBoS Clinica • Registrazione Presa Impronta / Matrice*\n`;
+            txt += `Materiale: *${mat ? mat.name : 'Materiale Clinico'}*\n`;
+            txt += `Durata Impostata: *${totalDurationSeconds} secondi (${formatSecondsToMMSS(totalDurationSeconds)})*\n`;
+            txt += `Fase: *${mat ? mat.intraoralText : 'Permanenza Cavo Orale'}*\n`;
+            txt += `Data e Ora: ${new Date().toLocaleString('it-IT')}\n\n`;
+            txt += `⚠️ *Nota di Sicurezza:* Protocollo di polimerizzazione e presa conforme alle specifiche tecniche del produttore.\n`;
+            txt += `_Registrazione operatore generata client-side da SiteBoS Clinica._`;
+
+            copyTextToClipboard(txt, 'Registrazione presa impronta copiata!');
+        }
+
+        /* ── NAVIGAZIONE DESK BOARD ── */
+        function goToDeskBoard() {
+            const urlParams = window.location.search || '';
+            window.location.href = 'desk_board.html' + urlParams;
+        }
+
+        /* ── CLIPBOARD & TOAST NOTIFICA ── */
+        function copyTextToClipboard(text, successMsg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(successMsg);
+                    if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }).catch(() => fallbackCopyText(text, successMsg));
+            } else {
+                fallbackCopyText(text, successMsg);
+            }
+        }
+
+        function fallbackCopyText(text, successMsg) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(successMsg);
+            if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('clinica-toast');
+            const text = document.getElementById('toast-text');
+            if (toast && text) {
+                text.innerText = msg;
+                toast.classList.remove('opacity-0', 'pointer-events-none');
+                setTimeout(() => {
+                    toast.classList.add('opacity-0', 'pointer-events-none');
+                }, 3000);
+            }
+        }
+    </script>
+</body>
+</html>
