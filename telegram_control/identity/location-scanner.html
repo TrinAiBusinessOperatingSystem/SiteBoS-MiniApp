@@ -406,9 +406,103 @@
             }
         }
 
+        const MAX_SCAN_TOTAL_BYTES = 16 * 1024 * 1024; // 16 MB
+
+        function getCapturedPhotosTotalBytes() {
+            return capturedPhotos.reduce((sum, p) => {
+                const b64 = p.split(',')[1] || '';
+                return sum + Math.round(b64.length * 0.75);
+            }, 0);
+        }
+
+        async function processAndCompressImageToJpeg(fileOrBlobOrDataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    let width = Math.min(img.naturalWidth || img.width || 1280, 1280);
+                    let height = Math.min(img.naturalHeight || img.height || 720, 720);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const qualitySteps = [0.88, 0.80, 0.70, 0.60, 0.50];
+                    let bestDataUrl = null;
+                    let bestByteSize = 0;
+
+                    for (let q of qualitySteps) {
+                        const dataUrl = canvas.toDataURL('image/jpeg', q);
+                        const base64Str = dataUrl.split(',')[1] || '';
+                        const byteSize = Math.round(base64Str.length * 0.75);
+
+                        if (byteSize <= MAX_SCAN_TOTAL_BYTES) {
+                            bestDataUrl = dataUrl;
+                            bestByteSize = byteSize;
+                            break;
+                        }
+                    }
+
+                    if (!bestDataUrl) {
+                        let scale = 0.8;
+                        while (scale >= 0.3) {
+                            const scaledCanvas = document.createElement('canvas');
+                            scaledCanvas.width = Math.round(width * scale);
+                            scaledCanvas.height = Math.round(height * scale);
+                            const sCtx = scaledCanvas.getContext('2d');
+                            sCtx.fillStyle = '#FFFFFF';
+                            sCtx.fillRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+                            sCtx.drawImage(img, 0, 0, scaledCanvas.width, scaledCanvas.height);
+
+                            for (let q of [0.8, 0.6, 0.5]) {
+                                const dataUrl = scaledCanvas.toDataURL('image/jpeg', q);
+                                const base64Str = dataUrl.split(',')[1] || '';
+                                const byteSize = Math.round(base64Str.length * 0.75);
+                                if (byteSize <= MAX_SCAN_TOTAL_BYTES) {
+                                    bestDataUrl = dataUrl;
+                                    bestByteSize = byteSize;
+                                    break;
+                                }
+                            }
+                            if (bestDataUrl) break;
+                            scale -= 0.2;
+                        }
+                    }
+
+                    if (!bestDataUrl) {
+                        reject(new Error("Foto troppo pesante anche dopo compressione, riprova con una foto piu' piccola o a risoluzione inferiore."));
+                        return;
+                    }
+
+                    const base64WithoutPrefix = bestDataUrl.split(',')[1] || '';
+                    resolve({
+                        dataUrl: bestDataUrl,
+                        base64: base64WithoutPrefix,
+                        mimeType: 'image/jpeg',
+                        byteSize: bestByteSize
+                    });
+                };
+                img.onerror = () => {
+                    reject(new Error("Impossibile elaborare il file immagine selezionato."));
+                };
+
+                if (typeof fileOrBlobOrDataUrl === 'string') {
+                    img.src = fileOrBlobOrDataUrl;
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { img.src = e.target.result; };
+                    reader.onerror = () => { reject(new Error("Errore durante la lettura del file.")); };
+                    reader.readAsDataURL(fileOrBlobOrDataUrl);
+                }
+            });
+        }
+
         function snapLivePhoto() {
             if (capturedPhotos.length >= 5) {
-                alert("Hai già raggiunto il limite massimo di 5 foto.");
+                const msg = "Hai già raggiunto il limite massimo di 5 foto.";
+                if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(msg); else alert(msg);
                 return;
             }
 
@@ -419,9 +513,22 @@
             canvas.height = Math.min(video.videoHeight || 720, 720);
             
             const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            const b64Data = canvas.toDataURL('image/jpeg', 0.8);
+            const b64Data = canvas.toDataURL('image/jpeg', 0.85);
+            const b64Str = b64Data.split(',')[1] || '';
+            const newPhotoBytes = Math.round(b64Str.length * 0.75);
+
+            const currentTotal = getCapturedPhotosTotalBytes();
+            if (currentTotal + newPhotoBytes > MAX_SCAN_TOTAL_BYTES) {
+                const limitMsg = "Hai raggiunto il limite di 16 MB per questa scansione: rimuovi qualche foto o riducine la risoluzione.";
+                if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(limitMsg); else alert(limitMsg);
+                if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                return;
+            }
+
             capturedPhotos.push(b64Data);
 
             if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -517,28 +624,35 @@
             }
         }
 
-        function handleGallerySelected(event) {
+        async function handleGallerySelected(event) {
             const files = Array.from(event.target.files);
             if (!files.length) return;
 
-            files.forEach(file => {
+            for (const file of files) {
                 if (file.type.startsWith('image/')) {
-                    if (capturedPhotos.length >= 5) return;
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = Math.min(img.width, 1280);
-                            canvas.height = Math.min(img.height, 720);
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                            capturedPhotos.push(canvas.toDataURL('image/jpeg', 0.8));
-                            renderPreviewGrid();
-                        };
-                        img.src = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
+                    if (capturedPhotos.length >= 5) {
+                        const msg = "Hai già raggiunto il limite massimo di 5 foto.";
+                        if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(msg); else alert(msg);
+                        break;
+                    }
+
+                    try {
+                        const processed = await processAndCompressImageToJpeg(file);
+                        const currentTotal = getCapturedPhotosTotalBytes();
+                        if (currentTotal + processed.byteSize > MAX_SCAN_TOTAL_BYTES) {
+                            const limitMsg = "Hai raggiunto il limite di 16 MB per questa scansione: rimuovi qualche foto o riducine la qualita'.";
+                            if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(limitMsg); else alert(limitMsg);
+                            if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                            break;
+                        }
+
+                        capturedPhotos.push(processed.dataUrl);
+                        renderPreviewGrid();
+                    } catch (err) {
+                        console.error("Errore elaborazione foto galleria:", err);
+                        const msg = err.message || "Errore durante l'elaborazione della foto in formato JPEG.";
+                        if (window.Telegram?.WebApp?.showAlert) window.Telegram.WebApp.showAlert(msg); else alert(msg);
+                    }
                 } else if (file.type.startsWith('video/')) {
                     const reader = new FileReader();
                     reader.onload = (e) => {
@@ -550,7 +664,9 @@
                     };
                     reader.readAsDataURL(file);
                 }
-            });
+            }
+
+            event.target.value = '';
         }
 
         function renderPreviewGrid() {
@@ -561,6 +677,7 @@
             const photosGrid = document.getElementById('photos-grid');
             const videoBox = document.getElementById('video-preview-box');
             const submitSection = document.getElementById('action-submit-section');
+            const previewTitle = document.getElementById('preview-section-title');
 
             photosGrid.innerHTML = '';
 
@@ -570,6 +687,11 @@
                     previewSection.classList.remove('hidden');
                     photosGrid.classList.remove('hidden');
                     submitSection.classList.remove('hidden');
+
+                    const totalMb = (getCapturedPhotosTotalBytes() / (1024 * 1024)).toFixed(2);
+                    if (previewTitle) {
+                        previewTitle.innerText = `🖼️ Foto Selezionate (${totalMb} MB / 16 MB)`;
+                    }
 
                     capturedPhotos.forEach((src, idx) => {
                         const div = document.createElement('div');
@@ -584,10 +706,12 @@
                         photosGrid.appendChild(div);
                     });
                 } else {
+                    if (previewTitle) previewTitle.innerText = "🖼️ Foto Selezionate";
                     previewSection.classList.add('hidden');
                     submitSection.classList.add('hidden');
                 }
             } else {
+                if (previewTitle) previewTitle.innerText = "🎥 Video Selezionato";
                 photosGrid.classList.add('hidden');
                 if (capturedVideoB64) {
                     previewSection.classList.remove('hidden');
@@ -618,12 +742,20 @@
             const ash = urlParams.get('ash') || '';
             const msgId = urlParams.get('msg') || '';
 
+            if (currentMode === 'photos') {
+                const totalBytes = getCapturedPhotosTotalBytes();
+                if (totalBytes > MAX_SCAN_TOTAL_BYTES) {
+                    const limitMsg = "Hai raggiunto il limite di 16 MB per questa scansione: rimuovi qualche foto o riducine la qualita'.";
+                    if (tg?.showAlert) tg.showAlert(limitMsg); else alert(limitMsg);
+                    return;
+                }
+            }
+
             // Formattazione file per la pipe GeminiCallMultiVision (nodo DPF v4.0)
             const mediaArray = currentMode === 'photos' 
                 ? capturedPhotos.map(p => {
                     const parts = p.split(',');
-                    const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-                    return { mime_type: mime, data: parts[1] };
+                    return { mime_type: 'image/jpeg', data: parts[1] };
                   })
                 : (capturedVideoB64 ? [{
                     mime_type: capturedVideoB64.split(',')[0].match(/:(.*?);/)?.[1] || 'video/webm',
@@ -678,10 +810,24 @@
                     try { scannerData = JSON.parse(scannerData); } catch (e) { console.warn("Impossibile fare parse di scannerData:", e); }
                 }
 
-                // Aggiornamento dello stato cumulativo locale con i dati da location_scanner_output
-                window.currentScanResult.stations = scannerData?.stations || scannerData?.operational_units || window.currentScanResult.stations || [];
-                window.currentScanResult.machinery = scannerData?.machinery || window.currentScanResult.machinery || [];
-                window.currentScanResult.layout_summary = scannerData?.layout_summary || scannerData?.summary || scannerData?.message || "Analisi visiva completata.";
+                const isRealEstate = (rawObj.owner_data?.vertical === 'realestate') || 
+                                     (rawObj.vertical === 'realestate') || 
+                                     (window.currentOwnerVertical === 'realestate') ||
+                                     (Array.isArray(scannerData?.rooms) && scannerData.rooms.length > 0);
+
+                if (isRealEstate && Array.isArray(scannerData?.rooms) && scannerData.rooms.length > 0) {
+                    window.currentScanResult.isRealEstate = true;
+                    window.currentScanResult.rooms = scannerData.rooms;
+                    window.currentScanResult.stations = [];
+                    window.currentScanResult.machinery = [];
+                    window.currentScanResult.layout_summary = scannerData?.layout_summary || scannerData?.summary || "Riconoscimento vani immobile completato.";
+                } else {
+                    window.currentScanResult.isRealEstate = false;
+                    // Aggiornamento dello stato cumulativo locale con i dati da location_scanner_output
+                    window.currentScanResult.stations = scannerData?.stations || scannerData?.operational_units || window.currentScanResult.stations || [];
+                    window.currentScanResult.machinery = scannerData?.machinery || window.currentScanResult.machinery || [];
+                    window.currentScanResult.layout_summary = scannerData?.layout_summary || scannerData?.summary || scannerData?.message || "Analisi visiva completata.";
+                }
 
                 // Nasconde sempre il loader di invio e renderizza la vista dinamica interattiva
                 document.getElementById('sending-loader').classList.add('hidden');
@@ -720,6 +866,58 @@
             const unitsListEl = document.getElementById('results-units-list');
 
             if (!resultsCard || !unitsListEl) return;
+
+            // RAMO SPECIALE VERTICALE REAL ESTATE: Rendering Vani e Suggerimenti Staging
+            if (window.currentScanResult.isRealEstate && Array.isArray(window.currentScanResult.rooms)) {
+                const rooms = window.currentScanResult.rooms;
+                const statStations = document.getElementById('stat-stations-count');
+                const statMachinery = document.getElementById('stat-machinery-count');
+                const statTotalValue = document.getElementById('stat-total-value');
+
+                if (statStations) statStations.innerText = rooms.length;
+                if (statMachinery) statMachinery.innerText = rooms.filter(r => r.staging_suggestion).length;
+                if (statTotalValue) statTotalValue.innerText = "Real Estate";
+
+                if (summaryEl) summaryEl.innerText = window.currentScanResult.layout_summary || 'Riconoscimento vani completato.';
+
+                unitsListEl.innerHTML = '';
+
+                if (rooms.length === 0) {
+                    unitsListEl.innerHTML = `<p class="text-xs text-gray-500 font-medium text-center py-2">Nessun vano rilevato. Scatta nuove foto per analizzare l'immobile.</p>`;
+                    resultsCard.classList.remove('hidden');
+                    return;
+                }
+
+                rooms.forEach((r, rIdx) => {
+                    const roomCard = document.createElement('div');
+                    roomCard.className = 'p-3.5 bg-gray-50 border border-gray-200/80 rounded-2xl space-y-2.5';
+                    
+                    const roomName = r.room_name || `Ambiente ${rIdx + 1}`;
+                    const roomType = r.room_type || 'Vano';
+                    const condition = r.condition_notes || 'Stato visivo rilevato.';
+                    const staging = r.staging_suggestion || '';
+
+                    roomCard.innerHTML = `
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-black text-slate-900">🏠 ${roomName}</span>
+                                <span class="text-[9px] font-bold uppercase tracking-wider text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-md">${roomType}</span>
+                            </div>
+                        </div>
+                        <div class="text-[11px] text-gray-600 bg-white p-2.5 rounded-xl border border-gray-100 space-y-1">
+                            <p class="m-0 font-medium"><strong class="text-gray-900">Note:</strong> ${condition}</p>
+                            ${staging ? `<p class="m-0 text-purple-900 font-semibold flex items-center gap-1"><i class="fas fa-wand-magic-sparkles text-purple-600 text-[10px]"></i> <span><strong>Suggerimento Staging:</strong> ${staging}</span></p>` : ''}
+                        </div>
+                        <button type="button" onclick="openMediaStudioFromRoom('${encodeURIComponent(roomName)}', '${encodeURIComponent(staging)}')" class="w-full py-2 bg-black hover:bg-gray-800 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 active:scale-95 transition shadow-xs">
+                            <i class="fas fa-camera text-[10px]"></i> Apri in Gemini Media Studio
+                        </button>
+                    `;
+                    unitsListEl.appendChild(roomCard);
+                });
+
+                resultsCard.classList.remove('hidden');
+                return;
+            }
 
             const stations = window.currentScanResult.stations || [];
             const machinery = window.currentScanResult.machinery || [];
@@ -1010,6 +1208,15 @@
             initSavedState();
         });
 
+        window.openMediaStudioFromRoom = function(encodedName, encodedStaging) {
+            const name = decodeURIComponent(encodedName || '');
+            const staging = decodeURIComponent(encodedStaging || '');
+            const context = name + (staging ? ' - ' + staging : '');
+            const ashVal = new URLSearchParams(window.location.search).get('ash') || '';
+            const msgVal = new URLSearchParams(window.location.search).get('msg') || '';
+            window.location.href = `../operators/realestate-utility.html?ash=${encodeURIComponent(ashVal)}&msg=${encodeURIComponent(msgVal)}&room_context=${encodeURIComponent(context)}`;
+        };
+
         async function initSavedState() {
             // 1. Tenta il recupero dal backend MongoDB via Webhook edit_owner (get_owner_data)
             try {
@@ -1031,6 +1238,19 @@
                     
                     const ownerData = rawObj.owner_data || rawObj;
                     const savedScan = ownerData?.location_scanner_output || ownerData?.location_scan || rawObj?.location_scanner_output;
+
+                    window.currentOwnerVertical = ownerData?.vertical || rawObj?.vertical || '';
+
+                    if (savedScan?.rooms && Array.isArray(savedScan.rooms) && savedScan.rooms.length > 0) {
+                        window.currentScanResult.rooms = savedScan.rooms;
+                        window.currentScanResult.layout_summary = savedScan.layout_summary || "Riconoscimento vani immobile salvato.";
+                        window.currentScanResult.isRealEstate = true;
+                        window.currentScanResult.stations = [];
+                        window.currentScanResult.machinery = [];
+                        saveToLocalStorage();
+                        renderScanResultsUI();
+                        return;
+                    }
 
                     const stationsList = savedScan?.stations || ownerData?.stations || ownerData?.operational_units || [];
                     const machineryList = savedScan?.machinery || ownerData?.machinery || ownerData?.assets || [];
@@ -1056,7 +1276,7 @@
                 const saved = localStorage.getItem('sitebos_location_scan_data');
                 if (saved) {
                     const parsed = JSON.parse(saved);
-                    if (parsed && ((parsed.stations && parsed.stations.length > 0) || (parsed.machinery && parsed.machinery.length > 0))) {
+                    if (parsed && ((parsed.rooms && parsed.rooms.length > 0) || (parsed.stations && parsed.stations.length > 0) || (parsed.machinery && parsed.machinery.length > 0))) {
                         window.currentScanResult = parsed;
                         console.log("Stato salvato recuperato da localStorage (fallback):", window.currentScanResult);
                         renderScanResultsUI();
@@ -1079,6 +1299,41 @@
         // Salvataggio e Conferma finale remota su MongoDB (save_owner_data) allineata 1:1 con advanced-setup.html
         async function confirmAndSaveState() {
             saveToLocalStorage(); // Backup locale immediato
+
+            if (window.currentScanResult.isRealEstate) {
+                const payload = {
+                    _auth: window.Telegram?.WebApp?.initData || '',
+                    ash: new URLSearchParams(window.location.search).get('ash') || '',
+                    action: 'save_owner_data',
+                    data_update: {
+                        layout_summary: window.currentScanResult.layout_summary || "",
+                        location_scanner_output: window.currentScanResult
+                    }
+                };
+
+                try {
+                    await fetch("https://prod.workflow.trinai.it/webhook/83acc670-15ae-4da0-ae0e-3587c85bd5f4", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload)
+                    });
+                    console.log("Dati vani immobile inviati con successo a edit_owner");
+                } catch (e) {
+                    console.warn("Errore salvataggio remoto vani su edit_owner:", e);
+                }
+
+                const successMsg = "✨ Vani dell'immobile registrati con successo nel profilo aziendale!";
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.HapticFeedback?.notificationOccurred('success');
+                    window.Telegram.WebApp.showAlert(successMsg, () => {
+                        window.history.back();
+                    });
+                } else {
+                    alert(successMsg);
+                    window.history.back();
+                }
+                return;
+            }
 
             const stationsList = window.currentScanResult.stations || [];
             const machineryList = window.currentScanResult.machinery || [];

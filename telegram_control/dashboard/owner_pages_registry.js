@@ -409,6 +409,15 @@
                     "apri agente marketing", "campagne pubblicitarie", "promozione prodotti servizi", "marketing studio", "agente marketing", "campagne marketing", "promozione", "marketing"
                 ] 
             },
+            {
+                category: "agents",
+                name: "Report Intelligence Indirizzo",
+                url: "agents/address_intelligence.html",
+                mod_id: "intel_address",
+                user_utterances: [
+                    "report intelligence indirizzo", "analisi territoriale per investimenti", "valutazione immobiliare indirizzo", "quotazioni omi indirizzo", "analisi microzona", "intelligence indirizzo", "analisi territoriale", "investimenti indirizzo", "valutazione indirizzo"
+                ]
+            },
 
             // =========================================================================
             // 5. BILLING CREDITI

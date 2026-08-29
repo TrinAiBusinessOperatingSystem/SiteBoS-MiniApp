@@ -62,7 +62,7 @@
     if (path.includes('job-create.html') || path.includes('pianificazione_itinerari.html')) return { isConsultant: false, scope: 'jobs', type: 'MODULE' };
     if (path.includes('agent_marketing.html')) return { isConsultant: false, scope: 'marketing', type: 'MODULE' };
     if (path.includes('assistente-sicurezza.html')) return { isConsultant: false, scope: 'agents_safety', type: 'MODULE' };
-    if (path.includes('controllo_gestione.html') || path.includes('analisi-mercato.html') || path.includes('intelligent-warehouse.html') || path.includes('agenda.html') || path.includes('agent_intelligence.html') || path.includes('risorse_umane.html')) {
+    if (path.includes('controllo_gestione.html') || path.includes('address_intelligence.html') || path.includes('analisi-mercato.html') || path.includes('intelligent-warehouse.html') || path.includes('agenda.html') || path.includes('agent_intelligence.html') || path.includes('risorse_umane.html')) {
       return { isConsultant: false, scope: 'agents_control', type: 'MODULE' };
     }
     if (path.includes('fine-tuning.html')) return { isConsultant: false, scope: 'fine_tuning', type: 'MODULE' };

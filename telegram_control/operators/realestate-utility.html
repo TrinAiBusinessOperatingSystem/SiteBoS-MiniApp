@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Gemini Media Studio</title>
+    
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
+    <script src="../sitebos_dirty_guard.js"></script>
+    <script src="twa_guard.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body { 
+            background-color: #fafafa !important; 
+            color: #000000 !important; 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .card, .section-card { 
+            background: white !important; 
+            border: 1px solid #eeeeee !important; 
+            box-shadow: none !important; 
+            border-radius: 1.5rem; 
+        }
+        input:focus, textarea:focus, select:focus { 
+            border-color: #000000 !important; 
+            box-shadow: none !important; 
+            outline: none !important; 
+        }
+        .label-field {
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #6b7280;
+            margin-left: 0.25rem;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .tab-btn.active {
+            background-color: #000000;
+            color: #ffffff;
+        }
+        .preset-chip.selected {
+            background-color: #000000;
+            color: #ffffff;
+            border-color: #000000;
+        }
+        .spinner { 
+            border: 3px solid rgba(0,0,0,0.1); 
+            border-top-color: #000000; 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            animation: spin 0.8s linear infinite; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-bg text-black min-h-screen pb-32 flex flex-col">
+
+    <!-- HEADER -->
+    <header class="p-4 bg-white border-b border-gray-100 flex justify-between items-center z-40 shadow-xs sticky top-0 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="w-11 h-11 bg-black rounded-2xl flex items-center justify-center text-white shrink-0 shadow-xs">
+                <i class="fas fa-camera-retro text-base"></i>
+            </div>
+            <div class="min-w-0">
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">Utility Operativa</h1>
+                <p class="text-sm font-black tracking-tight text-slate-900 leading-none truncate">Gemini Media Studio</p>
+                <div class="flex items-center gap-2 mt-1">
+                    <span id="creditsBadge" class="text-[8.5px] font-black uppercase px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-full">
+                        <i class="fas fa-coins mr-0.5"></i> <span id="creditsCount">Crediti: --</span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button id="btn-nav-back" onclick="goBackToDesk()" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition" title="Torna al Tabellone">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <button id="btn-nav-guide" onclick="openUserGuide('../userguide/06_team.html')" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition" title="Manuale Utente">
+                <i class="fas fa-globe text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- TABS SWITCHER -->
+    <div class="p-4 max-w-md w-full mx-auto pb-0">
+        <div class="grid grid-cols-3 p-1 bg-gray-100 rounded-2xl border border-gray-200 gap-1">
+            <button type="button" id="tabBtnPhoto" onclick="switchMediaTab('photo')" class="tab-btn active py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition">
+                <i class="fas fa-image"></i> <span>Foto</span>
+            </button>
+            <button type="button" id="tabBtnVideo" onclick="switchMediaTab('video')" class="tab-btn py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-gray-600 flex items-center justify-center gap-1 transition">
+                <i class="fas fa-video"></i> <span>Video</span>
+            </button>
+            <button type="button" id="tabBtnRenovation" onclick="switchMediaTab('renovation')" class="tab-btn py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-gray-600 flex items-center justify-center gap-1 transition">
+                <i class="fas fa-hammer"></i> <span>Stima Ristrutturazione</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-4">
+
+        <!-- ========================================== -->
+        <!-- SEZIONE 1: TAB FOTO AMBIENTE               -->
+        <!-- ========================================== -->
+        <div id="tabContentPhoto" class="space-y-4">
+
+            <!-- COSTO E INFO -->
+            <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fas fa-wand-magic-sparkles text-indigo-600 text-sm"></i>
+                    <div>
+                        <p class="text-xs font-black text-indigo-950">Elaborazione Immagine con Gemini</p>
+                        <p class="text-[10px] text-indigo-800 font-medium">Virtual Staging, rimozione oggetti e valorizzazione luci</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-black uppercase px-2 py-1 bg-indigo-200 text-indigo-900 rounded-xl shrink-0">
+                    20 Crediti
+                </span>
+            </div>
+
+            <!-- CARICAMENTO FOTO ORIGINALE -->
+            <section class="card p-5 space-y-3">
+                <label class="label-field">1. Seleziona o Scatta Fotografia Originale *</label>
+                
+                <div id="photoDropArea" onclick="document.getElementById('photoInput').click()" class="border-2 border-dashed border-gray-200 hover:border-black rounded-2xl p-6 text-center cursor-pointer transition bg-gray-50 flex flex-col items-center justify-center space-y-2">
+                    <input type="file" id="photoInput" accept="image/*" class="hidden" onchange="handlePhotoSelected(event)">
+                    <div id="photoPreviewContainer" class="hidden w-full aspect-video rounded-xl overflow-hidden relative border border-gray-200">
+                        <img id="photoPreviewImg" src="" alt="Anteprima Foto" class="w-full h-full object-cover">
+                        <button type="button" onclick="event.stopPropagation(); resetPhotoInput();" class="absolute top-2 right-2 bg-black/80 text-white w-7 h-7 rounded-full flex items-center justify-center text-xs">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div id="photoPlaceholder" class="space-y-1">
+                        <i class="fas fa-cloud-arrow-up text-2xl text-gray-400"></i>
+                        <p class="text-xs font-bold text-slate-800">Tocca per caricare o scattare una foto</p>
+                        <p class="text-[9px] text-gray-500">Tutte le foto vengono convertite e ottimizzate in formato JPEG (massimo 16 Megabyte)</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5 px-2 text-[9px] text-gray-500 font-medium">
+                    <i class="fas fa-shield-halved text-indigo-600 text-[10px]"></i>
+                    <span>Conversione automatica JPEG e compressione dinamica entro 16 Megabyte per richiesta.</span>
+                </div>
+            </section>
+
+            <!-- SELEZIONE PRESET -->
+            <section class="card p-5 space-y-3">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <label class="label-field mb-0">2. Seleziona Preset di Elaborazione *</label>
+                    <span class="text-[8px] font-black uppercase text-gray-400">12 Modalita Sartoriali</span>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2" id="presetsGrid">
+                    <!-- 12 PRESET CON NOMI ESTESI SENZA ABBREVIAZIONI NE PARENTESI -->
+                    <button type="button" onclick="selectPreset('virtual_staging')" data-preset="virtual_staging" class="preset-chip selected p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Virtual Staging</span>
+                        <i class="fas fa-couch text-[11px] text-gray-400"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('decluttering')" data-preset="decluttering" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Decluttering</span>
+                        <i class="fas fa-broom text-[11px] text-gray-400"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('floorplan_3d')" data-preset="floorplan_3d" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between col-span-2">
+                        <span>Planimetria Da Due Dimensioni A Tre Dimensioni</span>
+                        <i class="fas fa-layer-group text-[11px] text-gray-400"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('golden_hour')" data-preset="golden_hour" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Ora Dorata Esterni</span>
+                        <i class="fas fa-sun text-[11px] text-amber-500"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('blue_hour')" data-preset="blue_hour" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Ora Blu Esterni</span>
+                        <i class="fas fa-moon text-[11px] text-blue-500"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('material_restyling')" data-preset="material_restyling" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between col-span-2">
+                        <span>Restyling Materiali Di Pregio</span>
+                        <i class="fas fa-gem text-[11px] text-purple-500"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('style_modern')" data-preset="style_modern" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Stile Moderno Minimale</span>
+                        <i class="fas fa-cube text-[11px] text-gray-400"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('style_classic')" data-preset="style_classic" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Stile Classico Contemporaneo</span>
+                        <i class="fas fa-landmark text-[11px] text-gray-400"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('style_minimal')" data-preset="style_minimal" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Stile Zen Giapponese</span>
+                        <i class="fas fa-spa text-[11px] text-emerald-500"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('resort_seasonal')" data-preset="resort_seasonal" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Ambientazione Estiva Resort</span>
+                        <i class="fas fa-umbrella-beach text-[11px] text-cyan-500"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('drone_view')" data-preset="drone_view" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Vista Aerea Drone</span>
+                        <i class="fas fa-plane text-[11px] text-slate-500"></i>
+                    </button>
+                    <button type="button" onclick="selectPreset('macro_detail')" data-preset="macro_detail" class="preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between">
+                        <span>Dettaglio Macro Materico</span>
+                        <i class="fas fa-magnifying-glass text-[11px] text-slate-500"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- CONTESTO AGGIUNTIVO OPZIONALE -->
+            <section class="card p-5 space-y-2">
+                <label class="label-field">3. Contesto Aggiuntivo dell Ambiente</label>
+                <input type="text" id="photoRoomContext" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs border border-transparent focus:border-black outline-none" placeholder="Es. Soggiorno luminoso con parquet in rovere naturale">
+            </section>
+
+            <!-- PULSANTE GENERA FOTO -->
+            <button type="button" id="btnGeneratePhoto" onclick="executeGeneratePhoto()" class="w-full py-4 bg-black hover:bg-gray-800 active:scale-98 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 transition">
+                <i class="fas fa-wand-magic-sparkles"></i>
+                <span id="btnGeneratePhotoText">Genera Elaborazione Foto (20 Crediti)</span>
+            </button>
+
+            <!-- RISULTATO FOTO GENERATA -->
+            <div id="photoResultSection" class="hidden card p-5 space-y-3 border-2 border-emerald-500">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-emerald-700">Elaborazione Completata Con Successo</span>
+                    <span id="photoCreditsDeductedBadge" class="text-[8.5px] font-black uppercase px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">20 Crediti Utilizzati</span>
+                </div>
+                <div class="w-full aspect-video rounded-xl overflow-hidden bg-black/5 border border-gray-200">
+                    <img id="photoResultImg" src="" alt="Risultato Elaborazione Gemini" class="w-full h-full object-cover">
+                </div>
+                <div class="flex gap-2">
+                    <button type="button" onclick="copyResultUrl('photoResultImg')" class="flex-1 py-3 bg-black text-white text-xs font-black uppercase tracking-wider rounded-xl active:scale-95 transition">
+                        <i class="fas fa-copy mr-1"></i> Copia Indirizzo URL
+                    </button>
+                    <button type="button" onclick="openResultInNewTab('photoResultImg')" class="py-3 px-4 bg-gray-100 text-slate-800 text-xs font-black uppercase rounded-xl active:scale-95 transition">
+                        <i class="fas fa-arrow-up-right-from-square"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SEZIONE 2: TAB VIDEO TEASER                -->
+        <!-- ========================================== -->
+        <div id="tabContentVideo" class="hidden space-y-4">
+
+            <!-- COSTO E INFO -->
+            <div class="bg-purple-50 border border-purple-200 rounded-2xl p-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fas fa-film text-purple-600 text-sm"></i>
+                    <div>
+                        <p class="text-xs font-black text-purple-950">Generazione Video Teaser con Veo</p>
+                        <p class="text-[10px] text-purple-800 font-medium">Video promozionale cinematografico da descrizione testuale</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-black uppercase px-2 py-1 bg-purple-200 text-purple-900 rounded-xl shrink-0">
+                    150 Crediti
+                </span>
+            </div>
+
+            <!-- AVVISO ESPLICITO SUL FUNZIONAMENTO DEL VIDEO -->
+            <div class="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-1">
+                <div class="flex items-center gap-2 text-amber-900 text-xs font-black uppercase tracking-wider">
+                    <i class="fas fa-circle-info text-amber-600"></i>
+                    <span>Nota di Funzionamento</span>
+                </div>
+                <p class="text-[11px] text-amber-900/90 leading-relaxed font-medium">
+                    Il video teaser cinematografico viene generato esclusivamente a partire dal testo descrittivo inserito nel riquadro sottostante e non dalle fotografie caricate.
+                </p>
+            </div>
+
+            <!-- PROMPT TESTO VIDEO -->
+            <section class="card p-5 space-y-2">
+                <label class="label-field">Descrivi l Immobile per il Video Teaser *</label>
+                <textarea id="videoRoomContext" rows="5" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs border border-transparent focus:border-black outline-none resize-none leading-relaxed" placeholder="Es. Elegante attico panoramico con vista sui tetti storici, ampie vetrate inondate di luce, arredi moderni in legno chiaro e terrazza fiorita al tramonto..."></textarea>
+            </section>
+
+            <!-- PULSANTE GENERA VIDEO -->
+            <button type="button" id="btnGenerateVideo" onclick="executeGenerateVideo()" class="w-full py-4 bg-black hover:bg-gray-800 active:scale-98 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 transition">
+                <i class="fas fa-video"></i>
+                <span id="btnGenerateVideoText">Genera Video Teaser (150 Crediti)</span>
+            </button>
+
+            <!-- RISULTATO VIDEO GENERATO -->
+            <div id="videoResultSection" class="hidden card p-5 space-y-3 border-2 border-emerald-500">
+                <div class="flex items-center justify-between">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-emerald-700">Video Teaser Generato Con Successo</span>
+                    <span id="videoCreditsDeductedBadge" class="text-[8.5px] font-black uppercase px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">150 Crediti Utilizzati</span>
+                </div>
+                <div class="w-full aspect-video rounded-xl overflow-hidden bg-black border border-gray-200">
+                    <video id="videoResultPlayer" controls class="w-full h-full object-contain"></video>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SEZIONE 3: TAB STIMA COSTI RISTRUTTURAZIONE -->
+        <!-- ========================================== -->
+        <div id="tabContentRenovation" class="hidden space-y-4">
+
+            <!-- COSTO E INFO -->
+            <div class="bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fas fa-hammer text-emerald-600 text-sm"></i>
+                    <div>
+                        <p class="text-xs font-black text-emerald-950">Stima Costi di Ristrutturazione Edile</p>
+                        <p class="text-[10px] text-emerald-800 font-medium">Ricerca di mercato in tempo reale con fonti pubbliche verificate</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-black uppercase px-2 py-1 bg-emerald-200 text-emerald-900 rounded-xl shrink-0">
+                    40 Crediti
+                </span>
+            </div>
+
+            <!-- INDIRIZZO E METRATURA -->
+            <section class="card p-5 space-y-3">
+                <div class="space-y-1">
+                    <label class="label-field">1. Indirizzo Immobile o Zona di Ricerca *</label>
+                    <input type="text" id="renovationAddress" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none" placeholder="Inserisci via, numero civico, comune e provincia">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="label-field">2. Superficie Immobile in Metri Quadri</label>
+                    <input type="number" id="renovationSqm" min="1" step="1" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="Superficie opzionale in metri quadri">
+                    <span class="text-[8.5px] text-gray-400 font-medium block ml-1">Campo opzionale: se omesso verra determinata la sola forbice al metro quadro</span>
+                </div>
+            </section>
+
+            <!-- CONDIZIONI AMBIENTI E VANI -->
+            <section class="card p-5 space-y-3">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <label class="label-field mb-0">3. Condizioni e Note sui Singoli Ambienti</label>
+                    <span id="renovationRoomsCountBadge" class="text-[8px] font-black uppercase text-gray-400">Dati Opzionali</span>
+                </div>
+
+                <!-- LISTA VANI DA SCANNER SE DISPONIBILI -->
+                <div id="renovationScannedRoomsContainer" class="hidden space-y-2 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-black uppercase tracking-wider text-gray-600">Vani Rilevati da Scansione Visiva</span>
+                        <span id="renovationScannedRoomsCount" class="text-[8px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full"></span>
+                    </div>
+                    <div id="renovationScannedRoomsList" class="space-y-1.5 text-xs text-gray-700"></div>
+                </div>
+
+                <div class="space-y-1">
+                    <textarea id="renovationRoomsNotes" rows="3" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs border border-transparent focus:border-black outline-none resize-none leading-relaxed" placeholder="Note aggiuntive sulle condizioni degli ambienti, impianti o finiture da rinnovare..."></textarea>
+                </div>
+            </section>
+
+            <!-- PULSANTE CALCOLA STIMA -->
+            <button type="button" id="btnGenerateRenovation" onclick="executeGenerateRenovation()" class="w-full py-4 bg-black hover:bg-gray-800 active:scale-98 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 transition">
+                <i class="fas fa-hammer"></i>
+                <span id="btnGenerateRenovationText">Calcola Stima Costi di Ristrutturazione - Costo 40 Crediti</span>
+            </button>
+
+            <!-- RISULTATO STIMA GENERATA -->
+            <div id="renovationResultSection" class="hidden card p-5 space-y-4 border-2 border-emerald-500">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-emerald-700 block">Stima Orientativa Elaborata</span>
+                        <h3 class="text-xs font-black uppercase text-slate-900">Quadro Economico Ristrutturazione</h3>
+                    </div>
+                    <span id="renovationCreditsDeductedBadge" class="text-[8.5px] font-black uppercase px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full">40 Crediti Utilizzati</span>
+                </div>
+
+                <!-- LIVELLO CONSIGLIATO -->
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-gray-500">Livello di Ristrutturazione Consigliato</span>
+                        <span id="renovationTierBadge" class="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-black text-white">-</span>
+                    </div>
+                    <p id="renovationTierReasoning" class="text-xs text-gray-700 font-medium leading-relaxed">-</p>
+                </div>
+
+                <!-- FORBICE COSTO MQ E TOTALE -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div class="p-4 bg-blue-50/60 border border-blue-200 rounded-2xl space-y-1">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-blue-800 block">Costo al Metro Quadro</span>
+                        <p id="renovationCostPerSqm" class="text-sm font-black text-blue-950">-</p>
+                    </div>
+                    <div class="p-4 bg-emerald-50/60 border border-emerald-200 rounded-2xl space-y-1">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-emerald-800 block">Stima Totale Complessiva</span>
+                        <p id="renovationTotalEstimated" class="text-sm font-black text-emerald-950">-</p>
+                    </div>
+                </div>
+
+                <!-- RIPARTIZIONE BUDGET -->
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-3">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-gray-500 block">Ripartizione Percentuale del Budget</span>
+                    <div class="space-y-2.5 text-xs font-bold text-gray-800">
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1">
+                                <span>Opere di Scavo e Strutturali</span>
+                                <span id="renovationPctScavo" class="font-mono">-%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                                <div id="renovationBarScavo" class="bg-amber-600 h-full w-0 transition-all duration-500"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1">
+                                <span>Opere Strutturali Grezze</span>
+                                <span id="renovationPctGrezze" class="font-mono">-%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                                <div id="renovationBarGrezze" class="bg-blue-600 h-full w-0 transition-all duration-500"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] mb-1">
+                                <span>Finiture e Impianti Tecnologici</span>
+                                <span id="renovationPctFiniture" class="font-mono">-%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                                <div id="renovationBarFiniture" class="bg-emerald-600 h-full w-0 transition-all duration-500"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FONTI CITATE -->
+                <div class="p-4 bg-gray-50 border border-gray-200 rounded-2xl space-y-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-globe text-gray-500 text-xs"></i>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-gray-600">Fonti Pubbliche Citate per la Zona</span>
+                    </div>
+                    <ul id="renovationSourcesList" class="space-y-1.5 text-xs text-gray-700 font-medium pl-1">
+                        <li class="text-gray-400 italic">Nessuna fonte registrata</li>
+                    </ul>
+                </div>
+
+                <!-- DISCLAIMER OBBLIGATORIO PROMINENTE -->
+                <div class="p-4 bg-amber-50 border border-amber-300 rounded-2xl space-y-1.5">
+                    <div class="flex items-center gap-2 text-amber-900">
+                        <i class="fas fa-shield-halved text-xs text-amber-700"></i>
+                        <span class="text-[10px] font-black uppercase tracking-wider">Avvertenza Legale e Disclaimer</span>
+                    </div>
+                    <p id="renovationDisclaimerText" class="text-xs text-amber-950 font-medium leading-relaxed">
+                        Stima orientativa basata su fonti pubbliche reali, non un preventivo vincolante. Richiedi sempre un sopralluogo e un preventivo da un'impresa edile per un valore definitivo.
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- LOGICA JAVASCRIPT STUDIO -->
+    <script>
+        'use strict';
+
+        const MEDIA_STUDIO_WH = "https://prod.workflow.trinai.it/webhook/realestate-media-studio";
+        const RENOVATION_ESTIMATOR_WH = "https://prod.workflow.trinai.it/webhook/renovation-cost-estimator";
+        const tg = window.Telegram?.WebApp;
+
+        if (tg) {
+            tg.ready();
+            tg.expand();
+            if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+            if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa');
+        }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const ash = urlParams.get('ash') || '';
+        const messageId = urlParams.get('msg') || urlParams.get('message_id') || '';
+
+        let selectedPresetKey = 'virtual_staging';
+        let currentImageBase64 = null;
+        let currentImageMime = 'image/jpeg';
+        let scannedRoomsData = [];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupTelegramBackButton();
+            loadScannedRoomsIfAvailable();
+
+            // Pre-compilazione da parametri URL
+            const queryAddress = urlParams.get('address') || urlParams.get('loc') || urlParams.get('indirizzo') || '';
+            const querySqm = urlParams.get('sqm') || urlParams.get('mq') || '';
+            const queryTab = urlParams.get('tab') || '';
+            const queryRoomContext = urlParams.get('room_context') || '';
+
+            if (queryAddress) {
+                const addrInput = document.getElementById('renovationAddress');
+                if (addrInput) addrInput.value = queryAddress;
+            }
+            if (querySqm) {
+                const sqmInput = document.getElementById('renovationSqm');
+                if (sqmInput) sqmInput.value = querySqm;
+            }
+            if (queryRoomContext) {
+                const photoContext = document.getElementById('photoRoomContext');
+                const videoContext = document.getElementById('videoRoomContext');
+                if (photoContext && !photoContext.value) photoContext.value = queryRoomContext;
+                if (videoContext && !videoContext.value) videoContext.value = queryRoomContext;
+            }
+
+            if (queryTab === 'renovation' || queryTab === 'stima' || queryTab === 'ristrutturazione') {
+                switchMediaTab('renovation');
+            } else if (queryTab === 'video') {
+                switchMediaTab('video');
+            }
+        });
+
+        function setupTelegramBackButton() {
+            if (tg && tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(() => goBackToDesk());
+            }
+        }
+
+        window.goBackToDesk = function () {
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            window.location.href = `desk_board.html?ash=${encodeURIComponent(ash)}&msg=${encodeURIComponent(messageId)}`;
+        };
+
+        window.openUserGuide = function (url) {
+            window.open(url, '_blank');
+        };
+
+        window.switchMediaTab = function (tab) {
+            const btnPhoto = document.getElementById('tabBtnPhoto');
+            const btnVideo = document.getElementById('tabBtnVideo');
+            const btnRenovation = document.getElementById('tabBtnRenovation');
+            const contentPhoto = document.getElementById('tabContentPhoto');
+            const contentVideo = document.getElementById('tabContentVideo');
+            const contentRenovation = document.getElementById('tabContentRenovation');
+
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+
+            btnPhoto.className = "tab-btn py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-gray-600 flex items-center justify-center gap-1 transition";
+            btnVideo.className = "tab-btn py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-gray-600 flex items-center justify-center gap-1 transition";
+            if (btnRenovation) btnRenovation.className = "tab-btn py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider text-gray-600 flex items-center justify-center gap-1 transition";
+
+            contentPhoto.classList.add('hidden');
+            contentVideo.classList.add('hidden');
+            if (contentRenovation) contentRenovation.classList.add('hidden');
+
+            if (tab === 'photo') {
+                btnPhoto.className = "tab-btn active py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition";
+                contentPhoto.classList.remove('hidden');
+            } else if (tab === 'video') {
+                btnVideo.className = "tab-btn active py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition";
+                contentVideo.classList.remove('hidden');
+            } else if (tab === 'renovation') {
+                if (btnRenovation) btnRenovation.className = "tab-btn active py-2.5 px-1 rounded-xl text-[10.5px] font-black uppercase tracking-wider flex items-center justify-center gap-1 transition";
+                if (contentRenovation) contentRenovation.classList.remove('hidden');
+            }
+        };
+
+        function loadScannedRoomsIfAvailable() {
+            try {
+                const saved = localStorage.getItem('sitebos_location_scan_data');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && Array.isArray(parsed.rooms) && parsed.rooms.length > 0) {
+                        scannedRoomsData = parsed.rooms;
+                        renderScannedRoomsBadge();
+                    }
+                }
+            } catch (e) {
+                console.warn("Nessun dato di scansione vani recuperato:", e);
+            }
+        }
+
+        function renderScannedRoomsBadge() {
+            const container = document.getElementById('renovationScannedRoomsContainer');
+            const listEl = document.getElementById('renovationScannedRoomsList');
+            const countEl = document.getElementById('renovationScannedRoomsCount');
+            if (!container || !listEl || scannedRoomsData.length === 0) return;
+
+            if (countEl) countEl.innerText = `${scannedRoomsData.length} Vani`;
+            listEl.innerHTML = scannedRoomsData.map((r, i) => `
+                <div class="p-2 bg-white rounded-lg border border-gray-100 flex items-start justify-between gap-2">
+                    <div>
+                        <strong class="text-slate-900 font-bold">${escapeHtml(r.room_name || r.room_type || `Vano ${i+1}`)}</strong>
+                        <p class="text-[10px] text-gray-600 mt-0.5">${escapeHtml(r.condition_notes || r.staging_suggestion || 'Nessuna nota specifica')}</p>
+                    </div>
+                    <span class="text-[9px] uppercase px-1.5 py-0.5 bg-gray-100 text-gray-700 rounded font-semibold shrink-0">${escapeHtml(r.room_type || 'Vano')}</span>
+                </div>
+            `).join('');
+            container.classList.remove('hidden');
+        }
+
+        window.selectPreset = function (presetKey) {
+            selectedPresetKey = presetKey;
+            document.querySelectorAll('.preset-chip').forEach(btn => {
+                if (btn.getAttribute('data-preset') === presetKey) {
+                    btn.className = "preset-chip selected p-3 rounded-xl border border-black bg-black text-white text-left text-xs font-bold transition flex items-center justify-between" + (btn.classList.contains('col-span-2') ? ' col-span-2' : '');
+                } else {
+                    btn.className = "preset-chip p-3 rounded-xl border border-gray-200 bg-gray-50 text-left text-xs font-bold transition flex items-center justify-between" + (btn.classList.contains('col-span-2') ? ' col-span-2' : '');
+                }
+            });
+            if (tg && tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+        };
+
+        const MAX_IMAGE_BYTES = 16 * 1024 * 1024; // 16 MB
+
+        async function processAndCompressImageToJpeg(fileOrBlobOrDataUrl) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    let width = img.naturalWidth || img.width;
+                    let height = img.naturalHeight || img.height;
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const qualitySteps = [0.92, 0.85, 0.75, 0.65, 0.50];
+                    let bestDataUrl = null;
+                    let bestByteSize = 0;
+
+                    for (let q of qualitySteps) {
+                        const dataUrl = canvas.toDataURL('image/jpeg', q);
+                        const base64Str = dataUrl.split(',')[1] || '';
+                        const byteSize = Math.round(base64Str.length * 0.75);
+
+                        if (byteSize <= MAX_IMAGE_BYTES) {
+                            bestDataUrl = dataUrl;
+                            bestByteSize = byteSize;
+                            break;
+                        }
+                    }
+
+                    if (!bestDataUrl) {
+                        let scale = 0.8;
+                        while (scale >= 0.3) {
+                            const scaledCanvas = document.createElement('canvas');
+                            scaledCanvas.width = Math.round(width * scale);
+                            scaledCanvas.height = Math.round(height * scale);
+                            const sCtx = scaledCanvas.getContext('2d');
+                            sCtx.fillStyle = '#FFFFFF';
+                            sCtx.fillRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+                            sCtx.drawImage(img, 0, 0, scaledCanvas.width, scaledCanvas.height);
+
+                            for (let q of [0.8, 0.6, 0.5]) {
+                                const dataUrl = scaledCanvas.toDataURL('image/jpeg', q);
+                                const base64Str = dataUrl.split(',')[1] || '';
+                                const byteSize = Math.round(base64Str.length * 0.75);
+                                if (byteSize <= MAX_IMAGE_BYTES) {
+                                    bestDataUrl = dataUrl;
+                                    bestByteSize = byteSize;
+                                    break;
+                                }
+                            }
+                            if (bestDataUrl) break;
+                            scale -= 0.2;
+                        }
+                    }
+
+                    if (!bestDataUrl) {
+                        reject(new Error("Foto troppo pesante anche dopo compressione, riprova con una foto piu' piccola o a risoluzione inferiore."));
+                        return;
+                    }
+
+                    const base64WithoutPrefix = bestDataUrl.split(',')[1] || '';
+                    resolve({
+                        dataUrl: bestDataUrl,
+                        base64: base64WithoutPrefix,
+                        mimeType: 'image/jpeg',
+                        byteSize: bestByteSize
+                    });
+                };
+                img.onerror = () => {
+                    reject(new Error("Impossibile elaborare il file immagine selezionato."));
+                };
+
+                if (typeof fileOrBlobOrDataUrl === 'string') {
+                    img.src = fileOrBlobOrDataUrl;
+                } else {
+                    const reader = new FileReader();
+                    reader.onload = (e) => { img.src = e.target.result; };
+                    reader.onerror = () => { reject(new Error("Errore durante la lettura del file.")); };
+                    reader.readAsDataURL(fileOrBlobOrDataUrl);
+                }
+            });
+        }
+
+        window.handlePhotoSelected = async function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const previewImg = document.getElementById('photoPreviewImg');
+            const previewContainer = document.getElementById('photoPreviewContainer');
+            const placeholder = document.getElementById('photoPlaceholder');
+
+            placeholder.innerHTML = `<span class="spinner inline-block"></span><p class="text-xs font-bold text-slate-800">Conversione e compressione JPEG in corso...</p>`;
+
+            try {
+                const processed = await processAndCompressImageToJpeg(file);
+                currentImageBase64 = processed.base64;
+                currentImageMime = 'image/jpeg';
+
+                previewImg.src = processed.dataUrl;
+                previewContainer.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } catch (err) {
+                console.error("Errore compressione immagine:", err);
+                resetPhotoInput();
+                const errMsg = err.message || "Foto troppo pesante anche dopo compressione, riprova con una foto piu' piccola o a risoluzione inferiore.";
+                if (tg && tg.showAlert) tg.showAlert(errMsg); else alert(errMsg);
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+            }
+        };
+
+        window.resetPhotoInput = function () {
+            currentImageBase64 = null;
+            currentImageMime = 'image/jpeg';
+            document.getElementById('photoInput').value = '';
+            document.getElementById('photoPreviewImg').src = '';
+            document.getElementById('photoPreviewContainer').classList.add('hidden');
+            const placeholder = document.getElementById('photoPlaceholder');
+            placeholder.innerHTML = `
+                <i class="fas fa-cloud-arrow-up text-2xl text-gray-400"></i>
+                <p class="text-xs font-bold text-slate-800">Tocca per caricare o scattare una foto</p>
+                <p class="text-[9px] text-gray-500">Tutte le foto vengono convertite e ottimizzate in formato JPEG (massimo 16 Megabyte)</p>
+            `;
+            placeholder.classList.remove('hidden');
+        };
+
+        window.updateCreditsUI = function (balance) {
+            const countEl = document.getElementById('creditsCount');
+            if (countEl && balance !== undefined && balance !== null) {
+                countEl.innerText = `Crediti: ${balance}`;
+            }
+        };
+
+        window.executeGeneratePhoto = async function () {
+            if (!currentImageBase64) {
+                const msg = "Seleziona prima una fotografia da elaborare.";
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
+                return;
+            }
+
+            const estimatedBytes = Math.round(currentImageBase64.length * 0.75);
+            if (estimatedBytes > MAX_IMAGE_BYTES) {
+                const msg = "Foto troppo pesante anche dopo compressione, riprova con una foto piu' piccola o a risoluzione inferiore.";
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
+                return;
+            }
+
+            const btn = document.getElementById('btnGeneratePhoto');
+            const btnText = document.getElementById('btnGeneratePhotoText');
+            btn.disabled = true;
+            btnText.innerHTML = `<span class="spinner inline-block mr-2"></span> Elaborazione in corso...`;
+
+            const roomContext = document.getElementById('photoRoomContext').value.trim();
+
+            const payload = {
+                _auth: tg?.initData || '',
+                ash: ash,
+                mode: 'image',
+                preset: selectedPresetKey,
+                room_context: roomContext,
+                image_base64: currentImageBase64,
+                image_mime_type: 'image/jpeg'
+            };
+
+            try {
+                const res = await fetch(MEDIA_STUDIO_WH, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    const errorMsg = data.message || `Errore elaborazione immagine (Codice ${res.status}).`;
+                    throw new Error(errorMsg);
+                }
+
+                if (data.credits_balance !== undefined) {
+                    updateCreditsUI(data.credits_balance);
+                }
+
+                const resultSection = document.getElementById('photoResultSection');
+                const resultImg = document.getElementById('photoResultImg');
+                const badge = document.getElementById('photoCreditsDeductedBadge');
+
+                resultImg.src = data.image_url;
+                if (badge && data.credits_deducted) {
+                    badge.innerText = `${data.credits_deducted} Crediti Utilizzati`;
+                }
+                resultSection.classList.remove('hidden');
+                resultSection.scrollIntoView({ behavior: 'smooth' });
+
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } catch (err) {
+                console.error("Errore generazione foto:", err);
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                const errMsg = err.message || "Si e verificato un errore durante l elaborazione con Gemini. Riprova tra poco.";
+                if (tg && tg.showAlert) tg.showAlert(errMsg); else alert(errMsg);
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = "Genera Elaborazione Foto (20 Crediti)";
+            }
+        };
+
+        window.executeGenerateVideo = async function () {
+            const roomContext = document.getElementById('videoRoomContext').value.trim();
+            if (!roomContext) {
+                const msg = "Inserisci una descrizione dell immobile per generare il video teaser.";
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
+                return;
+            }
+
+            const btn = document.getElementById('btnGenerateVideo');
+            const btnText = document.getElementById('btnGenerateVideoText');
+            btn.disabled = true;
+            btnText.innerHTML = `<span class="spinner inline-block mr-2"></span> Generazione video teaser in corso...`;
+
+            const payload = {
+                _auth: tg?.initData || '',
+                ash: ash,
+                mode: 'video',
+                room_context: roomContext
+            };
+
+            try {
+                const res = await fetch(MEDIA_STUDIO_WH, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (!res.ok || !data.success) {
+                    const errorMsg = data.message || `Errore generazione video teaser (Codice ${res.status}).`;
+                    throw new Error(errorMsg);
+                }
+
+                if (data.credits_balance !== undefined) {
+                    updateCreditsUI(data.credits_balance);
+                }
+
+                const resultSection = document.getElementById('videoResultSection');
+                const player = document.getElementById('videoResultPlayer');
+                const badge = document.getElementById('videoCreditsDeductedBadge');
+
+                const videoSrc = data.video_base64.startsWith('data:') ? data.video_base64 : `data:video/mp4;base64,${data.video_base64}`;
+                player.src = videoSrc;
+                if (badge && data.credits_deducted) {
+                    badge.innerText = `${data.credits_deducted} Crediti Utilizzati`;
+                }
+                resultSection.classList.remove('hidden');
+                resultSection.scrollIntoView({ behavior: 'smooth' });
+
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } catch (err) {
+                console.error("Errore generazione video:", err);
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                const errMsg = err.message || "Si e verificato un errore durante la generazione con Veo. Riprova tra poco.";
+                if (tg && tg.showAlert) tg.showAlert(errMsg); else alert(errMsg);
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = "Genera Video Teaser (150 Crediti)";
+            }
+        };
+
+        window.executeGenerateRenovation = async function () {
+            const addressInput = document.getElementById('renovationAddress');
+            const address = addressInput?.value?.trim() || '';
+
+            if (!address) {
+                const msg = "Inserisci un indirizzo o una zona geografica per effettuare la stima dei costi di ristrutturazione.";
+                if (tg && tg.showAlert) tg.showAlert(msg); else alert(msg);
+                return;
+            }
+
+            const sqmInput = document.getElementById('renovationSqm');
+            const sqmRaw = sqmInput?.value ? parseFloat(sqmInput.value) : null;
+            const sqmVal = (sqmRaw && !isNaN(sqmRaw) && sqmRaw > 0) ? sqmRaw : undefined;
+
+            const notesInput = document.getElementById('renovationRoomsNotes');
+            const userNotes = notesInput?.value?.trim() || '';
+
+            let roomsCondition = [];
+            if (scannedRoomsData && scannedRoomsData.length > 0) {
+                roomsCondition = scannedRoomsData.map(r => ({
+                    room_name: r.room_name || r.room_type || 'Vano',
+                    condition_notes: r.condition_notes || r.staging_suggestion || ''
+                }));
+            }
+            if (userNotes) {
+                roomsCondition.push({
+                    room_name: 'Note Aggiuntive Utente',
+                    condition_notes: userNotes
+                });
+            }
+
+            const btn = document.getElementById('btnGenerateRenovation');
+            const btnText = document.getElementById('btnGenerateRenovationText');
+            btn.disabled = true;
+            btnText.innerHTML = `<span class="spinner inline-block mr-2"></span> Ricerca di mercato e calcolo stima in corso...`;
+
+            const payload = {
+                _auth: tg?.initData || '',
+                ash: ash,
+                address: address,
+                ...(sqmVal !== undefined ? { sqm: sqmVal } : {}),
+                ...(roomsCondition.length > 0 ? { rooms_condition: roomsCondition } : {})
+            };
+
+            try {
+                const res = await fetch(RENOVATION_ESTIMATOR_WH, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json().catch(() => null);
+
+                if (!res.ok || !data || data.success === false) {
+                    const errorMsg = data?.message || `Errore elaborazione stima (Codice ${res.status}).`;
+                    throw new Error(errorMsg);
+                }
+
+                if (data.credits_balance !== undefined) {
+                    updateCreditsUI(data.credits_balance);
+                }
+
+                renderRenovationResult(data);
+
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+            } catch (err) {
+                console.error("Errore generazione stima ristrutturazione:", err);
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('error');
+                const errMsg = err.message || "Si e verificato un errore durante la stima dei costi di ristrutturazione. Riprova tra poco.";
+                if (tg && tg.showAlert) tg.showAlert(errMsg); else alert(errMsg);
+            } finally {
+                btn.disabled = false;
+                btnText.innerText = "Calcola Stima Costi di Ristrutturazione - Costo 40 Crediti";
+            }
+        };
+
+        function renderRenovationResult(data) {
+            const estimate = data.estimate || {};
+            const resultSection = document.getElementById('renovationResultSection');
+            if (!resultSection) return;
+
+            const badge = document.getElementById('renovationCreditsDeductedBadge');
+            if (badge && data.credits_deducted) {
+                badge.innerText = `${data.credits_deducted} Crediti Utilizzati`;
+            }
+
+            const tierBadge = document.getElementById('renovationTierBadge');
+            const tierReasoning = document.getElementById('renovationTierReasoning');
+            const tierStr = String(estimate.suggested_tier || '').toLowerCase();
+
+            if (tierBadge) {
+                if (tierStr.includes('legger')) {
+                    tierBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300';
+                    tierBadge.innerText = 'Ristrutturazione Leggera';
+                } else if (tierStr.includes('med')) {
+                    tierBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-300';
+                    tierBadge.innerText = 'Ristrutturazione Media';
+                } else if (tierStr.includes('complet')) {
+                    tierBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-900 border border-purple-300';
+                    tierBadge.innerText = 'Ristrutturazione Completa';
+                } else {
+                    tierBadge.className = 'text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-black text-white';
+                    tierBadge.innerText = estimate.suggested_tier || 'Non specificato';
+                }
+            }
+
+            if (tierReasoning) {
+                tierReasoning.innerText = estimate.tier_reasoning || 'Nessuna motivazione dettagliata fornita dal motore di calcolo.';
+            }
+
+            const costPerSqmEl = document.getElementById('renovationCostPerSqm');
+            if (costPerSqmEl) {
+                const minSqm = estimate.cost_per_sqm_min;
+                const maxSqm = estimate.cost_per_sqm_max;
+                if (minSqm !== undefined && maxSqm !== undefined && minSqm !== null && maxSqm !== null) {
+                    costPerSqmEl.innerText = `Da ${formatEuro(minSqm)} a ${formatEuro(maxSqm)} al Metro Quadro`;
+                } else {
+                    costPerSqmEl.innerText = 'Dato non disponibile per la zona indicata';
+                }
+            }
+
+            const totalEl = document.getElementById('renovationTotalEstimated');
+            if (totalEl) {
+                const totMin = estimate.estimated_total_min;
+                const totMax = estimate.estimated_total_max;
+                if (totMin !== null && totMax !== null && totMin !== undefined && totMax !== undefined && (totMin > 0 || totMax > 0)) {
+                    totalEl.innerText = `Da ${formatEuro(totMin)} a ${formatEuro(totMax)}`;
+                } else {
+                    totalEl.innerHTML = `<span class="text-xs font-medium text-amber-900 leading-snug">Dati insufficienti per una stima numerica complessiva in questa zona. Motivo: ${escapeHtml(estimate.tier_reasoning || 'Metratura non indicata o parametri insufficienti')}</span>`;
+                }
+            }
+
+            const breakdown = estimate.budget_breakdown || {};
+            const pScavo = breakdown.opere_scavo_strutturali_pct;
+            const pGrezze = breakdown.strutturali_grezze_pct;
+            const pFiniture = breakdown.finiture_impianti_pct;
+
+            setPercentageValue('renovationPctScavo', 'renovationBarScavo', pScavo);
+            setPercentageValue('renovationPctGrezze', 'renovationBarGrezze', pGrezze);
+            setPercentageValue('renovationPctFiniture', 'renovationBarFiniture', pFiniture);
+
+            const sourcesList = document.getElementById('renovationSourcesList');
+            if (sourcesList) {
+                const sources = Array.isArray(estimate.sources_cited) ? estimate.sources_cited.filter(Boolean) : [];
+                if (sources.length > 0) {
+                    sourcesList.innerHTML = sources.map(src => {
+                        const trimmed = String(src).trim();
+                        const isUrl = /^https?:\/\//i.test(trimmed) || /^www\./i.test(trimmed);
+                        const href = isUrl ? (trimmed.startsWith('www.') ? `https://${trimmed}` : trimmed) : null;
+                        if (href) {
+                            return `<li class="flex items-start gap-2"><i class="fas fa-link text-blue-600 text-[10px] mt-1 shrink-0"></i><a href="${escapeHtml(href)}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800 underline break-all">${escapeHtml(trimmed)}</a></li>`;
+                        }
+                        return `<li class="flex items-start gap-2"><i class="fas fa-bookmark text-gray-500 text-[10px] mt-1 shrink-0"></i><span>${escapeHtml(trimmed)}</span></li>`;
+                    }).join('');
+                } else {
+                    sourcesList.innerHTML = '<li class="text-gray-400 italic">Nessuna fonte citata per questa stima</li>';
+                }
+            }
+
+            const disclaimerEl = document.getElementById('renovationDisclaimerText');
+            if (disclaimerEl) {
+                disclaimerEl.innerText = estimate.disclaimer || "Stima orientativa basata su fonti pubbliche reali, non un preventivo vincolante. Richiedi sempre un sopralluogo e un preventivo da un'impresa edile per un valore definitivo.";
+            }
+
+            resultSection.classList.remove('hidden');
+            resultSection.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function formatEuro(num) {
+            if (num === null || num === undefined) return '-';
+            return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(num);
+        }
+
+        function setPercentageValue(textId, barId, val) {
+            const txt = document.getElementById(textId);
+            const bar = document.getElementById(barId);
+            if (val !== undefined && val !== null && !isNaN(val)) {
+                if (txt) txt.innerText = `${val}%`;
+                if (bar) bar.style.width = `${Math.min(100, Math.max(0, val))}%`;
+            } else {
+                if (txt) txt.innerText = '-%';
+                if (bar) bar.style.width = '0%';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        window.copyResultUrl = function (imgId) {
+            const img = document.getElementById(imgId);
+            if (!img || !img.src) return;
+            navigator.clipboard.writeText(img.src).then(() => {
+                if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                if (tg && tg.showAlert) tg.showAlert("Indirizzo URL copiato negli appunti!"); else alert("Indirizzo URL copiato negli appunti!");
+            }).catch(() => {
+                alert("Seleziona e copia manualmente l indirizzo URL.");
+            });
+        };
+
+        window.openResultInNewTab = function (imgId) {
+            const img = document.getElementById(imgId);
+            if (!img || !img.src) return;
+            window.open(img.src, '_blank');
+        };
+    </script>
+</body>
+</html>

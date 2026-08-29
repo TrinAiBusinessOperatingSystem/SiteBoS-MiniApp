@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Editor Immobile e Gestione Proprieta</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
+    <script src="../sitebos_dirty_guard.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        (function() {
+            const tempTg = window.Telegram?.WebApp;
+            const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+            if (!isTelegramSession) {
+                const currentPath = window.location.pathname;
+                let redirectPath = "index.html";
+                if (currentPath.includes('/telegram_control/')) {
+                    const parts = currentPath.split('/telegram_control/');
+                    const subPath = parts[1] || '';
+                    redirectPath = subPath.includes('/') ? "../../index.html" : "../index.html";
+                }
+                window.location.replace(redirectPath);
+            }
+        })();
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#000000', bg: '#fafafa', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body { 
+            background-color: #fafafa !important; 
+            color: #000000 !important; 
+            font-family: 'Inter', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+        }
+        .card, .section-card { 
+            background: white !important; 
+            border: 1px solid #eeeeee !important; 
+            box-shadow: none !important; 
+            border-radius: 1.5rem; 
+        }
+        input:focus, textarea:focus, select:focus { 
+            border-color: #000000 !important; 
+            box-shadow: none !important; 
+            outline: none !important; 
+        }
+        .label-field {
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #6b7280;
+            margin-left: 0.25rem;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #e2e8f0; transition: .3s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #000000; }
+        input:checked + .slider:before { transform: translateX(18px); }
+        .spinner { 
+            border: 3px solid rgba(0,0,0,0.1); 
+            border-top-color: #000000; 
+            border-radius: 50%; 
+            width: 32px; 
+            height: 32px; 
+            animation: spin 0.8s linear infinite; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fas, .far, .fal, .fa-solid { font-weight: 900 !important; font-family: "Font Awesome 6 Free" !important; }
+    </style>
+</head>
+<body class="bg-bg text-black min-h-screen pb-32 flex flex-col">
+
+    <!-- LOADER SCHERMATA -->
+    <div id="loader" class="fixed inset-0 bg-white z-[9999] flex flex-col items-center justify-center space-y-4">
+        <div class="spinner"></div>
+        <div id="loaderText" class="text-[9px] font-black uppercase tracking-widest text-gray-500">Caricamento Scheda Immobile...</div>
+        <div id="loaderErrorBox" class="hidden max-w-xs mx-auto p-4 bg-red-50 border border-red-200 rounded-2xl text-center space-y-3">
+            <p id="loaderErrorText" class="text-xs font-bold text-red-700"></p>
+            <button type="button" onclick="goBackToMenu()" class="w-full py-2.5 bg-black text-white text-xs font-black uppercase rounded-xl">Torna Indietro</button>
+        </div>
+    </div>
+
+    <!-- HEADER STICKY -->
+    <header class="p-4 bg-white border-b border-gray-100 flex justify-between items-center z-40 shadow-xs sticky top-0 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+            <div class="w-11 h-11 bg-black rounded-2xl flex items-center justify-center text-white shrink-0 shadow-xs">
+                <i class="fas fa-building text-base"></i>
+            </div>
+            <div class="min-w-0">
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-500 leading-none mb-1">Catalogo Immobiliare</h1>
+                <p class="text-base font-black tracking-tight text-slate-900 leading-none truncate" id="headerPropertyTitle">Scheda Immobile</p>
+                <p class="text-[8.5px] font-bold text-slate-400 uppercase tracking-widest mt-1 truncate" id="headerPropertySubtitle">Dati Catastali, Parametri Fisici e Media Hub</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+            <button id="btn-nav-back" onclick="goBackToMenu()" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition" title="Torna al Menu">
+                <i class="fas fa-arrow-left text-xs"></i>
+            </button>
+            <button id="btn-nav-guide" onclick="openUserGuide('../userguide/03_catalog.html')" class="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-slate-600 shadow-xs active:scale-90 transition" title="Manuale Utente">
+                <i class="fas fa-globe text-xs"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTENUTO PRINCIPALE FORM -->
+    <main class="flex-1 max-w-md w-full mx-auto p-4 space-y-4">
+        <form id="propertyForm" onsubmit="handleSaveProperty(event)" class="space-y-4">
+
+            <!-- 1. IDENTITA BASE E ANNUNCIO -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span class="text-[9px] font-black uppercase tracking-widest text-gray-400">Identita e Descrizione</span>
+                    <span class="text-[9px] font-black uppercase px-2 py-0.5 bg-gray-100 text-gray-700 rounded-full">Verticale Real Estate</span>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="label-field">Titolo Annuncio Immobile *</label>
+                    <input type="text" id="propName" required class="w-full bg-gray-50 p-3.5 rounded-xl text-sm font-bold border border-transparent focus:border-black outline-none transition" placeholder="Es. Elegante Quadrilocale Panoramico con Terrazzo">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="label-field">Codice Identificativo Immobile</label>
+                        <div class="relative">
+                            <input type="text" id="propSku" readonly class="w-full bg-gray-100 text-gray-500 p-3.5 rounded-xl text-[10px] font-mono font-bold outline-none pr-8">
+                            <button type="button" onclick="copyFieldValue('propSku')" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black">
+                                <i class="fas fa-copy text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Tipologia Contratto</label>
+                        <select id="txContractType" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none">
+                            <option value="vendita">Vendita</option>
+                            <option value="affitto">Locazione o Affitto</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="label-field">Sintesi Breve per Portali *</label>
+                    <input type="text" id="propShortDesc" maxlength="150" required class="w-full bg-gray-50 p-3.5 rounded-xl text-xs border border-transparent focus:border-black outline-none" placeholder="Breve sintesi per anteprima card e messaggi">
+                </div>
+
+                <div class="space-y-1">
+                    <label class="label-field">Descrizione Completa dell Immobile</label>
+                    <textarea id="propLongDesc" rows="4" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs border border-transparent focus:border-black outline-none resize-none leading-relaxed" placeholder="Descrizione dettagliata dell immobile, delle finiture e del contesto residenziale..."></textarea>
+                </div>
+            </section>
+
+            <!-- 2. DATI CATASTALI -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="fas fa-landmark text-gray-500 text-xs"></i>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Dati Catastali Ufficiali</h2>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Foglio</label>
+                        <input type="text" id="catFoglio" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold font-mono border border-transparent focus:border-black outline-none" placeholder="Es. 14">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Particella</label>
+                        <input type="text" id="catParticella" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold font-mono border border-transparent focus:border-black outline-none" placeholder="Es. 892">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Subalterno</label>
+                        <input type="text" id="catSubalterno" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold font-mono border border-transparent focus:border-black outline-none" placeholder="Es. 12">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Categoria</label>
+                        <input type="text" id="catCategoria" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold font-mono uppercase border border-transparent focus:border-black outline-none" placeholder="Es. A/2">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Rendita Euro</label>
+                        <input type="number" step="0.01" id="catRendita" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="0.00">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Anno Costruzione</label>
+                        <input type="number" id="catAnnoCostruzione" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="Es. 2018">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. PARAMETRI FISICI ED EDILIZI -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="fas fa-ruler-combined text-gray-500 text-xs"></i>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Parametri Fisici e Superfici</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="label-field">Metri Quadri Commerciali *</label>
+                        <input type="number" id="physMqCommerciali" required class="w-full bg-gray-50 p-3 rounded-xl text-xs font-black border border-transparent focus:border-black outline-none text-right" placeholder="Es. 110">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Metri Quadri Calpestabili</label>
+                        <input type="number" id="physMqCalpestabili" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="Es. 95">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Numero Vani</label>
+                        <input type="number" id="physNumeroVani" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-center" placeholder="Es. 5">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Camere da Letto</label>
+                        <input type="number" id="physCamere" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-center" placeholder="Es. 3">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Numero Bagni</label>
+                        <input type="number" id="physBagni" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-center" placeholder="Es. 2">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Piano</label>
+                        <input type="text" id="physPiano" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-center" placeholder="Es. 3">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Riscaldamento</label>
+                        <select id="physRiscaldamento" class="w-full bg-gray-50 p-3 rounded-xl text-[11px] font-bold border border-transparent focus:border-black outline-none">
+                            <option value="autonomo">Autonomo</option>
+                            <option value="centralizzato">Centralizzato</option>
+                            <option value="pompa_calore">Pompa di Calore</option>
+                            <option value="assente">Assente</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Esposizione</label>
+                        <input type="text" id="physEsposizione" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-center" placeholder="Es. Sud Est">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-gray-50 rounded-xl flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800">Presenza Ascensore</span>
+                        <span class="text-[9px] text-gray-500 block">Indica se l edificio e provvisto di ascensore al piano</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="physAscensore">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </section>
+
+            <!-- 4. DOTAZIONI E PERTINENZE -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="fas fa-couch text-gray-500 text-xs"></i>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Dotazioni e Pertinenze</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Balcone</span>
+                        <input type="checkbox" id="amenBalcone" class="w-4 h-4 accent-black rounded">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Terrazzo</span>
+                        <input type="checkbox" id="amenTerrazzo" class="w-4 h-4 accent-black rounded">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Box Auto</span>
+                        <input type="checkbox" id="amenBoxAuto" class="w-4 h-4 accent-black rounded">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Posto Auto</span>
+                        <input type="checkbox" id="amenPostoAuto" class="w-4 h-4 accent-black rounded">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Cantina o Soffitta</span>
+                        <input type="checkbox" id="amenCantina" class="w-4 h-4 accent-black rounded">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Climatizzazione</span>
+                        <input type="checkbox" id="amenClimatizzazione" class="w-4 h-4 accent-black rounded">
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Impianto Allarme</span>
+                        <input type="checkbox" id="amenAllarme" class="w-4 h-4 accent-black rounded">
+                    </label>
+                    <div class="p-2.5 bg-gray-50 rounded-xl border border-gray-100 space-y-1">
+                        <label class="text-[8.5px] font-black uppercase text-gray-500">Giardino Metri Quadri</label>
+                        <input type="number" id="amenGiardinoMq" class="w-full bg-white p-1.5 rounded-lg text-xs font-bold text-right outline-none" placeholder="0">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5. PRESTAZIONE ENERGETICA -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="fas fa-bolt text-gray-500 text-xs"></i>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Prestazione Energetica e Certificazione</h2>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Classe Energetica</label>
+                        <select id="energyClasse" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-black uppercase border border-transparent focus:border-black outline-none">
+                            <option value="A4">A4</option>
+                            <option value="A3">A3</option>
+                            <option value="A2">A2</option>
+                            <option value="A1">A1</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                            <option value="E">E</option>
+                            <option value="F">F</option>
+                            <option value="G" selected>G</option>
+                            <option value="esente">Esente</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Indice IPE kWh su mq anno</label>
+                        <input type="number" step="0.1" id="energyIpe" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="Es. 175.5">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Codice Certificato APE</label>
+                        <input type="text" id="energyCodiceApe" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-mono font-bold border border-transparent focus:border-black outline-none" placeholder="Codice APE">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. ECONOMICA E TRANSAZIONE -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="fas fa-coins text-gray-500 text-xs"></i>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Economica e Parametri di Transazione</h2>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="label-field">Prezzo Richiesto Euro *</label>
+                        <input type="number" step="1" id="txPrezzoRichiesto" required class="w-full bg-gray-50 p-3.5 rounded-xl text-base font-black border border-transparent focus:border-black outline-none text-right" placeholder="Es. 285000">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Stato Trattativa</label>
+                        <select id="txStato" class="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none">
+                            <option value="disponibile">Disponibile</option>
+                            <option value="in_trattativa">In Trattativa</option>
+                            <option value="rogitato">Rogitato</option>
+                            <option value="locato">Locato</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Spese Condominio Mese</label>
+                        <input type="number" id="txSpeseCondominiali" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="Es. 80">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Provvigione Target %</label>
+                        <input type="number" step="0.1" id="txProvvigionePct" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="Es. 3.0">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Deposito Cauzionale</label>
+                        <input type="number" id="txDeposito" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none text-right" placeholder="Es. 1500">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
+                    <div>
+                        <span class="text-xs font-bold text-emerald-950">Stima Costi di Ristrutturazione</span>
+                        <span class="text-[9px] text-emerald-800 block font-medium">Calcola la stima orientativa basata sui dati reali di mercato della zona</span>
+                    </div>
+                    <button type="button" onclick="openRenovationCostEstimator()" class="px-3 py-1.5 bg-black text-white text-[9px] font-black uppercase rounded-lg active:scale-95 transition shrink-0">
+                        Calcola Stima
+                    </button>
+                </div>
+            </section>
+
+            <!-- 7. LOCALIZZAZIONE GEOGRAFICA -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <i class="fas fa-location-dot text-gray-500 text-xs"></i>
+                    <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Localizzazione Geografica</h2>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="label-field">Indirizzo e Numero Civico *</label>
+                    <input type="text" id="locIndirizzo" required class="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none" placeholder="Es. Via Roma 42">
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Comune *</label>
+                        <input type="text" id="locComune" required class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none" placeholder="Es. Milano">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Provincia *</label>
+                        <input type="text" id="locProvincia" maxlength="2" required class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold uppercase text-center border border-transparent focus:border-black outline-none" placeholder="MI">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Codice Postale</label>
+                        <input type="text" id="locCap" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold text-center border border-transparent focus:border-black outline-none" placeholder="20121">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="space-y-1">
+                        <label class="label-field">Quartiere o Zona</label>
+                        <input type="text" id="locQuartiere" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-bold border border-transparent focus:border-black outline-none" placeholder="Es. Centro Storico">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Latitudine</label>
+                        <input type="number" step="0.000001" id="locLat" class="w-full bg-gray-50 p-3 rounded-xl text-[10px] font-mono font-bold text-right border border-transparent focus:border-black outline-none" placeholder="45.4642">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Longitudine</label>
+                        <input type="number" step="0.000001" id="locLng" class="w-full bg-gray-50 p-3 rounded-xl text-[10px] font-mono font-bold text-right border border-transparent focus:border-black outline-none" placeholder="9.1900">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8. GEMINI MEDIA HUB -->
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2 gap-2 flex-wrap">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-wand-magic-sparkles text-indigo-600 text-xs"></i>
+                        <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Gemini Media Hub</h2>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" onclick="openRenovationCostEstimator()" class="px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 active:scale-95 transition">
+                            <i class="fas fa-hammer text-[9px]"></i> Stima Costi Ristrutturazione
+                        </button>
+                        <button type="button" onclick="openMediaStudioUtility()" class="px-2.5 py-1 bg-black hover:bg-gray-800 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 active:scale-95 transition">
+                            <i class="fas fa-camera text-[9px]"></i> Apri Gemini Media Studio
+                        </button>
+                    </div>
+                </div>
+
+                <p class="text-[10px] text-gray-500 leading-relaxed">
+                    Visualizza le foto caricate per questo immobile, i render generati con Virtual Staging, la planimetria tridimensionale ed il video teaser.
+                </p>
+
+                <!-- GALLERIA FOTO ESISTENTI -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="label-field mb-0">Galleria Fotografie Immobile</label>
+                        <div class="flex items-center gap-2">
+                            <input type="file" id="propertyPhotoFileInput" accept="image/*" class="hidden" onchange="handlePropertyLocalPhotoUpload(event)">
+                            <button type="button" onclick="document.getElementById('propertyPhotoFileInput').click()" class="text-[9px] font-black text-black bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded-lg uppercase transition">
+                                <i class="fas fa-upload mr-1"></i> Carica File
+                            </button>
+                            <button type="button" onclick="promptAddPhotoUrl()" class="text-[9px] font-black text-blue-600 hover:text-black uppercase">
+                                <i class="fas fa-link mr-1"></i> Da URL
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 text-[8.5px] text-gray-500 font-medium">
+                        <i class="fas fa-shield-halved text-indigo-500"></i>
+                        <span>Formato JPEG, cap massimo 16 Megabyte con compressione dinamica.</span>
+                    </div>
+                    <div id="photosGalleryContainer" class="grid grid-cols-3 gap-2 min-h-[80px] p-2 bg-gray-50 rounded-2xl border border-gray-100">
+                        <!-- Popolato dinamicamente da JS -->
+                    </div>
+                </div>
+
+                <!-- CAMPI URL MEDIA SPECIALI -->
+                <div class="space-y-3 pt-2 border-t border-gray-100">
+                    <div class="space-y-1">
+                        <label class="label-field">Planimetria Da Due Dimensioni A Tre Dimensioni</label>
+                        <input type="url" id="mediaFloorplanUrl" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-mono border border-transparent focus:border-black outline-none" placeholder="https://... planimetria 3D">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Video Teaser Cinematografico</label>
+                        <input type="url" id="mediaVideoTeaserUrl" class="w-full bg-gray-50 p-3 rounded-xl text-xs font-mono border border-transparent focus:border-black outline-none" placeholder="https://... o data URI video teaser">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9. GATEWAY MULTIPOSTING -->
+            <section class="card p-5 space-y-4">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-share-nodes text-slate-800 text-xs"></i>
+                        <h2 class="text-[9px] font-black uppercase tracking-widest text-gray-700">Gateway Multiposting Portali</h2>
+                    </div>
+                    <span class="text-[8px] font-black uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">Feed Sincronizzati</span>
+                </div>
+
+                <p class="text-[10px] text-gray-500 leading-relaxed">
+                    Seleziona i canali su cui pubblicare questo immobile tramite i feed esportati dal backend:
+                </p>
+
+                <div class="grid grid-cols-2 gap-2.5">
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Immobiliare.it</span>
+                        <input type="checkbox" id="portalImmobiliare" class="w-4 h-4 accent-black rounded" checked>
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Idealista</span>
+                        <input type="checkbox" id="portalIdealista" class="w-4 h-4 accent-black rounded" checked>
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Casa.it</span>
+                        <input type="checkbox" id="portalCasait" class="w-4 h-4 accent-black rounded" checked>
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer">
+                        <span class="text-xs font-bold text-slate-800">Subito.it</span>
+                        <input type="checkbox" id="portalSubito" class="w-4 h-4 accent-black rounded" checked>
+                    </label>
+                    <label class="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer col-span-2">
+                        <span class="text-xs font-bold text-slate-800">Meta Real Estate Catalog</span>
+                        <input type="checkbox" id="portalMeta" class="w-4 h-4 accent-black rounded" checked>
+                    </label>
+                </div>
+
+                <!-- BOX FEED XML REAL-TIME -->
+                <div class="space-y-3 pt-2 border-t border-gray-100">
+                    <div class="space-y-1">
+                        <label class="label-field">Feed XML Portali Nazionali MLS</label>
+                        <div class="flex gap-1.5 items-center">
+                            <input type="text" id="feedMlsUrl" readonly class="flex-1 bg-gray-100 text-gray-700 p-2.5 rounded-xl text-[10px] font-mono select-all outline-none">
+                            <button type="button" onclick="copyFieldValue('feedMlsUrl')" class="px-3 py-2.5 bg-black text-white text-[10px] font-black rounded-xl active:scale-95 transition shrink-0">
+                                Copia
+                            </button>
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="label-field">Feed XML Meta Real Estate</label>
+                        <div class="flex gap-1.5 items-center">
+                            <input type="text" id="feedMetaUrl" readonly class="flex-1 bg-gray-100 text-gray-700 p-2.5 rounded-xl text-[10px] font-mono select-all outline-none">
+                            <button type="button" onclick="copyFieldValue('feedMetaUrl')" class="px-3 py-2.5 bg-black text-white text-[10px] font-black rounded-xl active:scale-95 transition shrink-0">
+                                Copia
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- FOOTER AZIONI SALVATAGGIO -->
+            <div class="pt-2 sticky bottom-4 z-30">
+                <button type="submit" id="savePropertyBtn" class="w-full py-4 bg-black hover:bg-gray-800 active:scale-98 text-white font-black text-xs uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2 transition">
+                    <i class="fas fa-check"></i>
+                    <span id="savePropertyBtnText">Salva Scheda Immobile</span>
+                </button>
+            </div>
+
+        </form>
+    </main>
+
+    <!-- LOGICA JAVASCRIPT SEPARATA -->
+    <script src="edit_property_logic.js"></script>
+</body>
+</html>

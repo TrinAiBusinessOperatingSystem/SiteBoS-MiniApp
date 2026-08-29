@@ -1224,10 +1224,21 @@
             location.href = `${page}?ash=${ash}&msg=${msg || ''}&productId=${pId}&catId=${catId}&ghostId=${pId}`;
         };
 
+        const VERTICAL_EDITOR_OVERRIDE = {
+            realestate: 'edit-property.html'
+        };
+
         window.openAdvancedManagement = () => {
             const match = activeProduct;
             const itemType = currentProductData?.identity?.item_type || match?.item_type || '';
             const isSemi = itemType === 'SEMI_FINISHED' || itemType === 'semilavorato' || itemType === 'SEMI_FINISHED_PRODUCT' || currentProductData?.blueprint_type === 'SOP_SEMILAVORATO' || (currentSopId && currentSopId.includes("SEMI"));
+
+            const ownerVertical = (currentProductData?.identity?.vertical || currentProductData?.vertical || match?.vertical || activeCategory?.vertical || '').toLowerCase();
+
+            if (VERTICAL_EDITOR_OVERRIDE[ownerVertical] && (currentMacro === 'PRO' || currentMacro === 'SER')) {
+                launchSubEditor(VERTICAL_EDITOR_OVERRIDE[ownerVertical]);
+                return;
+            }
 
             if (currentMacro === 'SOP' && !isSemi) {
                 tg.showAlert("La Gestione Avanzata non è disponibile per le Procedure (SOP).");
