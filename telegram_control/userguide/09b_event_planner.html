@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>09B. Simulatore Prenotazioni Fuori Standard | SiTeBoS Guide</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+                    colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background-color: #ffffff; color: #000000; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .content-area { max-width: 800px; margin: 0 auto; padding: 2rem 1.5rem; }
+        .prose h1 { font-size: 2.5rem; font-weight: 900; tracking: -0.04em; line-height: 1.1; margin-bottom: 1.5rem; text-transform: uppercase; font-style: italic; }
+        .prose h2 { font-size: 1.25rem; font-weight: 800; tracking: -0.02em; margin-top: 3rem; margin-bottom: 1rem; text-transform: uppercase; border-bottom: 2px solid #000; padding-bottom: 0.5rem; display: inline-block; }
+        .prose h3 { font-size: 1rem; font-weight: 900; text-transform: uppercase; margin-top: 2rem; color: #4b5563; }
+        .prose p { font-size: 1rem; line-height: 1.7; color: #374151; margin-bottom: 1.5rem; }
+        .prose b { font-weight: 800; color: #000; }
+        .step-box { background: #fafafa; border: 1px solid #eeeeee; padding: 1.5rem; border-radius: 1.5rem; margin-bottom: 1.5rem; }
+        .badge-check { color: #10b981; margin-right: 0.5rem; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-in { animation: fadeIn 0.4s ease forwards; }
+        .role-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .role-tile { background: #fafafa; border: 1px solid #eeeeee; border-radius: 1.25rem; padding: 1rem; text-align: center; }
+        .role-tile .r-icon { font-size: 1.3rem; margin-bottom: 0.4rem; }
+        .role-tile .r-name { font-size: 0.75rem; font-weight: 900; text-transform: uppercase; }
+        .timeline-item { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.9rem; }
+        .timeline-time { font-size: 0.7rem; font-weight: 900; color: #9ca3af; min-width: 3.5rem; padding-top: 0.15rem; }
+        .timeline-phase { font-size: 0.85rem; font-weight: 700; color: #111; }
+        .timeline-role { font-size: 0.7rem; color: #6b7280; }
+    </style>
+</head>
+<body class="safe-area-inset min-h-screen pb-32">
+
+    <!-- TOP NAV -->
+    <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-5 py-4 flex items-center justify-between">
+        <button onclick="location.href='09_controllo_gestione.html'" class="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-black transition-colors">
+            <i class="fas fa-arrow-left"></i> Controllo di Gestione
+        </button>
+        <div class="text-[9px] font-black uppercase tracking-[0.2em] text-purple-600 italic">Capitolo 09B</div>
+    </nav>
+
+    <main class="content-area animate-in">
+        <article class="prose">
+            <h1>Simulatore Prenotazioni Fuori Standard</h1>
+
+            <p>
+                Nato per gli eventi (matrimoni, cene aziendali) ma pensato più in largo: serve per <b>qualunque prenotazione grande o fuori standard dentro il servizio normale</b> di un'attività Food & Ristorazione — un tavolo da 20 per un compleanno, una sala privata, un menu degustazione aziendale. Un matrimonio è solo il caso più grande della stessa categoria, non un prodotto diverso. Il servizio quotidiano di sala con comande al tavolo resta gestito da Console Cucina e non viene toccato: questo strumento entra in gioco solo quando la prenotazione esce dallo standard.
+            </p>
+
+            <div class="bg-amber-50 border border-amber-200 p-6 rounded-3xl my-6 space-y-2">
+                <span class="text-[10px] font-black uppercase tracking-widest text-amber-900 flex items-center gap-2">
+                    <i class="fas fa-circle-info text-amber-600"></i> Stato Reale (2026-08-28)
+                </span>
+                <p class="text-amber-900/90 text-xs leading-relaxed m-0 font-medium">
+                    Il backend è stato testato dal vivo con dati reali su un tenant di test e diversi bug reali sono stati trovati e corretti solo grazie al test end-to-end. Il frontend è stato costruito e revisionato riga per riga contro il contratto verificato del backend. <b>Manca ancora</b> un test manuale in un browser reale con Telegram WebApp — da fare al primo utilizzo con un tenant vero.
+                </p>
+            </div>
+
+            <h2>Perché il Calcolo Non è AI</h2>
+            <p>
+                Il costo di un evento è una formula chiusa: ricavi del menu meno materie prime, noleggi, costo orario dello staff e costi fissi. Per questo il margine mostrato sullo slider "cosa succede se i partecipanti passano da 30 a 50" <b>non è una stima indovinata da un'intelligenza artificiale</b> — è calcolato da una funzione deterministica, sempre la stessa usata poi per generare davvero i compiti operativi. Il margine che vedi muovendo lo slider e il costo reale dei compiti generati sono sempre la stessa cifra, mai due numeri scollegati.
+            </p>
+            <p>
+                L'intelligenza artificiale entra solo dove serve davvero giudizio: leggere la richiesta disordinata del cliente ed estrarne i parametri (data, numero di persone, allergie, budget, meteo previsto), e proporre un menu stagionale pescando <b>solo</b> dal catalogo reale già esistente — mai un piatto inventato.
+            </p>
+
+            <h2>Come Funziona: Dalla Richiesta al Servizio in Sala</h2>
+            <div class="step-box">
+                <p class="m-0 text-sm"><b>1. Ingestione.</b> Incolli la richiesta grezza del cliente. L'AI estrae i parametri, nessun calcolo economico in questo passaggio.</p>
+            </div>
+            <div class="step-box">
+                <p class="m-0 text-sm"><b>2. Simulazione.</b> Il margine si ricalcola all'istante muovendo lo slider dei partecipanti, con la stessa formula che genererà poi i compiti veri.</p>
+            </div>
+            <div class="step-box">
+                <p class="m-0 text-sm"><b>3. Menu Stagionale.</b> L'AI propone un menu in base a stagionalità e catalogo reale, con motivazione. Lo scegli o lo correggi tu.</p>
+            </div>
+            <div class="step-box">
+                <p class="m-0 text-sm"><b>4. Visto a Tre Ruoli.</b> Chef, Maître e Fattorino rivedono i compiti di propria competenza in una pagina dedicata e separata dalle console operative quotidiane, e danno il proprio visto.</p>
+            </div>
+            <div class="step-box">
+                <p class="m-0 text-sm"><b>5. Materializzazione.</b> Solo quando tutti e tre approvano, i compiti diventano Ordini di Servizio reali sulla stessa lavagna lavori di ogni giorno — mai prima, mai in stato speculativo.</p>
+            </div>
+            <div class="step-box">
+                <p class="m-0 text-sm"><b>6. Stampa.</b> Ogni ruolo può stampare i propri Ordini di Servizio con l'orario di ogni fase, editabili prima di stampare.</p>
+            </div>
+
+            <h2>Il Visto a Tre Ruoli</h2>
+            <p>
+                La conferma di un evento non è mai a discrezione di una sola persona. Chef, Maître e Fattorino vedono ciascuno solo i compiti di propria competenza e devono approvarli tutti e tre prima che l'evento diventi lavoro reale in agenda.
+            </p>
+            <div class="role-grid">
+                <div class="role-tile"><div class="r-icon">👨‍🍳</div><div class="r-name">Chef</div></div>
+                <div class="role-tile"><div class="r-icon">🤵</div><div class="r-name">Maître</div></div>
+                <div class="role-tile"><div class="r-icon">🚚</div><div class="r-name">Fattorino</div></div>
+            </div>
+            <p>
+                Se un ruolo chiede modifiche, l'evento resta in revisione e il titolare vede la nota. Se serve procedere comunque per urgenza, solo il titolare può forzare la conferma — ma deve scrivere obbligatoriamente il motivo, e la nota di dissenso del ruolo resta visibile anche sull'Ordine di Servizio stampato: forzare non cancella il disaccordo, lo rende solo tracciato.
+            </p>
+
+            <h2>La Run of Show</h2>
+            <p>
+                Ogni evento confermato porta una scaletta oraria di fase, senza la quale un Ordine di Servizio stampato non è utilizzabile sul campo:
+            </p>
+            <div class="timeline-item"><div class="timeline-time">11:30</div><div><div class="timeline-phase">Allestimento Sala</div><div class="timeline-role">Maître</div></div></div>
+            <div class="timeline-item"><div class="timeline-time">13:00</div><div><div class="timeline-phase">Inizio Servizio Pasto</div><div class="timeline-role">Chef · Maître</div></div></div>
+            <div class="timeline-item"><div class="timeline-time">15:30</div><div><div class="timeline-phase">Taglio Torta</div><div class="timeline-role">Maître</div></div></div>
+            <div class="timeline-item"><div class="timeline-time">17:00</div><div><div class="timeline-phase">Smontaggio e Logistica Inversa</div><div class="timeline-role">Fattorino</div></div></div>
+
+            <h2>Diete Speciali, Mai Perse in una Nota</h2>
+            <p>
+                Se il cliente dichiara allergie o esigenze alimentari particolari, il sistema genera compiti di cucina <b>aggiuntivi e distinti</b> (es. "Porzioni celiache separate per 4 persone") con priorità alta — non una nota testuale che si perde dentro un compito generico.
+            </p>
+
+            <h2>Cosa Non Fa</h2>
+            <p>
+                Non sostituisce l'esperienza di chi organizza eventi da anni: le costanti di partenza (quanti tavoli tondi per persona, quanto ghiaccio a persona, quante tovaglie) sono una bozza costruita da una ricerca web reale, non ancora validata da un operatore del settore, e restano modificabili per ogni singola attività. Non gestisce rogiti, contratti o adempimenti — resta uno strumento operativo, non legale o contabile.
+            </p>
+        </article>
+    </main>
+</body>
+</html>

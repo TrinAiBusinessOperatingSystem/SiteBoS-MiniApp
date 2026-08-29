@@ -6,6 +6,266 @@
 
 const currFmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
 
+let roomPhotos = [];
+let initialRoomPhotosStr = '[]';
+let initialRoomDesc = '';
+
+function isHospitalityVertical() {
+    const v = String(
+        currentData?.vertical || 
+        currentData?.identity?.vertical || 
+        currentData?.owner?.vertical ||
+        currentData?.owner_data?.vertical ||
+        ''
+    ).toLowerCase().trim();
+    return v === 'hospitality' || v === 'hotel' || v === 'resort' || v === 'bb' || v === 'agriturismo' || v === 'glamping';
+}
+
+function populateRoomMedia() {
+    const section = document.getElementById('section-room-media');
+    if (!section) return;
+
+    if (!isHospitalityVertical()) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+
+    const rm = currentData?.room_media || {};
+    const rawPhotos = Array.isArray(rm.photos) ? rm.photos : [];
+    roomPhotos = rawPhotos.map(p => typeof p === 'string' ? { url: p } : p).filter(p => p && p.url);
+    initialRoomPhotosStr = JSON.stringify(roomPhotos);
+
+    const descInput = document.getElementById('in-room-description');
+    if (descInput) {
+        descInput.value = rm.description || '';
+        initialRoomDesc = descInput.value;
+    }
+
+    renderRoomPhotosGallery();
+}
+
+function renderRoomPhotosGallery() {
+    const grid = document.getElementById('room-photos-grid');
+    const countBadge = document.getElementById('room-photos-count');
+    if (!grid) return;
+
+    grid.innerHTML = '';
+    if (countBadge) {
+        countBadge.innerText = `${roomPhotos.length} Foto`;
+    }
+
+    if (roomPhotos.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full py-6 text-center text-gray-400 text-[10px] font-medium bg-gray-50 rounded-2xl border border-dashed border-gray-200 p-4">
+                <i class="fas fa-images text-2xl text-gray-300 mb-1 block"></i>
+                Nessuna fotografia presente nella galleria per questo ambiente.
+            </div>
+        `;
+        return;
+    }
+
+    roomPhotos.forEach((photo, idx) => {
+        const card = document.createElement('div');
+        card.className = "relative rounded-2xl overflow-hidden aspect-video border border-gray-200 bg-gray-100 group shadow-xs";
+        card.innerHTML = `
+            <img src="${escapeHtml(photo.url)}" alt="Foto Ambiente ${idx + 1}" class="w-full h-full object-cover">
+            <span class="absolute top-2 left-2 bg-black/80 text-white text-[8px] font-black px-2 py-0.5 rounded-md">Foto ${idx + 1}</span>
+            <button type="button" onclick="removeRoomPhoto(${idx})" class="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] shadow-md active:scale-90 transition cursor-pointer" title="Rimuovi Foto">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function removeRoomPhoto(idx) {
+    if (idx >= 0 && idx < roomPhotos.length) {
+        roomPhotos.splice(idx, 1);
+        renderRoomPhotosGallery();
+        checkDirty();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+        }
+    }
+}
+
+const MAX_IMAGE_BYTES = 16 * 1024 * 1024; // 16 MB
+
+async function processAndCompressImageToJpeg(fileOrBlobOrDataUrl) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+            let width = img.naturalWidth || img.width;
+            let height = img.naturalHeight || img.height;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, width, height);
+            ctx.drawImage(img, 0, 0, width, height);
+
+            const qualitySteps = [0.92, 0.85, 0.75, 0.65, 0.50];
+            let bestDataUrl = null;
+            let bestByteSize = 0;
+
+            for (let q of qualitySteps) {
+                const dataUrl = canvas.toDataURL('image/jpeg', q);
+                const base64Str = dataUrl.split(',')[1] || '';
+                const byteSize = Math.round(base64Str.length * 0.75);
+
+                if (byteSize <= MAX_IMAGE_BYTES) {
+                    bestDataUrl = dataUrl;
+                    bestByteSize = byteSize;
+                    break;
+                }
+            }
+
+            if (!bestDataUrl) {
+                let scale = 0.8;
+                while (scale >= 0.3) {
+                    const scaledCanvas = document.createElement('canvas');
+                    scaledCanvas.width = Math.round(width * scale);
+                    scaledCanvas.height = Math.round(height * scale);
+                    const sCtx = scaledCanvas.getContext('2d');
+                    sCtx.fillStyle = '#FFFFFF';
+                    sCtx.fillRect(0, 0, scaledCanvas.width, scaledCanvas.height);
+                    sCtx.drawImage(img, 0, 0, scaledCanvas.width, scaledCanvas.height);
+
+                    for (let q of [0.8, 0.6, 0.5]) {
+                        const dataUrl = scaledCanvas.toDataURL('image/jpeg', q);
+                        const base64Str = dataUrl.split(',')[1] || '';
+                        const byteSize = Math.round(base64Str.length * 0.75);
+                        if (byteSize <= MAX_IMAGE_BYTES) {
+                            bestDataUrl = dataUrl;
+                            bestByteSize = byteSize;
+                            break;
+                        }
+                    }
+                    if (bestDataUrl) break;
+                    scale -= 0.2;
+                }
+            }
+
+            if (!bestDataUrl) {
+                reject(new Error("Foto troppo pesante anche dopo compressione, riprova con una foto piu' piccola o a risoluzione inferiore."));
+                return;
+            }
+
+            const base64WithoutPrefix = bestDataUrl.split(',')[1] || '';
+            resolve({
+                dataUrl: bestDataUrl,
+                base64: base64WithoutPrefix,
+                mimeType: 'image/jpeg',
+                byteSize: bestByteSize
+            });
+        };
+        img.onerror = () => {
+            reject(new Error("Impossibile elaborare il file immagine selezionato."));
+        };
+
+        if (typeof fileOrBlobOrDataUrl === 'string') {
+            img.src = fileOrBlobOrDataUrl;
+        } else {
+            const reader = new FileReader();
+            reader.onload = (e) => { img.src = e.target.result; };
+            reader.onerror = () => { reject(new Error("Errore durante la lettura del file.")); };
+            reader.readAsDataURL(fileOrBlobOrDataUrl);
+        }
+    });
+}
+
+async function handleRoomPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+        const processed = await processAndCompressImageToJpeg(file);
+        roomPhotos.push({ url: processed.dataUrl });
+        renderRoomPhotosGallery();
+        checkDirty();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    } catch (err) {
+        console.error("Errore compressione foto:", err);
+        const msg = err.message || "Foto troppo pesante anche dopo compressione, riprova con una foto piu' piccola.";
+        if (window.Telegram?.WebApp?.showAlert) {
+            window.Telegram.WebApp.showAlert(msg);
+        } else {
+            alert(msg);
+        }
+    } finally {
+        event.target.value = '';
+    }
+}
+
+function promptAddRoomPhotoUrl() {
+    const url = prompt("Inserisci l'indirizzo web completo della fotografia dell'ambiente:");
+    if (url && (url.trim().startsWith('http://') || url.trim().startsWith('https://') || url.trim().startsWith('data:image/'))) {
+        roomPhotos.push({ url: url.trim() });
+        renderRoomPhotosGallery();
+        checkDirty();
+        if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+    } else if (url) {
+        alert("L'indirizzo deve essere un URL valido (http:// o https://).");
+    }
+}
+
+function openMediaStudio() {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+    }
+    const queryParams = new URLSearchParams();
+    if (ash) queryParams.set('ash', ash);
+    if (messageId) queryParams.set('msg', messageId);
+    if (sopId) queryParams.set('sop_id', sopId);
+    const descInput = document.getElementById('in-room-description');
+    if (descInput && descInput.value.trim()) {
+        queryParams.set('room_context', descInput.value.trim());
+    }
+    window.location.href = `../operators/realestate-utility.html?${queryParams.toString()}`;
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function collectRoomMedia() {
+    if (!isHospitalityVertical()) return null;
+    const descInput = document.getElementById('in-room-description');
+    const desc = descInput ? descInput.value.trim() : '';
+    return {
+        photos: roomPhotos || [],
+        description: desc
+    };
+}
+
+function isRoomMediaDirty() {
+    if (!isHospitalityVertical()) return false;
+    const currentPhotosStr = JSON.stringify(roomPhotos || []);
+    const descInput = document.getElementById('in-room-description');
+    const currentDesc = descInput ? descInput.value : '';
+    return currentPhotosStr !== initialRoomPhotosStr || currentDesc !== initialRoomDesc;
+}
+
+window.populateRoomMedia = populateRoomMedia;
+window.renderRoomPhotosGallery = renderRoomPhotosGallery;
+window.removeRoomPhoto = removeRoomPhoto;
+window.handleRoomPhotoUpload = handleRoomPhotoUpload;
+window.promptAddRoomPhotoUrl = promptAddRoomPhotoUrl;
+window.openMediaStudio = openMediaStudio;
+
 // Nasconde tutti i tab e i menu obsoleti che non hanno più corrispondenza nel nuovo schema
 function hideObsoleteTabs() {
     const obsoleteIds = [
@@ -507,9 +767,10 @@ function collectOwnerOverrides() {
 // Verifica se l'utente ha inserito override per accendere il pulsante di ricalcolo
 function checkDirty() {
     const { hasAny } = collectOwnerOverrides();
+    const isRoomDirty = isRoomMediaDirty();
     const aiBtn = document.getElementById('ai-recalc-btn');
     if (aiBtn) {
-        if (hasAny) {
+        if (hasAny || isRoomDirty) {
             aiBtn.className = "w-full py-3.5 bg-black text-white hover:opacity-90 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all mt-3 cursor-pointer";
         } else {
             aiBtn.className = "w-full py-3.5 bg-black text-white hover:opacity-90 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all mt-3 cursor-pointer";
@@ -532,18 +793,24 @@ async function triggerAiAdvisoryRecalculation() {
 
     try {
         const { overrides } = collectOwnerOverrides();
+        const roomMedia = collectRoomMedia();
+
+        const reqPayload = {
+            _auth: tg.initData,
+            ash: ash,
+            action: 'GENERATE_ADVANCED_DRAFT',
+            sop_id: sopId,
+            message_id: messageId,
+            owner_overrides: overrides
+        };
+        if (roomMedia) {
+            reqPayload.room_media = roomMedia;
+        }
 
         const response = await fetch(ASYNC_AI_WEBHOOK, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                _auth: tg.initData,
-                ash: ash,
-                action: 'GENERATE_ADVANCED_DRAFT',
-                sop_id: sopId,
-                message_id: messageId,
-                owner_overrides: overrides
-            })
+            body: JSON.stringify(reqPayload)
         });
 
         if (!response.ok) throw new Error("Errore durante l'avvio del ricalcolo dell'advisory");
@@ -576,10 +843,13 @@ async function triggerAiAdvisoryRecalculation() {
                 const d = Array.isArray(raw) ? raw[0] : raw;
                 const doc = (d && (d.data || d.advanced_catalog_item || d.catalog_item || d.catalog_item_draft)) || d || {};
 
-                if (doc.financial_advisory) {
+                if (doc.financial_advisory || doc.sop_id || doc.name) {
                     currentData = doc;
-                    populateCFO();
-                    populateFiscal();
+                    if (currentData.financial_advisory) {
+                        populateCFO();
+                        populateFiscal();
+                    }
+                    populateRoomMedia();
                     if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                     tg.showAlert("✅ Analisi Advanced ricalcolata con successo!");
                     return true;
