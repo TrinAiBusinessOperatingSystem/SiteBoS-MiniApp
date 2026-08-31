@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Proposta Economica | SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                    colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #fafafa; color: #000; -webkit-tap-highlight-color: transparent; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .fade-in { animation: fadeIn .4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .tl-dot { width: 12px; height: 12px; border-radius: 9999px; flex-shrink: 0; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-sm pb-40">
+
+    <!-- LOADER -->
+    <div id="loader" class="fixed inset-0 bg-white z-[500] flex flex-col items-center justify-center p-10 text-center transition-opacity duration-300">
+        <div class="w-10 h-10 border-2 border-gray-100 border-t-black rounded-full animate-spin mb-4"></div>
+        <p class="text-[8px] font-black uppercase tracking-[0.3em] text-gray-300">Carico la proposta...</p>
+    </div>
+
+    <!-- ERRORE -->
+    <div id="error-screen" class="hidden fixed inset-0 bg-white z-[400] flex flex-col items-center justify-center p-10 text-center">
+        <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4"><i class="fas fa-triangle-exclamation text-2xl text-gray-300"></i></div>
+        <h2 id="error-title" class="text-lg font-black uppercase tracking-tight">Link non valido</h2>
+        <p id="error-msg" class="text-gray-500 text-xs mt-2 max-w-xs">Questo preventivo non è più accessibile. Contatta l'attività per un aggiornamento.</p>
+    </div>
+
+    <main id="app" class="hidden flex-1 fade-in">
+        <!-- HEADER -->
+        <header class="p-5 bg-white border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white">
+                    <i class="fas fa-file-invoice-dollar text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Proposta economica</h1>
+                    <p id="biz-name" class="text-sm font-black tracking-tight">La tua proposta</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- BANNER DISAMBIGUAZIONE -->
+        <div id="disambig-banner" class="mx-4 mt-4 rounded-3xl border-2 border-black bg-white p-4">
+            <div class="flex gap-3">
+                <i class="fas fa-circle-info text-black mt-0.5"></i>
+                <div>
+                    <p class="text-[11px] font-black uppercase tracking-tight leading-tight">Questa non è una prenotazione confermata</p>
+                    <p id="banner-sub" class="text-[10px] text-gray-500 mt-1 leading-snug">È una stima dei costi. Il posto viene bloccato solo dopo la tua conferma.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TIMELINE STATO -->
+        <section class="mx-4 mt-4 rounded-3xl bg-white border border-gray-100 p-5">
+            <span class="text-[8px] font-black uppercase tracking-widest text-gray-300">Stato</span>
+            <div id="timeline" class="mt-3 space-y-3"></div>
+        </section>
+
+        <!-- VOCI -->
+        <section class="mx-4 mt-4 rounded-3xl bg-white border border-gray-100 p-5">
+            <span class="text-[8px] font-black uppercase tracking-widest text-gray-300">Cosa è incluso</span>
+            <div id="items-list" class="mt-3 space-y-2"></div>
+            <div id="value-prop" class="hidden mt-4 pt-4 border-t border-gray-50 text-[11px] text-gray-600 leading-snug"></div>
+        </section>
+
+        <!-- STIMA -->
+        <section class="mx-4 mt-4 rounded-3xl bg-black text-white p-5">
+            <span class="text-[8px] font-black uppercase tracking-widest text-white/40">Importo stimato</span>
+            <p id="price-range" class="text-2xl font-black tracking-tight mt-1">—</p>
+            <p id="plan-summary" class="text-[10px] text-white/50 mt-1 leading-snug"></p>
+            <p id="expiry-line" class="text-[10px] text-white/60 mt-3 font-bold uppercase tracking-wide"></p>
+        </section>
+
+        <!-- CAPARRA INFO -->
+        <section id="deposit-box" class="hidden mx-4 mt-4 rounded-3xl bg-white border border-gray-100 p-5">
+            <span class="text-[8px] font-black uppercase tracking-widest text-gray-300">Per bloccare il posto</span>
+            <p class="text-[11px] text-gray-600 mt-2 leading-snug">
+                È richiesta una <b>caparra di <span id="deposit-amount">€0</span></b>.
+                Puoi versarla online adesso oppure direttamente in sede.
+            </p>
+        </section>
+
+        <!-- MINI DATE PICKER -->
+        <section id="date-box" class="mx-4 mt-4 rounded-3xl bg-white border border-gray-100 p-5">
+            <span class="text-[8px] font-black uppercase tracking-widest text-gray-300">Quando vorresti (indicativo)</span>
+            <input type="date" id="preferred-date" class="w-full mt-3 bg-gray-50 border border-transparent rounded-2xl p-4 text-sm font-bold outline-none focus:border-black transition">
+            <p class="text-[9px] text-gray-400 mt-2">La data verrà confermata dall'attività.</p>
+        </section>
+
+        <!-- ESITO (confermato) -->
+        <section id="done-box" class="hidden mx-4 mt-4 rounded-3xl bg-white border-2 border-black p-6 text-center">
+            <div class="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white mx-auto mb-3"><i class="fas fa-check text-xl"></i></div>
+            <h3 class="text-base font-black uppercase tracking-tight">Confermato!</h3>
+            <p id="done-msg" class="text-[11px] text-gray-500 mt-1 leading-snug">L'attività ha registrato la tua conferma.</p>
+        </section>
+    </main>
+
+    <!-- FOOTER AZIONI -->
+    <footer id="footer" class="hidden fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-lg border-t border-gray-100 z-[100]">
+        <div class="max-w-md mx-auto space-y-2" id="footer-actions"></div>
+    </footer>
+
+    <script>
+        const LIFECYCLE_URL = "https://prod.workflow.trinai.it/webhook/sitebos-quote-lifecycle";
+        const tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+        if (tg) { try { tg.expand(); tg.ready(); if (tg.setHeaderColor) tg.setHeaderColor('#ffffff'); if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa'); } catch (e) {} }
+        function haptic(t) { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.impactOccurred(t || 'light'); } catch (e) {} }
+        function notify(t) { try { if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(t || 'success'); } catch (e) {} }
+
+        const params = new URLSearchParams(window.location.search);
+        const QUOTE_ID = params.get('quote_id') || '';
+        const TOKEN = params.get('t') || '';
+        const DEPOSIT_STATUS = params.get('deposit_status') || '';
+
+        let QUOTE = null;
+        let BUSY = false;
+
+        const STATUS_ORDER = ['APPROVED_AND_SENT', 'VIEWED', 'ACCEPTED_PENDING_DEPOSIT', 'DEPOSIT_PAID', 'CONVERTED'];
+        const STATUS_LABEL = {
+            APPROVED_AND_SENT: 'Proposta inviata',
+            VIEWED: 'Proposta visualizzata',
+            ACCEPTED_PENDING_DEPOSIT: 'In attesa di caparra',
+            DEPOSIT_PAID: 'Caparra registrata',
+            CONVERTED: 'Appuntamento in agenda'
+        };
+
+        function euro(n) {
+            const v = Number(n) || 0;
+            return '€' + (Math.round(v * 100) / 100).toLocaleString('it-IT', { minimumFractionDigits: v % 1 ? 2 : 0, maximumFractionDigits: 2 });
+        }
+
+        async function api(action, extra) {
+            const body = Object.assign({ action: action, quote_id: QUOTE_ID, t: TOKEN }, extra || {});
+            if (tg && tg.initData) body._auth = tg.initData;
+            const r = await fetch(LIFECYCLE_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            return r.json();
+        }
+
+        function showError(title, msg) {
+            document.getElementById('loader').style.display = 'none';
+            document.getElementById('app').classList.add('hidden');
+            document.getElementById('footer').classList.add('hidden');
+            const es = document.getElementById('error-screen');
+            es.classList.remove('hidden');
+            if (title) document.getElementById('error-title').innerText = title;
+            if (msg) document.getElementById('error-msg').innerText = msg;
+        }
+
+        function hideLoader() {
+            const l = document.getElementById('loader');
+            l.classList.add('opacity-0');
+            setTimeout(() => l.style.display = 'none', 300);
+            document.getElementById('app').classList.remove('hidden');
+        }
+
+        function renderTimeline() {
+            const cur = QUOTE.status;
+            let curIdx = STATUS_ORDER.indexOf(cur);
+            if (cur === 'EXPIRED' || cur === 'DECLINED') curIdx = -1;
+            const rows = STATUS_ORDER.map((s, i) => {
+                const done = curIdx >= 0 && i <= curIdx;
+                const active = i === curIdx;
+                return `<div class="flex items-center gap-3">
+                    <div class="tl-dot ${done ? 'bg-black' : 'bg-gray-200'} ${active ? 'ring-4 ring-gray-100' : ''}"></div>
+                    <span class="text-[11px] ${done ? 'font-bold text-black' : 'text-gray-400'}">${STATUS_LABEL[s]}${s === 'VIEWED' && QUOTE.view_count > 1 ? ' ×' + QUOTE.view_count : ''}</span>
+                </div>`;
+            }).join('');
+            document.getElementById('timeline').innerHTML = rows;
+        }
+
+        function renderItems() {
+            const items = QUOTE.items || [];
+            const el = document.getElementById('items-list');
+            if (!items.length) { el.innerHTML = '<p class="text-[11px] text-gray-400">Dettaglio disponibile in sede.</p>'; return; }
+            el.innerHTML = items.map(it => `
+                <div class="flex items-center justify-between gap-3 py-1">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0"><i class="fas fa-check text-[9px] text-gray-400"></i></div>
+                        <span class="text-[11px] font-semibold truncate">${(it.name || 'Voce').toString()}</span>
+                    </div>
+                    ${Number(it.qty) > 1 ? `<span class="text-[10px] font-black text-gray-400">×${it.qty}</span>` : ''}
+                </div>`).join('');
+            const vp = (QUOTE.ai_generated && QUOTE.ai_generated.value_proposition) || '';
+            if (vp) { const b = document.getElementById('value-prop'); b.textContent = vp; b.classList.remove('hidden'); }
+        }
+
+        function renderPrice() {
+            const ai = QUOTE.ai_generated || {};
+            const mn = Number(ai.price_estimate_min) || 0;
+            const mx = Number(ai.price_estimate_max) || 0;
+            let txt = '—';
+            if (mn && mx && mn !== mx) txt = euro(mn) + ' – ' + euro(mx);
+            else if (mx || mn) txt = euro(mx || mn);
+            document.getElementById('price-range').innerText = txt;
+            if (ai.recommended_plan_summary) document.getElementById('plan-summary').innerText = ai.recommended_plan_summary;
+            if (QUOTE.expires_at) {
+                const d = new Date(QUOTE.expires_at);
+                document.getElementById('expiry-line').innerText = QUOTE.expired ? 'Preventivo scaduto' : ('Valido fino al ' + d.toLocaleDateString('it-IT'));
+            }
+        }
+
+        function depositAmount() {
+            const dc = QUOTE.deposit_config || {};
+            return (dc.type && dc.type !== 'none') ? Number(dc.amount_due) || 0 : 0;
+        }
+
+        function renderDeposit() {
+            const amt = depositAmount();
+            if (amt > 0) {
+                document.getElementById('deposit-box').classList.remove('hidden');
+                document.getElementById('deposit-amount').innerText = euro(amt);
+            }
+        }
+
+        function btn(label, cls, handler, icon) {
+            const b = document.createElement('button');
+            b.className = (cls || 'bg-black text-white') + ' w-full h-12 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-2';
+            b.innerHTML = (icon ? `<i class="fas ${icon}"></i>` : '') + `<span>${label}</span>`;
+            b.onclick = handler;
+            return b;
+        }
+
+        function renderActions() {
+            const wrap = document.getElementById('footer-actions');
+            wrap.innerHTML = '';
+            const st = QUOTE.status;
+            const footer = document.getElementById('footer');
+
+            if (QUOTE.expired || st === 'EXPIRED') {
+                wrap.appendChild(btn('Richiedi un aggiornamento prezzi', 'bg-black text-white', () => askQuestion('Il preventivo è scaduto, potete aggiornarlo?'), 'fa-rotate'));
+                footer.classList.remove('hidden');
+                return;
+            }
+
+            if (st === 'CONVERTED' || st === 'DEPOSIT_PAID') {
+                document.getElementById('date-box').classList.add('hidden');
+                document.getElementById('done-box').classList.remove('hidden');
+                document.getElementById('done-msg').innerText = st === 'CONVERTED'
+                    ? 'Il tuo appuntamento è stato inserito in agenda. Ti aspettiamo!'
+                    : 'Caparra registrata. L\'attività confermerà a breve la data.';
+                wrap.appendChild(btn('Ho una domanda', 'bg-gray-50 text-black border border-gray-200', () => askQuestion(''), 'fa-comment'));
+                footer.classList.remove('hidden');
+                return;
+            }
+
+            const amt = depositAmount();
+            if (st === 'ACCEPTED_PENDING_DEPOSIT') {
+                if (amt > 0) {
+                    wrap.appendChild(btn('Paga la caparra ' + euro(amt) + ' online', 'bg-black text-white', payDeposit, 'fa-credit-card'));
+                    wrap.appendChild(btn('Verserò la caparra in sede', 'bg-gray-50 text-black border border-gray-200', confirmInPerson, 'fa-shop'));
+                } else {
+                    wrap.appendChild(btn('Conferma', 'bg-black text-white', () => accept(), 'fa-check'));
+                }
+                wrap.appendChild(btn('Ho una domanda', 'bg-white text-gray-500 border border-gray-100', () => askQuestion(''), 'fa-comment'));
+                footer.classList.remove('hidden');
+                return;
+            }
+
+            // APPROVED_AND_SENT / VIEWED
+            const acceptLabel = amt > 0 ? 'Accetta e procedi con la caparra' : 'Accetta e blocca il posto';
+            wrap.appendChild(btn(acceptLabel, 'bg-black text-white', () => accept(), 'fa-lock'));
+            wrap.appendChild(btn('Ho una domanda', 'bg-gray-50 text-black border border-gray-200', () => askQuestion(''), 'fa-comment'));
+            footer.classList.remove('hidden');
+        }
+
+        function renderAll() {
+            document.getElementById('biz-name').innerText = QUOTE.owner_business_name || 'La tua proposta';
+            if (QUOTE.expires_at && !QUOTE.expired) {
+                document.getElementById('banner-sub').innerText = 'È una stima dei costi, valida fino al ' + new Date(QUOTE.expires_at).toLocaleDateString('it-IT') + '. Il posto viene bloccato solo dopo la tua conferma.';
+            }
+            if (QUOTE.preferred_date) document.getElementById('preferred-date').value = String(QUOTE.preferred_date).slice(0, 10);
+            renderTimeline();
+            renderItems();
+            renderPrice();
+            renderDeposit();
+            renderActions();
+        }
+
+        async function accept() {
+            if (BUSY) return; BUSY = true; haptic('medium');
+            try {
+                const pd = document.getElementById('preferred-date').value || null;
+                const d = await api('quote_accept', { preferred_date: pd });
+                if (!d || d.success === false) { alert((d && d.error) || 'Operazione non riuscita.'); BUSY = false; return; }
+                notify('success');
+                QUOTE.status = d.status || QUOTE.status;
+                if (d.converted_job_id) QUOTE.converted_job_id = d.converted_job_id;
+                if (d.deposit_config) QUOTE.deposit_config = d.deposit_config;
+                BUSY = false;
+                renderAll();
+                if (QUOTE.status === 'ACCEPTED_PENDING_DEPOSIT' && depositAmount() > 0) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            } catch (e) { alert('Connessione non riuscita.'); BUSY = false; }
+        }
+
+        async function payDeposit() {
+            if (BUSY) return; BUSY = true; haptic('medium');
+            try {
+                const base = window.location.origin + window.location.pathname;
+                const ret = base + '?quote_id=' + encodeURIComponent(QUOTE_ID) + '&t=' + encodeURIComponent(TOKEN) + '&deposit_status=success';
+                const can = base + '?quote_id=' + encodeURIComponent(QUOTE_ID) + '&t=' + encodeURIComponent(TOKEN) + '&deposit_status=cancelled';
+                const d = await api('quote_deposit_init', { return_url: ret, cancel_url: can });
+                if (d && d.success && d.payment_url) {
+                    if (tg && tg.openLink) tg.openLink(d.payment_url); else window.location.href = d.payment_url;
+                    BUSY = false;
+                    return;
+                }
+                alert((d && d.error) || 'Pagamento online non disponibile. Puoi versare la caparra in sede.');
+                BUSY = false;
+            } catch (e) { alert('Connessione non riuscita.'); BUSY = false; }
+        }
+
+        function confirmInPerson() {
+            const doIt = () => askQuestion('Verserò la caparra di ' + euro(depositAmount()) + ' direttamente in sede. Confermo la mia intenzione di prenotare.');
+            if (tg && tg.showConfirm) tg.showConfirm('Confermi che verserai la caparra in sede?', ok => { if (ok) doIt(); });
+            else if (confirm('Confermi che verserai la caparra in sede?')) doIt();
+        }
+
+        function askQuestion(prefill) {
+            const text = prefill || '';
+            if (tg && tg.close) {
+                // apre la chat col bot; il messaggio lo scrive il cliente
+                try { if (text) tg.showAlert('Scrivi la tua domanda nella chat. ' + (text ? '\n\nSuggerimento: "' + text + '"' : '')); } catch (e) {}
+                tg.close();
+            } else {
+                alert('Contatta direttamente l\'attività per questa richiesta.');
+            }
+        }
+
+        async function init() {
+            if (!QUOTE_ID || !TOKEN) { showError('Link incompleto', 'Il link della proposta non è valido.'); return; }
+            try {
+                const d = await api('get_quote_for_client');
+                if (!d || d.success === false) { showError('Proposta non disponibile', (d && d.error) || 'Questo preventivo non è più accessibile.'); return; }
+                QUOTE = d;
+                // tracking "visto" (best-effort, non blocca)
+                api('quote_viewed').then(v => { if (v && v.view_count) { QUOTE.view_count = v.view_count; if (QUOTE.status === 'APPROVED_AND_SENT') QUOTE.status = 'VIEWED'; renderTimeline(); } }).catch(() => {});
+                hideLoader();
+                renderAll();
+                if (DEPOSIT_STATUS === 'success') {
+                    notify('success');
+                    setTimeout(() => { if (tg && tg.showAlert) tg.showAlert('Pagamento ricevuto! La conferma sarà visibile a breve.'); }, 400);
+                    setTimeout(refresh, 2500);
+                } else if (DEPOSIT_STATUS === 'cancelled') {
+                    setTimeout(() => { if (tg && tg.showAlert) tg.showAlert('Pagamento annullato. Puoi riprovare o versare la caparra in sede.'); }, 400);
+                }
+            } catch (e) { showError('Connessione non riuscita', 'Riprova tra qualche istante.'); }
+        }
+
+        async function refresh() {
+            try {
+                const d = await api('get_quote_for_client');
+                if (d && d.success !== false) { QUOTE = d; renderAll(); }
+            } catch (e) {}
+        }
+
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

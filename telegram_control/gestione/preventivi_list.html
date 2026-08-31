@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta name="color-scheme" content="light">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Preventivi | SiteBoS</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="../twa_global_launch.js"></script>
+    <script>
+    (function () {
+        const tempTg = window.Telegram && window.Telegram.WebApp;
+        const isTelegramSession = tempTg && tempTg.initData && tempTg.initData !== "" && tempTg.platform !== "unknown";
+        if (!isTelegramSession) {
+            const p = window.location.pathname;
+            let redirect = "index.html";
+            if (p.includes('/telegram_control/')) {
+                const sub = (p.split('/telegram_control/')[1] || '');
+                redirect = sub.includes('/') ? "../../index.html" : "../index.html";
+            }
+            window.location.replace(redirect);
+        }
+    })();
+    (function () {
+        if (!(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) {
+            document.documentElement.innerHTML = '<body style="background:#fafafa;color:#000" class="flex items-center justify-center h-screen text-center p-10 font-sans"><div><h1 style="font-size:3.75rem">🚫</h1><h2 style="font-weight:900;text-transform:uppercase">Accesso Proibito</h2></div></body>';
+            window.stop();
+        }
+    })();
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = { theme: { extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+            colors: { primary: '#000000', bg: '#fafafa', surface: '#ffffff', border: '#eeeeee' },
+            borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+        } } }
+    </script>
+    <style>
+        body { background:#fafafa; color:#000; font-family:'Plus Jakarta Sans',sans-serif; -webkit-tap-highlight-color:transparent; }
+        .section-card { background:#fff; border:1px solid #eee; border-radius:1.5rem; padding:1rem; }
+        .no-scrollbar::-webkit-scrollbar { display:none; }
+        .fas,.far,.fal { font-weight:900 !important; font-family:"Font Awesome 6 Free" !important; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        .loader-spin { border:3px solid #f3f3f3; border-top:3px solid #000; border-radius:50%; width:26px; height:26px; animation:spin 1s linear infinite; }
+        .tab-active { background:#000; color:#fff; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-sm pb-10">
+
+    <header class="p-5 bg-white border-b border-gray-100 sticky top-0 z-50 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white"><i class="fas fa-file-invoice-dollar text-sm"></i></div>
+            <div>
+                <h1 class="text-[9px] font-black uppercase tracking-widest text-gray-400 leading-none mb-1">Architect Desk</h1>
+                <p class="text-sm font-black tracking-tight">Preventivi</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="loadList()" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition" title="Aggiorna"><i class="fas fa-rotate text-xs"></i></button>
+            <button onclick="goBack()" class="w-8 h-8 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-500 active:scale-90 transition" title="Indietro"><i class="fas fa-arrow-left text-xs"></i></button>
+        </div>
+    </header>
+
+    <div class="px-4 pt-4">
+        <div id="tabs" class="flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+    </div>
+
+    <main id="list" class="flex-1 p-4 space-y-3"></main>
+
+    <div id="loader" class="fixed inset-0 bg-white/95 z-[500] flex flex-col items-center justify-center gap-3">
+        <div class="loader-spin"></div>
+        <p class="text-[9px] font-black uppercase tracking-[0.3em] text-gray-300">Carico i preventivi...</p>
+    </div>
+
+    <!-- MODALE SOLLECITO -->
+    <div id="fu-modal" class="hidden fixed inset-0 bg-black/40 z-[600] flex items-end justify-center p-3" onclick="if(event.target===this)closeFu()">
+        <div class="bg-white rounded-3xl w-full max-w-md p-5 space-y-3">
+            <div class="flex items-center justify-between">
+                <h3 class="font-black uppercase tracking-tight text-sm">Invia sollecito</h3>
+                <button onclick="closeFu()" class="w-7 h-7 rounded-lg bg-gray-50 flex items-center justify-center text-gray-400"><i class="fas fa-times text-xs"></i></button>
+            </div>
+            <p id="fu-quote-id" class="text-[10px] font-mono text-gray-400"></p>
+            <textarea id="fu-text" rows="7" class="w-full bg-gray-50 border border-gray-100 rounded-2xl p-3 text-xs leading-relaxed outline-none focus:border-black transition" placeholder="Testo del sollecito..."></textarea>
+            <p class="text-[9px] text-gray-400">Il messaggio viene inviato al cliente su Telegram con il link alla proposta.</p>
+            <button onclick="sendFu()" class="w-full h-12 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition flex items-center justify-center gap-2">
+                <i class="fas fa-paper-plane"></i><span>Invia al cliente</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa');
+        tg.expand(); tg.ready();
+
+        const CONSOLE_URL = "https://prod.workflow.trinai.it/webhook/sitebos-quote-console";
+        const params = new URLSearchParams(window.location.search);
+        let ashToken = params.get('ash') || '';
+        if (ashToken.includes('?')) ashToken = ashToken.split('?')[0];
+        const focusQuoteId = params.get('quote_id') || '';
+
+        function goBack() {
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+            location.href = '../dashboard/dashboard.html?ash=' + encodeURIComponent(ashToken) + '&menu=identity_hub';
+        }
+        if (tg.BackButton) { tg.BackButton.show(); tg.BackButton.onClick(goBack); }
+
+        const TABS = [
+            { key: 'sent', label: 'Inviati' },
+            { key: 'deposit', label: 'Caparra / Accettati' },
+            { key: 'converted', label: 'Convertiti' },
+            { key: 'pending', label: 'Da approvare' },
+            { key: 'expired', label: 'Scaduti / Rifiutati' }
+        ];
+        let DATA = null;
+        let activeTab = 'sent';
+
+        const STATUS_LABEL = {
+            PENDING_OWNER_APPROVAL: 'Da approvare', APPROVED_AND_SENT: 'Inviato', VIEWED: 'Visualizzato',
+            ACCEPTED_PENDING_DEPOSIT: 'Attesa caparra', DEPOSIT_PAID: 'Caparra pagata', CONVERTING: 'In conversione',
+            CONVERTED: 'Convertito in lavoro', DECLINED: 'Rifiutato dal cliente', EXPIRED: 'Scaduto', REJECTED_BY_OWNER: 'Rifiutato'
+        };
+
+        function euro(n) { const v = Number(n) || 0; return '€' + v.toLocaleString('it-IT', { maximumFractionDigits: 2 }); }
+        function dstr(s) { return s ? new Date(s).toLocaleDateString('it-IT') : '—'; }
+
+        async function api(payload) {
+            const r = await fetch(CONSOLE_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.assign({ _auth: tg.initData, ash: ashToken }, payload))
+            });
+            return r.json();
+        }
+
+        function renderTabs() {
+            document.getElementById('tabs').innerHTML = TABS.map(function (t) {
+                const n = (DATA && DATA.buckets && DATA.buckets[t.key]) ? DATA.buckets[t.key].length : 0;
+                return '<button onclick="setTab(\'' + t.key + '\')" class="flex-shrink-0 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-100 transition ' +
+                    (activeTab === t.key ? 'tab-active' : 'bg-white text-gray-500') + '">' + t.label + (n ? ' · ' + n : '') + '</button>';
+            }).join('');
+        }
+
+        window.setTab = function (k) { activeTab = k; if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); renderTabs(); renderList(); };
+
+        function card(q) {
+            const badge = STATUS_LABEL[q.status] || q.status;
+            const priceTxt = (q.price_min && q.price_max && q.price_min !== q.price_max) ? (euro(q.price_min) + ' – ' + euro(q.price_max)) : euro(q.price_max || q.price_min);
+            let lines = [];
+            lines.push('<div class="flex items-center justify-between"><span class="text-[9px] font-mono text-gray-400">' + q.quote_id + '</span><span class="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-gray-900 text-white">' + badge + '</span></div>');
+            lines.push('<p class="font-bold text-xs mt-1">' + (q.client_name || 'Cliente') + ' · <span class="text-gray-500 font-medium">' + priceTxt + '</span></p>');
+            const meta = [];
+            if (q.sent_at) meta.push('Inviato ' + dstr(q.sent_at));
+            if (q.view_count) meta.push('Visto ×' + q.view_count);
+            if (q.expires_at) meta.push('Scade ' + dstr(q.expires_at));
+            if (q.deposit_type && q.deposit_type !== 'none') meta.push('Caparra ' + euro(q.deposit_due));
+            if (q.deposit_paid) meta.push('Caparra incassata ' + euro(q.deposit_paid_amount) + (q.deposit_method ? ' (' + q.deposit_method + ')' : ''));
+            if (q.converted_job_id) meta.push('Lavoro ' + q.converted_job_id);
+            if (q.followup_count) meta.push('Solleciti ×' + q.followup_count);
+            lines.push('<p class="text-[10px] text-gray-400 mt-1 leading-snug">' + meta.join(' · ') + '</p>');
+
+            const actions = [];
+            actions.push('<button onclick="openReview(\'' + q.quote_id + '\')" class="flex-1 h-9 bg-gray-50 border border-gray-200 rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition">Apri</button>');
+            if (['APPROVED_AND_SENT', 'VIEWED'].includes(q.status)) {
+                const dr = q.pending_draft ? encodeURIComponent(q.pending_draft) : '';
+                actions.push('<button onclick="openFu(\'' + q.quote_id + '\',\'' + dr + '\')" class="flex-1 h-9 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition' + (q.followup_state === 'DRAFT_READY' ? ' ring-2 ring-black ring-offset-1' : '') + '">' + (q.followup_state === 'DRAFT_READY' ? 'Bozza pronta' : 'Sollecita') + '</button>');
+            }
+            if (q.status === 'ACCEPTED_PENDING_DEPOSIT') {
+                actions.push('<button onclick="confirmDeposit(\'' + q.quote_id + '\',' + (q.deposit_due || 0) + ')" class="flex-1 h-9 bg-black text-white rounded-xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition">Incassa caparra</button>');
+            }
+            lines.push('<div class="flex gap-2 mt-2">' + actions.join('') + '</div>');
+            return '<div class="section-card space-y-0">' + lines.join('') + '</div>';
+        }
+
+        function renderList() {
+            const el = document.getElementById('list');
+            const rows = (DATA && DATA.buckets && DATA.buckets[activeTab]) ? DATA.buckets[activeTab] : [];
+            if (!rows.length) { el.innerHTML = '<p class="text-center text-[11px] text-gray-400 py-10">Nessun preventivo in questa categoria.</p>'; return; }
+            el.innerHTML = rows.map(card).join('');
+        }
+
+        window.openReview = function (qid) {
+            location.href = 'quote_review.html?ash=' + encodeURIComponent(ashToken) + '&quote_id=' + encodeURIComponent(qid);
+        };
+
+        window.confirmDeposit = function (qid, due) {
+            const ask = 'Confermi di aver incassato la caparra' + (due ? ' di €' + due : '') + ' per ' + qid + '? Il preventivo diventa un lavoro in agenda.';
+            const run = async function (method) {
+                if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+                try {
+                    const d = await api({ op: 'deposit_confirm_desk', quote_id: qid, method: method, amount: due });
+                    if (d && (d.success || d.status === 'CONVERTED' || d.converted_job_id)) {
+                        if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                        tg.showAlert('Caparra registrata. Lavoro creato' + (d.turn_code ? ' (' + d.turn_code + ')' : '') + '.');
+                        loadList();
+                    } else {
+                        tg.showAlert((d && d.error) || 'Operazione non riuscita.');
+                    }
+                } catch (e) { tg.showAlert('Connessione non riuscita.'); }
+            };
+            const pickMethod = function () {
+                if (tg.showPopup) {
+                    tg.showPopup({ title: 'Metodo', message: 'Come è stata versata?', buttons: [
+                        { id: 'CASH', type: 'default', text: 'Contanti' },
+                        { id: 'POS', type: 'default', text: 'POS / Carta' },
+                        { id: 'cancel', type: 'cancel' }
+                    ] }, function (id) { if (id && id !== 'cancel') run(id); });
+                } else { run('CASH'); }
+            };
+            if (tg.showConfirm) tg.showConfirm(ask, function (ok) { if (ok) pickMethod(); });
+            else if (confirm(ask)) pickMethod();
+        };
+
+        let fuQuote = '';
+        window.openFu = function (qid, draftEnc) {
+            fuQuote = qid;
+            document.getElementById('fu-quote-id').innerText = qid;
+            document.getElementById('fu-text').value = draftEnc ? decodeURIComponent(draftEnc) : '';
+            document.getElementById('fu-modal').classList.remove('hidden');
+        };
+        window.closeFu = function () { document.getElementById('fu-modal').classList.add('hidden'); };
+
+        window.sendFu = async function () {
+            const text = document.getElementById('fu-text').value.trim();
+            if (!text) { tg.showAlert('Scrivi il testo del sollecito.'); return; }
+            if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+            try {
+                const d = await api({ op: 'send_followup', quote_id: fuQuote, text: text });
+                if (d && d.success) {
+                    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                    closeFu();
+                    tg.showAlert('Sollecito inviato al cliente.');
+                    loadList();
+                } else {
+                    tg.showAlert((d && d.error) || 'Invio non riuscito.');
+                }
+            } catch (e) { tg.showAlert('Connessione non riuscita.'); }
+        };
+
+        async function loadList() {
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const d = await api({ op: 'list' });
+                if (d && d.success) {
+                    DATA = d;
+                    if (focusQuoteId && DATA.quotes) {
+                        const fq = DATA.quotes.find(function (x) { return x.quote_id === focusQuoteId; });
+                        if (fq) { for (const k in DATA.buckets) { if (DATA.buckets[k].some(function (x) { return x.quote_id === focusQuoteId; })) { activeTab = k; break; } } }
+                    }
+                    renderTabs(); renderList();
+                } else {
+                    document.getElementById('list').innerHTML = '<p class="text-center text-[11px] text-red-500 py-10">' + ((d && d.error) || 'Errore di caricamento.') + '</p>';
+                }
+            } catch (e) {
+                document.getElementById('list').innerHTML = '<p class="text-center text-[11px] text-red-500 py-10">Connessione non riuscita.</p>';
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        window.addEventListener('load', function () {
+            if (!ashToken) { document.getElementById('loader').style.display = 'none'; document.getElementById('list').innerHTML = '<p class="text-center text-[11px] text-red-500 py-10">Token di accesso mancante.</p>'; return; }
+            loadList();
+        });
+    </script>
+</body>
+</html>

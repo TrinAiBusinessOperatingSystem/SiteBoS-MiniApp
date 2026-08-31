@@ -257,6 +257,61 @@
                 </div>
             </section>
 
+            <!-- SEZIONE 4: FOLLOW-UP E CAPARRA (EDITABILE, PRE-APPROVAZIONE) -->
+            <section id="followup-section" class="section-card space-y-4 border-l-4 border-l-black">
+                <div class="flex items-center gap-2 border-b border-gray-100 pb-3">
+                    <i class="fas fa-hand-holding-dollar text-xs text-black"></i>
+                    <h2 class="font-black uppercase tracking-widest text-[10px]">Validità e Caparra</h2>
+                </div>
+
+                <p class="text-[10px] text-gray-500 font-medium leading-relaxed">
+                    Impostazioni applicate al momento dell'invio. Il cliente vedrà una pagina dedicata con l'indicazione chiara che la proposta non è una prenotazione confermata.
+                </p>
+
+                <div class="space-y-1">
+                    <label class="label-micro" for="input-valid-days">Validità della proposta</label>
+                    <div class="relative">
+                        <select id="input-valid-days" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold text-black focus:border-black outline-none transition appearance-none">
+                            <option value="7">7 giorni</option>
+                            <option value="15" selected>15 giorni</option>
+                            <option value="30">30 giorni</option>
+                            <option value="60">60 giorni</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none text-[10px]"></i>
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="label-micro" for="input-deposit-type">Caparra richiesta per bloccare il posto</label>
+                    <div class="relative">
+                        <select id="input-deposit-type" onchange="onDepositTypeChange()" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold text-black focus:border-black outline-none transition appearance-none">
+                            <option value="none" selected>Nessuna caparra (conferma a fiducia)</option>
+                            <option value="percent">Percentuale della stima</option>
+                            <option value="fixed">Importo fisso in euro</option>
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none text-[10px]"></i>
+                    </div>
+                </div>
+
+                <div id="deposit-config-row" class="hidden grid grid-cols-2 gap-3">
+                    <div class="space-y-1">
+                        <label class="label-micro" for="input-deposit-value"><span id="deposit-value-label">Valore</span></label>
+                        <input type="number" id="input-deposit-value" step="any" min="0" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-black text-black focus:border-black outline-none transition" placeholder="0">
+                    </div>
+                    <div id="deposit-base-wrap" class="space-y-1">
+                        <label class="label-micro" for="input-deposit-base">Calcolata su</label>
+                        <div class="relative">
+                            <select id="input-deposit-base" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-bold text-black focus:border-black outline-none transition appearance-none">
+                                <option value="min" selected>Stima minima</option>
+                                <option value="max">Stima massima</option>
+                            </select>
+                            <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none text-[10px]"></i>
+                        </div>
+                    </div>
+                    <p id="deposit-preview" class="col-span-2 text-[10px] font-bold text-gray-600 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2"></p>
+                </div>
+            </section>
+
             <!-- AZIONI DI APPROVAZIONE / RIFIUTO -->
             <div id="action-buttons-container" class="space-y-3 pt-2">
                 <button type="button" onclick="submitApproval()" class="w-full h-14 bg-black text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md active:scale-98 transition flex items-center justify-center gap-2 hover:bg-neutral-800">
@@ -450,6 +505,8 @@
                 document.getElementById('input-plan-summary').disabled = true;
                 document.getElementById('input-next-step').disabled = true;
                 actionButtons.classList.add('hidden');
+                const fs = document.getElementById('followup-section');
+                if (fs) fs.classList.add('hidden');
             }
 
             // Render Items List
@@ -513,6 +570,39 @@
             document.getElementById('input-next-step').value = aiGenerated.next_step_suggestion || '';
         }
 
+        window.onDepositTypeChange = function () {
+            const type = document.getElementById('input-deposit-type').value;
+            const row = document.getElementById('deposit-config-row');
+            const baseWrap = document.getElementById('deposit-base-wrap');
+            const label = document.getElementById('deposit-value-label');
+            if (type === 'none') { row.classList.add('hidden'); return; }
+            row.classList.remove('hidden');
+            if (type === 'percent') { label.innerText = 'Percentuale (%)'; baseWrap.classList.remove('hidden'); }
+            else { label.innerText = 'Importo fisso (EUR)'; baseWrap.classList.add('hidden'); }
+            updateDepositPreview();
+        };
+
+        function updateDepositPreview() {
+            const type = document.getElementById('input-deposit-type').value;
+            const val = parseFloat(document.getElementById('input-deposit-value').value) || 0;
+            const base = document.getElementById('input-deposit-base').value;
+            const prev = document.getElementById('deposit-preview');
+            if (type === 'none' || val <= 0) { prev.innerText = ''; return; }
+            let due = 0;
+            if (type === 'fixed') due = val;
+            else {
+                const b = base === 'max'
+                    ? parseFloat(document.getElementById('input-price-max').value) || 0
+                    : parseFloat(document.getElementById('input-price-min').value) || 0;
+                due = Math.round(b * val) / 100;
+            }
+            prev.innerText = due > 0 ? ('Caparra stimata: EUR ' + due.toLocaleString('it-IT')) : '';
+        }
+
+        ['input-deposit-value', 'input-deposit-base', 'input-price-min', 'input-price-max'].forEach(function (id) {
+            document.addEventListener('input', function (e) { if (e.target && e.target.id === id) updateDepositPreview(); });
+        });
+
         async function submitApproval() {
             const minVal = document.getElementById('input-price-min').value;
             const maxVal = document.getElementById('input-price-max').value;
@@ -543,6 +633,13 @@
             showLoader("Salvataggio", "Approvazione e invio al cliente in corso...");
 
             try {
+                const depType = document.getElementById('input-deposit-type').value;
+                const depValue = parseFloat(document.getElementById('input-deposit-value').value) || 0;
+                const depBase = document.getElementById('input-deposit-base').value || 'min';
+                const depositConfig = depType === 'none'
+                    ? { type: 'none', value: 0, base: 'min' }
+                    : { type: depType, value: depValue, base: depBase };
+
                 const payload = {
                     _auth: tg?.initData || '',
                     ash: ashToken,
@@ -551,7 +648,9 @@
                     price_estimate_min: parsedMin,
                     price_estimate_max: parsedMax,
                     recommended_plan_summary: planSummary,
-                    next_step_suggestion: nextStep
+                    next_step_suggestion: nextStep,
+                    valid_days: parseInt(document.getElementById('input-valid-days').value, 10) || 15,
+                    deposit_config: depositConfig
                 };
 
                 const response = await fetch(WH_URL, {
