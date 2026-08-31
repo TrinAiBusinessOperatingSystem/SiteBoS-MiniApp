@@ -740,20 +740,10 @@
                     grid.appendChild(card);
                 });
 
-                // Se c'è una board in preparazione, avanza la generazione lato server e ricarica.
-                if (anyGenerating && !RuntimeState._dashboar_check_scheduled) {
-                    RuntimeState._dashboar_check_scheduled = true;
-                    (async function advanceGeneration() {
-                        try {
-                            await fetch(DASHBOAR_AGENT_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ action: 'dashboar_check', ash, _auth: authData })
-                            });
-                        } catch (e) { /* il backend prosegue comunque */ }
-                        RuntimeState._dashboar_check_scheduled = false;
-                        setTimeout(loadBoards, 3000);
-                    })();
+                // Engine B sincrono: nessuna board resta "generating" a lungo. Se una compare
+                // (race con una generate in corso in un'altra scheda), si ricarica tra poco.
+                if (anyGenerating) {
+                    setTimeout(loadBoards, 8000);
                 }
 
             } catch (err) {
@@ -869,13 +859,12 @@
 
                 submitGenBtn.disabled = true;
                 const originalText = submitGenBtn.textContent;
-                submitGenBtn.textContent = 'Avvio Swarm...';
+                submitGenBtn.textContent = 'Progettazione in corso…';
 
-                // La generazione dura minuti (Scout -> Interpreter -> Resolver -> Designer -> Critic).
-                // Si avvia la richiesta e NON si attende la risposta completa: il backend prosegue lato server,
-                // salva la board e avvisa su Telegram a fine lavoro. Un abort a 8s libera solo la UI.
+                // Engine B: generazione SINCRONA (~30-40s). L'Analista legge l'azienda, verifica
+                // ogni indicatore sui dati veri, il Compositore monta la board. Si attende la risposta.
                 const controller = new AbortController();
-                const releaseUi = setTimeout(() => controller.abort(), 8000);
+                const releaseUi = setTimeout(() => controller.abort(), 55000);
 
                 const closeModal = () => {
                     const modal = document.getElementById('modal-create-board');
@@ -884,7 +873,7 @@
                 };
 
                 try {
-                    await fetch(DASHBOAR_AGENT_URL, {
+                    const res = await fetch(DASHBOAR_AGENT_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         signal: controller.signal,
@@ -896,14 +885,24 @@
                         })
                     });
                     clearTimeout(releaseUi);
+                    let out = {};
+                    try { out = await res.json(); } catch (e) {}
                     closeModal();
-                    showToast('Board completata. Aggiorno l’elenco...', 'success');
+                    if (res.ok && out && out.success) {
+                        const withReserves = Array.isArray(out.reserves) && out.reserves.length > 0;
+                        showToast(withReserves
+                            ? 'Board creata come bozza da rivedere. Aggiorno l’elenco…'
+                            : 'Board «' + (out.name || 'Cruscotto') + '» creata. Aggiorno l’elenco…', 'success');
+                    } else {
+                        showToast((out && out.error) || 'Non è stato possibile generare la board. Riprova tra poco.', 'error');
+                    }
                     if (typeof window.__dashboarReloadHub === 'function') { try { await window.__dashboarReloadHub(); } catch (e) {} }
                 } catch (err) {
                     clearTimeout(releaseUi);
                     closeModal();
                     if (err && err.name === 'AbortError') {
-                        showToast('Lo Swarm sta progettando la tua board. Ti avviso su Telegram quando è pronta, poi comparirà qui.', 'info');
+                        showToast('La progettazione sta richiedendo più del previsto. Ricontrolla l’elenco tra un minuto.', 'info');
+                        if (typeof window.__dashboarReloadHub === 'function') { setTimeout(() => { try { window.__dashboarReloadHub(); } catch (e) {} }, 30000); }
                     } else {
                         showToast('Non è stato possibile avviare la generazione. Riprova tra poco.', 'error');
                     }
