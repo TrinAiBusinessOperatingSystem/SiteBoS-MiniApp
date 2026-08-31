@@ -952,6 +952,30 @@
     /**
      * Initialization Entry Point
      */
+    // Navigazione indietro: risolve l'href del link .btn-back e collega il BackButton nativo di Telegram.
+    function setupBackNavigation() {
+        const sp = new URLSearchParams(location.search);
+        const ash = sp.get('ash') || '';
+        const msg = sp.get('msg') || '';
+        const q = ash ? ('?ash=' + encodeURIComponent(ash) + (msg ? '&msg=' + encodeURIComponent(msg) : '')) : '';
+
+        const isView = !!document.getElementById('dashboar-mount');
+        const backUrl = isView ? ('dashboar_hub.html' + q) : ('../dashboard/dashboard.html' + q);
+
+        document.querySelectorAll('[data-dashboar-back], #dashboar-back').forEach(el => el.setAttribute('href', backUrl));
+
+        try {
+            const tg = window.Telegram && window.Telegram.WebApp;
+            if (tg && tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(() => {
+                    try { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light'); } catch (e) {}
+                    window.location.href = backUrl;
+                });
+            }
+        } catch (e) {}
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         // Expand Telegram WebApp if present
         if (window.Telegram?.WebApp) {
@@ -963,6 +987,7 @@
             }
         }
 
+        setupBackNavigation();
         setupDelegatedListeners();
 
         if (document.getElementById('dashboar-mount')) {

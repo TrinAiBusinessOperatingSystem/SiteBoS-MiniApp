@@ -25,7 +25,7 @@
 
     <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-3">
-            <a href="../dashboard/dashboard.html" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
+            <a id="btn-back" href="../dashboard/dashboard.html" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
                 <i class="fa-solid fa-arrow-left text-sm"></i>
             </a>
             <div>
@@ -69,8 +69,26 @@
     var CDA_URL = 'https://prod.workflow.trinai.it/webhook/sitebos-cda-chat';
     var params = new URLSearchParams(location.search);
     var ash = params.get('ash') || '';
+    var msg = params.get('msg') || '';
     var authData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || '';
-    try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.ready(); } catch (e) {}
+
+    // Navigazione indietro: link visivo + BackButton nativo di Telegram
+    var backUrl = '../dashboard/dashboard.html' + (ash ? ('?ash=' + encodeURIComponent(ash) + (msg ? '&msg=' + encodeURIComponent(msg) : '')) : '');
+    var backEl = document.getElementById('btn-back');
+    if (backEl) backEl.setAttribute('href', backUrl);
+    try {
+        var tg = window.Telegram && window.Telegram.WebApp;
+        if (tg) {
+            tg.ready();
+            if (tg.BackButton) {
+                tg.BackButton.show();
+                tg.BackButton.onClick(function () {
+                    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                    window.location.href = backUrl;
+                });
+            }
+        }
+    } catch (e) {}
 
     var log = document.getElementById('cda-log');
     var input = document.getElementById('cda-input');
