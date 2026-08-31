@@ -181,7 +181,9 @@
       { name: "Sicurezza HSE & Conformità Normativa", desc: "Verifica DVR, sicurezza sul lavoro e adempimenti antinfortunistici.", url: "../agents/assistente-sicurezza.html", icon: "fa-shield-halved", category: "intelligence" },
       { name: "Controllo Gestione CFO & Marginalità", desc: "Monitoraggio flussi di cassa, bilancio e marginalità.", url: "../agents/controllo_gestione.html", icon: "fa-coins", category: "intelligence" },
       { name: "Magazzino AI & Ottimizzazione Scorte", desc: "Gestione ed ottimizzazione automatizzata delle scorte.", url: "../agents/intelligent-warehouse.html", icon: "fa-warehouse", category: "intelligence" },
-      { name: "Analisi Agenda & Tempi Staff", desc: "Pianificazione agenda ed ottimizzazione tempi del personale.", url: "../agents/agenda.html", icon: "fa-calendar-days", category: "intelligence" }
+      { name: "Analisi Agenda & Tempi Staff", desc: "Pianificazione agenda ed ottimizzazione tempi del personale.", url: "../agents/agenda.html", icon: "fa-calendar-days", category: "intelligence" },
+      { name: "DashBoar Studio Cruscotti Operativi", desc: "Lo Swarm Agente 8 progetta cruscotti operativi su misura dai dati reali dell'azienda.", url: "../agents/dashboar_hub.html", icon: "fa-gauge-high", category: "intelligence" },
+      { name: "Consiglio di Amministrazione", desc: "Un tavolo di consiglieri virtuali con il bastian contrario sempre presente: ci parli e analizzano l'attività dai dati veri.", url: "../agents/cda_board.html", icon: "fa-users-gear", category: "intelligence" }
     ],
     supporto: [
       { name: "Support Hub & Ticket", desc: "Centro di assistenza tecnica e gestione ticket.", url: "../supporto/support_hub.html", icon: "fa-headset", category: "supporto" }
