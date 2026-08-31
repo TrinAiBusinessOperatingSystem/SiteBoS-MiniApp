@@ -427,6 +427,15 @@
                     "dashboar", "crea un cruscotto", "cruscotto operativo su misura", "dashboard personalizzata", "voglio tenere d'occhio", "board operativa", "agente 8", "cruscotti intelligenti", "genera una board", "monitorare le commesse"
                 ]
             },
+            {
+                category: "agents",
+                name: "Consiglio di Amministrazione",
+                url: "agents/cda_board.html",
+                mod_id: "cda_board",
+                user_utterances: [
+                    "consiglio di amministrazione", "parla col consiglio", "cda", "board consultivo", "chiedi ai consiglieri", "bastian contrario", "indagine sull'attivita", "consiglieri virtuali", "riunione del consiglio", "cosa ne pensa il consiglio"
+                ]
+            },
 
             // =========================================================================
             // 5. BILLING CREDITI

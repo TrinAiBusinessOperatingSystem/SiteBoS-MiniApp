@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="it" class="bg-slate-50 text-slate-900 antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light">
+    <title>Consiglio di Amministrazione | SiteBoS</title>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Plus Jakarta Sans', 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .msg-in { animation: fadeIn 0.3s ease-out forwards; }
+        .typing span { animation: blink 1.4s infinite both; }
+        .typing span:nth-child(2) { animation-delay: 0.2s; }
+        .typing span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 flex flex-col">
+
+    <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="../dashboard/dashboard.html" class="w-9 h-9 flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors">
+                <i class="fa-solid fa-arrow-left text-sm"></i>
+            </a>
+            <div>
+                <h1 class="text-sm font-black text-slate-900 tracking-tight flex items-center gap-1.5">
+                    Consiglio di Amministrazione
+                    <span class="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200">Anteprima</span>
+                </h1>
+                <p class="text-[11px] font-medium text-slate-400" id="cda-credits">CFO · COO · Bastian Contrario · Presidente</p>
+            </div>
+        </div>
+        <button id="btn-verbalize" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors">
+            <i class="fa-solid fa-file-lines text-xs"></i> Verbalizza
+        </button>
+    </header>
+
+    <main id="cda-log" class="flex-1 max-w-2xl w-full mx-auto p-4 space-y-5 overflow-y-auto">
+        <div class="text-center py-8 px-4 space-y-2">
+            <div class="text-4xl">🏛️</div>
+            <p class="text-sm font-bold text-slate-700">Apri la seduta con una domanda</p>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">
+                I consiglieri guardano i dati veri della tua azienda e rispondono nel merito. Il bastian contrario è sempre presente per contestare.
+            </p>
+        </div>
+    </main>
+
+    <footer class="sticky bottom-0 bg-white border-t border-slate-200 px-4 py-3 max-w-2xl w-full mx-auto">
+        <div class="flex items-end gap-2">
+            <textarea id="cda-input" rows="1" placeholder="Fai una domanda al Consiglio…" class="flex-1 resize-none max-h-28 p-3 text-sm bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:border-slate-900 focus:outline-none transition-all"></textarea>
+            <button id="btn-send" class="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-2xl bg-slate-900 hover:bg-black text-white transition-colors disabled:opacity-40">
+                <i class="fa-solid fa-arrow-up text-sm"></i>
+            </button>
+        </div>
+        <button id="btn-verbalize-mobile" class="sm:hidden w-full mt-2 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold">
+            <i class="fa-solid fa-file-lines text-xs"></i> Verbalizza seduta
+        </button>
+    </footer>
+
+<script>
+(function () {
+    'use strict';
+    var CDA_URL = 'https://prod.workflow.trinai.it/webhook/sitebos-cda-chat';
+    var params = new URLSearchParams(location.search);
+    var ash = params.get('ash') || '';
+    var authData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || '';
+    try { if (window.Telegram && window.Telegram.WebApp) window.Telegram.WebApp.ready(); } catch (e) {}
+
+    var log = document.getElementById('cda-log');
+    var input = document.getElementById('cda-input');
+    var btnSend = document.getElementById('btn-send');
+    var busy = false;
+
+    function sessionId() {
+        var s = null;
+        try { s = sessionStorage.getItem('cda_session_id'); } catch (e) {}
+        return s || '';
+    }
+    function setSession(s) { try { s ? sessionStorage.setItem('cda_session_id', s) : sessionStorage.removeItem('cda_session_id'); } catch (e) {} }
+
+    function esc(t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+    function scroll() { log.scrollTop = log.scrollHeight; }
+
+    function clearIntro() { var intro = log.querySelector('.text-center.py-8'); if (intro) intro.remove(); }
+
+    function addUser(text) {
+        clearIntro();
+        var el = document.createElement('div');
+        el.className = 'msg-in flex justify-end';
+        el.innerHTML = '<div class="max-w-[85%] bg-slate-900 text-white text-sm rounded-2xl rounded-br-md px-4 py-2.5 leading-relaxed">' + esc(text) + '</div>';
+        log.appendChild(el); scroll();
+    }
+
+    function addTyping() {
+        var el = document.createElement('div');
+        el.id = 'cda-typing';
+        el.className = 'flex items-center gap-2 text-slate-400 text-xs px-1';
+        el.innerHTML = '<span class="typing"><span>●</span><span>●</span><span>●</span></span> Il Consiglio si sta consultando…';
+        log.appendChild(el); scroll();
+    }
+    function removeTyping() { var t = document.getElementById('cda-typing'); if (t) t.remove(); }
+
+    var MEMBER_STYLE = {
+        cfo: { icon: 'fa-coins', color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+        coo: { icon: 'fa-gears', color: 'text-sky-700', bg: 'bg-sky-50 border-sky-200' },
+        bastian_contrario: { icon: 'fa-triangle-exclamation', color: 'text-rose-700', bg: 'bg-rose-50 border-rose-200' }
+    };
+
+    function addTurn(data) {
+        clearIntro();
+        var wrap = document.createElement('div');
+        wrap.className = 'msg-in space-y-2.5';
+
+        (data.members || []).forEach(function (m) {
+            var st = MEMBER_STYLE[m.member_id] || { icon: 'fa-user', color: 'text-slate-700', bg: 'bg-slate-50 border-slate-200' };
+            var c = document.createElement('div');
+            c.className = 'border ' + st.bg + ' rounded-2xl px-4 py-3';
+            c.innerHTML =
+                '<div class="flex items-center gap-2 mb-1.5"><i class="fa-solid ' + st.icon + ' ' + st.color + ' text-xs"></i>' +
+                '<span class="text-xs font-black uppercase tracking-wider ' + st.color + '">' + esc(m.role_name) + '</span></div>' +
+                '<p class="text-sm text-slate-700 leading-relaxed">' + esc(m.text) + '</p>';
+            wrap.appendChild(c);
+        });
+
+        var pres = document.createElement('div');
+        pres.className = 'border-2 border-slate-900 rounded-2xl px-4 py-3.5 bg-white';
+        var delib = (data.deliberations || []).map(function (d) { return '<li class="flex gap-2"><i class="fa-solid fa-angle-right text-slate-400 mt-1 text-[10px]"></i><span>' + esc(d) + '</span></li>'; }).join('');
+        pres.innerHTML =
+            '<div class="flex items-center gap-2 mb-1.5"><i class="fa-solid fa-gavel text-slate-900 text-xs"></i>' +
+            '<span class="text-xs font-black uppercase tracking-wider text-slate-900">Presidente</span></div>' +
+            '<p class="text-sm text-slate-800 leading-relaxed">' + esc(data.reply) + '</p>' +
+            (delib ? '<div class="mt-3 pt-3 border-t border-slate-100"><p class="text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1.5">Proposta di delibera</p><ul class="text-xs text-slate-600 space-y-1">' + delib + '</ul></div>' : '');
+        wrap.appendChild(pres);
+
+        if (data.credits_note) {
+            var tag = document.createElement('p');
+            tag.className = 'text-[10px] text-slate-300 text-center';
+            tag.textContent = data.credits_note;
+            wrap.appendChild(tag);
+        }
+        log.appendChild(wrap); scroll();
+    }
+
+    function addNote(text, kind) {
+        clearIntro();
+        var el = document.createElement('div');
+        el.className = 'msg-in text-center';
+        var cls = kind === 'error' ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-100 text-slate-600 border-slate-200';
+        el.innerHTML = '<span class="inline-block text-xs border ' + cls + ' rounded-xl px-3 py-2 leading-relaxed max-w-md">' + esc(text) + '</span>';
+        log.appendChild(el); scroll();
+    }
+
+    async function send(payload, typingLabel) {
+        if (busy) return;
+        busy = true; btnSend.disabled = true;
+        addTyping();
+        var ctrl = new AbortController();
+        var to = setTimeout(function () { ctrl.abort(); }, 90000);
+        try {
+            var res = await fetch(CDA_URL, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctrl.signal,
+                body: JSON.stringify(Object.assign({ vat_number: '', ash: ash, token: ash, _auth: authData, session_id: sessionId() }, payload))
+            });
+            clearTimeout(to);
+            var d = {};
+            try { d = await res.json(); } catch (e) {}
+            removeTyping();
+            if (!res.ok || !d.success) { addNote((d && d.error) || 'Il Consiglio non è raggiungibile in questo momento.', 'error'); return; }
+            if (d.session_id) setSession(d.session_id);
+            if (d.rate_limited) { addNote(d.reply, 'note'); return; }
+            if (d.verbalized) {
+                addNote('📋 Seduta verbalizzata e messa agli atti.', 'note');
+                addTurn({ reply: d.reply, deliberations: d.deliberations, members: [], credits_note: null });
+                if (d.new_session) setSession(null);
+                return;
+            }
+            addTurn(d);
+        } catch (err) {
+            clearTimeout(to); removeTyping();
+            addNote(err && err.name === 'AbortError' ? 'La seduta sta richiedendo più tempo del previsto. Riprova.' : 'Errore di rete. Riprova tra poco.', 'error');
+        } finally {
+            busy = false; btnSend.disabled = false;
+        }
+    }
+
+    function doSend() {
+        var t = input.value.trim();
+        if (!t || busy) return;
+        addUser(t);
+        input.value = ''; input.style.height = 'auto';
+        send({ message: t });
+    }
+    function doVerbalize() {
+        if (busy) return;
+        if (!sessionId()) { addNote('Non c’è una seduta aperta da verbalizzare.', 'note'); return; }
+        addNote('Verbalizzo la seduta…', 'note');
+        send({ command: 'verbalize' });
+    }
+
+    btnSend.addEventListener('click', doSend);
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); doSend(); } });
+    input.addEventListener('input', function () { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 112) + 'px'; });
+    var bv = document.getElementById('btn-verbalize'); if (bv) bv.addEventListener('click', doVerbalize);
+    var bvm = document.getElementById('btn-verbalize-mobile'); if (bvm) bvm.addEventListener('click', doVerbalize);
+})();
+</script>
+</body>
+</html>

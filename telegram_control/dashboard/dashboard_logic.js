@@ -823,7 +823,8 @@
                     { id: "intel_mgmt", label: "Controllo Gestione", desc: "Monitoraggio flussi di cassa, bilancio e marginalità di studio.", url: "agents/controllo_gestione.html", icon: "fa-coins" },
                     { id: "intel_warehouse", label: "Magazzino AI", desc: "Gestione ed ottimizzazione automatizzata delle scorte di magazzino.", url: "agents/intelligent-warehouse.html", icon: "fa-warehouse" },
                     { id: "intel_agenda", label: "Analisi Agenda", desc: "Pianificazione dell'agenda ed ottimizzazione dei tempi dello staff.", url: "agents/agenda.html", icon: "fa-calendar-alt" },
-                    { id: "dashboar_hub", label: "DashBoar Studio", desc: "Lo Swarm Agente 8 progetta cruscotti operativi su misura dai dati reali della tua azienda.", url: "agents/dashboar_hub.html", icon: "fa-gauge-high" }
+                    { id: "dashboar_hub", label: "DashBoar Studio", desc: "Lo Swarm Agente 8 progetta cruscotti operativi su misura dai dati reali della tua azienda.", url: "agents/dashboar_hub.html", icon: "fa-gauge-high" },
+                    { id: "cda_board", label: "Consiglio di Amministrazione", desc: "Un tavolo di consiglieri virtuali con il bastian contrario sempre presente: ci parli e analizzano l'attività dai dati veri.", url: "agents/cda_board.html", icon: "fa-users-gear" }
                 ]
             },
             {
