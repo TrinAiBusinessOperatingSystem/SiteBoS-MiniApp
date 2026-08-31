@@ -418,6 +418,15 @@
                     "report intelligence indirizzo", "analisi territoriale per investimenti", "valutazione immobiliare indirizzo", "quotazioni omi indirizzo", "analisi microzona", "intelligence indirizzo", "analisi territoriale", "investimenti indirizzo", "valutazione indirizzo"
                 ]
             },
+            {
+                category: "agents",
+                name: "DashBoar Studio Cruscotti Operativi",
+                url: "agents/dashboar_hub.html",
+                mod_id: "dashboar_hub",
+                user_utterances: [
+                    "dashboar", "crea un cruscotto", "cruscotto operativo su misura", "dashboard personalizzata", "voglio tenere d'occhio", "board operativa", "agente 8", "cruscotti intelligenti", "genera una board", "monitorare le commesse"
+                ]
+            },
 
             // =========================================================================
             // 5. BILLING CREDITI
