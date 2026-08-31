@@ -13,6 +13,7 @@
     const DASHBOAR_BOOTSTRAP_VERSION = '1.0.1';
     const DASHBOAR_DATA_URL = 'https://prod.workflow.trinai.it/webhook/sitebos-dashboar-data';
     const DASHBOAR_AGENT_URL = 'https://prod.workflow.trinai.it/webhook/sitebos-dashboar-agent';
+    const DASHBOAR_GATE_URL = 'https://prod.workflow.trinai.it/webhook/sitebos-dashboar-gate';
 
     // Global Chart.js registry to prevent memory leaks and handle updates
     window.DashBoarChartRegistry = window.DashBoarChartRegistry || {};
@@ -842,11 +843,12 @@
                 return;
             }
 
-            // 6. Submit Generation Request
+            // 6. Submit — due fasi: (a) gate (verifica + scope), (b) conferma -> generate
             const submitGenBtn = target.closest('#btn-submit-generation');
             if (submitGenBtn) {
                 const promptArea = document.getElementById('create-board-prompt');
                 const promptText = promptArea ? promptArea.value.trim() : '';
+                const scopeBox = document.getElementById('dashboar-gate-scope');
 
                 if (!promptText) {
                     showToast('Descrivi cosa desideri monitorare prima di inviare la richiesta.', 'warning');
@@ -856,59 +858,85 @@
                 const searchParams = new URLSearchParams(window.location.search);
                 const ash = searchParams.get('ash') || '';
                 const authData = window.Telegram?.WebApp?.initData || '';
-
-                submitGenBtn.disabled = true;
-                const originalText = submitGenBtn.textContent;
-                submitGenBtn.textContent = 'Progettazione in corso…';
-
-                // Engine B: generazione SINCRONA (~30-40s). L'Analista legge l'azienda, verifica
-                // ogni indicatore sui dati veri, il Compositore monta la board. Si attende la risposta.
-                const controller = new AbortController();
-                const releaseUi = setTimeout(() => controller.abort(), 55000);
+                const originalText = 'Richiedi Generazione';
 
                 const closeModal = () => {
                     const modal = document.getElementById('modal-create-board');
                     if (modal) { modal.hidden = true; modal.classList.add('hidden'); }
                     if (promptArea) promptArea.value = '';
+                    if (scopeBox) { scopeBox.hidden = true; scopeBox.textContent = ''; }
+                    submitGenBtn.removeAttribute('data-gate-ok');
+                    submitGenBtn.textContent = originalText;
                 };
 
+                // --- FASE B: l'owner ha confermato lo scope -> genera ---
+                if (submitGenBtn.getAttribute('data-gate-ok') === '1') {
+                    submitGenBtn.disabled = true;
+                    submitGenBtn.textContent = 'Progettazione in corso…';
+                    const controller = new AbortController();
+                    const releaseUi = setTimeout(() => controller.abort(), 55000);
+                    try {
+                        const res = await fetch(DASHBOAR_AGENT_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            signal: controller.signal,
+                            body: JSON.stringify({ action: 'dashboar_generate', user_prompt: promptText, ash, _auth: authData })
+                        });
+                        clearTimeout(releaseUi);
+                        let out = {};
+                        try { out = await res.json(); } catch (e) {}
+                        closeModal();
+                        if (res.ok && out && out.success) {
+                            const withReserves = Array.isArray(out.reserves) && out.reserves.length > 0;
+                            showToast(withReserves
+                                ? 'Board creata come bozza da rivedere. Aggiorno l’elenco…'
+                                : 'Board «' + (out.name || 'Cruscotto') + '» creata. Aggiorno l’elenco…', 'success');
+                        } else {
+                            showToast((out && out.error) || 'Non è stato possibile generare la board. Riprova tra poco.', 'error');
+                        }
+                        if (typeof window.__dashboarReloadHub === 'function') { try { await window.__dashboarReloadHub(); } catch (e) {} }
+                    } catch (err) {
+                        clearTimeout(releaseUi);
+                        closeModal();
+                        if (err && err.name === 'AbortError') {
+                            showToast('La progettazione sta richiedendo più del previsto. Ricontrolla l’elenco tra un minuto.', 'info');
+                            if (typeof window.__dashboarReloadHub === 'function') { setTimeout(() => { try { window.__dashboarReloadHub(); } catch (e) {} }, 30000); }
+                        } else {
+                            showToast('Non è stato possibile avviare la generazione. Riprova tra poco.', 'error');
+                        }
+                    } finally {
+                        submitGenBtn.disabled = false;
+                    }
+                    return;
+                }
+
+                // --- FASE A: gate ---
+                submitGenBtn.disabled = true;
+                submitGenBtn.textContent = 'Verifico la richiesta…';
                 try {
-                    const res = await fetch(DASHBOAR_AGENT_URL, {
+                    const res = await fetch(DASHBOAR_GATE_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        signal: controller.signal,
-                        body: JSON.stringify({
-                            action: 'dashboar_generate',
-                            user_prompt: promptText,
-                            ash,
-                            _auth: authData
-                        })
+                        body: JSON.stringify({ action: 'dashboar_generate', user_prompt: promptText, ash, _auth: authData })
                     });
-                    clearTimeout(releaseUi);
-                    let out = {};
-                    try { out = await res.json(); } catch (e) {}
-                    closeModal();
-                    if (res.ok && out && out.success) {
-                        const withReserves = Array.isArray(out.reserves) && out.reserves.length > 0;
-                        showToast(withReserves
-                            ? 'Board creata come bozza da rivedere. Aggiorno l’elenco…'
-                            : 'Board «' + (out.name || 'Cruscotto') + '» creata. Aggiorno l’elenco…', 'success');
+                    let g = {};
+                    try { g = await res.json(); } catch (e) {}
+                    if (res.ok && g && g.can_do && g.safe) {
+                        if (scopeBox) {
+                            scopeBox.textContent = g.scope_summary || 'DashBoar costruirà un cruscotto in sola lettura sulla tua richiesta.';
+                            scopeBox.hidden = false;
+                        }
+                        submitGenBtn.setAttribute('data-gate-ok', '1');
+                        submitGenBtn.textContent = 'Conferma e genera';
                     } else {
-                        showToast((out && out.error) || 'Non è stato possibile generare la board. Riprova tra poco.', 'error');
+                        showToast((g && g.reason) || 'Questa richiesta non può essere elaborata.', (g && g.safe === false) ? 'error' : 'warning');
+                        submitGenBtn.textContent = originalText;
                     }
-                    if (typeof window.__dashboarReloadHub === 'function') { try { await window.__dashboarReloadHub(); } catch (e) {} }
                 } catch (err) {
-                    clearTimeout(releaseUi);
-                    closeModal();
-                    if (err && err.name === 'AbortError') {
-                        showToast('La progettazione sta richiedendo più del previsto. Ricontrolla l’elenco tra un minuto.', 'info');
-                        if (typeof window.__dashboarReloadHub === 'function') { setTimeout(() => { try { window.__dashboarReloadHub(); } catch (e) {} }, 30000); }
-                    } else {
-                        showToast('Non è stato possibile avviare la generazione. Riprova tra poco.', 'error');
-                    }
+                    showToast('Verifica non riuscita. Riprova tra poco.', 'error');
+                    submitGenBtn.textContent = originalText;
                 } finally {
                     submitGenBtn.disabled = false;
-                    submitGenBtn.textContent = originalText;
                 }
             }
         });
