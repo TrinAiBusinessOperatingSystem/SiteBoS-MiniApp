@@ -278,6 +278,23 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                 });
                 fullConfig = await response.json();
 
+                // Fallback per istanza senza customer_bot_config ancora impostato
+                // (get_bot_config restituisce "" / null): evita il TypeError su .identity
+                if (!fullConfig || typeof fullConfig !== 'object' || !fullConfig.identity) {
+                    fullConfig = {
+                        identity: { agent_name: '', role_persona: 'customer_support' },
+                        permissions: { allow_images: false, allow_files: false },
+                        personality: { tone: 'professional', vibe: 'empatica_accogliente', language_style: 'formal', emoji_usage: 'moderate', custom_instructions: '' },
+                        business_logic: { primary_goal: 'supporto_assistenza' },
+                        system_safety_limits: { max_daily_messages_per_user: 100, max_tokens_per_chat: 4000 }
+                    };
+                }
+                fullConfig.identity = fullConfig.identity || { agent_name: '', role_persona: 'customer_support' };
+                fullConfig.permissions = fullConfig.permissions || { allow_images: false, allow_files: false };
+                fullConfig.personality = fullConfig.personality || { tone: 'professional', vibe: 'empatica_accogliente', language_style: 'formal', emoji_usage: 'moderate', custom_instructions: '' };
+                fullConfig.business_logic = fullConfig.business_logic || { primary_goal: 'supporto_assistenza' };
+                fullConfig.system_safety_limits = fullConfig.system_safety_limits || { max_daily_messages_per_user: 100, max_tokens_per_chat: 4000 };
+
                 document.getElementById('agent_name').value = fullConfig.identity.agent_name;
                 document.getElementById('role_persona').value = fullConfig.identity.role_persona;
                 document.getElementById('allow_images').checked = fullConfig.permissions.allow_images;

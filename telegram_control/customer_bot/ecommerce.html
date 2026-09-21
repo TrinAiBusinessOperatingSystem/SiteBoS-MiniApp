@@ -531,6 +531,25 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
                     </div>`;
             }
 
+            // I pacchetti crediti non hanno checkout interno: il tap apre la piattaforma
+            // di ricarica (solo l'istanza che li mette a catalogo li marca CREDIT_PACK).
+            if (p.item_type === 'CREDIT_PACK') {
+                return `
+                    <div class="bg-white p-3 rounded-3xl bento-card space-y-3 relative overflow-hidden group border border-gray-50" onclick="openCreditPack('${p.callback_data}')">
+                        <div class="w-full aspect-square rounded-2xl bg-gray-50 overflow-hidden relative">
+                            <img src="${getProductImageUrl(p)}" onerror="handleProductImageError(this, '${p.callback_data}')" class="w-full h-full object-cover">
+                            <div class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full bg-black/70 text-white text-[6px] font-black uppercase tracking-wider flex items-center gap-1"><i class="fas fa-coins"></i> Ricarica Crediti</div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-[10px] leading-tight mb-2 h-7 overflow-hidden text-gray-800 uppercase tracking-tighter">${p.name}</h3>
+                            <div class="flex justify-between items-center">
+                                <span class="font-black text-xs">€ ${parseFloat(p.price).toFixed(2)}</span>
+                                <span class="text-[8px] font-black uppercase text-gray-400">Apri Piattaforma <i class="fas fa-up-right-from-square"></i></span>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
             const addBtnAction = (p.commercial_setup?.extra_options?.length > 0 || p.commercial_setup?.allow_customer_notes) ? `openProduct('${p.callback_data}')` : `updateQty('${p.callback_data}', 1)`;
             const priceLabel = `${p.pricing?.pricing_rules_engine?.is_dynamic_price ? '<span class="text-[7px] uppercase opacity-30 mr-0.5">da</span>' : ''}€ ${parseFloat(p.price).toFixed(2)}`;
             const qtyControls = `
@@ -624,6 +643,13 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         // ═══════════════════════════════════════════════════════════════
         // DISPENSE DIGITALI: sblocco con punti fedeltà o acquisto reale
         // ═══════════════════════════════════════════════════════════════
+        function openCreditPack(sku) {
+            const p = catalog.find(x => x.callback_data === sku);
+            const url = (p && p.external_purchase_url) || 'https://dashboard.trinai.it/shop/bundles';
+            if (window.Telegram?.WebApp?.openLink) window.Telegram.WebApp.openLink(url);
+            else window.open(url, '_blank');
+        }
+
         function openDigitalAsset(sku) {
             const p = catalog.find(x => x.callback_data === sku);
             if (!p) return;
@@ -760,6 +786,7 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
 
         function openProduct(sku) {
             const p = catalog.find(x => x.callback_data === sku); if (!p) return;
+            if (p.item_type === 'CREDIT_PACK') { openCreditPack(sku); return; }
             activeSku = sku;
             currentBasePrice = parseFloat(p.price);
             modalEditingKey = null;

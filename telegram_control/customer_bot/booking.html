@@ -181,9 +181,12 @@
         tg.expand();
         tg.ready();
 
-        const WH_URL = "https://prod.workflow.trinai.it/webhook/0a62e876-7bb1-4d74-a8bc-a8828606a0e7";
+        // FIX 2026-09-01 (audit B-1): l'UUID 0a62e876 era morto. booking_engine ora
+        // gestisce get_booking_config e submit_booking_proposal sul path sitebos-booking-engine.
+        const WH_URL = "https://prod.workflow.trinai.it/webhook/sitebos-booking-engine";
         const params = new URLSearchParams(window.location.search);
         const ashToken = params.get('ash');
+        const ownerVat = params.get('vat') || '';
 
         // Configurazione e Stato
         let activeServices = [];
@@ -268,6 +271,7 @@
                     body: JSON.stringify({
                         _auth: tg.initData,
                         ash: ashToken,
+                        owner_vat: ownerVat,
                         action: "get_booking_config"
                     })
                 });
@@ -476,7 +480,11 @@
             const payload = {
                 _auth: tg.initData,
                 ash: ashToken,
+                owner_vat: ownerVat,
                 action: "submit_booking_proposal",
+                chat_id: tg.initDataUnsafe?.user?.id || 'guest',
+                client_name: tg.initDataUnsafe?.user?.first_name || 'Cliente Telegram',
+                notes: notesVal,
                 booking_data: {
                     services: selectedServices.map(s => ({ id: s.id, name: s.name, duration_min: s.duration_min })),
                     availabilities: selectedAvailabilities,
@@ -489,28 +497,16 @@
                 if (ok) {
                     showLoader();
                     try {
+                        // Unica chiamata: booking_engine gestisce submit_booking_proposal
+                        // (appiattisce + conserva booking_data in booking_preferences).
                         const r = await fetch(WH_URL, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify(payload)
                         });
+                        const res = await r.json().catch(() => ({}));
 
-                        // Notifica anche il booking engine n8n per l'inserimento in TbosJobQueue ed evento SSE
-                        fetch('https://prod.workflow.trinai.it/webhook/sitebos-booking-engine', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                action: 'create_booking',
-                                chat_id: tg.initDataUnsafe?.user?.id || 'guest',
-                                client_name: tg.initDataUnsafe?.user?.first_name || 'Cliente Telegram',
-                                sop_code: selectedServices[0]?.id || 'SER_GENERIC',
-                                sop_title: selectedServices.map(s => s.name).join(', '),
-                                preferred_date: selectedAvailabilities[0]?.day || 'Prossima settimana',
-                                time_slot: selectedAvailabilities[0]?.period || 'MATTINA'
-                            })
-                        }).catch(e => console.warn('Booking engine async notify error:', e));
-
-                        if (r.ok || true) {
+                        if (r.ok && res && res.success) {
                             if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
                             tg.showAlert("Richiesta di prenotazione inviata con successo! L'operatore verificherà l'agenda e ti contatterà per confermare la data esatta.", () => {
                                 tg.close();

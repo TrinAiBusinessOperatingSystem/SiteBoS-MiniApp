@@ -212,13 +212,18 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
         const WH_URL = "https://prod.workflow.trinai.it/webhook/342f192d-8fee-49da-838c-04661b7f005b";
         const params = new URLSearchParams(window.location.search);
         const ashToken = params.get('ash');
+        // FIX 2026-09-01 (audit PREV-1): Preventivi_engine non decodifica l'ash e cerca
+        // l'owner con body.owner_vat + il cliente con body.chat_id. Il vat arriva gia' come
+        // URL param da customer_router.html; il chat_id e' l'utente Telegram corrente.
+        const ownerVat = params.get('vat') || '';
+        const customerChatId = (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) || null;
         let catalog = [], categories = [], budgetOptions = [], currentFilter = 'TUTTI', selection = {}, globalAttachments = [], currentStep = 0, totalSteps = 6;
 
         window.onload = async () => { if (!ashToken) { tg.showAlert("ASH Token mancante."); return; } await initApp(); };
 
         async function initApp() {
             try {
-                const r = await fetch(WH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_prev_get' }) });
+                const r = await fetch(WH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_prev_get', owner_vat: ownerVat, chat_id: customerChatId }) });
                 const d = await r.json();
                 if (d.success) {
                     catalog = d.catalog || [];
@@ -353,8 +358,10 @@ input[type="checkbox"]:checked { background-color: #000 !important; border-color
             tg.showConfirm(`Inviare la proposta per ${items.length} elementi?`, async ok => {
                 if (ok) {
                     try { 
-                        const r = await fetch(WH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_prev_save', proposal_data: d }) });
-                        if (r.ok) { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); tg.showAlert("Richiesta inviata!", () => tg.close()); }
+                        const r = await fetch(WH_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _auth: tg.initData, ash: ashToken, action: 'u_calc_prev_save', proposal_data: d, owner_vat: ownerVat, chat_id: customerChatId }) });
+                        const res = await r.json().catch(() => ({}));
+                        if (r.ok && res && res.success) { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); tg.showAlert("Richiesta inviata!", () => tg.close()); }
+                        else { tg.showAlert("Invio non riuscito, riprova o contatta il supporto."); }
                     } catch (e) { tg.showAlert("Errore invio."); }
                 }
             });
