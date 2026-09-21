@@ -426,7 +426,7 @@
             <div class="panel">
                 <div class="panel-title">
                     <span>Conto Economico Previsionale Triennale Ricalcolato Live</span>
-                    <span style="font-size:10px; color:var(--muted); text-transform:none;">Arrotondato alle centinaia · Stima</span>
+                    <span style="font-size:10px; color:var(--muted); text-transform:none;">Solo riga EBITDA arrotondata alle centinaia · Altre voci a valore esatto · Stima</span>
                 </div>
                 <table>
                     <thead>
@@ -454,7 +454,7 @@
                             <td class="num" id="tb_rtot_l2">€ 132.000</td>
                         </tr>
                         <tr>
-                            <td>L3: Personal App Custom <span class="tag-non-validato" style="font-size:8px;">Stima</span></td>
+                            <td title="Dall'Anno 2 in poi la colonna include anche il canone SLA ricorrente (€250/app/anno, stima) generato dalle app gia' consegnate negli anni precedenti, oltre al prezzo delle nuove commesse dell'anno corrente.">L3: Personal App Custom <span class="tag-non-validato" style="font-size:8px;">Stima</span> <span style="font-size:8px;color:var(--muted);cursor:help;" title="Include canone SLA ricorrente da app pregresse">ⓘ</span></td>
                             <td class="num" id="tb_r1_l3">€ 18.000</td>
                             <td class="num" id="tb_r2_l3">€ 36.000</td>
                             <td class="num" id="tb_r3_l3">€ 68.000</td>
@@ -515,7 +515,7 @@
                 <div style="margin-top:14px; padding:10px 12px; background:#0f172a; border-radius:6px; border-left:3px solid var(--primary); font-size:11px; color:var(--muted); line-height:1.4;" id="desc_copertura">
                     <strong>Avvertenza e Note Metodologiche (cda_state.json):</strong><br>
                     • I volumi per le linee L2 Formazione e L3 App sono <em>ipotesi di lavoro non confermate da CTO e Marketing Director</em> (questioni Q-03 e Q-05).<br>
-                    • In caso di selezione dell'<strong>Ipotesi B</strong>, la riduzione del fabbisogno triennale a ~€ 340.000 è per ordine di grandezza plausibile ma non ancora verificata voce per voce dal Controller.<br>
+                    <span id="nota_ipotesi_b">• Scenario attivo <strong>Ipotesi B</strong>: la riduzione del fabbisogno triennale a ~€ 340.000 è per ordine di grandezza plausibile ma non ancora verificata voce per voce dal Controller.<br></span>
                     • Il runway è garantito dall'incasso 100% anticipato dei corsi AI Act e dagli acconti 40% all'ordine sulle commesse App.
                 </div>
             </div>
@@ -649,6 +649,11 @@
             }
             const wtot = w1 + w2 + w3;
 
+            // FIX: la nota metodologica su Ipotesi B va mostrata solo quando quello
+            // scenario e' effettivamente selezionato, non sempre a prescindere.
+            const notaIpotesiB = document.getElementById('nota_ipotesi_b');
+            if (notaIpotesiB) notaIpotesiB.style.display = (scenario === 'B') ? 'inline' : 'none';
+
             document.getElementById('tb_w1').innerText = '-€ ' + w1.toLocaleString();
             document.getElementById('tb_w2').innerText = '-€ ' + w2.toLocaleString();
             document.getElementById('tb_w3').innerText = '-€ ' + w3.toLocaleString();
@@ -660,23 +665,31 @@
             const eb3 = m3 - 116500 - w3;
             const ebtot = eb1 + eb2 + eb3;
 
-            const formatEb = (val) => (val < 0 ? '-€ ' : '+€ ') + Math.abs(Math.round(val / 100) * 100).toLocaleString();
+            const round100 = (val) => Math.round(val / 100) * 100;
+            const formatEb = (val) => (val < 0 ? '-€ ' : '+€ ') + Math.abs(val).toLocaleString();
             const colorEb = (val) => (val < 0 ? 'var(--danger)' : 'var(--success)');
 
-            document.getElementById('tb_eb1').innerText = formatEb(eb1);
+            // FIX: il totale mostrato è la somma dei tre valori annuali GIA' arrotondati,
+            // non l'arrotondamento indipendente del totale esatto — altrimenti la somma a
+            // video delle tre celle annuali non torna con la cella "Cumulato" (disallineamento
+            // di ±100 € rilevato il 21/09/2026).
+            const eb1r = round100(eb1), eb2r = round100(eb2), eb3r = round100(eb3);
+            const ebtotr = eb1r + eb2r + eb3r;
+
+            document.getElementById('tb_eb1').innerText = formatEb(eb1r);
             document.getElementById('tb_eb1').style.color = colorEb(eb1);
-            document.getElementById('tb_eb2').innerText = formatEb(eb2);
+            document.getElementById('tb_eb2').innerText = formatEb(eb2r);
             document.getElementById('tb_eb2').style.color = colorEb(eb2);
-            document.getElementById('tb_eb3').innerText = formatEb(eb3);
+            document.getElementById('tb_eb3').innerText = formatEb(eb3r);
             document.getElementById('tb_eb3').style.color = colorEb(eb3);
-            document.getElementById('tb_ebtot').innerText = formatEb(ebtot);
-            document.getElementById('tb_ebtot').style.color = colorEb(ebtot);
+            document.getElementById('tb_ebtot').innerText = formatEb(ebtotr);
+            document.getElementById('tb_ebtot').style.color = colorEb(ebtotr);
 
             // KPI Fabbisogno / Utile Cumulato
             const kpiFab = document.getElementById('kpi_fabbisogno');
             const kpiSubFab = document.getElementById('kpi_sub_fabbisogno');
-            kpiFab.innerText = formatEb(ebtot);
-            kpiFab.style.color = colorEb(ebtot);
+            kpiFab.innerText = formatEb(ebtotr);
+            kpiFab.style.color = colorEb(ebtotr);
             if (scenario === 'A') {
                 kpiSubFab.innerText = ebtot >= 0 ? 'Ipotesi A (Utile cumulato)' : 'Ipotesi A (Disavanzo netto)';
             } else {
@@ -691,7 +704,7 @@
                 kpiSubBe.innerText = 'Pareggio immediato';
             } else if (eb2 >= 0) {
                 kpiBe.innerText = 'Anno 2';
-                kpiSubBe.innerText = 'Anticipato di 2 anni';
+                kpiSubBe.innerText = 'Anticipato di 2 anni (vs. baseline Anno 4 solo piattaforma)';
             } else if (eb3 >= 0) {
                 kpiBe.innerText = 'Anno 3';
                 kpiSubBe.innerText = 'Entro il triennio';
