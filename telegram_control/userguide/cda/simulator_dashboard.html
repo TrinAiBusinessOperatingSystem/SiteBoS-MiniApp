@@ -538,8 +538,8 @@
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2 items-center shrink-0">
-                        <a class="btn btn-outline" href="https://docs.google.com/document/d/1N6xuQgI8hWo0Sv6h8sGvghTUAK6qJOLcDQIE7Tv4Rdg/edit?usp=sharing" target="_blank" data-doc-target="davide">
-                            <i class="fas fa-file-lines text-blue-600"></i> Dossier Davide
+                        <a class="btn btn-outline" href="https://docs.google.com/document/d/1N6xuQgI8hWo0Sv6h8sGvghTUAK6qJOLcDQIE7Tv4Rdg/edit?usp=sharing" target="_blank">
+                            <i class="fas fa-file-lines text-blue-600"></i> Documento Progettuale
                         </a>
                         <button class="btn btn-outline" onclick="resetDefaults()">
                             <i class="fas fa-rotate-left text-gray-500"></i> Ripristina Default
@@ -637,7 +637,7 @@
 
                     <!-- CONTROLLI TESORERIA E FINANZIAMENTI -->
                     <div class="panel">
-                        <div class="panel-title">3. Tesoreria & Coperture Esterne</div>
+                        <div class="panel-title">3. Fonti di Finanziamento Esterne</div>
                         <div class="control-group">
                             <label>Investimento Comunitario Distribuzione: <span id="val_investimento_ue">Nessuno (Baseline)</span></label>
                             <select id="sel_investimento_ue" onchange="recalculate()">
@@ -646,6 +646,7 @@
                                 <option value="1000000">€ 1.000.000 (Roadmap paneuropea: 45 / 226 / 310 istituzionali)</option>
                                 <option value="5000000">€ 5.000.000 (Scala 3.5x: 90 / 400 / 600 istituzionali)</option>
                             </select>
+                            <div class="fin-source-tag">NATURA NON CLASSIFICATA — trattato come fondo perduto per ipotesi prudenziale, non verificato. Nessun contratto/bando specifico ancora identificato.</div>
                         </div>
                         <div class="control-group">
                             <label>Cassa Residua Attuale (Stima): <span id="val_cassa">€7.000</span></label>
@@ -654,10 +655,22 @@
                         <div class="control-group">
                             <label>Fido Bancario Fondo PMI 80%: <span id="val_bank">€50.000</span></label>
                             <input type="range" id="inp_bank" min="0" max="100000" step="5000" value="50000" oninput="recalculate()">
+                            <div class="fin-source-tag">DEBITO — garanzia statale 80%, tasso 6%/anno (ipotesi di lavoro, nessun tasso reale ancora negoziato), preammortamento 12 mesi</div>
                         </div>
                         <div class="control-group">
                             <label>Smart&Start Invitalia (Totale): <span id="val_smart">€120.000</span></label>
                             <input type="range" id="inp_smart" min="0" max="200000" step="10000" value="120000" oninput="recalculate()">
+                            <div class="fin-source-tag">MISTO — €36.000 a fondo perduto + €84.000 a tasso zero da restituire in 10 anni (rata indicativa €8.400/anno, tempi di erogazione non compatibili con l'emergenza Q4 2026)</div>
+                        </div>
+                        <div style="margin-top:14px; padding-top:10px; border-top:1px solid #f1f5f9; font-size:11px; color:#475569;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                <span>Oneri Fido Bancario:</span>
+                                <span id="kpi_oneri_finanziari" style="font-weight:700; font-family:monospace; color:#ef4444;">€ 0 (fido non attivato)</span>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span>Rimborso Smart&Start:</span>
+                                <span id="kpi_rimborso_smart" style="font-weight:700; font-family:monospace; color:#64748b;">€ 0 (non candidato)</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1166,6 +1179,16 @@
             } else {
                 setFabRes('kpi_fabbisogno_residuo', 'Scoperto (-€' + Math.round(fabbisognoResiduo).toLocaleString() + ')');
             }
+
+            // Oneri finanziari reali sul Fido Bancario (Round 8, tasso di lavoro 6% — nessun tasso reale ancora negoziato)
+            const TASSO_FIDO_ANNUO = 0.06;
+            const oneriFinanziariAnnui = Math.round(bank * TASSO_FIDO_ANNUO);
+            setFabRes('kpi_oneri_finanziari', bank > 0 ? '-€ ' + oneriFinanziariAnnui.toLocaleString() + '/anno (tasso 6% ipotesi)' : '€ 0 (fido non attivato)');
+
+            // Rimborso capitale Smart&Start (tasso zero, quota indicativa, impatto oltre l'orizzonte di simulazione)
+            // [FIX] proporzionale al valore reale dello slider (70% della quota e' sempre a debito, coerente con M2: 30% fondo perduto / 70% da restituire)
+            const rimborsoSmartAnnuo = smart > 0 ? Math.round((smart * 0.70) / 10) : 0;
+            setFabRes('kpi_rimborso_smart', smart > 0 ? '-€ ' + rimborsoSmartAnnuo.toLocaleString() + '/anno dal Anno 4+ (tasso zero, 10 anni, fuori orizzonte simulazione)' : '€ 0 (non candidato)');
 
             // KPI Break-Even
             const kpiBe = document.getElementById('kpi_breakeven');
