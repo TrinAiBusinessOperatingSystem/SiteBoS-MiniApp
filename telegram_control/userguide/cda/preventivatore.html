@@ -1187,7 +1187,7 @@
             if (ch === 'diretto') {
                 desc.innerText = 'Canale Diretto: prezzi di listino pieni per il cliente finale.';
             } else if (ch === 'wholesale') {
-                desc.innerText = 'Wholesale Istituzionale (Ordini/Associazioni): sconto cliente 40% flat sui crediti L1, 20% su L2-L5 e setup. (La broker fee 20% all\'ente è regolata internamente).';
+                desc.innerText = 'Wholesale Istituzionale (Ordini/Associazioni): sconto cliente 30% su crediti L1 solo al primo acquisto, poi prezzo pieno; 20% su L2-L5 e setup. (La provvigione all\'ente — 20% primo acquisto, 40% a regime — è regolata internamente, il cliente non la vede in fattura).';
             } else if (ch === 'intermediario') {
                 desc.innerText = 'Intermediario RSPP/ISO: il cliente paga prezzo di listino pieno. (La revenue share 30% all\'RSPP è flusso contabile interno).';
             }
@@ -1251,20 +1251,17 @@
             var netUnitCents = baseCents;
 
             if (item.line === 'L1_CREDITI') {
-                if (isFirstPurchase && channel === 'wholesale') {
-                    // Cumulo in sequenza (Sezione 9 piano):
-                    // 1) 30% promo primo acquisto
-                    // 2) 40% wholesale su prezzo già scontato
-                    var step1 = baseCents - Math.round(baseCents * 30 / 100);
-                    var step2 = step1 - Math.round(step1 * 40 / 100);
-                    netUnitCents = step2;
-                    discountPctLabel = '-30% + -40% seq.';
-                } else if (isFirstPurchase) {
+                // RICORRETTO 21/09/2026 - DEFINITIVO: lo sconto cliente su L1 si applica
+                // SOLO al primo acquisto (30%), qualunque canale. Dal secondo acquisto in
+                // poi il cliente paga prezzo di listino pieno, ANCHE sul canale wholesale:
+                // non esiste uno sconto cliente permanente su L1. La provvigione del 20%/40%
+                // riconosciuta all'Ente sul canale wholesale e' un flusso interno separato,
+                // il cliente non la vede e questo calcolatore non la applica al suo prezzo.
+                if (isFirstPurchase) {
                     netUnitCents = baseCents - Math.round(baseCents * 30 / 100);
-                    discountPctLabel = '-30% (Promo)';
-                } else if (channel === 'wholesale') {
-                    netUnitCents = baseCents - Math.round(baseCents * 40 / 100);
-                    discountPctLabel = '-40% (Wholesale)';
+                    discountPctLabel = '-30% (Primo Acquisto)';
+                } else {
+                    discountPctLabel = 'Prezzo Pieno';
                 }
             } else {
                 // L1_SETUP, L2, L3, L4, L5
