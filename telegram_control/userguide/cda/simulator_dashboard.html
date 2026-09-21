@@ -388,6 +388,15 @@
             <div class="panel">
                 <div class="panel-title">3. Tesoreria & Coperture Esterne</div>
                 <div class="control-group">
+                    <label>Investimento Comunitario Distribuzione: <span id="val_investimento_ue">Nessuno (Baseline)</span></label>
+                    <select id="sel_investimento_ue" onchange="recalculate()">
+                        <option value="0">Nessuno (Baseline: 0 / 45 / 113 istituzionali)</option>
+                        <option value="500000">€ 500.000 (Anticipo 1 anno: 45 / 113 / 170 istituzionali)</option>
+                        <option value="1000000">€ 1.000.000 (Roadmap paneuropea: 45 / 226 / 310 istituzionali)</option>
+                        <option value="5000000">€ 5.000.000 (Scala 3.5x: 90 / 400 / 600 istituzionali)</option>
+                    </select>
+                </div>
+                <div class="control-group">
                     <label>Cassa Residua Attuale (Stima): <span id="val_cassa">€7.000</span></label>
                     <input type="range" id="inp_cassa" min="2000" max="25000" step="1000" value="7000" oninput="recalculate()">
                 </div>
@@ -521,6 +530,7 @@
                     <strong>Avvertenza e Note Metodologiche (cda_state.json):</strong><br>
                     • I volumi per le linee L2 Formazione e L3 App sono <em>ipotesi di lavoro non confermate da CTO e Marketing Director</em> (questioni Q-03 e Q-05).<br>
                     <span id="nota_ipotesi_b">• Scenario attivo <strong>Ipotesi B</strong>: la riduzione del fabbisogno triennale a ~€ 340.000 è per ordine di grandezza plausibile ma non ancora verificata voce per voce dal Controller.<br></span>
+                    <span id="nota_investimento_ue" style="display:none;">• Scenario attivo <strong>Investimento Comunitario Distribuzione (<span id="lbl_tier_nota">€ 500.000</span>)</strong>: apporto patrimoniale di tesoreria (nessun costo in conto economico; tempi erogazione 6-9+ mesi, iniezione Q4 invariata). Include solo ricavi e COGS L1 incrementali (~€80/cliente/anno). L'elevato carico di onboarding istituzionale genera tensione operativa su Ipotesi A: trova sinergia naturale con <strong>Ipotesi B</strong>, il cui fabbisogno triennale (~€ 340.000) viene ampiamente coperto dalla liquidità del tier.<br></span>
                     • Il runway è garantito dall'incasso 100% anticipato dei corsi AI Act e dagli acconti 40% all'ordine sulle commesse App.
                 </div>
             </div>
@@ -548,11 +558,18 @@
             const l45_a2 = parseFloat(document.getElementById('inp_l45_a2').value) || 0;
             const l45_a3 = parseFloat(document.getElementById('inp_l45_a3').value) || 0;
 
+            const invest_ue = parseInt(document.getElementById('sel_investimento_ue').value) || 0;
             const cassa = parseFloat(document.getElementById('inp_cassa').value);
             const bank = parseFloat(document.getElementById('inp_bank').value);
             const smart = parseFloat(document.getElementById('inp_smart').value);
 
             // Aggiornamento labels
+            let lbl_ue = 'Nessuno (Baseline)';
+            if (invest_ue === 500000) lbl_ue = '€ 500.000';
+            else if (invest_ue === 1000000) lbl_ue = '€ 1.000.000';
+            else if (invest_ue === 5000000) lbl_ue = '€ 5.000.000';
+            document.getElementById('val_investimento_ue').innerText = lbl_ue;
+
             document.getElementById('val_arpu').innerText = '€' + arpu;
             document.getElementById('val_churn').innerText = (churn * 100).toFixed(0) + '%';
             document.getElementById('val_cassa').innerText = '€' + cassa.toLocaleString();
@@ -563,14 +580,30 @@
             document.getElementById('val_l3_avg').innerText = l3_a1 + ' / ' + l3_a2 + ' / ' + l3_a3;
             document.getElementById('val_l45_tot').innerText = '€' + Math.round(l45_a1/1000) + 'k / €' + Math.round(l45_a2/1000) + 'k / €' + Math.round(l45_a3/1000) + 'k';
 
-            // 1. Ricavi L1 SiTeBoS
-            const base1 = c1;
-            const base2 = Math.round(base1 * (1 - churn)) + c2 + 45;
-            const base3 = Math.round(base2 * (1 - churn)) + c3 + 113;
+            // Tabella Clienti Istituzionali per Tier (Round 3 Sezione 11)
+            let inst1 = 0, inst2 = 45, inst3 = 113;
+            if (invest_ue === 500000) {
+                inst1 = 45;
+                inst2 = 113;
+                inst3 = 170;
+            } else if (invest_ue === 1000000) {
+                inst1 = 45;
+                inst2 = 226;
+                inst3 = 310;
+            } else if (invest_ue === 5000000) {
+                inst1 = 90;
+                inst2 = 400;
+                inst3 = 600;
+            }
 
-            const r1_l1 = Math.round(c1 * arpu * 0.4);
-            const r2_l1 = Math.round((base1 * arpu * (1 - churn)) + (c2 * arpu * 0.5) + (45 * (arpu * 0.8) * 0.5));
-            const r3_l1 = Math.round((base2 * arpu * (1 - churn)) + (c3 * arpu * 0.5) + (113 * (arpu * 0.8) * 0.5));
+            // 1. Ricavi L1 SiTeBoS
+            const base1 = c1 + inst1;
+            const base2 = Math.round(base1 * (1 - churn)) + c2 + inst2;
+            const base3 = Math.round(base2 * (1 - churn)) + c3 + inst3;
+
+            const r1_l1 = Math.round(c1 * arpu * 0.4 + inst1 * (arpu * 0.8) * 0.4);
+            const r2_l1 = Math.round((base1 * arpu * (1 - churn)) + (c2 * arpu * 0.5) + (inst2 * (arpu * 0.8) * 0.5));
+            const r3_l1 = Math.round((base2 * arpu * (1 - churn)) + (c3 * arpu * 0.5) + (inst3 * (arpu * 0.8) * 0.5));
             const rtot_l1 = r1_l1 + r2_l1 + r3_l1;
 
             // 2. Ricavi L2 Formazione (media ponderata €1.000/pacchetto)
@@ -623,10 +656,14 @@
             document.getElementById('tb_rtot').innerText = '€ ' + rtot.toLocaleString();
             document.getElementById('kpi_ricavi').innerText = '~€ ' + Math.round(rtot / 1000) * 1000;
 
-            // Costi Diretti Industriali (COGS)
-            const d1 = Math.round(3825 + (r1_l2 * 0.10) + (r1_l3 * 0.12) + (r1_l45 * 0.15));
-            const d2 = Math.round(11100 + (r2_l2 * 0.10) + (r2_l3 * 0.12) + (r2_l45 * 0.15));
-            const d3 = Math.round(27100 + (r3_l2 * 0.10) + (r3_l3 * 0.12) + (r3_l45 * 0.15));
+            // Costi Diretti Industriali (COGS) — incremento proporzionale ai clienti istituzionali accelerati (~€80/cliente)
+            const delta_inst1 = Math.max(0, inst1 - 0);
+            const delta_inst2 = Math.max(0, inst2 - 45);
+            const delta_inst3 = Math.max(0, inst3 - 113);
+
+            const d1 = Math.round(3825 + (delta_inst1 * 80) + (r1_l2 * 0.10) + (r1_l3 * 0.12) + (r1_l45 * 0.15));
+            const d2 = Math.round(11100 + (delta_inst2 * 80) + (r2_l2 * 0.10) + (r2_l3 * 0.12) + (r2_l45 * 0.15));
+            const d3 = Math.round(27100 + (delta_inst3 * 80) + (r3_l2 * 0.10) + (r3_l3 * 0.12) + (r3_l45 * 0.15));
             const dtot = d1 + d2 + d3;
 
             document.getElementById('tb_d1').innerText = '-€ ' + d1.toLocaleString();
@@ -658,6 +695,20 @@
             // scenario e' effettivamente selezionato, non sempre a prescindere.
             const notaIpotesiB = document.getElementById('nota_ipotesi_b');
             if (notaIpotesiB) notaIpotesiB.style.display = (scenario === 'B') ? 'inline' : 'none';
+
+            // Nota condizionale su Investimento Comunitario UE (visibile solo se tier selezionato)
+            const notaUe = document.getElementById('nota_investimento_ue');
+            if (notaUe) {
+                if (invest_ue > 0) {
+                    notaUe.style.display = 'inline';
+                    const lblTier = document.getElementById('lbl_tier_nota');
+                    if (lblTier) {
+                        lblTier.innerText = (invest_ue >= 1000000) ? '€ ' + (invest_ue / 1000000) + '.000.000' : '€ ' + (invest_ue / 1000) + '.000';
+                    }
+                } else {
+                    notaUe.style.display = 'none';
+                }
+            }
 
             document.getElementById('tb_w1').innerText = '-€ ' + w1.toLocaleString();
             document.getElementById('tb_w2').innerText = '-€ ' + w2.toLocaleString();
@@ -744,6 +795,7 @@
 
         function resetDefaults() {
             document.getElementById('sel_scenario').value = 'A';
+            document.getElementById('sel_investimento_ue').value = '0';
             document.getElementById('inp_arpu').value = 450;
             document.getElementById('inp_churn').value = 8;
             document.getElementById('inp_c1').value = 27;
