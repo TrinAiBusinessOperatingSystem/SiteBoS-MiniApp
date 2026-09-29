@@ -132,6 +132,19 @@
                         <input type="text" id="corsi_lead_verification_code" name="corsi_lead_verification_code" tabindex="-1" autocomplete="off">
                     </div>
 
+                    <!-- SCELTA EDIZIONE (OBBLIGATORIA) -->
+                    <div>
+                        <label for="field-edizione" class="corsi-form-label">
+                            Edizione a cui Vuoi Iscriverti <span class="text-red-500">*</span>
+                        </label>
+                        <select id="field-edizione" name="edizione" required class="corsi-form-input">
+                            <option value="" disabled selected>Seleziona un'edizione…</option>
+                            <option value="san_raffaele_webinar">San Raffaele — Webinar (solo odontoiatri)</option>
+                            <option value="cattolica_presenza">Cattolica — In Presenza, Roma (tutte le categorie sanitarie)</option>
+                        </select>
+                        <p id="err-edizione" class="text-xs text-red-600 mt-1 hidden">Seleziona l'edizione a cui vuoi iscriverti.</p>
+                    </div>
+
                     <!-- NOME & COGNOME (2 COLONNE) -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                         <div>
@@ -307,6 +320,7 @@
         const errorMsg = document.getElementById('general-error-msg');
 
         // CAMPI INPUT
+        const inputEdizione = document.getElementById('field-edizione');
         const inputNome = document.getElementById('field-nome');
         const inputCognome = document.getElementById('field-cognome');
         const inputEmail = document.getElementById('field-email');
@@ -317,6 +331,7 @@
         const inputHp = document.getElementById('corsi_lead_verification_code');
 
         // ELEMENTI ERRORE INLINE
+        const errEdizione = document.getElementById('err-edizione');
         const errNome = document.getElementById('err-nome');
         const errCognome = document.getElementById('err-cognome');
         const errEmail = document.getElementById('err-email');
@@ -342,7 +357,7 @@
             submitBtn.classList.toggle('is-loading', isLoading);
 
             // Disabilita/abilita campi
-            const elements = form.querySelectorAll('input, textarea, button');
+            const elements = form.querySelectorAll('input, select, textarea, button');
             elements.forEach(el => {
                 if (el !== submitBtn) el.disabled = isLoading;
             });
@@ -350,6 +365,16 @@
 
         function validateForm() {
             let isValid = true;
+
+            // Edizione
+            if (!inputEdizione.value) {
+                errEdizione.classList.remove('hidden');
+                inputEdizione.classList.add('border-red-400');
+                isValid = false;
+            } else {
+                errEdizione.classList.add('hidden');
+                inputEdizione.classList.remove('border-red-400');
+            }
 
             // Nome
             if (!inputNome.value.trim()) {
@@ -433,15 +458,16 @@
             // COSTRUZIONE PAYLOAD urlencoded:
             // Tassativo Content-Type: application/x-www-form-urlencoded (CORS-safelisted, nessun preflight OPTIONS)
             const payload = new URLSearchParams();
-            payload.append('corso', 'Executive Decision Intelligence in Odontoiatria');
+            payload.append('corso_slug', 'executive_decision_intelligence_odontoiatria');
+            payload.append('edizione', inputEdizione.value);
             payload.append('nome', inputNome.value.trim());
             payload.append('cognome', inputCognome.value.trim());
             payload.append('email', inputEmail.value.trim());
             payload.append('telefono', inputTelefono.value.trim());
             payload.append('struttura', inputStruttura.value.trim());
             payload.append('note', inputNote ? inputNote.value.trim() : '');
-            payload.append('privacy_consent', 'true');
-            payload.append('possible_spam', isHoneypotFilled ? 'true' : 'false');
+            payload.append('consenso_gdpr', 'true');
+            payload.append('corsi_lead_verification_code', isHoneypotFilled ? inputHp.value.trim() : '');
             payload.append('submitted_at', new Date().toISOString());
 
             // TIMEOUT DI RETE TRAMITE ABORTCONTROLLER (PATTERN cda_auth_gate.js)
