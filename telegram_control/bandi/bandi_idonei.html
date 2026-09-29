@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bandi Idonei | Per la Tua Impresa</title>
+
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts & FontAwesome 6 CDN -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif']
+                    },
+                    colors: {
+                        brand: {
+                            dark: '#090d16',
+                            card: '#111827',
+                            accent: '#229ED9'
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        :root {
+            --primary: #090d16;
+            --surface: #111827;
+            --accent: #229ED9;
+            --accent-glow: rgba(34, 158, 217, 0.35);
+            --accent-subtle: rgba(34, 158, 217, 0.12);
+            --border: rgba(255, 255, 255, 0.08);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--primary);
+            color: var(--text-primary);
+            font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            min-height: 100dvh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .glass-card {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+        }
+
+        .glass-card-interactive {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .glass-card-interactive:active {
+            transform: scale(0.98);
+        }
+
+        .bottom-action-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom));
+            background: rgba(9, 13, 22, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-top: 1px solid var(--border);
+            z-index: 100;
+        }
+
+        .nav-item {
+            min-height: 44px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            color: var(--text-secondary);
+            transition: color 0.15s ease, transform 0.15s ease;
+        }
+
+        .nav-item.active {
+            color: var(--accent);
+        }
+
+        .nav-item:active {
+            transform: scale(0.92);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+    </style>
+</head>
+<body class="flex flex-col justify-between select-none">
+
+    <!-- BARRA SUPERIORE INTESTAZIONE -->
+    <header class="sticky top-0 z-40 bg-[#090d16]/90 backdrop-blur-md border-b border-white/5 px-5 py-4">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+                <button onclick="navigateTo('index.html')" aria-label="Torna alla pagina principale" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white active:scale-95 transition">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
+                </button>
+                <div class="w-10 h-10 rounded-2xl bg-[#111827] border border-white/10 flex items-center justify-center text-[#229ED9] shadow-md">
+                    <i class="fa-solid fa-building-circle-check text-base"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-black uppercase tracking-tight text-white leading-none">Bandi Idonei</h1>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">Per la Tua Impresa</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold uppercase tracking-wider">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Attivo
+                </span>
+                <button onclick="closeApp()" aria-label="Chiudi applicazione" class="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white active:scale-95 transition">
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENUTO PRINCIPALE -->
+    <main class="flex-1 max-w-md w-full mx-auto px-5 pt-4 pb-28 space-y-5">
+
+        <!-- INTRODUZIONE ED OBIETTIVO MODULO -->
+        <section class="space-y-1 text-left">
+            <span class="text-[10px] font-black uppercase tracking-widest text-[#229ED9]">Modalità Azienda</span>
+            <h2 class="text-lg font-black tracking-tight text-white uppercase leading-snug">
+                Opportunità di Finanziamento Rilevate
+            </h2>
+            <p class="text-xs text-slate-400 leading-relaxed">
+                Elenco delle agevolazioni pubbliche e dei bandi compatibili con il profilo della tua azienda.
+            </p>
+        </section>
+
+        <!-- STATO 1: CARICAMENTO INIZIALE INTERROGAZIONE BACKEND -->
+        <div id="state-loading" class="glass-card rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-4">
+            <div class="relative w-14 h-14 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-full border-2 border-white/10 border-t-[#229ED9] animate-spin"></div>
+                <i class="fa-solid fa-building-circle-check text-xl text-[#229ED9]"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Ricerca Bandi in Corso</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Interrogazione del catalogo bandi e incrocio dei requisiti con la tua attività d'impresa.
+                </p>
+            </div>
+        </div>
+
+        <!-- STATO 2: ERRORE O MANCANZA AUTENTICAZIONE -->
+        <div id="state-error" class="hidden glass-card rounded-3xl p-6 flex flex-col items-center justify-center text-center space-y-4 border-red-500/20 animate-fade-in">
+            <div class="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Verifica Non Riuscita</h3>
+                <p id="error-message-text" class="text-xs text-slate-400 leading-relaxed">
+                    Si è verificato un errore durante il recupero dei dati.
+                </p>
+            </div>
+            <div class="flex items-center gap-3 w-full pt-2">
+                <button onclick="fetchCompanyGrants()" class="flex-1 h-11 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-[#229ED9] text-white active:scale-95 transition">
+                    <i class="fa-solid fa-rotate-right text-xs"></i>
+                    <span>Riprova</span>
+                </button>
+                <button onclick="navigateTo('index.html')" class="flex-1 h-11 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-slate-300 hover:text-white active:scale-95 transition">
+                    <span>Torna alla Home</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- STATO 3: NESSUN BANDO TROVATO -->
+        <div id="state-empty" class="hidden glass-card rounded-3xl p-8 flex flex-col items-center justify-center text-center space-y-4 animate-fade-in">
+            <div class="w-14 h-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-folder-open text-2xl"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Nessun Bando Trovato</h3>
+                <p class="text-xs text-slate-400 leading-relaxed">
+                    Nessun bando trovato al momento, controlla più tardi.
+                </p>
+            </div>
+            <button onclick="navigateTo('index.html')" class="h-11 px-6 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-white/5 border border-white/10 text-slate-300 hover:text-white active:scale-95 transition mt-2">
+                <span>Torna alla Home</span>
+            </button>
+        </div>
+
+        <!-- STATO 4: CONTENUTO RISULTATI CON DOPPIA SEZIONE -->
+        <div id="state-content" class="hidden space-y-6 animate-fade-in">
+
+            <!-- BANNER RIASSUNTIVO AVVISI GENERALI -->
+            <div id="banner-general-warnings" class="hidden rounded-3xl p-4 bg-amber-500/10 border border-amber-500/25 space-y-2">
+                <div class="flex items-center gap-2 text-amber-400">
+                    <i class="fa-solid fa-triangle-exclamation text-sm"></i>
+                    <h3 class="text-xs font-black uppercase tracking-wider">Profilo Aziendale Incompleto</h3>
+                </div>
+                <p class="text-xs text-amber-200/90 leading-relaxed font-medium">
+                    Il tuo profilo aziendale non ha ancora tutti i dati necessari per un filtro completo, come classificazione ATECO e bilancio aziendale. I risultati nella sezione Da Verificare vanno confermati manualmente.
+                </p>
+            </div>
+
+            <!-- SEZIONE 1: BANDI IDONEI -->
+            <section id="section-qualified" class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <h3 class="text-xs font-black uppercase tracking-wider text-emerald-400">Bandi Idonei</h3>
+                    </div>
+                    <span id="badge-count-qualified" class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] font-black">0</span>
+                </div>
+                <div id="list-qualified" class="space-y-3">
+                    <!-- Card generate dinamicamente -->
+                </div>
+            </section>
+
+            <!-- SEZIONE 2: DA VERIFICARE — PROFILO INCOMPLETO -->
+            <section id="section-potential" class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                        <h3 class="text-xs font-black uppercase tracking-wider text-amber-400">Da Verificare — Profilo Incompleto</h3>
+                    </div>
+                    <span id="badge-count-potential" class="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-black">0</span>
+                </div>
+                <div id="list-potential" class="space-y-3">
+                    <!-- Card generate dinamicamente -->
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <!-- BARRA DI NAVIGAZIONE INFERIORE -->
+    <nav class="bottom-action-bar">
+        <div class="max-w-md mx-auto grid grid-cols-3 gap-2">
+            
+            <!-- VOCE HOME -->
+            <button onclick="navigateTo('index.html')" id="nav-home" class="nav-item">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider">Home</span>
+            </button>
+
+            <!-- VOCE AZIENDA ATTIVA -->
+            <button onclick="handleActiveNavClick()" id="nav-azienda" class="nav-item active">
+                <i class="fa-solid fa-building text-base"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider">Azienda</span>
+            </button>
+
+            <!-- VOCE CONSULENTE -->
+            <button onclick="navigateTo('ricerca_bando.html')" id="nav-consulente" class="nav-item">
+                <i class="fa-solid fa-briefcase text-base"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider">Consulente</span>
+            </button>
+
+        </div>
+    </nav>
+
+    <!-- LOGICA APPLICATIVA E CHIAMATA REALE WEBHOOK -->
+    <script>
+        // 1. Inizializzazione SDK Telegram WebApp
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if (tg) {
+            try {
+                tg.ready();
+                tg.expand();
+                if (tg.setHeaderColor) tg.setHeaderColor('#090d16');
+                if (tg.setBackgroundColor) tg.setBackgroundColor('#090d16');
+                if (tg.BackButton) {
+                    tg.BackButton.show();
+                    tg.BackButton.onClick(function () {
+                        navigateTo('index.html');
+                    });
+                }
+            } catch (e) {
+                console.warn('Inizializzazione Telegram WebApp completata con avvisi:', e);
+            }
+        }
+
+        // 2. Chiusura Applicazione
+        function closeApp() {
+            if (tg && typeof tg.close === 'function') {
+                tg.close();
+            } else {
+                window.close();
+            }
+        }
+
+        // 3. Helper di Navigazione con Conservazione Parametri URL
+        function navigateTo(targetPage) {
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+            const currentSearch = window.location.search;
+            window.location.href = targetPage + currentSearch;
+        }
+
+        function handleActiveNavClick() {
+            if (tg && tg.HapticFeedback) {
+                tg.HapticFeedback.impactOccurred('light');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // 4. Mappatura Codici Avviso in Etichette Leggibili in Italiano
+        const WARNING_LABELS = {
+            'ateco_non_verificato': 'Classificazione ATECO non verificata',
+            'bilancio_non_verificato': 'Bilancio aziendale non verificato',
+            'geografia_non_verificata': 'Localizzazione geografica non verificata',
+            'dimensione_non_verificata': 'Dimensione aziendale non verificata',
+            'forma_giuridica_non_verificata': 'Forma giuridica non verificata'
+        };
+
+        function getWarningLabel(code) {
+            if (!code) return 'Verifica camerale necessaria';
+            const clean = String(code).trim().replace(/[()\[\]]/g, '');
+            if (WARNING_LABELS[clean]) {
+                return WARNING_LABELS[clean];
+            }
+            const spaced = clean.replace(/_/g, ' ');
+            return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+        }
+
+        // 5. Utility di Formattazione Date e Dati
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function formatDeadline(rawDate) {
+            if (!rawDate) return 'A sportello continuo';
+            if (typeof rawDate === 'string' && rawDate.trim() === '') return 'A sportello continuo';
+
+            const months = [
+                'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+                'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+            ];
+
+            if (typeof rawDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(rawDate)) {
+                const parts = rawDate.slice(0, 10).split('-');
+                const year = parseInt(parts[0], 10);
+                const monthIndex = parseInt(parts[1], 10) - 1;
+                const day = parseInt(parts[2], 10);
+                if (monthIndex >= 0 && monthIndex < 12) {
+                    return day + ' ' + months[monthIndex] + ' ' + year;
+                }
+            }
+
+            const dateObj = new Date(rawDate);
+            if (isNaN(dateObj.getTime())) return 'A sportello continuo';
+
+            const day = dateObj.getDate();
+            const month = months[dateObj.getMonth()];
+            const year = dateObj.getFullYear();
+            return day + ' ' + month + ' ' + year;
+        }
+
+        function formatScore(score) {
+            if (typeof score === 'number' && !isNaN(score)) {
+                return Number.isInteger(score) ? score.toString() : score.toFixed(1);
+            }
+            if (typeof score === 'string' && score.trim() !== '') {
+                const num = parseFloat(score);
+                if (!isNaN(num)) {
+                    return Number.isInteger(num) ? num.toString() : num.toFixed(1);
+                }
+                return score.replace(/[()\[\]]/g, '');
+            }
+            return 'Non disponibile';
+        }
+
+        function extractJustification(llmAdjudication) {
+            if (!llmAdjudication) return null;
+            let text = '';
+            if (typeof llmAdjudication === 'string') {
+                text = llmAdjudication;
+            } else if (typeof llmAdjudication === 'object') {
+                if (llmAdjudication.justification) {
+                    text = llmAdjudication.justification;
+                } else if (llmAdjudication.verdict && llmAdjudication.verdict.justification) {
+                    text = llmAdjudication.verdict.justification;
+                } else if (llmAdjudication.verdict && llmAdjudication.verdict.reason) {
+                    text = llmAdjudication.verdict.reason;
+                } else if (llmAdjudication.reason) {
+                    text = llmAdjudication.reason;
+                }
+            }
+            if (!text || typeof text !== 'string') return null;
+            const cleanText = text.replace(/[()\[\]]/g, '').trim();
+            return cleanText || null;
+        }
+
+        // 6. Template HTML per le Card dei Bandi
+        function createQualifiedCardHtml(grant) {
+            const justification = extractJustification(grant.llm_adjudication);
+            const justificationHtml = justification ? `
+                <div class="mt-2 p-3 rounded-2xl bg-emerald-950/25 border border-emerald-500/20 text-[11px] text-slate-300 italic leading-relaxed">
+                    <div class="not-italic font-bold text-[10px] uppercase tracking-wider text-emerald-400 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-brain text-[10px]"></i>
+                        <span>Motivazione del Modello</span>
+                    </div>
+                    "${escapeHtml(justification)}"
+                </div>
+            ` : '';
+
+            return `
+                <article class="glass-card-interactive rounded-3xl p-5 border-emerald-500/30 hover:border-emerald-500/50 space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-emerald-400 leading-tight">
+                            ${escapeHtml(grant.issuing_body || 'Ente Erogatore')}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[10px] font-black shrink-0">
+                            <i class="fa-solid fa-star text-[9px] text-emerald-400"></i>
+                            <span>Punteggio ${formatScore(grant.score)}</span>
+                        </span>
+                    </div>
+
+                    <h4 class="text-sm font-black text-white uppercase tracking-tight leading-snug">
+                        ${escapeHtml(grant.title || 'Bando di Finanziamento')}
+                    </h4>
+
+                    <div class="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-300">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-regular fa-calendar text-emerald-400 text-xs"></i>
+                            <span class="text-slate-400">Scadenza:</span>
+                            <span class="font-bold text-white">${escapeHtml(formatDeadline(grant.deadline))}</span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 uppercase tracking-wider">
+                            <i class="fa-solid fa-circle-check text-[10px]"></i>
+                            Idoneo
+                        </span>
+                    </div>
+
+                    ${justificationHtml}
+                </article>
+            `;
+        }
+
+        function createPotentialCardHtml(grant) {
+            const warnings = Array.isArray(grant.warnings) ? grant.warnings : [];
+            const warningBadgesHtml = warnings.length > 0 ? warnings.map(function (w) {
+                return `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[10px] font-bold">
+                        <i class="fa-solid fa-triangle-exclamation text-[9px] text-amber-400"></i>
+                        ${escapeHtml(getWarningLabel(w))}
+                    </span>
+                `;
+            }).join('') : `
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[10px] font-bold">
+                    <i class="fa-solid fa-triangle-exclamation text-[9px] text-amber-400"></i>
+                    Dati aziendali da verificare
+                </span>
+            `;
+
+            const justification = extractJustification(grant.llm_adjudication);
+            const justificationHtml = justification ? `
+                <div class="mt-2 p-3 rounded-2xl bg-amber-950/25 border border-amber-500/20 text-[11px] text-slate-300 italic leading-relaxed">
+                    <div class="not-italic font-bold text-[10px] uppercase tracking-wider text-amber-400 mb-1 flex items-center gap-1.5">
+                        <i class="fa-solid fa-brain text-[10px]"></i>
+                        <span>Motivazione del Modello</span>
+                    </div>
+                    "${escapeHtml(justification)}"
+                </div>
+            ` : '';
+
+            return `
+                <article class="glass-card-interactive rounded-3xl p-5 border-amber-500/30 hover:border-amber-500/50 space-y-3">
+                    <div class="flex items-start justify-between gap-2">
+                        <span class="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 leading-tight">
+                            ${escapeHtml(grant.issuing_body || 'Ente Erogatore')}
+                        </span>
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[10px] font-black shrink-0">
+                            <i class="fa-solid fa-star text-[9px] text-amber-400"></i>
+                            <span>Punteggio ${formatScore(grant.score)}</span>
+                        </span>
+                    </div>
+
+                    <h4 class="text-sm font-black text-white uppercase tracking-tight leading-snug">
+                        ${escapeHtml(grant.title || 'Bando di Finanziamento')}
+                    </h4>
+
+                    <div class="space-y-1 pt-1">
+                        <span class="text-[9px] font-bold uppercase tracking-wider text-amber-400/80">Requisiti da verificare:</span>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${warningBadgesHtml}
+                        </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-white/5 flex items-center justify-between text-xs text-slate-300">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-regular fa-calendar text-amber-400 text-xs"></i>
+                            <span class="text-slate-400">Scadenza:</span>
+                            <span class="font-bold text-white">${escapeHtml(formatDeadline(grant.deadline))}</span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 uppercase tracking-wider">
+                            <i class="fa-solid fa-clock-rotate-left text-[10px]"></i>
+                            Da Confermare
+                        </span>
+                    </div>
+
+                    ${justificationHtml}
+                </article>
+            `;
+        }
+
+        // 7. Chiamata Reale Webhook Backend di Produzione
+        async function fetchCompanyGrants() {
+            const stateLoading = document.getElementById('state-loading');
+            const stateContent = document.getElementById('state-content');
+            const stateError = document.getElementById('state-error');
+            const stateEmpty = document.getElementById('state-empty');
+            const errorMessageText = document.getElementById('error-message-text');
+
+            if (stateLoading) stateLoading.classList.remove('hidden');
+            if (stateContent) stateContent.classList.add('hidden');
+            if (stateError) stateError.classList.add('hidden');
+            if (stateEmpty) stateEmpty.classList.add('hidden');
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const authData = (tg && tg.initData) ? tg.initData : (urlParams.get('_auth') || urlParams.get('tgWebAppData') || '');
+            const ashToken = urlParams.get('ash') || '';
+
+            if (!authData) {
+                if (stateLoading) stateLoading.classList.add('hidden');
+                if (errorMessageText) {
+                    errorMessageText.textContent = 'Dati di autenticazione Telegram non disponibili. Apri questa pagina all\'interno dell\'applicazione Telegram di SiteBoS per verificare la tua azienda.';
+                }
+                if (stateError) stateError.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const payload = {
+                    _auth: authData,
+                    action: 'search_grants_for_company'
+                };
+                if (ashToken) {
+                    payload.ash = ashToken;
+                }
+
+                const response = await fetch('https://prod.workflow.trinai.it/webhook/sitebos-bandi-matching', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                let data = null;
+                try {
+                    data = await response.json();
+                } catch (jsonErr) {
+                    console.warn('Impossibile decodificare la risposta JSON del server:', jsonErr);
+                }
+
+                if (!response.ok) {
+                    const serverError = (data && data.error) ? data.error : ('Errore del server con codice di stato ' + response.status);
+                    throw new Error(serverError);
+                }
+
+                if (!data || data.success !== true) {
+                    const serverError = (data && data.error) ? data.error : 'Risposta non valida ricevuta dal server.';
+                    throw new Error(serverError);
+                }
+
+                renderGrants(data);
+
+            } catch (err) {
+                console.error('Errore durante il recupero dei bandi:', err);
+                if (stateLoading) stateLoading.classList.add('hidden');
+                if (errorMessageText) {
+                    const cleanMessage = (err && err.message) ? err.message.replace(/[()\[\]]/g, '') : 'Si è verificato un errore durante la connessione con il server.';
+                    errorMessageText.textContent = cleanMessage;
+                }
+                if (stateError) stateError.classList.remove('hidden');
+            }
+        }
+
+        // 8. Rendering Risultati
+        function renderGrants(data) {
+            const stateLoading = document.getElementById('state-loading');
+            const stateContent = document.getElementById('state-content');
+            const stateEmpty = document.getElementById('state-empty');
+            const stateError = document.getElementById('state-error');
+
+            const qualifiedGrants = Array.isArray(data.qualified_grants) ? data.qualified_grants : [];
+            const potentialGrants = Array.isArray(data.potentially_eligible_grants) ? data.potentially_eligible_grants : [];
+            const generalWarnings = Array.isArray(data.warnings) ? data.warnings : [];
+
+            if (stateLoading) stateLoading.classList.add('hidden');
+            if (stateError) stateError.classList.add('hidden');
+
+            if (qualifiedGrants.length === 0 && potentialGrants.length === 0) {
+                if (stateEmpty) stateEmpty.classList.remove('hidden');
+                if (stateContent) stateContent.classList.add('hidden');
+                return;
+            }
+
+            if (stateEmpty) stateEmpty.classList.add('hidden');
+            if (stateContent) stateContent.classList.remove('hidden');
+
+            const banner = document.getElementById('banner-general-warnings');
+            if (banner) {
+                if (generalWarnings.length > 0) {
+                    banner.classList.remove('hidden');
+                } else {
+                    banner.classList.add('hidden');
+                }
+            }
+
+            const listQualified = document.getElementById('list-qualified');
+            const countQualified = document.getElementById('badge-count-qualified');
+            if (countQualified) {
+                countQualified.textContent = qualifiedGrants.length.toString();
+            }
+            if (listQualified) {
+                if (qualifiedGrants.length === 0) {
+                    listQualified.innerHTML = `
+                        <div class="glass-card rounded-2xl p-4 text-center text-xs text-slate-400">
+                            Nessun bando idoneo con dati completi rilevato al momento.
+                        </div>
+                    `;
+                } else {
+                    listQualified.innerHTML = qualifiedGrants.map(createQualifiedCardHtml).join('');
+                }
+            }
+
+            const listPotential = document.getElementById('list-potential');
+            const countPotential = document.getElementById('badge-count-potential');
+            if (countPotential) {
+                countPotential.textContent = potentialGrants.length.toString();
+            }
+            if (listPotential) {
+                if (potentialGrants.length === 0) {
+                    listPotential.innerHTML = `
+                        <div class="glass-card rounded-2xl p-4 text-center text-xs text-slate-400">
+                            Nessun bando da verificare con profilo incompleto.
+                        </div>
+                    `;
+                } else {
+                    listPotential.innerHTML = potentialGrants.map(createPotentialCardHtml).join('');
+                }
+            }
+        }
+
+        // 9. Esecuzione al Caricamento della Pagina
+        window.addEventListener('DOMContentLoaded', function () {
+            fetchCompanyGrants();
+        });
+    </script>
+</body>
+</html>
