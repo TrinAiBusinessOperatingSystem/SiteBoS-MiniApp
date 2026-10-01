@@ -170,6 +170,12 @@
                         <input type="text" id="corsi_lead_verification_code" name="corsi_lead_verification_code" tabindex="-1" autocomplete="off">
                     </div>
 
+                    <!-- AVVISO: richiesta gia' inviata da questo dispositivo (cookie tecnico anti-abuso, 180 giorni) -->
+                    <div id="already-sent-notice" class="hidden rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-xs text-amber-900 leading-relaxed" role="status">
+                        <i class="fas fa-circle-info text-amber-600 mr-1"></i>
+                        Da questo dispositivo risulta già inviata una richiesta il <strong id="already-sent-date"></strong>. Se devi inviarne un'altra (ad esempio per un collega) puoi procedere; per correggere una richiesta già inviata scrivi a <a href="mailto:info@arianto.it" class="underline font-semibold">info@arianto.it</a>.
+                    </div>
+
                     <!-- SCELTA EDIZIONE (OBBLIGATORIA) -->
                     <div>
                         <div class="flex items-center justify-between mb-1">
@@ -371,6 +377,31 @@
 
         const REQUEST_TIMEOUT_MS = 15000;
 
+        // COOKIE TECNICO ANTI-ABUSO: contiene solo l'istante dell'ultimo invio (nessun dato personale).
+        // Durata 180 giorni; blocca il reinvio entro 10 minuti, dopo mostra solo un avviso.
+        const SENT_COOKIE = 'corsi_richiesta_inviata';
+        const SENT_COOKIE_DAYS = 180;
+        const SENT_BLOCK_MINUTES = 10;
+
+        function readSentCookie() {
+            const m = document.cookie.match(new RegExp('(?:^|; )' + SENT_COOKIE + '=([0-9]+)'));
+            return m ? parseInt(m[1], 10) : null;
+        }
+
+        function writeSentCookie() {
+            document.cookie = SENT_COOKIE + '=' + Date.now() + '; Max-Age=' + (SENT_COOKIE_DAYS * 86400) +
+                '; Path=/; SameSite=Lax' + (location.protocol === 'https:' ? '; Secure' : '');
+        }
+
+        (function showAlreadySentNotice() {
+            const sentAt = readSentCookie();
+            const box = document.getElementById('already-sent-notice');
+            if (sentAt && box) {
+                document.getElementById('already-sent-date').textContent = new Date(sentAt).toLocaleDateString('it-IT');
+                box.classList.remove('hidden');
+            }
+        })();
+
         // ELEMENTI DOM
         const form = document.getElementById('iscrizione-form');
         const successView = document.getElementById('success-view');
@@ -506,6 +537,12 @@
                 return;
             }
 
+            const lastSentAt = readSentCookie();
+            if (lastSentAt && (Date.now() - lastSentAt) < SENT_BLOCK_MINUTES * 60 * 1000) {
+                showGeneralError("Da questo dispositivo hai già inviato una richiesta pochi minuti fa. Attendi qualche minuto prima di inviarne un'altra.");
+                return;
+            }
+
             setLoading(true);
 
             // REGOLA SICUREZZA HONEYPOT:
@@ -531,6 +568,7 @@
             payload.append('segreteria_destinatario', 'info@arianto.it');
             payload.append('corsi_lead_verification_code', isHoneypotFilled ? inputHp.value.trim() : '');
             payload.append('submitted_at', new Date().toISOString());
+            payload.append('compilazione_ms', String(Math.round(performance.now())));
 
             // TIMEOUT DI RETE TRAMITE ABORTCONTROLLER (PATTERN cda_auth_gate.js)
             const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -561,6 +599,12 @@
 
                 clearTimeout(timeoutId);
 
+                if (response.status === 429) {
+                    setLoading(false);
+                    showGeneralError('Ci sono troppe richieste in questo momento. Riprova tra qualche minuto o scrivi a info@arianto.it.');
+                    return;
+                }
+
                 if (!response.ok) {
                     throw new Error(`Risposta server non valida (HTTP ${response.status})`);
                 }
@@ -582,6 +626,7 @@
         });
 
         function showSuccess() {
+            writeSentCookie();
             setLoading(false);
             form.classList.add('hidden');
             successView.classList.remove('hidden');
