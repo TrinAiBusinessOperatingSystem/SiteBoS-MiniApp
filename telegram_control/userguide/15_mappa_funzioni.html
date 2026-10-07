@@ -59,6 +59,69 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        @media print {
+            body {
+                overflow: visible !important;
+                height: auto !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            #network-graph-container-wrapper,
+            #node-drawer,
+            .z-30,
+            .fixed,
+            .cluster-btn,
+            #btn-toggle-3d {
+                display: none !important;
+            }
+            #print-container {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 12mm 10mm;
+            }
+            .print-page-break {
+                page-break-after: always;
+            }
+            .print-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            html, body {
+                display: block !important;
+                min-height: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            #print-container img {
+                display: block;
+                max-width: none;
+            }
+            #print-container h2,
+            #print-container h3 {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+            #print-container table {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            #print-container tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 
@@ -81,10 +144,16 @@
             </a>
         </div>
 
-        <button onclick="resetGraphView()"
-            class="text-xs font-black uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
-            <i class="fas fa-expand"></i> Reset
-        </button>
+        <div class="flex items-center gap-2">
+            <button onclick="printFunctionsList()" id="btn-print-pdf" title="Stampa o Salva PDF Lista Completa Funzioni"
+                class="px-2.5 py-1 rounded-full bg-slate-900 text-white font-black text-[9px] uppercase tracking-wider shadow-sm hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer">
+                <i class="fas fa-file-pdf text-xs text-rose-400"></i> Stampa PDF
+            </button>
+            <button onclick="resetGraphView()"
+                class="text-xs font-black uppercase tracking-wider text-gray-500 hover:text-black transition-colors">
+                <i class="fas fa-expand"></i> Reset
+            </button>
+        </div>
     </div>
 
     <!-- LATERAL FLOATING ROUND BUTTONS SIDEBAR (TASTI TONDI CON MULTI-SELECT DINAMICA) -->
@@ -1316,6 +1385,180 @@
             startJarvisSphereMode();
         }
 
+        function printFunctionsList() {
+            const printBox = document.getElementById('print-container');
+            if (!printBox) return;
+
+            const clusters = [
+                {
+                    key: 'OWNER',
+                    name: 'Titolare (Imprenditore / Owner & Governance)',
+                    icon: 'fa-crown',
+                    color: '#0f172a',
+                    badgeBg: '#0f172a',
+                    badgeText: '#ffffff',
+                    badgeLabel: 'OWNER / DIREZIONE'
+                },
+                {
+                    key: 'OPERATOR',
+                    name: 'Staff & Operatori (Team & Execution)',
+                    icon: 'fa-user-tie',
+                    color: '#334155',
+                    badgeBg: '#334155',
+                    badgeText: '#ffffff',
+                    badgeLabel: 'STAFF OPERATORI'
+                },
+                {
+                    key: 'CUSTOMER',
+                    name: 'Cliente (Customer Experience & Gamification)',
+                    icon: 'fa-user',
+                    color: '#16a34a',
+                    badgeBg: '#15803d',
+                    badgeText: '#ffffff',
+                    badgeLabel: 'CLIENTE TWA'
+                },
+                {
+                    key: 'AI',
+                    name: 'SiTeBoS Engine & Automazioni AI',
+                    icon: 'fa-gears',
+                    color: '#1d4ed8',
+                    badgeBg: '#1e40af',
+                    badgeText: '#ffffff',
+                    badgeLabel: 'AI ENGINE'
+                }
+            ];
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+            const sectionsHtml = clusters.map(c => {
+                const items = rawNodes.filter(n => {
+                    if (c.key === 'AI') {
+                        return n.isAI || n.cluster === 'AI';
+                    }
+                    if (n.isAI || n.cluster === 'AI') return false;
+                    return n.cluster === c.key;
+                });
+
+                const itemsRows = items.map((item, idx) => {
+                    const isHub = item.id.startsWith('HUB_');
+                    const label = item.name || item.title || item.label || item.id;
+                    const desc = item.desc || 'Nessuna descrizione disponibile.';
+                    const iconClass = item.faClass || 'fas fa-cube';
+                    const isAI = item.isAI || item.cluster === 'AI';
+
+                    return `
+                    <div class="print-card border border-slate-300 rounded-lg p-3.5 mb-2.5 bg-white" style="page-break-inside: avoid;">
+                        <div class="flex items-start gap-3">
+                            <span class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-800 text-sm shrink-0 border border-slate-200 mt-0.5">
+                                <i class="${iconClass}"></i>
+                            </span>
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <h4 class="text-sm font-bold text-slate-900 tracking-tight">${idx + 1}. ${label}</h4>
+                                    ${isHub ? '<span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">HUB PRINCIPALE</span>' : ''}
+                                    ${isAI ? '<span class="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-blue-100 text-blue-900 border border-blue-300">AI ENGINE</span>' : ''}
+                                </div>
+                                <p class="text-xs text-slate-700 mt-1 leading-relaxed">${desc}</p>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+
+                return `
+                <div class="mb-6">
+                    <div class="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fas ${c.icon} text-slate-900 text-sm"></i>
+                            <h3 class="text-sm font-black uppercase tracking-wider text-slate-900">${c.name}</h3>
+                        </div>
+                        <span class="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-full">${items.length} Moduli</span>
+                    </div>
+                    <div>
+                        ${itemsRows}
+                    </div>
+                </div>
+                `;
+            }).join('');
+
+            printBox.innerHTML = `
+            <div class="p-6 max-w-4xl mx-auto font-sans text-slate-900 bg-white">
+                <!-- HEADER STAMPA ISTITUZIONALE TRINAI & SITEBOS -->
+                <div class="border-b-2 border-slate-900 pb-4 mb-5 flex items-start justify-between">
+                    <div class="flex items-center gap-4">
+                        <img src="../dashboard/TrinAi_Logo.jpg" alt="TrinAI Logo" style="width:56px;height:56px;" class="rounded-2xl object-cover border border-slate-300 shrink-0">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs font-black uppercase tracking-widest px-2.5 py-0.5 bg-slate-900 text-white rounded">SiTeBoS</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Behavioral Business Operating System</span>
+                            </div>
+                            <h1 class="text-xl font-extrabold uppercase tracking-tight text-slate-900">Mappa Completa delle Funzioni & Moduli</h1>
+                            <p class="text-xs text-slate-600 mt-0.5">Knowledge Graph & Catalogo Funzionale dell'Ecosistema Phygital</p>
+                        </div>
+                    </div>
+                    <div class="text-right text-[11px] leading-relaxed text-slate-700">
+                        <div class="font-extrabold text-slate-900 text-xs">TrinAI S.r.l.</div>
+                        <div class="text-[10px] text-slate-600">Trinacria Artificial Intelligence S.r.l.</div>
+                        <div class="font-semibold text-slate-800">Startup Innovativa · P.IVA / C.F. 07335120825</div>
+                        <div>Via Giuseppe De Spuches, 11 · 90141 Palermo (PA)</div>
+                        <div class="text-slate-600 font-medium">www.trinai.it · info@trinai.it</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Data: ${dateStr} ore ${timeStr}</div>
+                    </div>
+                </div>
+
+                <!-- SOMMARIO STATISTICHE CLUSTER -->
+                <div class="grid grid-cols-4 gap-3 mb-6" style="page-break-inside: avoid;">
+                    <div class="border border-slate-300 rounded p-2.5 text-center bg-slate-50">
+                        <span class="block text-[10px] font-black uppercase text-slate-500">Titolare (Owner)</span>
+                        <span class="text-base font-black text-slate-900">${rawNodes.filter(n => n.cluster === 'OWNER' && !n.isAI).length}</span>
+                    </div>
+                    <div class="border border-slate-300 rounded p-2.5 text-center bg-slate-50">
+                        <span class="block text-[10px] font-black uppercase text-slate-500">Staff Operatori</span>
+                        <span class="text-base font-black text-slate-900">${rawNodes.filter(n => n.cluster === 'OPERATOR').length}</span>
+                    </div>
+                    <div class="border border-slate-300 rounded p-2.5 text-center bg-slate-50">
+                        <span class="block text-[10px] font-black uppercase text-slate-500">Cliente (Customer)</span>
+                        <span class="text-base font-black text-slate-900">${rawNodes.filter(n => n.cluster === 'CUSTOMER').length}</span>
+                    </div>
+                    <div class="border border-slate-300 rounded p-2.5 text-center bg-slate-50">
+                        <span class="block text-[10px] font-black uppercase text-slate-500">SiTeBoS Engine & AI</span>
+                        <span class="text-base font-black text-slate-900">${rawNodes.filter(n => n.isAI || n.cluster === 'AI').length}</span>
+                    </div>
+                </div>
+
+                <!-- SEZIONI FUNZIONI -->
+                ${sectionsHtml}
+
+                <!-- FOOTER STAMPA ISTITUZIONALE TRINAI -->
+                <div class="border-t-2 border-slate-900 pt-3 mt-6 flex justify-between items-center text-[10px] text-slate-600" style="page-break-inside: avoid;">
+                    <div>
+                        <strong class="text-slate-900">TrinAI S.r.l.</strong> (Trinacria Artificial Intelligence S.r.l.) · P.IVA / C.F. 07335120825 · Sede Legale: Via Giuseppe De Spuches, 11, 90141 Palermo (PA)
+                    </div>
+                    <div class="font-bold text-slate-900">
+                        SiTeBoS Platform · www.trinai.it
+                    </div>
+                </div>
+            </div>
+            `;
+
+            stampaDopoCaricamentoImmagini(printBox);
+        }
+
+        // Attende il caricamento di loghi e immagini prima di aprire la finestra di stampa
+        function stampaDopoCaricamentoImmagini(contenitore) {
+            const immagini = Array.from(contenitore.querySelectorAll('img'));
+            const attese = immagini.map(img => (img.complete && img.naturalWidth > 0)
+                ? Promise.resolve()
+                : new Promise(risolvi => { img.onload = risolvi; img.onerror = risolvi; }));
+            const limite = new Promise(risolvi => setTimeout(risolvi, 4000));
+            Promise.race([Promise.all(attese), limite]).then(() => {
+                const fontPronti = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+                fontPronti.then(() => setTimeout(() => window.print(), 150));
+            });
+        }
+
         window.onload = function () {
             if (document.fonts && document.fonts.load) {
                 Promise.all([
@@ -1331,6 +1574,9 @@
             }
         };
     </script>
+
+    <!-- CONTENITORE STAMPA / PDF NASCOSTO SU SCHERMO E VISIBILE ESCLUSIVAMENTE SU @MEDIA PRINT -->
+    <div id="print-container" class="hidden"></div>
 </body>
 
 </html>

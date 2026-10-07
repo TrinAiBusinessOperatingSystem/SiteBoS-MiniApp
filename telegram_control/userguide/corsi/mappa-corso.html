@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Mappa del Corso &middot; Executive Decision Intelligence in Management Extra Clinico</title>
+
+    <!-- Tailwind CSS locale -->
+    <script src="vendor/tailwindcss-3.4.17.js"></script>
+
+    <!-- Font e icone locali -->
+    <link rel="stylesheet" href="vendor/fonts.css">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
+
+    <!-- Vis-Network per il grafo interattivo -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <link rel="icon" type="image/svg+xml" href="assets/logo-edi.svg">
+    <link rel="stylesheet" href="corsi_theme.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#091322',
+                        navy: '#0f2b48',
+                        accent: '#2563eb',
+                        surface: '#ffffff',
+                        border: '#e2e8f0'
+                    },
+                    borderRadius: { '3xl': '1.5rem', '4xl': '2rem' }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f8fafc;
+            color: #091322;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #network-graph-container {
+            width: 100vw;
+            height: calc(100vh - 65px);
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        #network-graph {
+            width: 100%;
+            height: 100%;
+            background: #f8fafc;
+        }
+
+        .floating-card {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+
+        .floating-card.closed {
+            transform: translateX(120%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @media print {
+            body {
+                overflow: visible !important;
+                height: auto !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            #network-graph-container-wrapper,
+            #node-drawer,
+            .screen-only,
+            nav,
+            .fixed {
+                display: none !important;
+            }
+            #print-container {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                color: #000000 !important;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 12mm 12mm;
+            }
+            .print-page-break {
+                page-break-after: always;
+            }
+            .print-card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            html, body {
+                display: block !important;
+                min-height: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            #print-container img {
+                display: block;
+                max-width: none;
+            }
+            #print-container h2,
+            #print-container h3 {
+                break-after: avoid;
+                page-break-after: avoid;
+            }
+            #print-container table {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            #print-container tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body class="safe-area-inset min-h-screen flex flex-col justify-between select-none bg-[#f8fafc]">
+
+    <!-- TOP HEADER ISTITUZIONALE -->
+    <header class="screen-only z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center justify-between shadow-xs">
+        <div class="flex items-center gap-3">
+            <a href="index.html" class="flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-slate-900 transition-colors">
+                <i class="fas fa-arrow-left"></i>
+                <span class="hidden sm:inline">Torna al Corso</span>
+            </a>
+            <span class="h-4 w-px bg-slate-200"></span>
+            <div class="flex items-center gap-2">
+                <img src="assets/logo-edi.svg" alt="EDI Logo" class="w-6 h-6">
+                <span class="text-xs font-black uppercase tracking-tight text-slate-900">Mappa Didattica &middot; Executive Decision Intelligence</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+            <button onclick="printCoursePDF()" id="btn-print-pdf" title="Stampa o Salva PDF Completo del Corso"
+                class="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-black text-xs uppercase tracking-wider shadow-sm hover:bg-slate-800 transition-all flex items-center gap-1.5 cursor-pointer">
+                <i class="fas fa-file-pdf text-xs text-rose-400"></i> Stampa PDF Corso
+            </button>
+            <button onclick="resetGraphView()" title="Ripristina Inquadratura"
+                class="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 transition-colors">
+                <i class="fas fa-expand mr-1"></i> Reset
+            </button>
+        </div>
+    </header>
+
+    <!-- SIDEBAR BOTTONI FILTRO CLUSTER -->
+    <div class="screen-only fixed top-20 left-4 z-40 flex flex-col gap-2.5 bg-white/90 backdrop-blur-xl p-2 rounded-2xl border border-slate-200 shadow-xl">
+        <button onclick="toggleCluster('HUB')" id="btn-cluster-HUB" title="Filtra Corso Core"
+            class="cluster-btn active w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all shadow-xs bg-slate-900 text-white ring-2 ring-slate-900">
+            <i class="fas fa-graduation-cap text-xs"></i>
+            <span class="text-[6.5px] font-black uppercase mt-0.5">Corso</span>
+        </button>
+
+        <button onclick="toggleCluster('PARTNER')" id="btn-cluster-PARTNER" title="Filtra Atenei & Partner"
+            class="cluster-btn active w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all shadow-xs bg-slate-900 text-white ring-2 ring-slate-900">
+            <i class="fas fa-university text-xs"></i>
+            <span class="text-[6.5px] font-black uppercase mt-0.5">Atenei</span>
+        </button>
+
+        <button onclick="toggleCluster('PILASTR')" id="btn-cluster-PILASTR" title="Filtra I 4 Pilastri Didattici"
+            class="cluster-btn active w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all shadow-xs bg-slate-900 text-white ring-2 ring-slate-900">
+            <i class="fas fa-cubes-stacked text-xs"></i>
+            <span class="text-[6.5px] font-black uppercase mt-0.5">Pilastri</span>
+        </button>
+
+        <button onclick="toggleCluster('AGENT')" id="btn-cluster-AGENT" title="Filtra Le 12 Funzioni Clinic Agent"
+            class="cluster-btn active w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all shadow-xs bg-slate-900 text-white ring-2 ring-slate-900">
+            <i class="fas fa-robot text-xs"></i>
+            <span class="text-[6.5px] font-black uppercase mt-0.5">Agent 12</span>
+        </button>
+
+        <button onclick="toggleCluster('DELIVER')" id="btn-cluster-DELIVER" title="Filtra Requisiti & Deliverables"
+            class="cluster-btn active w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all shadow-xs bg-slate-900 text-white ring-2 ring-slate-900">
+            <i class="fas fa-box-open text-xs"></i>
+            <span class="text-[6.5px] font-black uppercase mt-0.5">Kit & Req</span>
+        </button>
+
+        <div class="w-6 h-[1px] bg-slate-200 mx-auto my-0.5"></div>
+
+        <button onclick="resetAllClusters()" title="Mostra Tutto"
+            class="w-10 h-10 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-900 hover:text-white text-slate-700 transition-all shadow-xs">
+            <i class="fas fa-rotate text-xs"></i>
+        </button>
+    </div>
+
+    <!-- CANVAS VIS-NETWORK -->
+    <div class="relative flex-1 w-full h-full" id="network-graph-container-wrapper">
+        <div id="network-graph-container" class="w-full h-full">
+            <div id="network-graph"></div>
+        </div>
+
+        <div class="screen-only absolute top-3 left-20 z-10 pointer-events-none opacity-90">
+            <p class="text-[10px] font-bold text-slate-700 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-xs">
+                <i class="fas fa-circle-info mr-1.5 text-blue-600"></i> Clicca su un nodo per visualizzare i dettagli didattici nel pannello
+            </p>
+        </div>
+    </div>
+
+    <!-- DRAWER LATERALE DETTAGLIO NODO -->
+    <div id="node-drawer"
+        class="screen-only floating-card closed fixed top-16 right-4 z-50 w-[360px] sm:w-[420px] max-h-[calc(100vh-80px)] flex flex-col bg-white/95 backdrop-blur-2xl rounded-2xl border border-slate-200 shadow-2xl overflow-hidden">
+        
+        <div class="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2 overflow-hidden">
+                <span id="drawer-badge"
+                    class="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-slate-900 text-white shrink-0">CLUSTER</span>
+                <h3 id="drawer-title" class="text-xs font-black text-slate-900 uppercase tracking-tight truncate">Nome Nodo</h3>
+            </div>
+            <button onclick="closeDrawer()" title="Chiudi"
+                class="text-slate-400 hover:text-slate-900 p-1 text-sm rounded-lg hover:bg-slate-100 transition-colors">
+                <i class="fas fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="p-5 overflow-y-auto space-y-4 text-xs text-slate-700">
+            <p id="drawer-desc" class="leading-relaxed text-sm text-slate-800 font-medium"></p>
+            
+            <div id="drawer-extra" class="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-2">
+                <!-- Dettagli supplementari iniettati dinamicamente -->
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <a id="drawer-link" href="index.html" class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline">
+                    <span>Approfondisci sul Corso</span> <i class="fas fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- CONTENITORE STAMPA PDF DEDICATO (A4) -->
+    <div id="print-container" class="hidden"></div>
+
+    <script>
+        let network = null;
+        let nodesDataset = null;
+        let edgesDataset = null;
+
+        // DEFINIZIONE NODI DEL CORSO
+        const courseNodes = [
+            // HUB CENTRALE
+            { 
+                id: 'HUB_CORSO', 
+                faIcon: '\uf19d', 
+                faClass: 'fa-solid fa-graduation-cap', 
+                name: 'Executive Decision Intelligence in Management Extra Clinico', 
+                cluster: 'HUB',
+                color: '#0f172a',
+                desc: 'Modulo accademico intensivo accreditato per titolari di cliniche, direttori sanitari e practice manager. Modellazione predittiva, stress-test economico e generazione di strumenti decisionali con agenti AI avanzati.',
+                extra: 'Durata: 1 giornata intensiva (8 ore) &middot; Target: Titolari e Direttori Sanitari &middot; San Raffaele Milano & Cattolica Roma.'
+            },
+
+            // CLUSTER ATENEI & PARTNER
+            {
+                id: 'unisr',
+                faIcon: '\uf19c',
+                faClass: 'fa-solid fa-building-columns',
+                name: 'Uni. Vita-Salute San Raffaele, Milano',
+                cluster: 'PARTNER',
+                color: '#2563eb',
+                desc: 'XI Edizione del Post Graduate di Management in Odontoiatria. Sessione in presenza e webinar del 12 Dicembre 2026. Rilascio di certificazione accademica ufficiale.',
+                link: 'index.html#san-raffaele',
+                extra: 'Data: 12 Dicembre 2026 &middot; Sede: Milano / Webinar &middot; Dental School UniSR.'
+            },
+            {
+                id: 'unicatt',
+                faIcon: '\uf19c',
+                faClass: 'fa-solid fa-building-columns',
+                name: 'Uni. Cattolica del Sacro Cuore, Roma',
+                cluster: 'PARTNER',
+                color: '#4f46e5',
+                desc: 'Master Universitario di II Livello in Sviluppo e Gestione Strategica del Mercato in Odontoiatria. Sessione in presenza del 27 Febbraio 2027 a Roma.',
+                link: 'index.html#cattolica',
+                extra: 'Data: 27 Febbraio 2027 &middot; Sede: Roma (in presenza) &middot; Master II Livello.'
+            },
+            {
+                id: 'arianto',
+                faIcon: '\uf0c0',
+                faClass: 'fa-solid fa-users',
+                name: 'Arianto Consulting S.r.l.',
+                cluster: 'PARTNER',
+                color: '#0284c7',
+                desc: 'Società di consulenza strategica e direzione scientifica del corso. Presidio dell\'inquadramento economico, del controllo di gestione consolidato e della tariffazione a margine reale.',
+                extra: 'Direzione Scientifica: Dott.ssa Cristina Arianto &middot; Controllo di Gestione Odontoiatrico.'
+            },
+            {
+                id: 'trinai',
+                faIcon: '\uf085',
+                faClass: 'fa-solid fa-gears',
+                name: 'TrinAI S.r.l. (Software Factory)',
+                cluster: 'PARTNER',
+                color: '#0f172a',
+                desc: 'Startup innovativa e software factory proprietaria dell\'architettura SiTeBoS. Fornisce l\'infrastruttura tecnologica, i modelli agentici e il runtime del SiteBoS Clinic Agent.',
+                extra: 'Sede Legale: Palermo &middot; P.IVA 07335120825 &middot; Architettura Agentica Sovrana.'
+            },
+
+            // I 4 PILASTRI FORMATIVI
+            {
+                id: 'pilastro_1',
+                faIcon: '\uf201',
+                faClass: 'fa-solid fa-chart-line',
+                name: 'Pilastro 1: Decision Intelligence & Modelli Predittivi',
+                cluster: 'PILASTR',
+                color: '#091322',
+                desc: 'Dalla telemetria descrittiva passiva ai modelli predittivi: comprendere l\'incertezza operativa, calcolare impatti probabilistici su volumi e saturazione e superare i cruscotti statici.',
+                extra: 'Ore d\'aula: 09:00 - 11:00 &middot; Esercitazione su curve di saturazione cabina.'
+            },
+            {
+                id: 'pilastro_2',
+                faIcon: '\uf53a',
+                faClass: 'fa-solid fa-money-bill-trend-up',
+                name: 'Pilastro 2: Stress-Test Economico & Tariffazione a Margine',
+                cluster: 'PILASTR',
+                color: '#091322',
+                desc: 'Scomposizione del costo orario reale di poltrona/riunito, assorbimento dei costi indiretti e calcolo del margine di contribuzione. Simulazione dinamica di shock inflattivi e aumenti materiali.',
+                extra: 'Ore d\'aula: 11:15 - 13:00 &middot; Modello di stress test su tariffario e costi primi.'
+            },
+            {
+                id: 'pilastro_3',
+                faIcon: '\uf542',
+                faClass: 'fa-solid fa-robot',
+                name: 'Pilastro 3: Agenti AI Autonomi & Strumenti su Misura',
+                cluster: 'PILASTR',
+                color: '#091322',
+                desc: 'Oltre i chatbot generalisti: progettazione e generazione di piccoli agenti software verticali per lo studio. Automazione dei flussi decisionali extra-clinici senza scrivere codice.',
+                extra: 'Ore d\'aula: 14:00 - 16:00 &middot; Laboratorio pratico: generazione guidata di 1 micro-agente.'
+            },
+            {
+                id: 'pilastro_4',
+                faIcon: '\uf3ed',
+                faClass: 'fa-solid fa-shield-halved',
+                name: 'Pilastro 4: Governance, Audit & Sovranità Dati (AI Act UE)',
+                cluster: 'PILASTR',
+                color: '#091322',
+                desc: 'Inquadramento del Regolamento UE 2024/1689 (AI Act) e DPIA art. 35 GDPR. Garanzie di scrutinabilità algoritmica, assenza di allucinazioni e isolamento assoluto dai dati sanitari.',
+                extra: 'Ore d\'aula: 16:15 - 18:00 &middot; DPIA, FRIA, checklist conformità e consegna attestati.'
+            },
+
+            // LE 12 FUNZIONI DEL SITEBOS CLINIC AGENT
+            { id: 'f01', faIcon: '\uf0e4', faClass: 'fa-solid fa-gauge-high', name: '01. Dashboard KPI Extra-Clinici', cluster: 'AGENT', desc: 'Cruscotto telemetrico dei flussi operativi dello studio con scostamenti in tempo reale.' },
+            { id: 'f02', faIcon: '\uf295', faClass: 'fa-solid fa-percent', name: '02. Tariffazione a Margine Reale', cluster: 'AGENT', desc: 'Calcolo deterministico del margine di contribuzione per ciascuna procedura del tariffario.' },
+            { id: 'f03', faIcon: '\uf525', faClass: 'fa-solid fa-fire-flame-curved', name: '03. Stress-Test Economico Dinamico', cluster: 'AGENT', desc: 'Simulatore per sottoporre lo studio a scenari di shock: rincaro fornitori, flessione accessi.' },
+            { id: 'f04', faIcon: '\uf017', faClass: 'fa-solid fa-clock', name: '04. Costo Orario Riunito e Poltrona', cluster: 'AGENT', desc: 'Misurazione analitica del costo fisso minuto per ciascuna cabina o unità operativa.' },
+            { id: 'f05', faIcon: '\uf200', faClass: 'fa-solid fa-chart-pie', name: '05. Simulazione Volumi & Saturazione', cluster: 'AGENT', desc: 'Modellazione del punto di pareggio e saturazione ideale senza sovraccaricare il team.' },
+            { id: 'f06', faIcon: '\uf073', faClass: 'fa-solid fa-calendar-days', name: '06. Ottimizzazione Slot Agenda & No-Show', cluster: 'AGENT', desc: 'Riduzione delle disdette dell\'ultimo minuto e ottimizzazione della capienza oraria.' },
+            { id: 'f07', faIcon: '\uf4c0', faClass: 'fa-solid fa-coins', name: '07. Previsione Flussi di Cassa', cluster: 'AGENT', desc: 'Previsione rolling dei flussi monetari in entrata/uscita a 30, 60 e 90 giorni.' },
+            { id: 'f08', faIcon: '\uf071', faClass: 'fa-solid fa-triangle-exclamation', name: '08. Matrice di Rischio Clinica', cluster: 'AGENT', desc: 'Mappa dei rischi d\'impresa, conformità sicurezza sul lavoro e responsabilità civile.' },
+            { id: 'f09', faIcon: '\uf21b', faClass: 'fa-solid fa-user-shield', name: '09. Audit GDPR & Conformità Privacy', cluster: 'AGENT', desc: 'Verifica della tenuta del registro trattamenti e conformità delle comunicazioni extra-cliniche.' },
+            { id: 'f10', faIcon: '\uf1c1', faClass: 'fa-solid fa-file-invoice', name: '10. Report Direzionale Banche & Soci', cluster: 'AGENT', desc: 'Generazione automatica di dossier finanziari strutturati per istituti bancari e soci.' },
+            { id: 'f11', faIcon: '\uf4ad', faClass: 'fa-solid fa-comments', name: '11. Agente Sintesi Riunioni & Briefing', cluster: 'AGENT', desc: 'Trascrizione ed estrazione immediata di compiti e scadenze dai briefing con lo staff.' },
+            { id: 'f12', faIcon: '\uf002', faClass: 'fa-solid fa-magnifying-glass', name: '12. Ricerca Intelligente & Calcolatrice RAG', cluster: 'AGENT', desc: 'Motore RAG a zero allucinazioni che calcola i numeri invece di leggerli dai testi.', link: 'ricerca-intelligente.html' },
+
+            // REQUISITI & DELIVERABLES
+            {
+                id: 'kit_locale',
+                faIcon: '\uf109',
+                faClass: 'fa-solid fa-laptop-code',
+                name: 'Kit SiteBoS Clinic Agent Locale',
+                cluster: 'DELIVER',
+                color: '#059669',
+                desc: 'Pacchetto software completo consegnato su chiavetta o repository locale a ciascun corsista. Esecuzione sul proprio computer senza obbligo di cloud lock-in.',
+                link: 'cosa-ti-porti-a-casa.html'
+            },
+            {
+                id: 'zero_sanitari',
+                faIcon: '\uf484',
+                faClass: 'fa-solid fa-shield-virus',
+                name: 'Zero Dati Sanitari (Privacy By Design)',
+                cluster: 'DELIVER',
+                color: '#10b981',
+                desc: 'Vincolo architetturale non negoziabile: il corso e il kit trattano esclusivamente telemetria economico-organizzativa. Nessuna cartella clinica né dato sanitario trattato.',
+                link: 'requisiti-partecipazione.html#zero-dati-sanitari'
+            },
+            {
+                id: 'dataset_sintetico',
+                faIcon: '\uf1c0',
+                faClass: 'fa-solid fa-database',
+                name: 'Dataset Didattico Sintetico',
+                cluster: 'DELIVER',
+                color: '#64748b',
+                desc: 'Banca dati numerica realistica per simulare l\'intera gestione extra-clinica di uno studio odontoiatrico strutturato durante le 8 ore di laboratorio.'
+            },
+            {
+                id: 'certificazione',
+                faIcon: '\uf0a3',
+                faClass: 'fa-solid fa-award',
+                name: 'Certificazione Accademica Formale',
+                cluster: 'DELIVER',
+                color: '#d97706',
+                desc: 'Attestato universitario ufficiale rilasciato in base all\'edizione prescelta (UniSR San Raffaele o UniCatt Cattolica).'
+            }
+        ];
+
+        // CONNESSIONI E ARCHI
+        const courseEdges = [
+            // HUB -> ATENEI & PARTNER
+            { from: 'HUB_CORSO', to: 'unisr', label: 'Edizione Milano (Dic 2026)', color: { color: '#2563eb' }, width: 2.5 },
+            { from: 'HUB_CORSO', to: 'unicatt', label: 'Edizione Roma (Feb 2027)', color: { color: '#4f46e5' }, width: 2.5 },
+            { from: 'HUB_CORSO', to: 'arianto', label: 'Direzione Scientifica', color: { color: '#0284c7' }, width: 2 },
+            { from: 'HUB_CORSO', to: 'trinai', label: 'Architettura Software', color: { color: '#0f172a' }, width: 2 },
+
+            // HUB -> I 4 PILASTRI
+            { from: 'HUB_CORSO', to: 'pilastro_1', label: 'Pilastro 1', color: { color: '#091322' }, width: 2.5 },
+            { from: 'HUB_CORSO', to: 'pilastro_2', label: 'Pilastro 2', color: { color: '#091322' }, width: 2.5 },
+            { from: 'HUB_CORSO', to: 'pilastro_3', label: 'Pilastro 3', color: { color: '#091322' }, width: 2.5 },
+            { from: 'HUB_CORSO', to: 'pilastro_4', label: 'Pilastro 4', color: { color: '#091322' }, width: 2.5 },
+
+            // PILASTRI -> LE 12 FUNZIONI
+            { from: 'pilastro_1', to: 'f01', label: 'KPI Monitor' },
+            { from: 'pilastro_1', to: 'f05', label: 'Saturazione' },
+            { from: 'pilastro_1', to: 'f12', label: 'RAG Deterministico' },
+
+            { from: 'pilastro_2', to: 'f02', label: 'Margine Reale' },
+            { from: 'pilastro_2', to: 'f03', label: 'Simulatore Shock' },
+            { from: 'pilastro_2', to: 'f04', label: 'Costo Cabina' },
+            { from: 'pilastro_2', to: 'f07', label: 'Cash Flow' },
+
+            { from: 'pilastro_3', to: 'f06', label: 'No-Show Solver' },
+            { from: 'pilastro_3', to: 'f10', label: 'Dossier Banche' },
+            { from: 'pilastro_3', to: 'f11', label: 'Staff Briefing' },
+
+            { from: 'pilastro_4', to: 'f08', label: 'Matrice Rischi' },
+            { from: 'pilastro_4', to: 'f09', label: 'Audit GDPR' },
+
+            // DELIVERABLES & REQUISITI
+            { from: 'HUB_CORSO', to: 'kit_locale', label: 'Consegna a Ogni Corsista', color: { color: '#059669' }, width: 2 },
+            { from: 'HUB_CORSO', to: 'zero_sanitari', label: 'Vincolo Assoluto Sovrano', color: { color: '#10b981' }, width: 2 },
+            { from: 'HUB_CORSO', to: 'dataset_sintetico', label: 'Dati Esercitazione d\'Aula', color: { color: '#64748b' } },
+            { from: 'HUB_CORSO', to: 'certificazione', label: 'Titolo Finale Rilasciato', color: { color: '#d97706' } },
+
+            { from: 'dataset_sintetico', to: 'pilastro_2', label: 'Alimentazione Simulazioni' },
+            { from: 'kit_locale', to: 'f12', label: 'Motore di Ricerca Integrato' }
+        ];
+
+        let activeClusters = new Set(['HUB', 'PARTNER', 'PILASTR', 'AGENT', 'DELIVER']);
+
+        function initGraph() {
+            const container = document.getElementById('network-graph');
+            const formattedNodes = courseNodes.map(n => formatCourseNode(n));
+
+            nodesDataset = new vis.DataSet(formattedNodes);
+            edgesDataset = new vis.DataSet(courseEdges.map(e => ({
+                ...e,
+                color: {
+                    color: (e.color && e.color.color) ? e.color.color : '#94a3b8',
+                    highlight: '#1e293b',
+                    hover: '#0f172a'
+                },
+                width: e.width || 1.5,
+                smooth: { type: 'continuous' },
+                font: {
+                    color: '#0f172a',
+                    size: 9,
+                    face: 'Plus Jakarta Sans',
+                    align: 'top',
+                    strokeWidth: 3,
+                    strokeColor: '#ffffff'
+                },
+                arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+            })));
+
+            const data = { nodes: nodesDataset, edges: edgesDataset };
+
+            const options = {
+                physics: {
+                    solver: 'forceAtlas2Based',
+                    forceAtlas2Based: {
+                        gravitationalConstant: -100,
+                        centralGravity: 0.008,
+                        springLength: 85,
+                        springConstant: 0.1,
+                        avoidOverlap: 0.8
+                    },
+                    stabilization: { iterations: 180 }
+                },
+                interaction: {
+                    hover: true,
+                    dragNodes: true,
+                    zoomView: true,
+                    dragView: true
+                }
+            };
+
+            network = new vis.Network(container, data, options);
+
+            network.on('click', function (params) {
+                if (params.nodes.length > 0) {
+                    const nodeId = params.nodes[0];
+                    const nodeObj = courseNodes.find(n => n.id === nodeId);
+                    if (nodeObj) {
+                        openDrawer(nodeObj);
+                    }
+                } else {
+                    closeDrawer();
+                }
+            });
+        }
+
+        function formatCourseNode(n) {
+            const isHub = n.id === 'HUB_CORSO';
+            const isPilastro = n.cluster === 'PILASTR';
+            const isPartner = n.cluster === 'PARTNER';
+
+            let size = isHub ? 48 : (isPilastro || isPartner ? 34 : 26);
+            let fontSize = isHub ? 15 : (isPilastro || isPartner ? 12 : 10.5);
+            let iconColor = n.color || '#334155';
+
+            return {
+                id: n.id,
+                label: n.name,
+                shape: 'icon',
+                icon: {
+                    face: '"Font Awesome 6 Free"',
+                    code: n.faIcon || '\uf068',
+                    size: size,
+                    color: iconColor,
+                    weight: '900'
+                },
+                font: {
+                    color: '#091322',
+                    size: fontSize,
+                    face: 'Plus Jakarta Sans',
+                    fontBold: true,
+                    strokeWidth: 4,
+                    strokeColor: '#ffffff'
+                },
+                data: n
+            };
+        }
+
+        function openDrawer(data) {
+            const drawer = document.getElementById('node-drawer');
+            document.getElementById('drawer-title').innerText = data.name;
+            document.getElementById('drawer-desc').innerText = data.desc;
+
+            const badge = document.getElementById('drawer-badge');
+            if (data.cluster === 'HUB') {
+                badge.innerText = 'CORSO PRINCIPALE';
+                badge.className = 'px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-slate-900 text-white shrink-0';
+            } else if (data.cluster === 'PARTNER') {
+                badge.innerText = 'ATENEO & PARTNER';
+                badge.className = 'px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-blue-600 text-white shrink-0';
+            } else if (data.cluster === 'PILASTR') {
+                badge.innerText = 'PILASTRO DIDATTICO';
+                badge.className = 'px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-indigo-700 text-white shrink-0';
+            } else if (data.cluster === 'AGENT') {
+                badge.innerText = 'FUNZIONE CLINIC AGENT';
+                badge.className = 'px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-slate-800 text-white shrink-0';
+            } else if (data.cluster === 'DELIVER') {
+                badge.innerText = 'KIT & GARANZIE';
+                badge.className = 'px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider bg-emerald-700 text-white shrink-0';
+            }
+
+            const extraBox = document.getElementById('drawer-extra');
+            if (data.extra) {
+                extraBox.innerHTML = `<span class="font-bold text-slate-800 uppercase text-[9px] tracking-wider block">Note Operative:</span><p class="text-slate-600">${data.extra}</p>`;
+                extraBox.classList.remove('hidden');
+            } else {
+                extraBox.classList.add('hidden');
+            }
+
+            const linkBtn = document.getElementById('drawer-link');
+            linkBtn.href = data.link || 'index.html';
+
+            drawer.classList.remove('closed');
+        }
+
+        function closeDrawer() {
+            document.getElementById('node-drawer').classList.add('closed');
+        }
+
+        function toggleCluster(cluster) {
+            if (activeClusters.has(cluster)) {
+                activeClusters.delete(cluster);
+            } else {
+                activeClusters.add(cluster);
+            }
+
+            if (activeClusters.size === 0) {
+                activeClusters = new Set(['HUB', 'PARTNER', 'PILASTR', 'AGENT', 'DELIVER']);
+            }
+
+            updateFilterUI();
+            applyFilter();
+        }
+
+        function resetAllClusters() {
+            activeClusters = new Set(['HUB', 'PARTNER', 'PILASTR', 'AGENT', 'DELIVER']);
+            updateFilterUI();
+            applyFilter();
+        }
+
+        function updateFilterUI() {
+            ['HUB', 'PARTNER', 'PILASTR', 'AGENT', 'DELIVER'].forEach(k => {
+                const btn = document.getElementById(`btn-cluster-${k}`);
+                if (!btn) return;
+                if (activeClusters.has(k)) {
+                    btn.className = 'cluster-btn active w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all shadow-xs bg-slate-900 text-white ring-2 ring-slate-900';
+                } else {
+                    btn.className = 'cluster-btn w-10 h-10 rounded-xl flex flex-col items-center justify-center transition-all shadow-xs bg-white text-slate-400 hover:text-slate-700 border border-slate-200';
+                }
+            });
+        }
+
+        function applyFilter() {
+            const filteredNodes = courseNodes.filter(n => {
+                if (activeClusters.size === 5) return true;
+                return activeClusters.has(n.cluster);
+            });
+
+            const visibleIds = new Set(filteredNodes.map(n => n.id));
+            const filteredEdges = courseEdges.filter(e => visibleIds.has(e.from) && visibleIds.has(e.to));
+
+            nodesDataset.clear();
+            nodesDataset.add(filteredNodes.map(n => formatCourseNode(n)));
+
+            edgesDataset.clear();
+            edgesDataset.add(filteredEdges.map(e => ({
+                ...e,
+                color: {
+                    color: (e.color && e.color.color) ? e.color.color : '#94a3b8',
+                    highlight: '#1e293b',
+                    hover: '#0f172a'
+                },
+                width: e.width || 1.5,
+                smooth: { type: 'continuous' },
+                font: {
+                    color: '#0f172a',
+                    size: 9,
+                    face: 'Plus Jakarta Sans',
+                    align: 'top',
+                    strokeWidth: 3,
+                    strokeColor: '#ffffff'
+                },
+                arrows: { to: { enabled: true, scaleFactor: 0.5 } }
+            })));
+
+            if (network) {
+                setTimeout(() => {
+                    network.fit({
+                        animation: { duration: 500, easingFunction: 'easeInOutQuad' }
+                    });
+                }, 40);
+            }
+        }
+
+        function resetGraphView() {
+            resetAllClusters();
+            if (network) {
+                network.fit({
+                    animation: { duration: 600, easingFunction: 'easeInOutQuad' }
+                });
+            }
+        }
+
+        // MOTORE DI GENERAZIONE E STAMPA PDF DEL CORSO
+        function printCoursePDF() {
+            const printBox = document.getElementById('print-container');
+            if (!printBox) return;
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+
+            const agentFunctions = courseNodes.filter(n => n.cluster === 'AGENT');
+            const pilastri = courseNodes.filter(n => n.cluster === 'PILASTR');
+
+            printBox.innerHTML = `
+            <div class="p-8 max-w-4xl mx-auto font-sans text-slate-900 bg-white">
+                
+                <!-- HEADER ISTITUZIONALE CON LOGO TRINAI & EDI -->
+                <div class="border-b-2 border-slate-900 pb-5 mb-6 flex items-start justify-between">
+                    <div class="flex items-center gap-4">
+                        <img src="assets/trinai_logo.jpg" alt="TrinAI Logo" style="width:56px;height:56px;" class="rounded-2xl object-cover border border-slate-300 shrink-0">
+                        <div>
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-xs font-black uppercase tracking-widest px-2.5 py-0.5 bg-slate-900 text-white rounded">TRINAI EDUCATION</span>
+                                <span class="text-xs font-bold uppercase tracking-wider text-slate-600">Executive Decision Intelligence</span>
+                            </div>
+                            <h1 class="text-2xl font-black uppercase tracking-tight text-slate-900">Programma Didattico Ufficiale</h1>
+                            <p class="text-xs text-slate-600 mt-0.5">Management Extra Clinico in Odontoiatria &middot; Dossier Istituzionale</p>
+                        </div>
+                    </div>
+                    <div class="text-right text-[11px] leading-relaxed text-slate-700">
+                        <div class="font-extrabold text-slate-900 text-xs">TrinAI S.r.l.</div>
+                        <div class="text-[10px] text-slate-600">Trinacria Artificial Intelligence S.r.l.</div>
+                        <div class="font-semibold text-slate-800">Startup Innovativa &middot; P.IVA / C.F. 07335120825</div>
+                        <div>Via Giuseppe De Spuches, 11 &middot; 90141 Palermo (PA)</div>
+                        <div class="text-slate-600 font-medium">www.trinai.it &middot; info@trinai.it</div>
+                        <div class="text-[10px] text-slate-500 mt-1">Stampa: ${dateStr} ore ${timeStr}</div>
+                    </div>
+                </div>
+
+                <!-- 1. PRESENTAZIONE & ACCREDITAMENTO ACCADEMICO -->
+                <div class="print-card border border-slate-300 rounded-xl p-5 mb-6 bg-slate-50">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
+                        <h2 class="text-base font-black uppercase tracking-tight text-slate-900">1. Il Corso & Accreditamenti Universitari</h2>
+                        <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200">1 Giornata &middot; 8 Ore</span>
+                    </div>
+                    <p class="text-xs text-slate-700 leading-relaxed mb-4">
+                        Il corso <strong>Executive Decision Intelligence in Management Extra Clinico</strong> è progettato per colmare la distanza tra i sistemi gestionali tradizionali e le decisioni strategiche d'impresa. Attraverso modelli predittivi, calcolo dinamico dei margini reali e agenti AI task-oriented, i partecipanti acquisiscono la capacità di testare le decisioni prima di eseguirle.
+                    </p>
+                    <div class="grid grid-cols-2 gap-4 text-xs">
+                        <div class="bg-white border border-slate-200 rounded-lg p-3">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-blue-600 block mb-1">Edizione Milano &middot; UniSR</span>
+                            <div class="font-bold text-slate-900">Uni. Vita-Salute San Raffaele</div>
+                            <div class="text-slate-600 mt-0.5">Post Graduate Odontoiatria &middot; XI Edizione</div>
+                            <div class="font-semibold text-slate-800 mt-1"><i class="fas fa-calendar-day mr-1 text-slate-400"></i> 12 Dicembre 2026 (Presenza + Webinar)</div>
+                        </div>
+                        <div class="bg-white border border-slate-200 rounded-lg p-3">
+                            <span class="text-[10px] font-black uppercase tracking-wider text-indigo-600 block mb-1">Edizione Roma &middot; UniCatt</span>
+                            <div class="font-bold text-slate-900">Uni. Cattolica del Sacro Cuore</div>
+                            <div class="text-slate-600 mt-0.5">Master II Livello Sviluppo & Gestione Mercato</div>
+                            <div class="font-semibold text-slate-800 mt-1"><i class="fas fa-calendar-day mr-1 text-slate-400"></i> 27 Febbraio 2027 (In Presenza)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. I 4 PILASTRI FORMATIVI -->
+                <div class="mb-6">
+                    <div class="border-b-2 border-slate-900 pb-2 mb-3">
+                        <h2 class="text-sm font-black uppercase tracking-wider text-slate-900">2. I 4 Pilastri Didattici</h2>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        ${pilastri.map((p, idx) => `
+                        <div class="border border-slate-300 rounded-lg p-3.5 bg-white">
+                            <div class="flex items-center gap-2 mb-1.5">
+                                <span class="w-6 h-6 rounded-md bg-slate-900 text-white font-black text-xs flex items-center justify-center shrink-0">${idx + 1}</span>
+                                <h3 class="font-bold text-slate-900 leading-snug">${p.name.replace(/^Pilastro \d+: /, '')}</h3>
+                            </div>
+                            <p class="text-slate-600 leading-relaxed text-[11.5px]">${p.desc}</p>
+                            ${p.extra ? `<div class="mt-2 pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-medium">${p.extra}</div>` : ''}
+                        </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- 3. AGENDA ORARIA (8 ORE) -->
+                <div class="print-card mb-6" style="page-break-inside: avoid;">
+                    <div class="border-b-2 border-slate-900 pb-2 mb-3">
+                        <h2 class="text-sm font-black uppercase tracking-wider text-slate-900">3. Articolazione Oraria d'Aula (8 Ore Intensive)</h2>
+                    </div>
+                    <table class="w-full text-xs border border-slate-300 rounded-lg overflow-hidden border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900 text-white text-[11px] uppercase tracking-wider">
+                                <th class="p-2.5 text-left w-24">Orario</th>
+                                <th class="p-2.5 text-left w-52">Modulo Didattico</th>
+                                <th class="p-2.5 text-left">Obiettivo Operativo & Laboratorio</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200">
+                            <tr class="bg-slate-50">
+                                <td class="p-2.5 font-bold text-slate-900">09:00 - 11:00</td>
+                                <td class="p-2.5 font-bold text-slate-800">Decision Intelligence & Modelli Predittivi</td>
+                                <td class="p-2.5 text-slate-600">Dalla telemetria passiva ai modelli decisionali. Simulazione curve di saturazione cabina.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold text-slate-900">11:15 - 13:00</td>
+                                <td class="p-2.5 font-bold text-slate-800">Stress-Test & Tariffazione a Margine</td>
+                                <td class="p-2.5 text-slate-600">Calcolo costo orario reale poltrona/riunito, assorbimento indiretti e stress-test su inflazione.</td>
+                            </tr>
+                            <tr class="bg-slate-50">
+                                <td class="p-2.5 font-bold text-slate-900">14:00 - 16:00</td>
+                                <td class="p-2.5 font-bold text-slate-800">Agenti AI Autonomi & Generazione Strumenti</td>
+                                <td class="p-2.5 text-slate-600">Generazione guidata sul proprio computer di 1 micro-agente decisionale verticale.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-2.5 font-bold text-slate-900">16:15 - 18:00</td>
+                                <td class="p-2.5 font-bold text-slate-800">Governance, Audit & Sovranità Dati</td>
+                                <td class="p-2.5 text-slate-600">Quadro di conformità AI Act UE 2024/1689, DPIA art. 35 GDPR e rilascio attestati accademici.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- 4. IL KIT: LE 12 FUNZIONI DEL SITEBOS CLINIC AGENT -->
+                <div class="mb-6">
+                    <div class="border-b-2 border-slate-900 pb-2 mb-3 flex items-center justify-between">
+                        <h2 class="text-sm font-black uppercase tracking-wider text-slate-900">4. Le 12 Funzioni del SiteBoS Clinic Agent (Consegnato al Corsista)</h2>
+                        <span class="text-xs font-bold text-slate-600">Zero Cloud Lock-in &middot; Esecuzione Locale</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        ${agentFunctions.map(f => `
+                        <div class="border border-slate-300 rounded p-2.5 bg-white flex items-start gap-2.5">
+                            <span class="w-6 h-6 rounded bg-slate-100 border border-slate-200 text-slate-800 flex items-center justify-center shrink-0 text-xs">
+                                <i class="${f.faClass}"></i>
+                            </span>
+                            <div>
+                                <h4 class="font-bold text-slate-900 text-[11.5px]">${f.name}</h4>
+                                <p class="text-slate-600 text-[10.5px] leading-relaxed mt-0.5">${f.desc}</p>
+                            </div>
+                        </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- 5. GARANZIE DI COMPLIANCE, REQUISITI & ISCRIZIONE -->
+                <div class="print-card border border-slate-300 rounded-xl p-4 bg-slate-50 mb-6" style="page-break-inside: avoid;">
+                    <div class="grid grid-cols-3 gap-3 text-xs">
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-emerald-700 block mb-1">Zero Dati Sanitari</span>
+                            <p class="text-slate-600 text-[11px] leading-relaxed">
+                                Divieto assoluto di trattare cartelle cliniche. Il sistema modella unicamente metriche gestionali ed extra-cliniche.
+                            </p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-blue-700 block mb-1">Requisiti Tecnici</span>
+                            <p class="text-slate-600 text-[11px] leading-relaxed">
+                                Laptop personale (Mac/Windows) con browser moderno. Nessun software proprietario a pagamento richiesto.
+                            </p>
+                        </div>
+                        <div>
+                            <span class="text-[10px] font-black uppercase tracking-wider text-amber-700 block mb-1">Iscrizioni & Deadline</span>
+                            <p class="text-slate-600 text-[11px] leading-relaxed">
+                                Posti rigorosamente numerati. Chiusura candidature: <strong>31 Ottobre 2026</strong>. Candidature su www.trinai.it
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FOOTER ISTITUZIONALE TRINAI -->
+                <div class="border-t-2 border-slate-900 pt-3 text-center text-[10px] text-slate-600 flex justify-between items-center" style="page-break-inside: avoid;">
+                    <div>
+                        <strong class="text-slate-900">TrinAI S.r.l.</strong> (Trinacria Artificial Intelligence S.r.l.) &middot; P.IVA / C.F. 07335120825 &middot; Sede Legale: Via Giuseppe De Spuches, 11, Palermo
+                    </div>
+                    <div class="font-bold text-slate-900">
+                        www.trinai.it &middot; info@trinai.it
+                    </div>
+                </div>
+
+            </div>
+            `;
+
+            stampaDopoCaricamentoImmagini(printBox);
+        }
+
+        // Attende il caricamento di loghi e immagini prima di aprire la finestra di stampa
+        function stampaDopoCaricamentoImmagini(contenitore) {
+            const immagini = Array.from(contenitore.querySelectorAll('img'));
+            const attese = immagini.map(img => (img.complete && img.naturalWidth > 0)
+                ? Promise.resolve()
+                : new Promise(risolvi => { img.onload = risolvi; img.onerror = risolvi; }));
+            const limite = new Promise(risolvi => setTimeout(risolvi, 4000));
+            Promise.race([Promise.all(attese), limite]).then(() => {
+                const fontPronti = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+                fontPronti.then(() => setTimeout(() => window.print(), 150));
+            });
+        }
+
+        window.onload = function () {
+            initGraph();
+        };
+    </script>
+</body>
+
+</html>
