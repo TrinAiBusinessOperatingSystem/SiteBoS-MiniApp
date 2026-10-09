@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
   <title>SiTeBoS — Accesso Cliente</title>
   
   <!-- Telegram WebApp SDK -->
@@ -11,9 +12,12 @@
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Google Fonts & FontAwesome -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Google Fonts Inter & FontAwesome -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- TrinAI MiniApp Design System Theme -->
+  <link rel="stylesheet" href="telegram_control/trinai_miniapp_theme.css">
   
   <style>
     * {
@@ -25,30 +29,22 @@
       height: 100dvh;
       margin: 0;
       padding: 0;
-      background: #090d16;
-      color: #ffffff;
-      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: #f8fafc;
+      color: #0f172a;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overflow: hidden;
       user-select: none;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+      font-synthesis: none;
     }
     :root {
-      --accent: #229ED9;
+      --accent: #0f172a;
       --accent-text: #ffffff;
-      --accent-glow: rgba(34, 158, 217, 0.35);
-      --accent-subtle: rgba(34, 158, 217, 0.12);
-      --accent-border: rgba(34, 158, 217, 0.25);
-    }
-    .glass-card {
-      background: rgba(17, 24, 39, 0.75);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .btn-glow {
-      box-shadow: 0 0 25px var(--accent-glow);
-    }
-    .btn-glow:active {
-      box-shadow: 0 0 10px var(--accent-glow);
+      --accent-glow: rgba(15, 23, 42, 0.15);
+      --accent-subtle: #f1f5f9;
+      --accent-border: #cbd5e1;
     }
     .accent-bg {
       background-color: var(--accent) !important;
@@ -60,23 +56,12 @@
     .accent-border {
       border-color: var(--accent) !important;
     }
-    .spinner-accent {
-      border-color: var(--accent-subtle);
-      border-top-color: var(--accent) !important;
-    }
-    @keyframes pulseGlow {
-      0%, 100% { opacity: 0.8; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.02); }
-    }
-    .pulse-subtle {
-      animation: pulseGlow 3s ease-in-out infinite;
-    }
   </style>
 </head>
 <body class="flex flex-col justify-between">
 
   <!-- Pulsante di Uscita X Fisso in Alto a Destra -->
-  <button id="exitButton" aria-label="Chiudi applicazione" class="fixed top-4 right-4 z-50 w-11 h-11 rounded-full bg-white/10 backdrop-blur border border-white/15 text-white/80 hover:text-white flex items-center justify-center transition active:scale-95 shadow-lg">
+  <button id="exitButton" aria-label="Chiudi applicazione" class="fixed top-4 right-4 z-50 twa-exit-btn">
     <i class="fa-solid fa-xmark text-lg"></i>
   </button>
 
@@ -85,11 +70,8 @@
     
     <!-- STATO 1: Caricamento Iniziale -->
     <div id="stateLoading" class="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
-      <div class="relative w-20 h-20 flex items-center justify-center">
-        <div class="absolute inset-0 rounded-full border-2 spinner-accent animate-spin"></div>
-        <i class="fa-solid fa-bolt text-2xl accent-text"></i>
-      </div>
-      <p class="text-slate-300 font-medium text-base mt-2">Caricamento attività in corso...</p>
+      <div class="twa-spinner"></div>
+      <p class="text-slate-800 font-semibold text-base mt-2">Caricamento attività in corso...</p>
       <p class="text-slate-500 text-xs">Connessione sicura all'ecosistema SiTeBoS</p>
     </div>
 
@@ -97,46 +79,46 @@
     <div id="stateProfile" class="hidden flex-1 flex flex-col justify-between w-full h-full overflow-hidden">
       
       <!-- Sezione Superiore: Immagine Hero Cover -->
-      <div class="relative w-full h-[45%] min-h-[200px] overflow-hidden bg-slate-900">
+      <div class="relative w-full h-[45%] min-h-[200px] overflow-hidden bg-slate-100">
         <img id="ownerPhoto" class="w-full h-full object-cover" alt="Foto Attività" style="display: none;" />
         <!-- Fallback visuale foto di copertina -->
-        <div id="ownerPhotoFallback" class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-[#090d16]">
-          <i class="fa-solid fa-store text-5xl text-slate-700"></i>
+        <div id="ownerPhotoFallback" class="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200">
+          <i class="fa-solid fa-store text-5xl text-slate-400"></i>
         </div>
-        <!-- Gradient Overlay per fusione perfetta col fondo scuro -->
-        <div class="absolute inset-0 bg-gradient-to-t from-[#090d16] via-[#090d16]/40 to-transparent"></div>
+        <!-- Gradient Overlay per fusione morbida col fondo chiaro -->
+        <div class="absolute inset-0 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc]/50 to-transparent"></div>
       </div>
 
       <!-- Sezione Centrale: Logo Badge Sovrapposto + Ragione Sociale -->
       <div class="relative -mt-16 flex flex-col items-center px-6 text-center z-10">
         
-        <!-- Logo Badge con cornice luminosa -->
-        <div class="w-24 h-24 rounded-2xl overflow-hidden border-4 border-[#090d16] bg-[#111827] shadow-2xl flex items-center justify-center relative">
+        <!-- Logo Badge con cornice bianca pulita -->
+        <div class="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white bg-white shadow-md flex items-center justify-center relative">
           <img id="ownerLogo" class="w-full h-full object-cover" alt="Logo Azienda" style="display: none;" />
-          <div id="ownerLogoFallback" class="w-full h-full flex items-center justify-center bg-slate-800 accent-text">
+          <div id="ownerLogoFallback" class="w-full h-full flex items-center justify-center bg-slate-100 text-slate-700">
             <i class="fa-solid fa-building text-3xl"></i>
           </div>
         </div>
 
         <!-- Titolo Attività (Ragione Sociale) -->
-        <h1 id="ownerName" class="mt-4 text-2xl font-extrabold tracking-tight text-white px-2"></h1>
+        <h1 id="ownerName" class="mt-4 text-2xl font-extrabold tracking-tight text-slate-900 px-2"></h1>
         
         <!-- Sottotitolo Istituzionale -->
-        <p id="ownerDescription" class="mt-2 text-slate-400 text-sm max-w-xs leading-relaxed">
+        <p id="ownerDescription" class="mt-2 text-slate-600 text-sm max-w-xs leading-relaxed">
           Benvenuto nel canale ufficiale. Abilita la nostra applicazione per accedere a tutti i servizi in tempo reale.
         </p>
 
         <!-- Badge di Sicurezza e Privacy -->
-        <div class="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs">
-          <i class="fa-solid fa-shield-halved text-emerald-400 text-xs"></i>
+        <div class="mt-4 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-slate-200 text-slate-700 text-xs shadow-xs">
+          <i class="fa-solid fa-shield-halved text-emerald-600 text-xs"></i>
           <span>Canale Verificato Telegram</span>
         </div>
       </div>
 
       <!-- Sezione Inferiore: Pulsante Azione Primaria (CTA) -->
       <div class="p-6 pb-8 w-full z-10">
-        <button id="connectButton" class="w-full py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 btn-glow pulse-subtle active:scale-[0.98] transition-transform duration-150 accent-bg">
-          <i class="fa-brands fa-telegram text-2xl"></i>
+        <button id="connectButton" class="twa-btn-primary w-full text-base font-semibold rounded-xl shadow-sm accent-bg">
+          <i class="fa-brands fa-telegram text-xl"></i>
           <span>Abilita la Nostra App</span>
         </button>
         <p class="text-center text-slate-500 text-xs mt-3">
@@ -148,31 +130,31 @@
 
     <!-- STATO 3: Errore (P.IVA Mancante / Non Trovata / Rete) -->
     <div id="stateError" class="hidden flex-1 flex flex-col items-center justify-center gap-5 px-8 text-center">
-      <div class="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-3xl">
+      <div class="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 text-3xl">
         <i class="fa-solid fa-triangle-exclamation"></i>
       </div>
       <div>
-        <h2 class="text-lg font-bold text-white mb-2">Accesso Non Riuscito</h2>
-        <p id="errorMessage" class="text-slate-400 text-sm leading-relaxed max-w-sm"></p>
+        <h2 class="text-lg font-bold text-slate-900 mb-2">Accesso Non Riuscito</h2>
+        <p id="errorMessage" class="text-slate-600 text-sm leading-relaxed max-w-sm"></p>
       </div>
-      <button onclick="window.location.reload()" class="mt-4 px-6 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-sm font-semibold text-slate-200 transition">
+      <button onclick="window.location.reload()" class="mt-4 twa-btn-secondary px-6 py-2.5 rounded-xl text-sm font-semibold">
         <i class="fa-solid fa-rotate-right mr-2"></i> Riprova
       </button>
     </div>
 
     <!-- STATO 4: Blocco Dispositivi Desktop (Mobile-Only) -->
     <div id="stateMobileOnly" class="hidden flex-1 flex flex-col items-center justify-center gap-5 px-8 text-center">
-      <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl accent-text" style="background-color: var(--accent-subtle); border: 1px solid var(--accent-border);">
+      <div class="w-20 h-20 rounded-2xl flex items-center justify-center text-3xl text-slate-800 bg-slate-100 border border-slate-200">
         <i class="fa-solid fa-mobile-screen-button"></i>
       </div>
       <div>
-        <h2 class="text-xl font-bold text-white mb-2">Esperienza Smartphone</h2>
-        <p class="text-slate-400 text-sm leading-relaxed max-w-xs mx-auto">
+        <h2 class="text-xl font-bold text-slate-900 mb-2">Esperienza Smartphone</h2>
+        <p class="text-slate-600 text-sm leading-relaxed max-w-xs mx-auto">
           Questa applicazione è progettata per offrirti la massima fluidità direttamente sul tuo smartphone.
         </p>
       </div>
-      <div class="p-4 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-400 max-w-xs">
-        <i class="fa-solid fa-qrcode mr-1 accent-text"></i>
+      <div class="p-4 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 max-w-xs shadow-xs">
+        <i class="fa-solid fa-qrcode mr-1 text-slate-800"></i>
         Inquadra il codice QR o apri il link dal tuo telefono per continuare.
       </div>
     </div>
