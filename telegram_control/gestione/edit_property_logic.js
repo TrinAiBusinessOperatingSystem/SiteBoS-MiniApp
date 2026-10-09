@@ -11,7 +11,7 @@
 
     if (tg) {
         if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
-        if (tg.setBackgroundColor) tg.setBackgroundColor('#fafafa');
+        if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
         tg.ready();
         tg.expand();
         if (tg.disableVerticalSwipes) tg.disableVerticalSwipes();
