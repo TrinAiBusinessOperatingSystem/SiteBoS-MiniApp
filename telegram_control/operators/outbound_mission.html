@@ -1,89 +1,94 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta color-scheme="light">
+    <meta name="color-scheme" content="light">
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>SiTeBoS | Console Missione Outbound</title>
+    
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="twa_guard.js"></script>
     <script src="offline_queue.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../trinai_miniapp_theme.css">
     
     <style>
         body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #ffffff;
-            color: #0f172a;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--surface-bg, #f8fafc);
+            color: var(--text-primary, #0f172a);
             touch-action: manipulation;
+            -webkit-font-smoothing: antialiased;
         }
 
         .step-active {
             border-color: #0f172a;
             background-color: #0f172a;
             color: #ffffff;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
         }
 
         .step-completed {
-            border-color: #000000;
-            background-color: #f1f5f9;
-            color: #000000;
+            border-color: #e2e8f0;
+            background-color: #ffffff;
+            color: #0f172a;
         }
 
         #signature-canvas {
             touch-action: none;
             background-color: #ffffff;
-            border: 2px dashed #cbd5e1;
-            border-radius: 1rem;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
         }
     </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between p-4 max-w-md mx-auto bg-white text-slate-900 selection:bg-slate-900 selection:text-white">
+<body class="min-h-screen flex flex-col justify-between p-4 max-w-md mx-auto bg-slate-50 text-slate-900 selection:bg-slate-900 selection:text-white">
 
-    <!-- HEADER STRATEGICO MISSIONE (100% LIGHT TAILWIND) -->
-    <header class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 backdrop-blur shadow-sm">
+    <!-- HEADER STRATEGICO MISSIONE -->
+    <header class="bg-white border border-slate-200 rounded-xl p-4 mb-4 shadow-xs">
         <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
-                <span class="text-[10px] font-black text-white bg-slate-900 px-2.5 py-0.5 rounded-full uppercase">
+                <span class="text-[10px] font-black text-white bg-slate-900 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     🚚 Missione Outbound
                 </span>
                 <div id="offline-sync-badge" class="hidden"></div>
             </div>
             <span id="mission-batch-id" class="text-xs font-mono font-bold text-slate-400">#BATCH-CARICAMENTO...</span>
         </div>
-        <h1 id="mission-client-name" class="text-base font-black text-slate-900">Caricamento Missione...</h1>
-        <p id="mission-address" class="text-xs text-slate-600 mt-0.5"><i class="fa-solid fa-location-dot text-slate-900 mr-1"></i>Indirizzo in fase di recupero...</p>
+        <h1 id="mission-client-name" class="text-base font-black text-slate-900 tracking-tight">Caricamento Missione...</h1>
+        <p id="mission-address" class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-location-dot text-slate-900 mr-1"></i>Indirizzo in fase di recupero...</p>
     </header>
 
     <!-- STEPPER DI PROGRESSIONE 4 FASI -->
     <div class="grid grid-cols-4 gap-1.5 mb-5">
-        <div id="step-btn-1" class="step-active text-center py-2 px-1 rounded-xl border border-slate-900 text-[10px] font-black transition-all">
+        <div id="step-btn-1" class="step-active text-center py-2 px-1 rounded-lg border border-slate-900 text-[10px] font-black uppercase tracking-wider transition-all">
             1. BOM
         </div>
-        <div id="step-btn-2" class="text-center py-2 px-1 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-bold transition-all">
+        <div id="step-btn-2" class="text-center py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-500 text-[10px] font-bold uppercase tracking-wider transition-all">
             2. NAV
         </div>
-        <div id="step-btn-3" class="text-center py-2 px-1 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-bold transition-all">
+        <div id="step-btn-3" class="text-center py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-500 text-[10px] font-bold uppercase tracking-wider transition-all">
             3. GPS
         </div>
-        <div id="step-btn-4" class="text-center py-2 px-1 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-[10px] font-bold transition-all">
+        <div id="step-btn-4" class="text-center py-2 px-1 rounded-lg border border-slate-200 bg-white text-slate-500 text-[10px] font-bold uppercase tracking-wider transition-all">
             4. FIX
         </div>
     </div>
 
-    <!-- MAIN CONTENT CONTAINERS (4 VISTE SEQUENZIALI LIGHT) -->
+    <!-- MAIN CONTENT CONTAINERS (4 VISTE SEQUENZIALI) -->
     <main class="flex-1 space-y-4">
         
         <!-- STEP 1: BOM CHECK (CARICO MEZZO) -->
         <section id="view-step-1" class="space-y-3">
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
+            <div class="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-xs">
                 <div class="flex items-center justify-between">
-                    <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">📦 Spunta Carico Furgone (BOM)</h2>
-                    <span class="text-[10px] text-slate-900 font-bold" id="bom-progress-text">0 / 0 spuntati</span>
+                    <h2 class="text-xs font-black text-slate-900 uppercase tracking-widest">📦 Spunta Carico Furgone (BOM)</h2>
+                    <span class="text-[10px] text-slate-900 font-bold uppercase tracking-wider" id="bom-progress-text">0 / 0 spuntati</span>
                 </div>
-                <p class="text-xs text-slate-600 leading-relaxed">Conferma di aver caricato a bordo tutti i materiali e prodotti prima di avviare il veicolo.</p>
+                <p class="text-xs text-slate-500 leading-relaxed">Conferma di aver caricato a bordo tutti i materiali e prodotti prima di avviare il veicolo.</p>
                 
                 <div id="bom-items-container" class="space-y-2 pt-2">
                     <div class="text-center py-4 text-xs text-slate-400 font-medium">
@@ -95,15 +100,15 @@
 
         <!-- STEP 2: TRASFERTA & NAVIGAZIONE GPS -->
         <section id="view-step-2" class="hidden space-y-3">
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 text-center space-y-4 shadow-sm">
-                <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center mx-auto text-xl shadow">
+            <div class="bg-white border border-slate-200 rounded-xl p-4 text-center space-y-4 shadow-xs">
+                <div class="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center mx-auto text-xl shadow-xs">
                     <i class="fa-solid fa-route"></i>
                 </div>
                 <div>
-                    <h2 class="text-sm font-black text-slate-900 mb-1">Avvia Navigazione Google Maps</h2>
-                    <p class="text-xs text-slate-600">Percorso calcolato dall'AI Route Solver per la massima efficienza di corsa.</p>
+                    <h2 class="text-sm font-black text-slate-900 mb-1 tracking-tight">Avvia Navigazione Google Maps</h2>
+                    <p class="text-xs text-slate-500">Percorso calcolato dall'AI Route Solver per la massima efficienza di corsa.</p>
                 </div>
-                <a id="btn-open-maps" href="https://maps.google.com" target="_blank" class="block w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black text-xs rounded-xl shadow transition-all no-underline">
+                <a id="btn-open-maps" href="https://maps.google.com" target="_blank" class="block w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-xs transition-all no-underline">
                     🗺️ APRI NAVIGATORE GOOGLE MAPS
                 </a>
             </div>
@@ -111,15 +116,15 @@
 
         <!-- STEP 3: CHECK-IN GPS SUL POSTO (50m) -->
         <section id="view-step-3" class="hidden space-y-3">
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 text-center space-y-4 shadow-sm">
-                <div class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center mx-auto text-xl shadow">
+            <div class="bg-white border border-slate-200 rounded-xl p-4 text-center space-y-4 shadow-xs">
+                <div class="w-12 h-12 rounded-lg bg-slate-900 text-white flex items-center justify-center mx-auto text-xl shadow-xs">
                     <i class="fa-solid fa-location-crosshairs"></i>
                 </div>
                 <div>
-                    <h2 class="text-sm font-black text-slate-900 mb-1">Convalida Presenza (Check-In GPS)</h2>
-                    <p class="text-xs text-slate-600">Devi trovarti entro 50 metri dall'indirizzo del cliente per sbloccare la firma.</p>
+                    <h2 class="text-sm font-black text-slate-900 mb-1 tracking-tight">Convalida Presenza (Check-In GPS)</h2>
+                    <p class="text-xs text-slate-500">Devi trovarti entro 50 metri dall'indirizzo del cliente per sbloccare la firma.</p>
                 </div>
-                <button id="btn-gps-checkin" onclick="performGpsCheckin()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black text-xs rounded-xl shadow transition-all flex items-center justify-center gap-2">
+                <button id="btn-gps-checkin" onclick="performGpsCheckin()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-xs transition-all flex items-center justify-center gap-2">
                     <i class="fa-solid fa-satellite-dish"></i>
                     <span>VERIFICA PROSSIMITÀ GPS (50m)</span>
                 </button>
@@ -129,16 +134,16 @@
 
         <!-- STEP 4: CHIUSURA PHYGITAL (FIRMA SU VETRO + FOTO RAPPORTINO) -->
         <section id="view-step-4" class="hidden space-y-4">
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-                <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">✍️ Firma Cliente su Vetro</h2>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-xs">
+                <h2 class="text-xs font-black text-slate-900 uppercase tracking-widest">✍️ Firma Cliente su Vetro</h2>
                 <canvas id="signature-canvas" width="320" height="150" class="w-full"></canvas>
-                <button onclick="clearSignature()" class="text-[10px] text-slate-500 underline">Cancella Firma</button>
+                <button onclick="clearSignature()" class="text-[10px] text-slate-500 hover:text-slate-900 underline uppercase tracking-wider">Cancella Firma</button>
             </div>
 
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-sm">
-                <h2 class="text-xs font-black text-slate-900 uppercase tracking-wider">📷 Foto Rapportino / Ricevuta Cartacea</h2>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 space-y-3 shadow-xs">
+                <h2 class="text-xs font-black text-slate-900 uppercase tracking-widest">📷 Foto Rapportino / Ricevuta Cartacea</h2>
                 <input type="file" id="camera-photo-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoSelect(event)">
-                <button onclick="document.getElementById('camera-photo-input').click()" class="w-full py-3 bg-slate-50 border border-slate-200 hover:border-slate-900 text-slate-900 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
+                <button onclick="document.getElementById('camera-photo-input').click()" class="w-full py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-lg flex items-center justify-center gap-2 transition-colors">
                     <i class="fa-solid fa-camera text-slate-900"></i>
                     <span id="photo-btn-text">Scatta Foto Rapportino</span>
                 </button>
@@ -149,7 +154,7 @@
 
     <!-- FOOTER NAVIGAZIONE STEP -->
     <footer class="pt-4 mt-auto">
-        <button id="btn-next-step" onclick="nextStep()" class="w-full py-3.5 bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider rounded-xl shadow transition-all flex items-center justify-center gap-2">
+        <button id="btn-next-step" onclick="nextStep()" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-xs transition-all flex items-center justify-center gap-2">
             <span>PROSEGUI</span>
             <i class="fa-solid fa-arrow-right"></i>
         </button>
