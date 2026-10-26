@@ -487,6 +487,11 @@
      * se qualcun altro lo stava già facendo. Fail-open per costruzione.
      */
     async function checkAndBlockIfOccupied(scope) {
+        if (!scope) return;
+        try {
+            if (sessionStorage.getItem('sitebos_presence_override_' + scope) === 'true') return;
+        } catch (_) {}
+
         const { occupied } = await checkOccupied(scope);
         if (!occupied) return;
 
@@ -508,6 +513,10 @@
                     </p>
                 </div>
                 <div class="space-y-3 pt-2">
+                    <button id="sitebos-occupied-force-btn" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-black text-xs py-3.5 px-4 rounded-xl transition shadow flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-lock-open text-base"></i>
+                        <span>Prendi il Controllo</span>
+                    </button>
                     <button id="sitebos-occupied-recheck-btn" class="w-full bg-slate-900 hover:bg-black active:scale-95 text-white font-black text-xs py-3.5 px-4 rounded-xl transition shadow flex items-center justify-center gap-2">
                         <i class="fa-solid fa-rotate text-base"></i>
                         <span>Ricontrolla adesso</span>
@@ -516,6 +525,17 @@
             </div>
         `;
         document.body.appendChild(overlay);
+
+        overlay.querySelector('#sitebos-occupied-force-btn')?.addEventListener('click', function () {
+            try {
+                sessionStorage.setItem('sitebos_presence_override_' + scope, 'true');
+                markPresent(scope);
+            } catch (_) {}
+            overlay.remove();
+            if (window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            }
+        });
 
         overlay.querySelector('#sitebos-occupied-recheck-btn').addEventListener('click', async function () {
             const result = await checkOccupied(scope);

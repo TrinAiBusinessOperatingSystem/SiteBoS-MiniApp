@@ -78,6 +78,9 @@
    */
   function isLockActiveOnOtherTab(scopeKey) {
     if (!scopeKey) return false;
+    if (sessionStorage.getItem(`sitebos_forced_lock_${scopeKey}`) === 'true') {
+      return false;
+    }
     const lockOwner = localStorage.getItem(`sitebos_lock_${scopeKey}`);
     const lastHeartbeat = parseInt(localStorage.getItem(`sitebos_hb_${scopeKey}`) || '0', 10);
     const now = Date.now();
@@ -207,11 +210,37 @@
 
               const targetScope = scopeToUnlock;
               if (targetScope) {
-                await forceReleaseCrossPlatformLock(targetScope);
-                localStorage.removeItem(`sitebos_lock_${targetScope}`);
-                localStorage.removeItem(`sitebos_hb_${targetScope}`);
+                // 1. Invia sblocco remoto in background
+                forceReleaseCrossPlatformLock(targetScope).catch(function () {});
+
+                // 2. Prendi titolarità esclusiva immediata locale
+                if (!currentTabId) {
+                  currentTabId = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+                }
+                activeScope = targetScope;
+                localStorage.setItem(`sitebos_lock_${targetScope}`, currentTabId);
+                localStorage.setItem(`sitebos_hb_${targetScope}`, Date.now().toString());
+                sessionStorage.setItem(`sitebos_forced_lock_${targetScope}`, 'true');
+
+                // 3. Avvia battito cardiaco locale e rinnovo remoto
+                if (heartbeatInterval) clearInterval(heartbeatInterval);
+                heartbeatInterval = setInterval(function () {
+                  if (activeScope) {
+                    localStorage.setItem(`sitebos_hb_${activeScope}`, Date.now().toString());
+                  }
+                }, 3000);
+
+                const ttlSeconds = targetScope === 'blueprint' ? 1200 : 300;
+                startRemoteLockRenewal(targetScope, ttlSeconds);
               }
-              window.location.reload();
+
+              // 4. Rimuovi subito l'overlay senza reload: accesso immediato
+              overlay.classList.add('hidden');
+              if (overlay.parentNode) overlay.remove();
+
+              if (tg && typeof tg.HapticFeedback?.notificationOccurred === 'function') {
+                tg.HapticFeedback.notificationOccurred('success');
+              }
             } catch (err) {
               console.error('[ForceUnlock] Error during force unlock:', err);
               if (tg && typeof tg.showAlert === 'function') {
@@ -289,6 +318,9 @@
       });
       const data = await res.json();
       if (data && data.blocked) {
+        if (sessionStorage.getItem(`sitebos_forced_lock_${scope}`) === 'true') {
+          return true; // Titolarità forzata: bypass blocco visivo
+        }
         if (data.scope === 'generating') {
           // Attivazione dell'overlay No-Edit per elaborazione AI attiva
           renderFriendlyLockOverlay(

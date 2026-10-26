@@ -532,6 +532,10 @@
                 </p>
             </div>
             <div class="space-y-3 pt-2">
+                <button onclick="forceTakeDeskBoardControl()" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-black text-xs py-3.5 px-4 rounded-xl transition shadow flex items-center justify-center gap-2 mb-2">
+                    <i class="fa-solid fa-lock-open text-base"></i>
+                    <span>Prendi il Controllo</span>
+                </button>
                 <button onclick="recheckDeskBoardOccupancy()" class="w-full bg-slate-900 hover:bg-black active:scale-95 text-white font-black text-xs py-3.5 px-4 rounded-xl transition shadow flex items-center justify-center gap-2">
                     <i class="fa-solid fa-rotate text-base"></i>
                     <span>Ricontrolla adesso</span>
@@ -621,8 +625,28 @@
          * Fail-open per costruzione (SiteBosDirtyGuard non blocca mai su
          * errori di rete/Ably): in caso di dubbio si preferisce operatività.
          */
+        function forceTakeDeskBoardControl() {
+            try {
+                sessionStorage.setItem("sitebos_desk_board_override", "true");
+                if (window.SiteBosDirtyGuard) {
+                    window.SiteBosDirtyGuard.markPresent(DESK_BOARD_PRESENCE_SCOPE);
+                }
+            } catch (_) {}
+            const overlay = document.getElementById("session-occupied-overlay");
+            if (overlay) overlay.classList.add("hidden");
+            refreshBoard();
+            if (window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred) {
+                window.Telegram.WebApp.HapticFeedback.notificationOccurred("success");
+            }
+        }
+
         async function recheckDeskBoardOccupancy() {
-            const overlay = document.getElementById('session-occupied-overlay');
+            const overlay = document.getElementById("session-occupied-overlay");
+            if (sessionStorage.getItem("sitebos_desk_board_override") === "true") {
+                if (overlay) overlay.classList.add("hidden");
+                await refreshBoard();
+                return true;
+            }
             if (!window.SiteBosDirtyGuard) {
                 await refreshBoard();
                 return true;

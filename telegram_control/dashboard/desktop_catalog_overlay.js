@@ -157,13 +157,30 @@
                         <p class="text-xs text-slate-300 font-medium mt-2 leading-relaxed" id="catalog-lock-reason-text">${reasonText}</p>
                         <p class="text-[11px] text-slate-400 font-normal mt-2 leading-snug">Non appena la sessione sull'altro dispositivo verrà completata o chiusa, potrai lavorare qui in totale tranquillità.</p>
                     </div>
-                    <button onclick="document.getElementById('sitebos-catalog-overlay-lock-blocker').remove()" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
-                        <i class="fas fa-times text-xs"></i>
-                        Chiudi
-                    </button>
+                    <div class="w-full flex flex-col gap-2.5 mt-1">
+                        <button id="sitebos-catalog-force-unlock-btn" class="w-full py-3 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+                            <i class="fas fa-lock-open text-xs"></i>
+                            🔓 Prendi il Controllo
+                        </button>
+                        <button onclick="document.getElementById('sitebos-catalog-overlay-lock-blocker').remove()" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition cursor-pointer flex items-center justify-center gap-2">
+                            <i class="fas fa-times text-xs"></i>
+                            Chiudi
+                        </button>
+                    </div>
                 </div>
             `;
             document.body.appendChild(blocker);
+
+            blocker.querySelector('#sitebos-catalog-force-unlock-btn')?.addEventListener('click', function () {
+                try {
+                    sessionStorage.setItem('sitebos_catalog_overlay_override', 'true');
+                    if (window.forceReleaseCrossPlatformLock) {
+                        window.forceReleaseCrossPlatformLock(OVERLAY_LOCK_SCOPE);
+                    }
+                } catch (_) {}
+                blocker.remove();
+                openCatalogOverlay(overlayMacro);
+            });
         } else {
             const reasonEl = blocker.querySelector('#catalog-lock-reason-text');
             if (reasonEl) reasonEl.textContent = reasonText;
@@ -397,25 +414,29 @@
     async function openCatalogOverlay(initialMacro) {
         initSessionParams();
 
-        // ── Check 1: Identity Master Lock (blocca tutto se identity aperta altrove) ──
-        if (isLockActiveOnOtherTab('identity')) {
-            showLockBlockedOverlay(
-                'Per garantire la sincronizzazione dei dati, la gestione del Catalogo non può essere aperta mentre la sezione <b>Identity & Setup</b> è in uso su un altro dispositivo.'
-            );
-            return;
-        }
+        const isOverridden = sessionStorage.getItem('sitebos_catalog_overlay_override') === 'true';
 
-        // ── Check 2: Catalog Domain Lock già attivo da un'altra scheda ─────────────
-        if (isLockActiveOnOtherTab(OVERLAY_LOCK_SCOPE)) {
-            showLockBlockedOverlay(
-                'Per garantire l\'integrità del listino, il <b>Catalogo</b> è già aperto ed operativo su un altro schermo o dispositivo.'
-            );
-            return;
-        }
+        if (!isOverridden) {
+            // ── Check 1: Identity Master Lock (blocca tutto se identity aperta altrove) ──
+            if (isLockActiveOnOtherTab('identity')) {
+                showLockBlockedOverlay(
+                    'Per garantire la sincronizzazione dei dati, la gestione del Catalogo non può essere aperta mentre la sezione <b>Identity & Setup</b> è in uso su un altro dispositivo.'
+                );
+                return;
+            }
 
-        // ── Check 3: Remote Cross-Platform Lock (n8n/MongoDB) — PC vs Smartphone ──
-        const crossPlatformAllowed = await tryOverlayCrossPlatformLock();
-        if (!crossPlatformAllowed) return;
+            // ── Check 2: Catalog Domain Lock già attivo da un'altra scheda ─────────────
+            if (isLockActiveOnOtherTab(OVERLAY_LOCK_SCOPE)) {
+                showLockBlockedOverlay(
+                    'Per garantire l\'integrità del listino, il <b>Catalogo</b> è già aperto ed operativo su un altro schermo o dispositivo.'
+                );
+                return;
+            }
+
+            // ── Check 3: Remote Cross-Platform Lock (n8n/MongoDB) — PC vs Smartphone ──
+            const crossPlatformAllowed = await tryOverlayCrossPlatformLock();
+            if (!crossPlatformAllowed) return;
+        }
 
         // ── Acquisisce il lock catalog per questa sessione overlay ───────────────
         acquireCatalogLock();
