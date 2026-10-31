@@ -23,17 +23,31 @@
 
     function getAsh() {
         try {
+            const urlParams = new URLSearchParams(window.location.search || '');
+            const urlAsh = urlParams.get('ash');
+            if (urlAsh && typeof urlAsh === 'string' && urlAsh.includes('.')) {
+                try { sessionStorage.setItem('sitebos_ash', urlAsh); } catch (_) {}
+                return urlAsh;
+            }
+        } catch (_) {}
+        try {
+            const stored = sessionStorage.getItem('sitebos_ash');
+            if (stored && typeof stored === 'string' && stored.includes('.')) return stored;
+        } catch (_) {}
+        try {
+            const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+            if (startParam && typeof startParam === 'string' && startParam.includes('.')) return startParam;
+        } catch (_) {}
+        try {
             const stored = sessionStorage.getItem('sitebos_access_token');
-            if (stored) return stored;
+            if (stored && typeof stored === 'string' && stored.includes('.')) return stored;
         } catch (_) {}
         try {
             const urlParams = new URLSearchParams(window.location.search || '');
             const urlAsh = urlParams.get('ash');
             if (urlAsh) return urlAsh;
         } catch (_) {}
-        try {
-            return window.Telegram?.WebApp?.initDataUnsafe?.start_param || '';
-        } catch (_) { return ''; }
+        return '';
     }
 
     function isMobilePlatform() {
@@ -82,7 +96,7 @@
 
     async function fetchAblyToken(scope) {
         const ash = getAsh();
-        if (!ash) throw new Error('ASH non disponibile per la richiesta token Ably.');
+        if (!ash || !ash.includes('.')) throw new Error('ASH valido con firma crittografica non disponibile per Ably.');
         const response = await fetch(REALTIME_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

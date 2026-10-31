@@ -444,14 +444,27 @@
 
   <script>
     'use strict';
-    const WEBHOOK_URL = "https://prod.workflow.trinai.it/webhook/8f148592-cbb9-4c72-96e8-73c08fccee43";
+    const WEBHOOK_URL = (function() {
+        if (window.location.hostname.includes('github.io')) {
+            return "https://prod.workflow.trinai.it/webhook/8f148592-cbb9-4c72-96e8-73c08fccee43";
+        }
+        return "/telegram/api/wh.php?w=wh_30";
+    })();
     const tg = window.Telegram.WebApp;
         if (tg.setHeaderColor) tg.setHeaderColor('#ffffff');
         if (tg.setBackgroundColor) tg.setBackgroundColor('#f8fafc');
     tg.ready(); tg.expand();
     
     const urlParams = new URLSearchParams(window.location.search);
-    const ash = urlParams.get('ash');
+    let ash = urlParams.get('ash');
+    if (!ash) {
+        try {
+            ash = sessionStorage.getItem('sitebos_ash') || sessionStorage.getItem('sitebos_access_token') || '';
+        } catch (_) {}
+    }
+    if (ash && ash.includes('.')) {
+        try { sessionStorage.setItem('sitebos_ash', ash); } catch (_) {}
+    }
 
     // STATE
     let allEvents = [];
@@ -1242,12 +1255,14 @@
         }
 
         const result = await apiCall('agenda_config_save', payload);
-        if (result && result.success) {
+        if (result && (result.success || result.status === 'success')) {
             tg.HapticFeedback.notificationOccurred('success');
             tg.showPopup({ message: "Configurazione salvata correttamente." });
             closeView();
             loadInitialData();
             loadRadarSummary();
+        } else {
+            tg.showAlert(result?.message || result?.error || "Errore durante il salvataggio della configurazione.");
         }
     }
 
